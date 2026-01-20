@@ -18,7 +18,7 @@ export function Layout({ children, activeTab, onTabChange, title, description }:
             <Sidebar activeTab={activeTab} onTabChange={onTabChange} />
 
             {/* Main Content Area */}
-            <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden transition-all">
+            <div className="flex flex-col flex-1 min-w-[500px] h-full overflow-hidden transition-all">
                 {/* Top Header */}
                 <Header title={title} description={description} />
 

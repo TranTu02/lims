@@ -21,19 +21,19 @@ const getStatusBadge = (status: Receipt["receiptStatus"]) => {
     switch (status) {
         case "Pending":
             return (
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                <Badge variant="outline" className="bg-blue-50/50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800">
                     Mới tiếp nhận
                 </Badge>
             );
         case "Processing":
             return (
-                <Badge variant="default" className="bg-orange-500">
+                <Badge variant="default" className="bg-orange-500 dark:bg-orange-600 hover:bg-orange-600">
                     Đang xử lý
                 </Badge>
             );
         case "Done":
             return (
-                <Badge variant="default" className="bg-green-500">
+                <Badge variant="default" className="bg-green-500 dark:bg-green-600 hover:bg-green-600">
                     Hoàn thành
                 </Badge>
             );
@@ -46,19 +46,19 @@ const getSampleStatusBadge = (status: Sample["sampleStatus"]) => {
     switch (status) {
         case "Received":
             return (
-                <Badge variant="outline" className="text-gray-600">
+                <Badge variant="outline" className="text-muted-foreground border-border">
                     Chờ xử lý
                 </Badge>
             );
         case "Analyzing":
             return (
-                <Badge variant="default" className="bg-blue-500">
+                <Badge variant="default" className="bg-blue-500 dark:bg-blue-600 hover:bg-blue-600">
                     Đang thực hiện
                 </Badge>
             );
         case "Stored":
             return (
-                <Badge variant="default" className="bg-green-500">
+                <Badge variant="default" className="bg-green-500 dark:bg-green-600 hover:bg-green-600">
                     Lưu kho
                 </Badge>
             );
@@ -140,13 +140,12 @@ export function SampleReception() {
             {selectedSample && (
                 <SampleDetailModal
                     sample={selectedSample}
+                    receipt={findReceiptById(selectedSample.receiptId)!}
                     onClose={() => setSelectedSample(null)}
-                    onReceiptClick={(receiptId) => {
-                        const receipt = findReceiptById(receiptId);
-                        if (receipt) {
-                            setSelectedReceipt(receipt);
-                            setSelectedSample(null);
-                        }
+                    onSave={(updatedSample) => {
+                        console.log("Saving sample", updatedSample);
+                        // Logic to update sample in global state/API would go here
+                        setSelectedSample(null);
                     }}
                 />
             )}
@@ -155,45 +154,60 @@ export function SampleReception() {
 
             {/* Header Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white rounded-lg border p-4">
-                    <div className="text-sm text-gray-500">Tổng phiếu tháng này</div>
-                    <div className="text-3xl font-semibold mt-1">{totalReceipts}</div>
+                <div className="bg-card rounded-lg border border-border p-4">
+                    <div className="text-sm text-muted-foreground">Tổng phiếu tháng này</div>
+                    <div className="text-3xl font-semibold mt-1 text-foreground">{totalReceipts}</div>
                 </div>
-                <div className="bg-white rounded-lg border p-4">
-                    <div className="text-sm text-gray-500">Phiếu quá hạn</div>
-                    <div className="text-3xl font-semibold mt-1 text-red-600">{overdueReceipts}</div>
+                <div className="bg-card rounded-lg border border-border p-4">
+                    <div className="text-sm text-muted-foreground">Phiếu quá hạn</div>
+                    <div className="text-3xl font-semibold mt-1 text-destructive">{overdueReceipts}</div>
                 </div>
-                <div className="bg-white rounded-lg border p-4">
-                    <div className="text-sm text-gray-500">Mẫu chưa gán KTV</div>
-                    <div className="text-3xl font-semibold mt-1 text-orange-600">{pendingSamples}</div>
+                <div className="bg-card rounded-lg border border-border p-4">
+                    <div className="text-sm text-muted-foreground">Mẫu chưa gán KTV</div>
+                    <div className="text-3xl font-semibold mt-1 text-orange-600 dark:text-orange-500">{pendingSamples}</div>
                 </div>
-                <div className="bg-white rounded-lg border p-4">
-                    <div className="text-sm text-gray-500">Chờ trả kết quả</div>
-                    <div className="text-3xl font-semibold mt-1 text-blue-600">{returnResultsCount}</div>
+                <div className="bg-card rounded-lg border border-border p-4">
+                    <div className="text-sm text-muted-foreground">Chờ trả kết quả</div>
+                    <div className="text-3xl font-semibold mt-1 text-blue-600 dark:text-blue-500">{returnResultsCount}</div>
                 </div>
             </div>
 
             {/* Tab Selection & Search */}
-            <div className="bg-white rounded-lg border p-4">
-                <div className="flex items-center justify-between gap-3">
-                    <div className="flex gap-2">
-                        <Button variant={activeTab === "orders" ? "default" : "outline"} onClick={() => setActiveTab("orders")} className="flex items-center gap-2">
+            <div className="bg-card rounded-lg border border-border p-4">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+                    <div className="flex gap-2 bg-muted/50 p-1 rounded-lg">
+                        <Button
+                            variant={activeTab === "orders" ? "secondary" : "ghost"}
+                            size="sm"
+                            onClick={() => setActiveTab("orders")}
+                            className={`flex items-center gap-2 ${activeTab === "orders" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}
+                        >
                             <Package className="h-4 w-4" />
                             Đơn hàng ({mockOrders.length})
                         </Button>
-                        <Button variant={activeTab === "processing" ? "default" : "outline"} onClick={() => setActiveTab("processing")} className="flex items-center gap-2">
+                        <Button
+                            variant={activeTab === "processing" ? "secondary" : "ghost"}
+                            size="sm"
+                            onClick={() => setActiveTab("processing")}
+                            className={`flex items-center gap-2 ${activeTab === "processing" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}
+                        >
                             <Package className="h-4 w-4" />
                             Đang xử lý ({allReceipts.length})
                         </Button>
-                        <Button variant={activeTab === "return-results" ? "default" : "outline"} onClick={() => setActiveTab("return-results")} className="flex items-center gap-2">
+                        <Button
+                            variant={activeTab === "return-results" ? "secondary" : "ghost"}
+                            size="sm"
+                            onClick={() => setActiveTab("return-results")}
+                            className={`flex items-center gap-2 ${activeTab === "return-results" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}
+                        >
                             <Truck className="h-4 w-4" />
                             Trả kết quả ({returnResults.length})
                         </Button>
                     </div>
-                    <div className="flex items-center gap-2 flex-1 max-w-md">
+                    <div className="flex items-center gap-2 flex-1 w-full md:w-auto md:max-w-md">
                         <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                            <Input placeholder="Tìm kiếm theo mã phiếu, khách hàng, mã mẫu..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input placeholder="Tìm kiếm theo mã phiếu, khách hàng, mã mẫu..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 bg-background" />
                         </div>
                         <Button variant="default" className="flex items-center gap-2" onClick={() => setIsCreateReceiptModalOpen(true)}>
                             <Plus className="h-4 w-4" />
@@ -238,17 +252,17 @@ export function SampleReception() {
 
             {/* Processing Tab */}
             {activeTab === "processing" && (
-                <div className="bg-white rounded-lg border overflow-hidden">
+                <div className="bg-card rounded-lg border border-border overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full">
-                            <thead className="bg-gray-50 border-b">
+                            <thead className="bg-muted/50 border-b border-border">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thông tin tiếp nhận</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mã mẫu</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên/TT Mẫu</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái mẫu</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Chỉ tiêu</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Thông tin tiếp nhận</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Trạng thái</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Mã mẫu</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Tên/TT Mẫu</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Trạng thái mẫu</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Chỉ tiêu</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
@@ -258,27 +272,27 @@ export function SampleReception() {
                                         <React.Fragment key={receipt.receiptId}>
                                             {receipt.samples.length > 0 ? (
                                                 receipt.samples.map((sample, sampleIndex) => (
-                                                    <tr key={sample.sampleId} className="hover:bg-gray-50">
+                                                    <tr key={sample.sampleId} className="hover:bg-accent/30 transition-colors">
                                                         {sampleIndex === 0 && (
-                                                            <td className="px-4 py-4 align-top border-r bg-gray-50/50" rowSpan={receipt.samples.length}>
+                                                            <td className="px-4 py-4 align-top border-r border-border bg-muted/20" rowSpan={receipt.samples.length}>
                                                                 <div className="space-y-1">
-                                                                    <button onClick={() => setSelectedReceipt(receipt)} className="font-semibold text-blue-600 hover:text-blue-700 hover:underline">
+                                                                    <button onClick={() => setSelectedReceipt(receipt)} className="font-semibold text-primary hover:text-primary/80 hover:underline">
                                                                         {receipt.receiptCode}
                                                                     </button>
-                                                                    <div className="text-sm text-gray-700">{receipt.client?.clientName}</div>
-                                                                    <div className="text-xs text-gray-500">
+                                                                    <div className="text-sm text-foreground">{receipt.client?.clientName}</div>
+                                                                    <div className="text-xs text-muted-foreground">
                                                                         {receipt.receiptDate.split("T")[0]} - {receipt.createdById}
                                                                     </div>
                                                                 </div>
                                                             </td>
                                                         )}
                                                         {sampleIndex === 0 && (
-                                                            <td className="px-4 py-4 align-top border-r bg-gray-50/50" rowSpan={receipt.samples.length}>
+                                                            <td className="px-4 py-4 align-top border-r border-border bg-muted/20" rowSpan={receipt.samples.length}>
                                                                 <div className="space-y-2">
                                                                     {getStatusBadge(receipt.receiptStatus)}
                                                                     <div className="flex items-center gap-2 text-sm">
-                                                                        <Clock className="h-3 w-3 text-gray-400" />
-                                                                        <span className="font-medium text-gray-900">{receipt.receiptDeadline.split("T")[0]}</span>
+                                                                        <Clock className="h-3 w-3 text-muted-foreground" />
+                                                                        <span className="font-medium text-foreground">{receipt.receiptDeadline.split("T")[0]}</span>
                                                                     </div>
                                                                     {daysLeft < 0 ? (
                                                                         <Badge variant="destructive" className="flex items-center gap-1 w-fit">
@@ -286,11 +300,14 @@ export function SampleReception() {
                                                                             Quá hạn!
                                                                         </Badge>
                                                                     ) : daysLeft <= 2 ? (
-                                                                        <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 w-fit">
+                                                                        <Badge
+                                                                            variant="outline"
+                                                                            className="bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800 w-fit"
+                                                                        >
                                                                             Còn {daysLeft} ngày
                                                                         </Badge>
                                                                     ) : (
-                                                                        <Badge variant="outline" className="text-gray-600 w-fit">
+                                                                        <Badge variant="outline" className="text-muted-foreground w-fit">
                                                                             Còn {daysLeft} ngày
                                                                         </Badge>
                                                                     )}
@@ -298,30 +315,30 @@ export function SampleReception() {
                                                             </td>
                                                         )}
                                                         <td className="px-4 py-3">
-                                                            <span className="font-medium text-gray-900 text-sm">{sample.sampleId}</span>
+                                                            <span className="font-medium text-foreground text-sm">{sample.sampleId}</span>
                                                         </td>
                                                         <td className="px-4 py-3">
-                                                            <span className="text-gray-700 text-sm">{sample.sampleClientInfo}</span>
-                                                            <div className="text-xs text-gray-500">{sample.sampleTypeName}</div>
+                                                            <span className="text-foreground text-sm">{sample.sampleClientInfo}</span>
+                                                            <div className="text-xs text-muted-foreground">{sample.sampleTypeName}</div>
                                                         </td>
                                                         <td className="px-4 py-3">{getSampleStatusBadge(sample.sampleStatus)}</td>
                                                         <td className="px-4 py-3">
-                                                            <div className="text-xs text-gray-500">{Math.floor(Math.random() * 5) + 1} chỉ tiêu</div>
+                                                            <div className="text-xs text-muted-foreground">{Math.floor(Math.random() * 5) + 1} chỉ tiêu</div>
                                                         </td>
                                                     </tr>
                                                 ))
                                             ) : (
                                                 <tr key={receipt.receiptId}>
-                                                    <td className="px-4 py-4 border-r bg-gray-50/50">
+                                                    <td className="px-4 py-4 border-r border-border bg-muted/20">
                                                         <div className="space-y-1">
-                                                            <button onClick={() => setSelectedReceipt(receipt)} className="font-semibold text-blue-600 hover:underline">
+                                                            <button onClick={() => setSelectedReceipt(receipt)} className="font-semibold text-primary hover:underline">
                                                                 {receipt.receiptCode}
                                                             </button>
-                                                            <div className="text-sm text-gray-700">{receipt.client?.clientName}</div>
+                                                            <div className="text-sm text-foreground">{receipt.client?.clientName}</div>
                                                         </div>
                                                     </td>
-                                                    <td className="px-4 py-4 border-r bg-gray-50/50">{getStatusBadge(receipt.receiptStatus)}</td>
-                                                    <td className="px-4 py-4 text-center text-gray-500" colSpan={4}>
+                                                    <td className="px-4 py-4 border-r border-border bg-muted/20">{getStatusBadge(receipt.receiptStatus)}</td>
+                                                    <td className="px-4 py-4 text-center text-muted-foreground" colSpan={4}>
                                                         Chưa có mẫu
                                                     </td>
                                                 </tr>
@@ -338,52 +355,52 @@ export function SampleReception() {
 
             {/* Return Results Tab */}
             {activeTab === "return-results" && (
-                <div className="bg-white rounded-lg border overflow-hidden">
+                <div className="bg-card rounded-lg border border-border overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full">
-                            <thead className="bg-gray-50 border-b">
+                            <thead className="bg-muted/50 border-b border-border">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thông tin tiếp nhận</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vận đơn</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hạn trả</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Liên hệ</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mẫu</th>
-                                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Thông tin tiếp nhận</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Vận đơn</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Hạn trả</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Liên hệ</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Mẫu</th>
+                                    <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">Thao tác</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200">
+                            <tbody className="divide-y divide-border">
                                 {filteredReturnResults.map((receipt) => {
                                     return (
-                                        <tr key={receipt.receiptId} className="hover:bg-gray-50">
+                                        <tr key={receipt.receiptId} className="hover:bg-accent/30 transition-colors">
                                             <td className="px-4 py-4">
                                                 <div className="space-y-1">
-                                                    <div className="font-semibold text-gray-900">{receipt.receiptCode}</div>
-                                                    <div className="text-sm text-gray-700">{receipt.client?.clientName}</div>
-                                                    <div className="text-xs text-gray-500">{receipt.receiptDate.split("T")[0]}</div>
+                                                    <div className="font-semibold text-foreground">{receipt.receiptCode}</div>
+                                                    <div className="text-sm text-foreground">{receipt.client?.clientName}</div>
+                                                    <div className="text-xs text-muted-foreground">{receipt.receiptDate.split("T")[0]}</div>
                                                 </div>
                                             </td>
                                             <td className="px-4 py-4">
                                                 {receipt.receiptTrackingNo ? (
                                                     <div className="flex items-center gap-2">
-                                                        <Truck className="h-3 w-3 text-green-600" />
-                                                        <span className="text-sm font-medium text-gray-900">{receipt.receiptTrackingNo}</span>
+                                                        <Truck className="h-3 w-3 text-green-600 dark:text-green-500" />
+                                                        <span className="text-sm font-medium text-foreground">{receipt.receiptTrackingNo}</span>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-sm text-gray-400">Chưa có vận đơn</span>
+                                                    <span className="text-sm text-muted-foreground">Chưa có vận đơn</span>
                                                 )}
                                             </td>
                                             <td className="px-4 py-4">
-                                                <div className="text-sm text-gray-900">{receipt.receiptDeadline.split("T")[0]}</div>
+                                                <div className="text-sm text-foreground">{receipt.receiptDeadline.split("T")[0]}</div>
                                             </td>
                                             <td className="px-4 py-4">
                                                 <div className="space-y-1 text-sm">
-                                                    <div className="text-gray-700">{receipt.client?.clientAddress}</div>
-                                                    <div className="text-gray-600">📞 {receipt.client?.clientPhone}</div>
-                                                    <div className="text-gray-600">✉️ {receipt.client?.clientEmail}</div>
+                                                    <div className="text-foreground">{receipt.client?.clientAddress}</div>
+                                                    <div className="text-muted-foreground">📞 {receipt.client?.clientPhone}</div>
+                                                    <div className="text-muted-foreground">✉️ {receipt.client?.clientEmail}</div>
                                                 </div>
                                             </td>
                                             <td className="px-4 py-4">
-                                                <Badge variant="outline" className="text-base">
+                                                <Badge variant="outline" className="text-base text-foreground">
                                                     {receipt.samples.length} mẫu
                                                 </Badge>
                                             </td>
@@ -393,7 +410,12 @@ export function SampleReception() {
                                                         <FileText className="h-3 w-3" />
                                                         Xem
                                                     </Button>
-                                                    <Button size="sm" variant="default" className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700" disabled={!!receipt.receiptTrackingNo}>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="default"
+                                                        className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
+                                                        disabled={!!receipt.receiptTrackingNo}
+                                                    >
                                                         <Truck className="h-3 w-3" />
                                                         Tạo vận đơn
                                                     </Button>

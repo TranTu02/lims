@@ -7,18 +7,21 @@ import { Label } from "@/components/ui/label";
 
 import { DraggableInfoTable } from "@/components/common/DraggableInfoTable";
 
-import type { Sample, Analysis } from "@/types/lab";
+import type { Sample, Analysis, Receipt } from "@/types/lab";
 import type { FileEntity } from "@/types/document";
 
-import { mockAnalyses, mockReceipts } from "@/types/mockdata";
+import { useTranslation } from "react-i18next";
+import { mockAnalyses } from "@/types/mockdata";
 
 interface SampleDetailModalProps {
     sample: Sample;
+    receipt: Receipt;
     onClose: () => void;
-    onReceiptClick?: (receiptId: string) => void;
+    onSave: (updatedSample: Sample) => void;
 }
 
-export function SampleDetailModal({ sample, onClose, onReceiptClick }: SampleDetailModalProps) {
+export function SampleDetailModal({ sample, receipt, onClose, onSave }: SampleDetailModalProps) {
+    const { t } = useTranslation();
     const [isEditing, setIsEditing] = useState(false);
     const [editedSample, setEditedSample] = useState(sample);
 
@@ -27,23 +30,27 @@ export function SampleDetailModal({ sample, onClose, onReceiptClick }: SampleDet
         return mockAnalyses.filter((a) => a.sampleId === sample.sampleId);
     }, [sample.sampleId]);
 
-    const [editedAnalyses, setEditedAnalyses] = useState<Analysis[]>(initialAnalyses);
+    const [sampleAnalyses, setSampleAnalyses] = useState<Analysis[]>(initialAnalyses);
+
     // Mock attached files state for now as it is not in the core Sample type yet
     const [attachedFiles] = useState<FileEntity[]>([]);
 
-    // Derived receipt info
-    const relatedReceipt = useMemo(() => {
-        return mockReceipts.find((r) => r.receiptId === sample.receiptId);
-    }, [sample.receiptId]);
+    // DraggableInfoTable items
+    const [productDetails, setProductDetails] = useState<any[]>((editedSample.sampleInfo || []).map((i) => ({ label: i.label, value: String(i.value) })));
+    const [testingInfo, setTestingInfo] = useState<any[]>((editedSample.sampleReceiptInfo || []).map((i) => ({ label: i.label, value: String(i.value) })));
 
     const handleSave = () => {
-        // Save logic here (would call API to update sample and analyses)
-        console.log("Saving sample:", { ...editedSample, analyses: editedAnalyses });
+        const updatedSample = {
+            ...editedSample,
+            sampleInfo: productDetails,
+            sampleReceiptInfo: testingInfo,
+        };
+        onSave(updatedSample);
         setIsEditing(false);
     };
 
-    const handleAnalysisChange = (id: string, field: keyof Analysis, value: any) => {
-        setEditedAnalyses((prev) => prev.map((a) => (a.analysisId === id ? { ...a, [field]: value } : a)));
+    const handleAnalysisChange = (index: number, field: keyof Analysis, value: any) => {
+        setSampleAnalyses((prev) => prev.map((a, i) => (i === index ? { ...a, [field]: value } : a)));
     };
 
     const handleAddAnalysis = () => {
@@ -63,67 +70,11 @@ export function SampleDetailModal({ sample, onClose, onReceiptClick }: SampleDet
             analysisLocation: "",
             analysisUnit: "",
         };
-        setEditedAnalyses([...editedAnalyses, newAnalysis]);
+        setSampleAnalyses([...sampleAnalyses, newAnalysis]);
     };
 
-    const handleDeleteAnalysis = (id: string) => {
-        setEditedAnalyses((prev) => prev.filter((a) => a.analysisId !== id));
-    };
-
-    const getAnalysisStatusBadge = (status: Analysis["analysisStatus"]) => {
-        switch (status) {
-            case "Pending":
-                return (
-                    <Badge variant="outline" className="text-xs">
-                        Chờ xử lý
-                    </Badge>
-                );
-            case "Testing":
-                return (
-                    <Badge variant="default" className="bg-blue-500 text-xs">
-                        Đang thực hiện
-                    </Badge>
-                );
-            case "Review":
-                return (
-                    <Badge variant="default" className="bg-orange-500 text-xs">
-                        Chờ duyệt
-                    </Badge>
-                );
-            case "Approved":
-                return (
-                    <Badge variant="default" className="bg-purple-600 text-xs">
-                        Đã duyệt
-                    </Badge>
-                );
-            case "Rejected":
-                return (
-                    <Badge variant="destructive" className="text-xs">
-                        Từ chối
-                    </Badge>
-                );
-        }
-    };
-
-    const getSampleStatusBadge = (status: Sample["sampleStatus"]) => {
-        switch (status) {
-            case "Received":
-                return <Badge variant="outline">Chờ xử lý</Badge>;
-            case "Analyzing":
-                return (
-                    <Badge variant="default" className="bg-blue-500">
-                        Đang phân tích
-                    </Badge>
-                );
-            case "Stored":
-                return (
-                    <Badge variant="default" className="bg-green-500">
-                        Lưu kho
-                    </Badge>
-                );
-            case "Disposed":
-                return <Badge variant="secondary">Hủy bỏ</Badge>;
-        }
+    const handleDeleteAnalysis = (index: number) => {
+        setSampleAnalyses((prev) => prev.filter((_, i) => i !== index));
     };
 
     return (
@@ -132,381 +83,262 @@ export function SampleDetailModal({ sample, onClose, onReceiptClick }: SampleDet
             <div className="fixed inset-0 bg-black/50 z-50" onClick={onClose}></div>
 
             {/* Modal */}
-            <div className="fixed inset-4 bg-white rounded-lg shadow-xl z-50 flex flex-col">
+            <div className="fixed inset-4 bg-background rounded-lg shadow-xl z-50 flex flex-col">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                     <div>
-                        <h2 className="text-2xl font-semibold text-gray-900">Chi tiết mẫu thử: {sample.sampleId}</h2>
-                        <p className="text-sm text-gray-600 mt-1">Thông tin mẫu thử và các phép thử liên quan</p>
+                        <h2 className="text-lg font-semibold text-foreground">{t("reception.sampleDetail.title", { code: sample.sampleId })}</h2>
+                        <p className="text-xs text-muted-foreground mt-0.5">{t("reception.sampleDetail.description")}</p>
                     </div>
                     <div className="flex items-center gap-2">
                         {!isEditing ? (
-                            <Button onClick={() => setIsEditing(true)} className="flex items-center gap-2">
-                                <Edit className="h-4 w-4" />
-                                Chỉnh sửa
+                            <Button size="sm" onClick={() => setIsEditing(true)} className="flex items-center gap-1.5 text-xs">
+                                <Edit className="h-3.5 w-3.5" />
+                                {t("common.edit")}
                             </Button>
                         ) : (
                             <>
-                                <Button onClick={handleSave} className="flex items-center gap-2">
-                                    <Save className="h-4 w-4" />
-                                    Lưu
+                                <Button size="sm" onClick={handleSave} className="flex items-center gap-1.5 text-xs">
+                                    <Save className="h-3.5 w-3.5" />
+                                    {t("common.save")}
                                 </Button>
                                 <Button
+                                    size="sm"
                                     variant="outline"
                                     onClick={() => {
-                                        setIsEditing(false);
                                         setEditedSample(sample);
-                                        setEditedAnalyses(initialAnalyses);
+                                        setProductDetails(sample.sampleInfo || []);
+                                        setTestingInfo(sample.sampleReceiptInfo || []);
+                                        setSampleAnalyses(initialAnalyses);
+                                        setIsEditing(false);
                                     }}
+                                    className="text-xs"
                                 >
-                                    Hủy
+                                    {t("common.cancel")}
                                 </Button>
                             </>
                         )}
-                        <Button variant="ghost" size="sm" onClick={onClose} className="h-10 w-10 p-0">
-                            <X className="h-5 w-5" />
+                        <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
+                            <X className="h-4 w-4" />
                         </Button>
                     </div>
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                    {/* Receipt Reference */}
-                    {relatedReceipt && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                            <div className="flex items-center justify-between">
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    {/* Top Section: Sample Info & Receipt Ref */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Receipt Reference */}
+                        <div className="bg-muted/30 p-4 rounded-lg border border-border">
+                            <h3 className="text-sm font-semibold text-foreground mb-3">{t("reception.sampleDetail.relatedReceipt")}</h3>
+                            <div className="space-y-2 text-sm">
                                 <div>
-                                    <Label className="text-sm text-gray-600">Thuộc phiếu tiếp nhận</Label>
+                                    <span className="text-muted-foreground">{t("lab.receipts.receiptCode")}:</span>
+                                    <div className="font-medium text-foreground">{receipt.receiptCode}</div>
+                                </div>
+                                <div>
+                                    <span className="text-muted-foreground">{t("crm.clients.clientName")}:</span>
+                                    <div className="text-foreground">{receipt.client?.clientName}</div>
+                                </div>
+                                <div>
+                                    <span className="text-muted-foreground">{t("lab.receipts.receiptDate")}:</span>
+                                    <div className="text-foreground">{receipt.receiptDate?.split("T")[0]}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Sample Basic Info */}
+                        <div className="md:col-span-2 bg-muted/30 p-4 rounded-lg border border-border">
+                            <h3 className="text-sm font-semibold text-foreground mb-3">{t("lab.samples.sampleName")}</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <Label className="text-xs text-muted-foreground">{t("lab.samples.sampleName")}</Label>
+                                    {isEditing ? (
+                                        <Input
+                                            value={editedSample.sampleClientInfo}
+                                            onChange={(e) => setEditedSample({ ...editedSample, sampleClientInfo: e.target.value })}
+                                            className="mt-1 h-8 text-sm bg-background"
+                                        />
+                                    ) : (
+                                        <div className="text-sm font-medium text-foreground mt-1">{sample.sampleClientInfo}</div>
+                                    )}
+                                </div>
+                                <div>
+                                    <Label className="text-xs text-muted-foreground">{t("lab.samples.sampleType")}</Label>
+                                    {isEditing ? (
+                                        <Input
+                                            value={editedSample.sampleTypeName}
+                                            onChange={(e) => setEditedSample({ ...editedSample, sampleTypeName: e.target.value })}
+                                            className="mt-1 h-8 text-sm bg-background"
+                                        />
+                                    ) : (
+                                        <div className="text-sm font-medium text-foreground mt-1">{sample.sampleTypeName}</div>
+                                    )}
+                                </div>
+                                <div>
+                                    <Label className="text-xs text-muted-foreground">{t("lab.samples.status.title")}</Label>
                                     <div className="mt-1">
-                                        {onReceiptClick ? (
-                                            <button onClick={() => onReceiptClick(relatedReceipt.receiptId)} className="text-lg font-semibold text-blue-600 hover:text-blue-700 hover:underline">
-                                                {relatedReceipt.receiptCode}
-                                            </button>
-                                        ) : (
-                                            <div className="text-lg font-semibold text-gray-900">{relatedReceipt.receiptCode}</div>
-                                        )}
+                                        <Badge variant="outline">{sample.sampleStatus}</Badge>
                                     </div>
                                 </div>
-                                <Badge variant="default" className="bg-blue-600">
-                                    Mã tiếp nhận
-                                </Badge>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Sample Information */}
-                    <div className="bg-gray-50 rounded-lg p-6">
-                        <h3 className="font-semibold text-gray-900 mb-4">Thông tin mẫu thử</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <div>
-                                <Label className="text-sm text-gray-600">Mã mẫu</Label>
-                                <div className="mt-1 font-medium text-gray-900">{sample.sampleId}</div>
-                            </div>
-                            <div>
-                                <Label className="text-sm text-gray-600">Tên mẫu (KH)</Label>
-                                {isEditing ? (
-                                    <Input value={editedSample.sampleClientInfo || ""} onChange={(e) => setEditedSample({ ...editedSample, sampleClientInfo: e.target.value })} className="mt-1" />
-                                ) : (
-                                    <div className="mt-1 text-gray-900">{sample.sampleClientInfo}</div>
-                                )}
-                            </div>
-                            <div>
-                                <Label className="text-sm text-gray-600">Loại mẫu</Label>
-                                {isEditing ? (
-                                    <Input value={editedSample.sampleTypeName || ""} onChange={(e) => setEditedSample({ ...editedSample, sampleTypeName: e.target.value })} className="mt-1" />
-                                ) : (
-                                    <div className="mt-1">
-                                        <Badge variant="outline">{sample.sampleTypeName}</Badge>
-                                    </div>
-                                )}
-                            </div>
-                            <div>
-                                <Label className="text-sm text-gray-600">Trạng thái mẫu</Label>
-                                <div className="mt-1">{getSampleStatusBadge(sample.sampleStatus)}</div>
-                            </div>
-                            <div>
-                                <Label className="text-sm text-gray-600">Phân loại sản phẩm</Label>
-                                {isEditing ? (
-                                    <Input
-                                        value={editedSample.productType || ""}
-                                        onChange={(e) => setEditedSample({ ...editedSample, productType: e.target.value })}
-                                        className="mt-1"
-                                        placeholder="Hàng hóa chứa chất cấm, nguy hiểm..."
-                                    />
-                                ) : (
-                                    <div className="mt-1 text-gray-900">{sample.productType || "-"}</div>
-                                )}
-                            </div>
-                            <div>
-                                <Label className="text-sm text-gray-600">Lượng mẫu</Label>
-                                {isEditing ? (
-                                    <Input
-                                        value={editedSample.sampleVolume || ""}
-                                        onChange={(e) => setEditedSample({ ...editedSample, sampleVolume: e.target.value })}
-                                        className="mt-1"
-                                        placeholder="1 chai 500ml, túi 20g..."
-                                    />
-                                ) : (
-                                    <div className="mt-1 text-gray-900">{sample.sampleVolume || "-"}</div>
-                                )}
-                            </div>
-                            <div>
-                                <Label className="text-sm text-gray-600">Lượng mẫu (g)</Label>
-                                {isEditing ? (
-                                    <Input
-                                        type="number"
-                                        value={editedSample.sampleWeight || ""}
-                                        onChange={(e) => setEditedSample({ ...editedSample, sampleWeight: parseFloat(e.target.value) || undefined })}
-                                        className="mt-1"
-                                        placeholder="Khối lượng quy ra gram"
-                                    />
-                                ) : (
-                                    <div className="mt-1 text-gray-900">{sample.sampleWeight ? `${sample.sampleWeight}g` : "-"}</div>
-                                )}
-                            </div>
-                            <div>
-                                <Label className="text-sm text-gray-600">Trạng thái vật lý</Label>
-                                {isEditing ? (
-                                    <Input
-                                        value={editedSample.physicalState || ""}
-                                        onChange={(e) => setEditedSample({ ...editedSample, physicalState: e.target.value })}
-                                        className="mt-1"
-                                        placeholder="Solid, Liquid, Gas..."
-                                    />
-                                ) : (
-                                    <div className="mt-1 text-gray-900">{sample.physicalState || "-"}</div>
-                                )}
-                            </div>
-                            <div>
-                                <Label className="text-sm text-gray-600">Điều kiện bảo quản</Label>
-                                {isEditing ? (
-                                    <Input value={editedSample.samplePreservation || ""} onChange={(e) => setEditedSample({ ...editedSample, samplePreservation: e.target.value })} className="mt-1" />
-                                ) : (
-                                    <div className="mt-1 text-gray-900">{sample.samplePreservation || "-"}</div>
-                                )}
-                            </div>
-                            <div>
-                                <Label className="text-sm text-gray-600">Vị trí lưu kho</Label>
-                                {isEditing ? (
-                                    <Input value={editedSample.sampleStorageLoc || ""} onChange={(e) => setEditedSample({ ...editedSample, sampleStorageLoc: e.target.value })} className="mt-1" />
-                                ) : (
-                                    <div className="mt-1 text-gray-900">{sample.sampleStorageLoc || "-"}</div>
-                                )}
+                                <div>
+                                    <Label className="text-xs text-muted-foreground">{t("lab.samples.preservation")}</Label>
+                                    {isEditing ? (
+                                        <Input
+                                            value={editedSample.samplePreservation || ""}
+                                            onChange={(e) => setEditedSample({ ...editedSample, samplePreservation: e.target.value })}
+                                            className="mt-1 h-8 text-sm bg-background"
+                                        />
+                                    ) : (
+                                        <div className="text-sm text-foreground mt-1">{sample.samplePreservation || "-"}</div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Detailed Product and Testing Information - Using JSONB LabelValue */}
+                    {/* DraggableInfoTable Items */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Product Details */}
-                        <DraggableInfoTable
-                            title="Thông tin chi tiết sản phẩm"
-                            data={(editedSample.sampleInfo || []).map((i) => ({ ...i, value: String(i.value) }))}
-                            isEditing={isEditing}
-                            onChange={(data) => setEditedSample({ ...editedSample, sampleInfo: data.map((d) => ({ ...d, value: d.value })) })}
-                        />
-
-                        {/* Receipt/Testing Information */}
-                        <DraggableInfoTable
-                            title="Thông tin thử nghiệm"
-                            data={(editedSample.sampleReceiptInfo || []).map((i) => ({ ...i, value: String(i.value) }))}
-                            isEditing={isEditing}
-                            onChange={(data) => setEditedSample({ ...editedSample, sampleReceiptInfo: data.map((d) => ({ ...d, value: d.value })) })}
-                        />
+                        <DraggableInfoTable title={t("reception.sampleDetail.productDetails")} data={productDetails} isEditing={isEditing} onChange={setProductDetails} />
+                        <DraggableInfoTable title={t("reception.sampleDetail.testingInfo")} data={testingInfo} isEditing={isEditing} onChange={setTestingInfo} />
                     </div>
 
-                    {/* Analyses Information - Table Format */}
+                    {/* Analyses Section */}
                     <div>
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-semibold text-gray-900">Danh sách phép thử</h3>
+                        <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-semibold text-foreground">{t("reception.sampleDetail.analysisList")}</h3>
+                        </div>
+                        <div className="bg-background border border-border rounded-lg overflow-hidden">
+                            <table className="w-full text-sm">
+                                <thead className="bg-muted/50 border-b border-border">
+                                    <tr>
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">{t("lab.analyses.parameterName")}</th>
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">{t("lab.analyses.method")}</th>
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">{t("lab.analyses.unit")}</th>
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">{t("lab.analyses.result")}</th>
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground w-10"></th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-border">
+                                    {sampleAnalyses.map((analysis, index) => (
+                                        <tr key={analysis.analysisId} className="hover:bg-muted/30">
+                                            <td className="px-3 py-2">
+                                                {isEditing ? (
+                                                    <Input
+                                                        value={analysis.parameterName}
+                                                        onChange={(e) => handleAnalysisChange(index, "parameterName", e.target.value)}
+                                                        className="h-7 text-xs bg-background"
+                                                    />
+                                                ) : (
+                                                    <span className="text-foreground">{analysis.parameterName}</span>
+                                                )}
+                                            </td>
+                                            <td className="px-3 py-2">
+                                                {isEditing ? (
+                                                    <Input
+                                                        value={analysis.protocolCode}
+                                                        onChange={(e) => handleAnalysisChange(index, "protocolCode", e.target.value)}
+                                                        className="h-7 text-xs bg-background"
+                                                    />
+                                                ) : (
+                                                    <span className="text-muted-foreground">{analysis.protocolCode}</span>
+                                                )}
+                                            </td>
+                                            <td className="px-3 py-2">
+                                                {isEditing ? (
+                                                    <Input
+                                                        value={analysis.analysisUnit}
+                                                        onChange={(e) => handleAnalysisChange(index, "analysisUnit", e.target.value)}
+                                                        className="h-7 text-xs bg-background"
+                                                    />
+                                                ) : (
+                                                    <span className="text-muted-foreground">{analysis.analysisUnit}</span>
+                                                )}
+                                            </td>
+                                            <td className="px-3 py-2 text-foreground">{analysis.analysisResult || "-"}</td>
+                                            <td className="px-3 py-2 text-center">
+                                                {isEditing && (
+                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600" onClick={() => handleDeleteAnalysis(index)}>
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                             {isEditing && (
-                                <Button onClick={handleAddAnalysis} size="sm" className="flex items-center gap-2">
-                                    <Plus className="h-4 w-4" />
-                                    Thêm phép thử
+                                <div className="p-2 border-t border-border bg-muted/30">
+                                    <Button variant="outline" size="sm" className="w-full text-xs flex items-center justify-center gap-1 bg-background" onClick={handleAddAnalysis}>
+                                        <Plus className="h-3 w-3" />
+                                        {t("reception.sampleDetail.addAnalysis")}
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Attached Files Section */}
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-semibold text-foreground">{t("reception.sampleDetail.attachedFiles")}</h3>
+                            {isEditing && (
+                                <Button variant="outline" size="sm" className="text-xs flex items-center gap-1">
+                                    <Upload className="h-3 w-3" />
+                                    {t("common.upload")}
                                 </Button>
                             )}
                         </div>
-
-                        <div className="bg-white border rounded-lg overflow-hidden">
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead className="bg-gray-50 border-b">
+                        <div className="bg-background border border-border rounded-lg overflow-hidden">
+                            {attachedFiles.length > 0 ? (
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-muted/50">
                                         <tr>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">STT</th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã chỉ tiêu</th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên chỉ tiêu</th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phương pháp</th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nơi thực hiện</th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Đơn vị</th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Người thực hiện</th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kết quả</th>
-                                            {isEditing && <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Thao tác</th>}
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t("common.fileName")}</th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t("common.type")}</th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t("common.size")}</th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t("common.uploadedBy")}</th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t("common.uploadedAt")}</th>
+                                            <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase">{t("common.actions")}</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-200">
-                                        {editedAnalyses.map((analysis, index) => (
-                                            <tr key={analysis.analysisId} className="hover:bg-gray-50">
-                                                <td className="px-4 py-3 text-sm text-gray-900">{index + 1}</td>
+                                    <tbody className="divide-y divide-border">
+                                        {attachedFiles.map((file) => (
+                                            <tr key={file.fileId} className="hover:bg-muted/30">
                                                 <td className="px-4 py-3">
-                                                    {isEditing ? (
-                                                        <Input
-                                                            value={analysis.parameterId || ""}
-                                                            onChange={(e) => handleAnalysisChange(analysis.analysisId, "parameterId", e.target.value)}
-                                                            className="h-8 text-sm"
-                                                            placeholder="PAR-XXX"
-                                                        />
-                                                    ) : (
-                                                        <span className="text-xs text-gray-600 font-mono">{analysis.parameterId || "-"}</span>
-                                                    )}
+                                                    <div className="flex items-center gap-2">
+                                                        <FileText className="h-4 w-4 text-muted-foreground" />
+                                                        <span className="text-sm text-foreground">{file.fileName}</span>
+                                                    </div>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    {isEditing ? (
-                                                        <Input
-                                                            value={analysis.parameterName || ""}
-                                                            onChange={(e) => handleAnalysisChange(analysis.analysisId, "parameterName", e.target.value)}
-                                                            className="h-8 text-sm"
-                                                        />
-                                                    ) : (
-                                                        <span className="text-sm text-gray-900">{analysis.parameterName}</span>
-                                                    )}
+                                                    <Badge variant="outline" className="text-xs">
+                                                        {file.mimeType}
+                                                    </Badge>
                                                 </td>
+                                                <td className="px-4 py-3 text-sm text-foreground">{file.fileSize}</td>
+                                                <td className="px-4 py-3 text-sm text-foreground">{file.createdById}</td>
+                                                <td className="px-4 py-3 text-sm text-foreground">{file.createdAt}</td>
                                                 <td className="px-4 py-3">
-                                                    {isEditing ? (
-                                                        <Input
-                                                            value={analysis.protocolCode || ""}
-                                                            onChange={(e) => handleAnalysisChange(analysis.analysisId, "protocolCode", e.target.value)}
-                                                            className="h-8 text-sm"
-                                                        />
-                                                    ) : (
-                                                        <span className="text-xs text-gray-700">{analysis.protocolCode}</span>
-                                                    )}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    {isEditing ? (
-                                                        <Input
-                                                            value={analysis.analysisLocation || ""}
-                                                            onChange={(e) => handleAnalysisChange(analysis.analysisId, "analysisLocation", e.target.value)}
-                                                            className="h-8 text-sm"
-                                                        />
-                                                    ) : (
-                                                        <span className="text-sm text-gray-900">{analysis.analysisLocation}</span>
-                                                    )}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    {isEditing ? (
-                                                        <Input
-                                                            value={analysis.analysisUnit || ""}
-                                                            onChange={(e) => handleAnalysisChange(analysis.analysisId, "analysisUnit", e.target.value)}
-                                                            className="h-8 text-sm"
-                                                        />
-                                                    ) : (
-                                                        <span className="text-sm text-gray-900">{analysis.analysisUnit}</span>
-                                                    )}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    {isEditing ? (
-                                                        <Input
-                                                            value={analysis.technicianId || ""}
-                                                            onChange={(e) => handleAnalysisChange(analysis.analysisId, "technicianId", e.target.value)}
-                                                            className="h-8 text-sm"
-                                                        />
-                                                    ) : (
-                                                        <span className="text-sm text-gray-900">{analysis.technicianId}</span>
-                                                    )}
-                                                </td>
-                                                <td className="px-4 py-3">{getAnalysisStatusBadge(analysis.analysisStatus)}</td>
-                                                <td className="px-4 py-3">
-                                                    {analysis.analysisResult ? (
-                                                        <span className="text-sm font-medium text-gray-900">
-                                                            {analysis.analysisResult} {analysis.analysisUnit}
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-sm text-gray-400">-</span>
-                                                    )}
-                                                </td>
-                                                {isEditing && (
-                                                    <td className="px-4 py-3">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => handleDeleteAnalysis(analysis.analysisId)}
-                                                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                                            <Download className="h-4 w-4" />
                                                         </Button>
-                                                    </td>
-                                                )}
+                                                        {isEditing && (
+                                                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600">
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Digital Records / Attached Files - Mocked for now */}
-                    <div>
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-semibold text-gray-900">Hồ sơ điện tử</h3>
-                            <Button size="sm" variant="outline" className="flex items-center gap-2">
-                                <Upload className="h-4 w-4" />
-                                Tải lên file
-                            </Button>
-                        </div>
-
-                        <div className="bg-white border rounded-lg overflow-hidden">
-                            {attachedFiles.length > 0 ? (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full">
-                                        <thead className="bg-gray-50 border-b">
-                                            <tr>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên file</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Loại</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kích thước</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Người tải lên</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày tải lên</th>
-                                                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Thao tác</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-200">
-                                            {attachedFiles.map((file) => (
-                                                <tr key={file.fileId} className="hover:bg-gray-50">
-                                                    <td className="px-4 py-3">
-                                                        <div className="flex items-center gap-2">
-                                                            <FileText className="h-4 w-4 text-gray-400" />
-                                                            <span className="text-sm text-gray-900">{file.fileName}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <Badge variant="outline" className="text-xs">
-                                                            {file.mimeType}
-                                                        </Badge>
-                                                    </td>
-                                                    <td className="px-4 py-3 text-sm text-gray-700">{file.fileSize}</td>
-                                                    <td className="px-4 py-3 text-sm text-gray-700">{file.createdById}</td>
-                                                    <td className="px-4 py-3 text-sm text-gray-700">{file.createdAt}</td>
-                                                    <td className="px-4 py-3">
-                                                        <div className="flex items-center justify-center gap-2">
-                                                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                                                <Download className="h-4 w-4" />
-                                                            </Button>
-                                                            {isEditing && (
-                                                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-600">
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                </Button>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
                             ) : (
-                                <div className="p-8 text-center text-gray-500">
-                                    <FileText className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                                    <p>Chưa có file đính kèm</p>
+                                <div className="p-8 text-center text-muted-foreground">
+                                    <FileText className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
+                                    <p>{t("reception.receiptDetail.noFile")}</p>
                                 </div>
                             )}
                         </div>

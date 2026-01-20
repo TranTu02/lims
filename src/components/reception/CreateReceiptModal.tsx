@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { useTranslation } from "react-i18next";
 
 import { mockOrders } from "@/types/mockdata";
 import type { Order, OrderSampleItem, OrderSampleAnalysis } from "@/types/crm";
@@ -24,6 +25,7 @@ interface CreateReceiptModalProps {
 }
 
 export function CreateReceiptModal({ onClose, order }: CreateReceiptModalProps) {
+    const { t } = useTranslation();
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(order || null);
     const [showManualForm, setShowManualForm] = useState(false);
@@ -186,11 +188,13 @@ export function CreateReceiptModal({ onClose, order }: CreateReceiptModalProps) 
             {/* Modal */}
             <div className="fixed inset-4 bg-white rounded-lg shadow-xl z-50 flex flex-col">
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 py-3 border-b">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                     <div>
-                        <h2 className="text-lg font-semibold text-gray-900">{selectedOrder ? "Tạo tiếp nhận mới từ đơn hàng" : "Tạo phiếu tiếp nhận mẫu"}</h2>
-                        <p className="text-xs text-gray-600 mt-0.5">
-                            {selectedOrder ? `Đơn hàng: ${selectedOrder.orderId} - ${selectedOrder.client.clientName}` : "Tạo phiếu tiếp nhận từ đơn hàng hoặc nhập thủ công"}
+                        <h2 className="text-lg font-semibold text-foreground">{selectedOrder ? t("reception.createReceipt.fromOrder") : t("reception.createReceipt.title")}</h2>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                            {selectedOrder
+                                ? t("reception.createReceipt.orderInfo", { orderId: selectedOrder.orderId, clientName: selectedOrder.client.clientName })
+                                : t("reception.createReceipt.description")}
                         </p>
                     </div>
                     <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
@@ -202,34 +206,38 @@ export function CreateReceiptModal({ onClose, order }: CreateReceiptModalProps) 
                 <div className="flex-1 overflow-y-auto p-4">
                     {/* Search Order Section */}
                     {!showManualForm && (
-                        <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                            <Label className="text-sm font-medium mb-2 block">Tìm kiếm đơn hàng</Label>
+                        <div className="mb-4 p-4 bg-muted/30 rounded-lg">
+                            <Label className="text-sm font-medium mb-2 block">{t("reception.createReceipt.searchOrder")}</Label>
                             <div className="flex gap-2">
                                 <Input
-                                    placeholder="Nhập mã đơn hàng..."
+                                    placeholder={t("reception.createReceipt.searchPlaceholder")}
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     onKeyDown={(e) => e.key === "Enter" && handleSearchOrder()}
-                                    className="flex-1"
+                                    className="flex-1 bg-background"
                                 />
                                 <Button onClick={handleSearchOrder} className="flex items-center gap-2">
                                     <Search className="h-4 w-4" />
-                                    Tìm
+                                    {t("common.search")}
                                 </Button>
-                                <Button variant="outline" onClick={handleCreateWithoutOrder} className="flex items-center gap-2">
+                                <Button variant="outline" onClick={handleCreateWithoutOrder} className="flex items-center gap-2 bg-background">
                                     <Plus className="h-4 w-4" />
-                                    Tạo không qua đơn hàng
+                                    {t("reception.createReceipt.createManual")}
                                 </Button>
                             </div>
 
                             {selectedOrder && (
-                                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                                <div className="mt-3 p-3 bg-primary/10 border border-primary/20 rounded-md">
                                     <div className="flex items-start justify-between">
                                         <div>
-                                            <p className="text-sm font-medium text-blue-900">Đơn hàng: {selectedOrder.orderId}</p>
-                                            <p className="text-xs text-blue-700 mt-1">Khách hàng: {selectedOrder.client.clientName}</p>
+                                            <p className="text-sm font-medium text-foreground">
+                                                {t("crm.orders.orderId")}: {selectedOrder.orderId}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                                {t("crm.clients.clientName")}: {selectedOrder.client.clientName}
+                                            </p>
                                         </div>
-                                        <Badge variant="default" className="bg-blue-600 text-xs">
+                                        <Badge variant="default" className="bg-primary hover:bg-primary/90 text-xs">
                                             {selectedOrder.orderStatus}
                                         </Badge>
                                     </div>
@@ -243,15 +251,15 @@ export function CreateReceiptModal({ onClose, order }: CreateReceiptModalProps) 
                         <div className="flex gap-4">
                             {/* Left: Client Info - 1/3 */}
                             <div className="w-1/3 space-y-3">
-                                <div className="bg-gray-50 rounded-lg p-4">
+                                <div className="bg-muted/30 rounded-lg p-4">
                                     <div className="flex items-center gap-2 mb-3">
-                                        <Building2 className="h-4 w-4 text-gray-600" />
-                                        <h3 className="text-sm font-semibold text-gray-900">Thông tin khách hàng</h3>
+                                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                                        <h3 className="text-sm font-semibold text-foreground">{t("reception.createReceipt.clientInfo")}</h3>
                                     </div>
 
                                     <div className="space-y-3 text-sm">
                                         <div>
-                                            <Label className="text-xs text-gray-600">Tên khách hàng</Label>
+                                            <Label className="text-xs text-muted-foreground">{t("crm.clients.clientName")}</Label>
                                             <Input
                                                 value={receiptData.clientInfo.clientName}
                                                 onChange={(e) =>
@@ -260,13 +268,13 @@ export function CreateReceiptModal({ onClose, order }: CreateReceiptModalProps) 
                                                         clientInfo: { ...receiptData.clientInfo, clientName: e.target.value },
                                                     })
                                                 }
-                                                className="mt-1 h-8 text-sm"
+                                                className="mt-1 h-8 text-sm bg-background"
                                                 disabled={!showManualForm}
                                             />
                                         </div>
 
                                         <div>
-                                            <Label className="text-xs text-gray-600">Mã số thuế / CMND</Label>
+                                            <Label className="text-xs text-muted-foreground">{t("crm.clients.legalId")}</Label>
                                             <Input
                                                 value={receiptData.clientInfo.legalId}
                                                 onChange={(e) =>
@@ -275,13 +283,13 @@ export function CreateReceiptModal({ onClose, order }: CreateReceiptModalProps) 
                                                         clientInfo: { ...receiptData.clientInfo, legalId: e.target.value },
                                                     })
                                                 }
-                                                className="mt-1 h-8 text-sm"
+                                                className="mt-1 h-8 text-sm bg-background"
                                                 disabled={!showManualForm}
                                             />
                                         </div>
 
                                         <div>
-                                            <Label className="text-xs text-gray-600">Địa chỉ</Label>
+                                            <Label className="text-xs text-muted-foreground">{t("crm.clients.clientAddress")}</Label>
                                             <Textarea
                                                 value={receiptData.clientInfo.clientAddress}
                                                 onChange={(e) =>
@@ -290,14 +298,14 @@ export function CreateReceiptModal({ onClose, order }: CreateReceiptModalProps) 
                                                         clientInfo: { ...receiptData.clientInfo, clientAddress: e.target.value },
                                                     })
                                                 }
-                                                className="mt-1 text-sm"
+                                                className="mt-1 text-sm bg-background"
                                                 rows={2}
                                                 disabled={!showManualForm}
                                             />
                                         </div>
 
                                         <div>
-                                            <Label className="text-xs text-gray-600">Số điện thoại</Label>
+                                            <Label className="text-xs text-muted-foreground">{t("crm.clients.clientPhone")}</Label>
                                             <Input
                                                 value={receiptData.clientInfo.clientPhone}
                                                 onChange={(e) =>
@@ -306,13 +314,13 @@ export function CreateReceiptModal({ onClose, order }: CreateReceiptModalProps) 
                                                         clientInfo: { ...receiptData.clientInfo, clientPhone: e.target.value },
                                                     })
                                                 }
-                                                className="mt-1 h-8 text-sm"
+                                                className="mt-1 h-8 text-sm bg-background"
                                                 disabled={!showManualForm}
                                             />
                                         </div>
 
                                         <div>
-                                            <Label className="text-xs text-gray-600">Email</Label>
+                                            <Label className="text-xs text-muted-foreground">{t("crm.clients.clientEmail")}</Label>
                                             <Input
                                                 value={receiptData.clientInfo.clientEmail}
                                                 onChange={(e) =>
@@ -321,22 +329,22 @@ export function CreateReceiptModal({ onClose, order }: CreateReceiptModalProps) 
                                                         clientInfo: { ...receiptData.clientInfo, clientEmail: e.target.value },
                                                     })
                                                 }
-                                                className="mt-1 h-8 text-sm"
+                                                className="mt-1 h-8 text-sm bg-background"
                                                 disabled={!showManualForm}
                                             />
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="bg-gray-50 rounded-lg p-4">
+                                <div className="bg-muted/30 rounded-lg p-4">
                                     <div className="flex items-center gap-2 mb-3">
-                                        <User className="h-4 w-4 text-gray-600" />
-                                        <h3 className="text-sm font-semibold text-gray-900">Người liên hệ</h3>
+                                        <User className="h-4 w-4 text-muted-foreground" />
+                                        <h3 className="text-sm font-semibold text-foreground">{t("reception.createReceipt.contactInfo")}</h3>
                                     </div>
 
                                     <div className="space-y-3 text-sm">
                                         <div>
-                                            <Label className="text-xs text-gray-600">Tên người liên hệ</Label>
+                                            <Label className="text-xs text-muted-foreground">{t("crm.clients.contactPerson.contactName")}</Label>
                                             <Input
                                                 value={receiptData.clientInfo.contactName}
                                                 onChange={(e) =>
@@ -345,13 +353,13 @@ export function CreateReceiptModal({ onClose, order }: CreateReceiptModalProps) 
                                                         clientInfo: { ...receiptData.clientInfo, contactName: e.target.value },
                                                     })
                                                 }
-                                                className="mt-1 h-8 text-sm"
+                                                className="mt-1 h-8 text-sm bg-background"
                                                 disabled={!showManualForm}
                                             />
                                         </div>
 
                                         <div>
-                                            <Label className="text-xs text-gray-600">Số điện thoại</Label>
+                                            <Label className="text-xs text-muted-foreground">{t("crm.clients.contactPerson.contactPhone")}</Label>
                                             <Input
                                                 value={receiptData.clientInfo.contactPhone}
                                                 onChange={(e) =>
@@ -360,13 +368,13 @@ export function CreateReceiptModal({ onClose, order }: CreateReceiptModalProps) 
                                                         clientInfo: { ...receiptData.clientInfo, contactPhone: e.target.value },
                                                     })
                                                 }
-                                                className="mt-1 h-8 text-sm"
+                                                className="mt-1 h-8 text-sm bg-background"
                                                 disabled={!showManualForm}
                                             />
                                         </div>
 
                                         <div>
-                                            <Label className="text-xs text-gray-600">Email</Label>
+                                            <Label className="text-xs text-muted-foreground">{t("crm.clients.contactPerson.contactEmail")}</Label>
                                             <Input
                                                 value={receiptData.clientInfo.contactEmail}
                                                 onChange={(e) =>
@@ -375,70 +383,74 @@ export function CreateReceiptModal({ onClose, order }: CreateReceiptModalProps) 
                                                         clientInfo: { ...receiptData.clientInfo, contactEmail: e.target.value },
                                                     })
                                                 }
-                                                className="mt-1 h-8 text-sm"
+                                                className="mt-1 h-8 text-sm bg-background"
                                                 disabled={!showManualForm}
                                             />
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="bg-gray-50 rounded-lg p-4">
-                                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Thông tin tiếp nhận</h3>
+                                <div className="bg-muted/30 rounded-lg p-4">
+                                    <h3 className="text-sm font-semibold text-foreground mb-3">{t("reception.createReceipt.receiptInfo")}</h3>
 
                                     <div className="space-y-3 text-sm">
                                         <div>
-                                            <Label className="text-xs text-gray-600">Mã phiếu tiếp nhận</Label>
+                                            <Label className="text-xs text-muted-foreground">{t("lab.receipts.receiptCode")}</Label>
                                             <Input
                                                 value={receiptData.receiptCode}
                                                 onChange={(e) => setReceiptData({ ...receiptData, receiptCode: e.target.value })}
-                                                className="mt-1 h-8 text-sm"
+                                                className="mt-1 h-8 text-sm bg-background"
                                                 placeholder="TNM2501-XXX"
                                             />
                                         </div>
 
                                         <div>
-                                            <Label className="text-xs text-gray-600">Ngày tiếp nhận</Label>
+                                            <Label className="text-xs text-muted-foreground">{t("lab.receipts.receiptDate")}</Label>
                                             <Input
                                                 type="date"
                                                 value={receiptData.receivedDate}
                                                 onChange={(e) => setReceiptData({ ...receiptData, receivedDate: e.target.value })}
-                                                className="mt-1 h-8 text-sm"
+                                                className="mt-1 h-8 text-sm bg-background"
                                             />
                                         </div>
 
                                         <div>
-                                            <Label className="text-xs text-gray-600">Giờ tiếp nhận</Label>
+                                            <Label className="text-xs text-muted-foreground">{t("lab.receipts.receivedTime")}</Label>
                                             <Input
                                                 type="time"
                                                 value={receiptData.receivedTime}
                                                 onChange={(e) => setReceiptData({ ...receiptData, receivedTime: e.target.value })}
-                                                className="mt-1 h-8 text-sm"
+                                                className="mt-1 h-8 text-sm bg-background"
                                             />
                                         </div>
 
                                         <div>
-                                            <Label className="text-xs text-gray-600">Người tiếp nhận</Label>
-                                            <Input value={receiptData.receivedBy} onChange={(e) => setReceiptData({ ...receiptData, receivedBy: e.target.value })} className="mt-1 h-8 text-sm" />
+                                            <Label className="text-xs text-muted-foreground">{t("lab.receipts.receivedBy")}</Label>
+                                            <Input
+                                                value={receiptData.receivedBy}
+                                                onChange={(e) => setReceiptData({ ...receiptData, receivedBy: e.target.value })}
+                                                className="mt-1 h-8 text-sm bg-background"
+                                            />
                                         </div>
 
                                         <div>
-                                            <Label className="text-xs text-gray-600">Hạn trả kết quả</Label>
+                                            <Label className="text-xs text-muted-foreground">{t("lab.receipts.receiptDeadline")}</Label>
                                             <Input
                                                 type="date"
                                                 value={receiptData.deadline}
                                                 onChange={(e) => setReceiptData({ ...receiptData, deadline: e.target.value })}
-                                                className="mt-1 h-8 text-sm"
+                                                className="mt-1 h-8 text-sm bg-background"
                                             />
                                         </div>
 
                                         <div>
-                                            <Label className="text-xs text-gray-600">Ghi chú</Label>
+                                            <Label className="text-xs text-muted-foreground">{t("lab.receipts.receiptNote")}</Label>
                                             <Textarea
                                                 value={receiptData.notes}
                                                 onChange={(e) => setReceiptData({ ...receiptData, notes: e.target.value })}
-                                                className="mt-1 text-sm"
+                                                className="mt-1 text-sm bg-background"
                                                 rows={3}
-                                                placeholder="Ghi chú về phiếu tiếp nhận..."
+                                                placeholder={t("lab.receipts.receiptNote")}
                                             />
                                         </div>
                                     </div>
@@ -448,15 +460,15 @@ export function CreateReceiptModal({ onClose, order }: CreateReceiptModalProps) 
                             {/* Right: Samples & Analyses - 2/3 */}
                             <div className="flex-1 space-y-3">
                                 <div className="flex items-center justify-between">
-                                    <h3 className="text-sm font-semibold text-gray-900">Danh sách mẫu thử & chỉ tiêu</h3>
+                                    <h3 className="text-sm font-semibold text-foreground">{t("reception.createReceipt.samplesList")}</h3>
                                 </div>
 
                                 {receiptData.samples.map((sample, sampleIndex) => (
-                                    <div key={sample.id} className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200">
+                                    <div key={sample.id} className="bg-muted/30 rounded-lg p-4 border-2 border-border/50">
                                         <div className="flex items-start justify-between mb-3">
                                             <div className="flex-1 grid grid-cols-2 gap-3">
                                                 <div>
-                                                    <Label className="text-xs text-gray-600">Tên mẫu</Label>
+                                                    <Label className="text-xs text-muted-foreground">{t("lab.samples.sampleName")}</Label>
                                                     <Input
                                                         value={sample.sampleName}
                                                         onChange={(e) => {
@@ -464,12 +476,12 @@ export function CreateReceiptModal({ onClose, order }: CreateReceiptModalProps) 
                                                             newSamples[sampleIndex].sampleName = e.target.value;
                                                             setReceiptData({ ...receiptData, samples: newSamples });
                                                         }}
-                                                        className="mt-1 h-8 text-sm"
-                                                        placeholder="Nhập tên mẫu..."
+                                                        className="mt-1 h-8 text-sm bg-background"
+                                                        placeholder={t("lab.samples.sampleName")}
                                                     />
                                                 </div>
                                                 <div>
-                                                    <Label className="text-xs text-gray-600">Loại mẫu</Label>
+                                                    <Label className="text-xs text-muted-foreground">{t("lab.samples.sampleType")}</Label>
                                                     <Input
                                                         value={sample.sampleTypeName}
                                                         onChange={(e) => {
@@ -477,13 +489,19 @@ export function CreateReceiptModal({ onClose, order }: CreateReceiptModalProps) 
                                                             newSamples[sampleIndex].sampleTypeName = e.target.value;
                                                             setReceiptData({ ...receiptData, samples: newSamples });
                                                         }}
-                                                        className="mt-1 h-8 text-sm"
-                                                        placeholder="Nhập loại mẫu..."
+                                                        className="mt-1 h-8 text-sm bg-background"
+                                                        placeholder={t("lab.samples.sampleType")}
                                                     />
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-1 ml-2">
-                                                <Button size="sm" variant="outline" onClick={() => handleDuplicateSample(sampleIndex)} className="h-8 w-8 p-0" title="Sao chép mẫu">
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => handleDuplicateSample(sampleIndex)}
+                                                    className="h-8 w-8 p-0"
+                                                    title={t("reception.createReceipt.duplicateSample")}
+                                                >
                                                     <Copy className="h-3.5 w-3.5" />
                                                 </Button>
                                                 {receiptData.samples.length > 1 && (
@@ -491,8 +509,8 @@ export function CreateReceiptModal({ onClose, order }: CreateReceiptModalProps) 
                                                         size="sm"
                                                         variant="ghost"
                                                         onClick={() => handleRemoveSample(sampleIndex)}
-                                                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                                        title="Xóa mẫu"
+                                                        className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                        title={t("reception.createReceipt.removeSample")}
                                                     >
                                                         <Trash2 className="h-3.5 w-3.5" />
                                                     </Button>
@@ -502,20 +520,20 @@ export function CreateReceiptModal({ onClose, order }: CreateReceiptModalProps) 
 
                                         {/* Analyses Table */}
                                         <div className="mt-3">
-                                            <Label className="text-xs text-gray-600 mb-2 block">Danh sách chỉ tiêu</Label>
-                                            <div className="bg-white rounded-md border overflow-hidden">
+                                            <Label className="text-xs text-muted-foreground mb-2 block">{t("reception.createReceipt.analysisList")}</Label>
+                                            <div className="bg-background rounded-md border border-border overflow-hidden">
                                                 <table className="w-full text-sm">
-                                                    <thead className="bg-gray-100 border-b">
+                                                    <thead className="bg-muted/50 border-b border-border">
                                                         <tr>
-                                                            <th className="px-2 py-1.5 text-left text-xs font-medium text-gray-500">Tên chỉ tiêu</th>
-                                                            <th className="px-2 py-1.5 text-left text-xs font-medium text-gray-500">Phương pháp</th>
-                                                            <th className="px-2 py-1.5 text-right text-xs font-medium text-gray-500">Đơn giá</th>
-                                                            <th className="px-2 py-1.5 text-center text-xs font-medium text-gray-500 w-16"></th>
+                                                            <th className="px-2 py-1.5 text-left text-xs font-medium text-muted-foreground">{t("lab.analyses.parameterName")}</th>
+                                                            <th className="px-2 py-1.5 text-left text-xs font-medium text-muted-foreground">{t("lab.analyses.method")}</th>
+                                                            <th className="px-2 py-1.5 text-right text-xs font-medium text-muted-foreground">{t("lab.analyses.price")}</th>
+                                                            <th className="px-2 py-1.5 text-center text-xs font-medium text-muted-foreground w-16"></th>
                                                         </tr>
                                                     </thead>
-                                                    <tbody className="divide-y">
+                                                    <tbody className="divide-y divide-border">
                                                         {sample.analyses.map((analysis, analysisIndex) => (
-                                                            <tr key={analysis.id} className="hover:bg-gray-50">
+                                                            <tr key={analysis.id} className="hover:bg-muted/30">
                                                                 <td className="px-2 py-1.5">
                                                                     <Input
                                                                         value={analysis.parameterName}
@@ -524,8 +542,8 @@ export function CreateReceiptModal({ onClose, order }: CreateReceiptModalProps) 
                                                                             newSamples[sampleIndex].analyses[analysisIndex].parameterName = e.target.value;
                                                                             setReceiptData({ ...receiptData, samples: newSamples });
                                                                         }}
-                                                                        className="h-7 text-xs"
-                                                                        placeholder="Tên chỉ tiêu..."
+                                                                        className="h-7 text-xs bg-background"
+                                                                        placeholder={t("lab.analyses.parameterName")}
                                                                     />
                                                                 </td>
                                                                 <td className="px-2 py-1.5">
@@ -536,8 +554,8 @@ export function CreateReceiptModal({ onClose, order }: CreateReceiptModalProps) 
                                                                             newSamples[sampleIndex].analyses[analysisIndex].protocolCode = e.target.value;
                                                                             setReceiptData({ ...receiptData, samples: newSamples });
                                                                         }}
-                                                                        className="h-7 text-xs"
-                                                                        placeholder="Phương pháp..."
+                                                                        className="h-7 text-xs bg-background"
+                                                                        placeholder={t("lab.analyses.method")}
                                                                     />
                                                                 </td>
                                                                 <td className="px-2 py-1.5">
@@ -549,7 +567,7 @@ export function CreateReceiptModal({ onClose, order }: CreateReceiptModalProps) 
                                                                             newSamples[sampleIndex].analyses[analysisIndex].feeAfterTax = parseFloat(e.target.value) || 0;
                                                                             setReceiptData({ ...receiptData, samples: newSamples });
                                                                         }}
-                                                                        className="h-7 text-xs text-right"
+                                                                        className="h-7 text-xs text-right bg-background"
                                                                         placeholder="0"
                                                                     />
                                                                 </td>
@@ -559,7 +577,7 @@ export function CreateReceiptModal({ onClose, order }: CreateReceiptModalProps) 
                                                                             size="sm"
                                                                             variant="ghost"
                                                                             onClick={() => handleRemoveAnalysis(sampleIndex, analysisIndex)}
-                                                                            className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                                            className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                                                                         >
                                                                             <Trash2 className="h-3 w-3" />
                                                                         </Button>
@@ -569,15 +587,15 @@ export function CreateReceiptModal({ onClose, order }: CreateReceiptModalProps) 
                                                         ))}
                                                     </tbody>
                                                 </table>
-                                                <div className="p-2 bg-gray-50 border-t">
+                                                <div className="p-2 bg-muted/30 border-t border-border">
                                                     <Button
                                                         size="sm"
                                                         variant="outline"
                                                         onClick={() => handleAddAnalysis(sampleIndex)}
-                                                        className="w-full h-7 text-xs flex items-center justify-center gap-1.5"
+                                                        className="w-full h-7 text-xs flex items-center justify-center gap-1.5 bg-background"
                                                     >
                                                         <Plus className="h-3.5 w-3.5" />
-                                                        Thêm chỉ tiêu
+                                                        {t("reception.createReceipt.addAnalysis")}
                                                     </Button>
                                                 </div>
                                             </div>
@@ -591,13 +609,13 @@ export function CreateReceiptModal({ onClose, order }: CreateReceiptModalProps) 
 
                 {/* Footer */}
                 {(selectedOrder || showManualForm) && (
-                    <div className="flex items-center justify-end gap-2 px-4 py-3 border-t bg-gray-50">
+                    <div className="flex items-center justify-end gap-2 px-4 py-3 border-t bg-muted/30">
                         <Button variant="outline" onClick={onClose}>
-                            Hủy
+                            {t("reception.createReceipt.cancelButton")}
                         </Button>
                         <Button onClick={handleSave} className="flex items-center gap-2">
                             <Plus className="h-4 w-4" />
-                            Tạo phiếu tiếp nhận
+                            {t("reception.createReceipt.createButton")}
                         </Button>
                     </div>
                 )}
