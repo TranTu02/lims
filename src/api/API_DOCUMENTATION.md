@@ -27,12 +27,21 @@ All responses strictly follow this JSON structure:
 
 For any endpoint ending in `/get/list`, the following standard query parameters apply:
 
-| Parameter      | Type     | Default | Description                                     |
-| :------------- | :------- | :------ | :---------------------------------------------- |
-| `page`         | `number` | `1`     | The page number to retrieve (1-indexed).        |
-| `itemsPerPage` | `number` | `10`    | Number of items per page.                       |
-| `sortBy`       | `string` | `null`  | Field to sort by (e.g., `createdAt:desc`).      |
-| `search`       | `string` | `null`  | General search keyword (matches name, code...). |
+| Parameter       | Type     | Default | Description                                                                        |
+| :-------------- | :------- | :------ | :--------------------------------------------------------------------------------- |
+| `page`          | `number` | `1`     | The page number to retrieve (1-indexed).                                           |
+| `itemsPerPage`  | `number` | `10`    | Number of items per page.                                                          |
+| `sortColumn`    | `string` | `null`  | The specific column name to sort by (e.g., `createdAt`).                           |
+| `sortDirection` | `string` | `DESC`  | Sort direction: `ASC` (Ascending) or `DESC` (Descending). Default is usually DESC. |
+| `search`        | `string` | `null`  | General search keyword (matches name, code...).                                    |
+
+### Detail API Rules (Get One by PK)
+
+For endpoints retrieving detailed information of a single record (e.g. `/get/detail`):
+
+1.  **Input (Query Params)**: Do NOT use generic `id`. Use the explicit Primary Key name of the entity.
+    - Example: `?receiptId=REC-12345` (Correct) vs `?id=1` (Incorrect).
+2.  **Output (Response Data)**: The `data` property must be a single **Object** representing the record.
 
 ---
 

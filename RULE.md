@@ -130,7 +130,7 @@ src/
     - **Chữ:** `text-foreground`, `text-muted-foreground`, `text-primary`
     - **Viền:** `border-border`, `border-input`
 - **Định dạng Số liệu**: Tất cả các giá trị tiền tệ hiển thị trên UI (đặc biệt là Print Template & Preview) phải được định dạng thống nhất với tối đa 2 chữ số thập phân (`maximumFractionDigits: 2`).
-- **Tham chiếu**: Xem chi tiết trong file `THEME_SYSTEM.md`.
+- **Tham chiếu Chi tiết**: Xem [src/config/theme/THEME_SYSTEM.md](src/config/theme/THEME_SYSTEM.md) (Tài liệu đầy đủ về mã màu và tokens).
 
 ### B. Bảng màu Ngữ nghĩa (Semantic Colors)
 
@@ -165,6 +165,7 @@ Tham chiếu chi tiết: [XII. CHIẾN LƯỢC RESPONSIVE & LAYOUT trong THEME_S
 ## IV. QUY CHUẨN ĐA NGÔN NGỮ (I18N)
 
 Hệ thống bắt buộc hỗ trợ song ngữ Anh-Việt ngay từ đầu.
+_Xem chi tiết quy chuẩn tại: [src/config/i18n/LANGUAGE_SYSTEM.md](src/config/i18n/LANGUAGE_SYSTEM.md)_
 
 ### 1. Cấu hình & Sử dụng
 
