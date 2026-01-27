@@ -737,14 +737,15 @@ export default {
             title: "Quản lý nhân sự",
             description: "Quản lý tài khoản, thông tin và phân bổ nhân viên",
             searchPlaceholder: "Tìm kiếm theo tên, mã NV, email...",
-            addEmployee: "Thêm nhân viên",
+            addIdentity: "Thêm nhân viên",
             tabs: {
                 all: "Tất cả nhân viên",
                 lab: "Nhân sự Lab",
                 groups: "Nhóm công việc",
+                staff: "Nhân sự",
             },
             table: {
-                employee: "Nhân viên",
+                identity: "Nhân viên",
                 code: "Mã NV",
                 contact: "Liên hệ",
                 position: "Chức vụ",
@@ -771,6 +772,63 @@ export default {
             addMember: "Thêm",
             belongTo: "Thuộc nhóm",
         },
+        fields: {
+            email: "Email",
+            alias: "Mã NV",
+            name: "Họ và tên",
+            password: "Mật khẩu",
+            status: "Trạng thái",
+            roles: "Quyền",
+            identityId: "Mã định danh"
+          },
+          status: {
+            active: "Hoạt động",
+            inactive: "Ngưng hoạt động",
+            blocked: "Bị khóa"
+          },
+          roles: {
+            IT: "IT",
+            bot: "Bot",
+            admin: "Quản trị viên",
+            accountant: "Kế toán",
+            superAdmin: "Super Admin",
+            technician: "Kỹ thuật viên",
+            collaborator: "Cộng tác viên",
+            dispatchClerk: "Điều phối",
+            sampleManager: "Quản lý mẫu",
+            administrative: "Hành chính",
+            qualityControl: "QC",
+            customerService: "CSKH",
+            marketingCommunications: "Marketing",
+            documentManagementSpecialist: "Quản lý tài liệu",
+            manager: "Trưởng phòng",
+            receptionist: "Tiếp nhận",
+            sale: "Kinh Doanh",
+          },
+          permissions: {
+            invalidJson: "JSON permissions không hợp lệ"
+          },
+          create: {
+            title: "Thêm nhân viên",
+            toastSuccess: "Tạo nhân viên thành công"
+          },
+          update: {
+            title: "Cập nhật nhân viên",
+            toastSuccess: "Cập nhật nhân viên thành công"
+          },
+          delete: {
+            title: "Xóa nhân viên",
+            description: "Bạn có chắc chắn muốn xóa nhân viên này?",
+            toastSuccess: "Xóa nhân viên thành công"
+          },
+          detail: {
+            title: "Chi tiết nhân viên",
+            auditTitle: "Thông tin hệ thống",
+            createdAt: "Tạo lúc",
+            createdBy: "Tạo bởi",
+            modifiedAt: "Cập nhật lúc",
+            modifiedBy: "Cập nhật bởi"
+          },
     },
     handover: {
         title: "Bàn giao mẫu - phép thử",

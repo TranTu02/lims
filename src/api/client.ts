@@ -9,6 +9,7 @@ export type ApiMeta = {
   total: number;
   totalPages: number;
   [key: string]: unknown;
+  countsByEntity?: Record<string, number>;
 };
 
 export type ApiError = {

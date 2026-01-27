@@ -738,15 +738,16 @@ export default {
         dashboard: {
             title: "HR Management",
             description: "Manage accounts, info and staff allocation",
-            searchPlaceholder: "Search by name, employee code, email...",
-            addEmployee: "Add Employee",
+            searchPlaceholder: "Search by name, identity code, email...",
+            addIdentity: "Add Identity",
             tabs: {
-                all: "All Employees",
+                all: "All Identities",
                 lab: "Lab Staff",
                 groups: "Work Groups",
+                staff: "Staff",
             },
             table: {
-                employee: "Employee",
+                identity: "Identity",
                 code: "Emp Code",
                 contact: "Contact",
                 position: "Position",
@@ -773,6 +774,63 @@ export default {
             addMember: "Add",
             belongTo: "Belongs to",
         },
+        fields: {
+            email: "Email",
+            alias: "Emp Code",
+            name: "Full Name",
+            password: "Password",
+            status: "Status",
+            roles: "Roles",
+            identityId: "Identity ID"
+          },
+          status: {
+            active: "Active",
+            inactive: "Inactive",
+            blocked: "Blocked"
+          },
+          roles: {
+            IT: "IT",
+            bot: "Bot",
+            admin: "Admin",
+            accountant: "Accountant",
+            superAdmin: "Super Admin",
+            technician: "Technician",
+            collaborator: "Collaborator",
+            dispatchClerk: "Dispatch Clerk",
+            sampleManager: "Sample Manager",
+            administrative: "Administrative",
+            qualityControl: "Quality Control",
+            customerService: "Customer Service",
+            marketingCommunications: "Marketing",
+            documentManagementSpecialist: "Document Specialist",
+            manager: "Manager",
+            receptionist: "Receptionist",
+            sale: "Sale"
+          },
+          permissions: {
+            invalidJson: "Invalid permissions JSON"
+          },
+          create: {
+            title: "Add Identity",
+            toastSuccess: "Identity created successfully"
+          },
+          update: {
+            title: "Update Identity",
+            toastSuccess: "Identity updated successfully"
+          },
+          delete: {
+            title: "Delete Identity",
+            description: "Are you sure you want to delete this employee?",
+            toastSuccess: "Identity deleted successfully"
+          },
+          detail: {
+            title: "Identity Details",
+            auditTitle: "Audit",
+            createdAt: "Created at",
+            createdBy: "Created by",
+            modifiedAt: "Modified at",
+            modifiedBy: "Modified by"
+          },
     },
     handover: {
         title: "Sample Handover",
