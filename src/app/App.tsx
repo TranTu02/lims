@@ -14,12 +14,12 @@ import { StoredSamplesPage } from "@/pages/StoredSamplesPage";
 import { LibraryPage } from "@/pages/library/LibraryPage";
 import { DocumentPage } from "@/pages/DocumentPage";
 import { InventoryPage } from "@/pages/InventoryPage";
-import { HRPage } from "@/pages/HRPage";
 import { ParametersPage } from "@/pages/library/ParametersPage";
 import { ProtocolsPage } from "@/pages/library/ProtocolsPage";
 import { MatricesPage } from "@/pages/library/MatricesPage";
 import { SampleTypesPage } from "@/pages/library/SampleTypesPage";
 import { ParameterGroupsPage } from "@/pages/library/ParameterGroupsPage";
+import { IdentityPage } from "@/pages/IdentityPage";
 
 // Protected Route Wrapper
 const ProtectedRoute = () => {
@@ -74,7 +74,7 @@ function App() {
 
             <Route path="/document" element={<DocumentPage />} />
             <Route path="/inventory" element={<InventoryPage />} />
-            <Route path="/hr" element={<HRPage />} />
+            <Route path="/hr" element={<IdentityPage />} />
           </Route>
 
           {/* Fallback */}

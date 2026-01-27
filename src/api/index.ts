@@ -13,15 +13,15 @@ export interface ApiInput {
 // =============================================================================
 
 export const login = async ({ headers, body, query }: ApiInput): Promise<ApiResponse> => {
-    return api.post("/v1/auth/login", { headers, body, query });
+    return api.post("/v2/auth/login", { headers, body, query });
 };
 
 export const logout = async ({ headers, body, query }: ApiInput): Promise<ApiResponse> => {
-    return api.post("/v1/auth/logout", { headers, body, query });
+    return api.post("/v2/auth/logout", { headers, body, query });
 };
 
 export const checkSessionStatus = async ({ headers, body, query }: ApiInput): Promise<ApiResponse> => {
-    return api.post("/v1/auth/check-status", { headers, body, query });
+    return api.post("/v2/auth/check-status", { headers, body, query });
 };
 
 // =============================================================================
