@@ -13,15 +13,15 @@ export interface ApiResponse<T = any> {
 }
 
 export const login = async ({ headers, body, query }: ApiInput): Promise<ApiResponse> => {
-    return api.post("/v1/auth/login", configRequest(headers, body, query));
+    return api.post("/v2/auth/login", configRequest(headers, body, query));
 };
 
 export const logout = async ({ headers, body, query }: ApiInput): Promise<ApiResponse> => {
-    return api.post("/v1/auth/logout", configRequest(headers, body, query));
+    return api.post("/v2/auth/logout", configRequest(headers, body, query));
 };
 
 export const checkSessionStatus = async ({ headers, body, query }: ApiInput): Promise<ApiResponse> => {
-    return api.post("/v1/auth/check-status", configRequest(headers, body, query));
+    return api.post("/v2/auth/check-status", configRequest(headers, body, query));
 };
 
 // Helper helper to adapt ApiInput to axios config
