@@ -91,7 +91,7 @@ axiosInstance.interceptors.response.use(
 
     if (status === 401) {
       const url = error.config?.url as string | undefined;
-      const isLoginRequest = url?.includes("/v1/auth/login") ?? false;
+      const isLoginRequest = url?.includes("/v2/auth/login") ?? false;
 
       if (IS_DEV && DEV_BEARER_TOKEN.trim().length > 0) {
         toast.error("401 Unauthorized (DEV): Backend từ chối request. Kiểm tra token/quyền.");
