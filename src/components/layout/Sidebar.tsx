@@ -169,6 +169,13 @@ export function Sidebar({ activeTab, onTabChange, sidebarOpen = true }: SidebarP
       },
       {
         type: "item",
+        id: "crm",
+        icon: Briefcase,
+        titleKey: "nav.crmTitle",
+        descriptionKey: "nav.crmDescription",
+      },
+      {
+        type: "item",
         id: "hr",
         icon: Briefcase,
         titleKey: "nav.hrTitle",

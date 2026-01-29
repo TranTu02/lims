@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { LogIn } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext"; // Ensure this path exists or adjustment needed
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import LogoFull from "@/assets/LOGO-FULL.png";
 
 export function LoginPage() {
     const { login } = useAuth();
     const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
 
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
@@ -32,13 +33,16 @@ export function LoginPage() {
 
         setIsLoading(true);
         try {
-            await login(username, password);
-            // Redirect is usually handled by AuthContext or Router based on auth state
-        } catch (err: any) {
-            setError(err.message || "Tên đăng nhập hoặc mật khẩu không đúng.");
-        } finally {
+            const ok = await login(username, password);
+      
+            if (ok) {
+              navigate("/reception", { replace: true });
+            } else {
+              setError("Tên đăng nhập hoặc mật khẩu không đúng.");
+            }
+          } finally {
             setIsLoading(false);
-        }
+          }
     };
 
     return (

@@ -9,6 +9,7 @@ export type ApiMeta = {
   total: number;
   totalPages: number;
   [key: string]: unknown;
+  countsByEntity?: Record<string, number>;
 };
 
 export type ApiError = {
@@ -91,7 +92,7 @@ axiosInstance.interceptors.response.use(
 
     if (status === 401) {
       const url = error.config?.url as string | undefined;
-      const isLoginRequest = url?.includes("/v1/auth/login") ?? false;
+      const isLoginRequest = url?.includes("/v2/auth/login") ?? false;
 
       if (IS_DEV && DEV_BEARER_TOKEN.trim().length > 0) {
         toast.error("401 Unauthorized (DEV): Backend từ chối request. Kiểm tra token/quyền.");
@@ -144,6 +145,15 @@ function makeUnknownError(err: unknown): ApiResponse<never> {
   );
 }
 
+function toError(err: unknown): Error {
+  const e = err as { response?: { data?: unknown }; message?: string } | null;
+
+  const maybeApi = e?.response?.data as { error?: { message?: string } } | null;
+  const msg = maybeApi?.error?.message ?? e?.message ?? "An unknown error occurred";
+  return new Error(msg);
+}
+
+
 const api = {
   get: async <T, TQuery = Record<string, unknown>>(
     url: string,
@@ -191,6 +201,55 @@ const api = {
       return response.data;
     } catch (error: unknown) {
       return makeUnknownError(error) as ApiResponse<T>;
+    }
+  },
+
+  getRaw: async <T, TQuery = Record<string, unknown>>(
+    url: string,
+    { headers, params, query }: RequestParams<never, TQuery> = {},
+  ): Promise<T> => {
+    try {
+      const finalParams: Record<string, unknown> = { ...(params ?? {}), ...(query ?? {}) };
+      const response = await axiosInstance.get<T>(url, { headers, params: finalParams });
+      return response.data;
+    } catch (error: unknown) {
+      throw toError(error);
+    }
+  },
+
+  postRaw: async <T, TBody = unknown, TQuery = Record<string, unknown>>(
+    url: string,
+    { headers, body, query }: RequestParams<TBody, TQuery> = {},
+  ): Promise<T> => {
+    try {
+      const response = await axiosInstance.post<T>(url, body, { headers, params: query });
+      return response.data;
+    } catch (error: unknown) {
+      throw toError(error);
+    }
+  },
+
+  putRaw: async <T, TBody = unknown, TQuery = Record<string, unknown>>(
+    url: string,
+    { headers, body, query }: RequestParams<TBody, TQuery> = {},
+  ): Promise<T> => {
+    try {
+      const response = await axiosInstance.put<T>(url, body, { headers, params: query });
+      return response.data;
+    } catch (error: unknown) {
+      throw toError(error);
+    }
+  },
+
+  deleteRaw: async <T, TBody = unknown, TQuery = Record<string, unknown>>(
+    url: string,
+    { headers, body, query }: RequestParams<TBody, TQuery> = {},
+  ): Promise<T> => {
+    try {
+      const response = await axiosInstance.delete<T>(url, { headers, data: body, params: query });
+      return response.data;
+    } catch (error: unknown) {
+      throw toError(error);
     }
   },
 };

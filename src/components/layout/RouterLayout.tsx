@@ -12,6 +12,7 @@ type TabKey =
   | "stored-samples"
   | "document"
   | "inventory"
+  | "crm"
   | "hr"
   | "library-parameters"
   | "library-protocols"
@@ -47,6 +48,8 @@ function getTabFromPath(pathname: string): TabKey {
       return "document";
     case "/inventory":
       return "inventory";
+    case "/crm":
+      return "crm";
     case "/hr":
       return "hr";
     default:
@@ -136,6 +139,10 @@ export function RouterLayout() {
       inventory: {
         title: t("nav.inventoryTitle"),
         description: t("nav.inventoryDescription"),
+      },
+      crm: {
+        title: t("nav.crmTitle"),
+        description: t("nav.crmDescription"),
       },
       hr: {
         title: t("nav.hrTitle"),

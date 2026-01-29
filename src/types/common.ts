@@ -20,3 +20,12 @@ export interface AddressInfo {
     city?: string;
     country?: string;
 }
+
+export type EntityInfo = {
+  type: "staff" | string;
+};
+
+export type MoneyValue = number | string;
+
+export type MaybeMoney = MoneyValue | null;
+export type MaybeNumber = number | string | null;

@@ -14,12 +14,13 @@ import { StoredSamplesPage } from "@/pages/StoredSamplesPage";
 import { LibraryPage } from "@/pages/library/LibraryPage";
 import { DocumentPage } from "@/pages/DocumentPage";
 import { InventoryPage } from "@/pages/InventoryPage";
-import { HRPage } from "@/pages/HRPage";
 import { ParametersPage } from "@/pages/library/ParametersPage";
 import { ProtocolsPage } from "@/pages/library/ProtocolsPage";
 import { MatricesPage } from "@/pages/library/MatricesPage";
 import { SampleTypesPage } from "@/pages/library/SampleTypesPage";
 import { ParameterGroupsPage } from "@/pages/library/ParameterGroupsPage";
+import { IdentityPage } from "@/pages/IdentityPage";
+import { CRMPage } from "@/pages/crm/CRMPage";
 
 // Protected Route Wrapper
 const ProtectedRoute = () => {
@@ -58,6 +59,7 @@ function App() {
             <Route path="/assignment" element={<AssignmentPage />} />
             <Route path="/handover" element={<HandoverPage />} />
             <Route path="/stored-samples" element={<StoredSamplesPage />} />
+            <Route path="/crm" element={<CRMPage />} />
 
             <Route path="/library" element={<LibraryPage />}>
               <Route index element={<Navigate to="parameters" replace />} />
@@ -74,7 +76,7 @@ function App() {
 
             <Route path="/document" element={<DocumentPage />} />
             <Route path="/inventory" element={<InventoryPage />} />
-            <Route path="/hr" element={<HRPage />} />
+            <Route path="/hr" element={<IdentityPage />} />
           </Route>
 
           {/* Fallback */}
