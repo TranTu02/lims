@@ -58,7 +58,7 @@ export function MatricesTable(props: Props) {
             const sampleTypeLabel =
               m.sampleTypeName && m.sampleTypeName.trim() ? m.sampleTypeName : m.sampleTypeId;
 
-            const feeAfterTaxText = formatNumberVi(m.feeAfterTax) ?? t("common.notAvailable");
+            const feeAfterTaxText = formatNumberVi(m.feeAfterTax) ?? t("common.noData");
 
             return (
               <tr

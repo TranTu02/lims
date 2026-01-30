@@ -318,40 +318,172 @@ export default {
         },
         orders: {
             title: "Order Detail",
-            createdAt: "Created At",
-            sampleCount: "Sample Count",
-            parameterCount: "Total Parameters",
-            orderId: "Order ID",
-            quoteId: "Source Quote ID",
-            clientId: "Client",
-            salePerson: "Sales Rep",
-            saleCommissionPercent: "Commission %",
-            samples: "Requested Samples List",
-            totalAmount: "Total Order Value",
-            totalFeeBeforeTax: "Total Fee (Pre-tax)",
-            totalFeeBeforeTaxAndDiscount: "Total Listed Fee",
-            totalTaxValue: "Tax Value",
-            totalDiscountValue: "Discount Value",
-            orderStatus: "Order Status",
-            taxRate: "Tax Rate (%)",
-            discountRate: "Discount (%)",
-            paymentStatusLabel: "Payment Status",
-            transactions: "Payment History",
-            orderUri: "Sample Submission Link",
-            requestForm: "Request Form Content",
+            subtitle: "Manage orders, samples, and payments",
+          
+            tabs: {
+              orders: "Orders",
+            },
+          
+            columns: {
+              orderId: "Order ID",
+              quoteId: "Quote ID",
+              clientId: "Client ID",
+              salePersonId: "Sales Rep (ID)",
+              saleCommissionPercent: "Commission %",
+              totalAmount: "Total Amount",
+          
+              orderStatus: "Order Status",
+              paymentStatus: "Payment Status",
+          
+              totalFeeBeforeTax: "Total Fee (Pre-tax)",
+              totalFeeBeforeTaxAndDiscount: "Total Listed Fee",
+              totalTaxValue: "Tax Value",
+              totalDiscountValue: "Discount Value",
+              taxRate: "Tax Rate (%)",
+              discountRate: "Discount (%)",
+          
+              orderUri: "Sample Submission Link",
+              entityType: "Entity Type",
+            },
+          
             status: {
-                Pending: "Pending",
-                Processing: "Processing",
-                Completed: "Confirmed",
-                Cancelled: "Cancelled",
+              pending: "Pending",
+              processing: "Processing",
+              completed: "Confirmed",
+              cancelled: "Cancelled",
+            },
+          
+            payment: {
+              unpaid: "Unpaid",
+              partially: "Partially Paid",
+              paid: "Paid",
+              debt: "Debt",
             },
             paymentStatus: {
-                Unpaid: "Unpaid",
-                Partial: "Partially Paid",
-                Paid: "Paid",
-                Debt: "Debt",
+              Unpaid: "Unpaid",
+              Partial: "Partially Paid",
+              Partially: "Partially Paid",
+              Paid: "Paid",
+              Debt: "Debt",
             },
-        },
+          
+            orderStatus: {
+              Pending: "Pending",
+              Processing: "Processing",
+              Completed: "Confirmed",
+              Cancelled: "Cancelled",
+            },
+          
+            create: { title: "Create Order" },
+            update: { title: "Update Order" },
+          
+            form: {
+              sections: {
+                basic: "Basic",
+                contact: "Contact",
+                requestForm: "Request Form",
+                samples: "Samples",
+                transactions: "Transactions",
+              },
+              placeholders: {
+                orderId: "Enter order ID...",
+                quoteId: "Enter quote ID...",
+                clientId: "Enter client ID...",
+                salePersonId: "Enter sales rep ID...",
+                saleCommissionPercent: "Enter commission %...",
+          
+                totalAmount: "Enter total amount...",
+                taxRate: "Enter tax rate...",
+                discountRate: "Enter discount rate...",
+          
+                orderStatus: "Select order status...",
+                paymentStatus: "Select payment status...",
+          
+                contactName: "Enter contact name...",
+                contactEmail: "Enter email...",
+                contactPhone: "Enter phone...",
+          
+                requestedBy: "Enter requested by...",
+                requestedAt: "Select date...",
+                requestNotes: "Enter notes...",
+          
+                sampleName: "Enter sample name...",
+                userSampleId: "Enter client sample ID...",
+                sampleTypeId: "Enter sample type ID...",
+                sampleTypeName: "Enter sample type name...",
+                matrixId: "Enter matrix ID...",
+          
+                txDate: "Select date...",
+                txMethod: "Enter method...",
+                txAmount: "Enter amount...",
+                txNote: "Enter note...",
+              },
+            },
+          
+            contact: {
+              contactName: "Contact Name",
+              contactEmail: "Email",
+              contactPhone: "Phone",
+            },
+          
+            requestForm: {
+              requestedBy: "Requested By",
+              requestedAt: "Requested At",
+              notes: "Notes",
+            },
+          
+            samples: {
+              sample: "Sample",
+              analyses: "Analyses",
+          
+              sampleId: "Sample ID",
+              sampleTypeId: "Sample Type (ID)",
+              sampleTypeName: "Sample Type",
+              userSampleId: "Client Sample ID",
+              matrixId: "Matrix ID",
+          
+              fields: {
+                sampleName: "Sample Name",
+                userSampleId: "Client Sample ID",
+                sampleTypeId: "Sample Type (ID)",
+                sampleTypeName: "Sample Type",
+                matrixId: "Matrix ID",
+              },
+            },
+          
+            transactions: {
+              title: "Transaction",
+              method: "Method",
+              amount: "Amount",
+              fields: {
+                date: "Date",
+                method: "Method",
+                amount: "Amount",
+                note: "Note",
+              },
+            },
+          
+            detail: {
+              title: "Order Detail",
+              sections: {
+                basic: "Basic",
+                amounts: "Amounts",
+                audit: "Audit",
+                client: "Client",
+                contactPerson: "Contact Person",
+                samples: "Samples & Analyses",
+                transactions: "Transactions",
+                requestForm: "Request Form",
+                reportRecipient: "Report Recipient",
+              },
+            },
+          
+            delete: {
+              title: "Delete Order",
+              description: "Are you sure you want to delete order",
+            },
+          },
+          
         quotes: {
             unitPrice: "Unit Price",
             tax: "Tax",
