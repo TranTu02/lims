@@ -42,6 +42,9 @@ export default {
         inventoryTitle:"Kho & Tài sản",
         inventoryDescription:"Hóa chất & Thiết bị",
         
+        crmTitle:"Khách hàng",
+        crmDescription:"Quản lý quan hệ khách hàng",
+
         hrTitle:"Nhân sự",
         hrDescription:"Quản lý nhân viên",
         sidebar: {
@@ -102,6 +105,14 @@ export default {
         uploadedAt: "Ngày tải lên",
         field: "Trường",
         value: "Giá trị",
+        empty: "Chưa có dữ liệu",
+        count: "Tổng",
+        toast: {
+            saved: "Lưu thành công",
+            created: "Tạo mới thành công",
+            deleted: "Xóa thành công",
+            failed: "Thao tác thất bại",
+        },
         placeholder: {
             enterValue: "Nhập giá trị...",
             enterField: "Nhập tên trường...",
@@ -155,6 +166,14 @@ export default {
         },
     },
     crm: {
+        title: "Khách hàng",
+        subtitle: "Quản lý quan hệ khách hàng",
+    
+        tabs: {
+          clients: "Khách hàng",
+          orders: "Đơn hàng",
+          quotes: "Báo giá",
+        },
         clients: {
             clientId: "Mã khách hàng",
             clientName: "Tên khách hàng / Công ty",
@@ -168,6 +187,132 @@ export default {
             contacts: "Người liên hệ",
             invoiceInfo: "Thông tin xuất hóa đơn",
             totalOrderAmount: "Tổng doanh số tích lũy",
+            create: {
+                title: "Tạo khách hàng",
+              },
+              update: {
+                title: "Cập nhật khách hàng",
+              },
+        
+              placeholders: {
+                clientId: "Nhập mã khách hàng...",
+                clientName: "Nhập tên khách hàng / công ty...",
+                legalId: "Nhập MST/CMND...",
+                saleScope: "Chọn phạm vi quản lý...",
+                phone: "Nhập số điện thoại...",
+                email: "Nhập email...",
+                address: "Nhập địa chỉ...",
+              },
+              sections: {
+                base: {
+                title: "Thông tin cơ bản",
+                },
+
+                available: {
+                title: "Sale phụ trách",
+                add: "Thêm",
+                empty: "Chưa có sale phụ trách",
+                itemTitle: "Sale #{{index}}",
+                byIds: "Sale phụ trách (IDs)",
+                byName: "Sale phụ trách (Tên)",
+                byIdsPlaceholder: "VD:",
+                byNamePlaceholder: "VD:",
+                },
+
+                invoice: {
+                title: "Thông tin xuất hóa đơn",
+                taxName: "Tên đơn vị",
+                taxCode: "Mã số thuế",
+                taxEmail: "Email",
+                taxAddress: "Địa chỉ",
+                taxNamePlaceholder: "Nhập tên đơn vị...",
+                taxCodePlaceholder: "Nhập mã số thuế...",
+                taxEmailPlaceholder: "Nhập email...",
+                taxAddressPlaceholder: "Nhập địa chỉ...",
+                },
+
+                contacts: {
+                title: "Người liên hệ",
+                add: "Thêm",
+                empty: "Chưa có người liên hệ",
+                itemTitle: "Liên hệ #{{index}}",
+                fields: {
+                    contactId: "Mã liên hệ",
+                    contactName: "Họ và tên",
+                    contactPhone: "Điện thoại",
+                    contactEmail: "Email",
+                    contactPosition: "Chức vụ",
+                    contactAddress: "Địa chỉ",
+
+                    contactIdPlaceholder: "Nhập mã liên hệ...",
+                    contactNamePlaceholder: "Nhập họ và tên...",
+                    contactPhonePlaceholder: "Nhập số điện thoại...",
+                    contactEmailPlaceholder: "Nhập email...",
+                    contactPositionPlaceholder: "Nhập chức vụ...",
+                    contactAddressPlaceholder: "Nhập địa chỉ...",
+                },
+                },
+              },
+            saleScope: {
+                public: "Public",
+                private: "Private",
+              },
+        
+              columns: {
+                clientId: "Mã KH",
+                clientName: "Tên khách hàng",
+                legalId: "MST/CMND",
+                invoiceName: "Tên xuất HĐ",
+                primaryContact: "Liên hệ chính",
+                saleScope: "Phạm vi",
+                phone: "Điện thoại",
+                email: "Email",
+                address: "Địa chỉ",
+                totalOrderAmount: "Tổng doanh số",
+                availableByIds: "Sale phụ trách (IDs)",
+                availableByName: "Sale phụ trách (Tên)",
+              },
+        
+              tooltip: {
+                invoiceTitle: "Thông tin xuất hóa đơn",
+                taxName: "Tên đơn vị",
+                taxCode: "Mã số thuế",
+                taxEmail: "Email",
+                taxAddress: "Địa chỉ",
+        
+                contactsTitle: "Người liên hệ",
+              },
+        
+              detail: {
+                title: "Chi tiết khách hàng",
+                noContacts: "Chưa có người liên hệ",
+                sections: {
+                  basic: "Thông tin cơ bản",
+                  availability: "Phụ trách",
+                  invoiceInfo: "Thông tin hóa đơn",
+                  contacts: "Người liên hệ",
+                },
+              },
+        
+              invoice: {
+                taxCode: "Mã số thuế",
+                taxName: "Tên đơn vị",
+                taxEmail: "Email",
+                taxAddress: "Địa chỉ",
+              },
+        
+              contact: {
+                title: "Liên hệ",
+                phone: "Điện thoại",
+                email: "Email",
+                position: "Chức vụ",
+                address: "Địa chỉ",
+              },
+        
+              delete: {
+                title: "Xóa khách hàng",
+                description: "Bạn có chắc chắn muốn xóa khách hàng",
+              },
         },
         orders: {
             title: "Chi tiết đơn hàng",

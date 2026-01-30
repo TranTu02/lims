@@ -40,8 +40,11 @@ export default {
         documentDescription: "Forms & Templates",
       
         inventoryTitle: "Inventory & Assets",
-        inventoryDescription: "Chemicals & Equipment",
-      
+        inventoryDescription: "Chemicals & equipment",
+    
+        crmTitle: "Customers",
+        crmDescription: "Customer relationship management",
+    
         hrTitle: "Human Resources",
         hrDescription: "Employee Management",
         sidebar: {
@@ -103,6 +106,14 @@ export default {
         uploadedAt: "Uploaded At",
         field: "Field",
         value: "Value",
+        empty: "No data",
+        count: "Total",
+        toast: {
+            saved: "Saved successfully",
+            created: "Created successfully",
+            deleted: "Deleted successfully",
+            failed: "Action failed",
+        },
         placeholder: {
             enterValue: "Enter value...",
             enterField: "Enter field name...",
@@ -157,6 +168,14 @@ export default {
         },
     },
     crm: {
+        title: "Customers",
+        subtitle: "Customer relationship management",
+    
+        tabs: {
+          clients: "Customers",
+          orders: "Orders",
+          quotes: "Quotes",
+        },    
         clients: {
             clientId: "Client ID",
             clientName: "Client Name / Company",
@@ -170,6 +189,132 @@ export default {
             contacts: "Contact Person",
             invoiceInfo: "Invoice Info",
             totalOrderAmount: "Total Accumulated Sales",
+            create: {
+                title: "Create customer",
+              },
+              update: {
+                title: "Update customer",
+              },
+        
+              placeholders: {
+                clientId: "Enter exposing client ID...",
+                clientName: "Enter customer/company name...",
+                legalId: "Enter tax/ID...",
+                saleScope: "Select management scope...",
+                phone: "Enter phone number...",
+                email: "Enter email...",
+                address: "Enter address...",
+              },
+              sections: {
+                base: {
+                  title: "Basic information",
+                },
+        
+                available: {
+                  title: "Sales assignment",
+                  add: "Add",
+                  empty: "No sales assignment",
+                  itemTitle: "Sales #{{index}}",
+                  byIds: "Sales Rep (IDs)",
+                  byName: "Sales Rep (Name)",
+                  byIdsPlaceholder: "e.g.",
+                  byNamePlaceholder: "e.g.",
+                },
+        
+                invoice: {
+                  title: "Invoice information",
+                  taxName: "Company name",
+                  taxCode: "Tax code",
+                  taxEmail: "Email",
+                  taxAddress: "Address",
+                  taxNamePlaceholder: "Enter company name...",
+                  taxCodePlaceholder: "Enter tax code...",
+                  taxEmailPlaceholder: "Enter email...",
+                  taxAddressPlaceholder: "Enter address...",
+                },
+        
+                contacts: {
+                  title: "Contacts",
+                  add: "Add",
+                  empty: "No contacts",
+                  itemTitle: "Contact #{{index}}",
+                  fields: {
+                    contactId: "Contact ID",
+                    contactName: "Full name",
+                    contactPhone: "Phone",
+                    contactEmail: "Email",
+                    contactPosition: "Position",
+                    contactAddress: "Address",
+        
+                    contactIdPlaceholder: "Enter contact ID...",
+                    contactNamePlaceholder: "Enter full name...",
+                    contactPhonePlaceholder: "Enter phone...",
+                    contactEmailPlaceholder: "Enter email...",
+                    contactPositionPlaceholder: "Enter position...",
+                    contactAddressPlaceholder: "Enter address...",
+                  },
+                },
+              },
+            saleScope: {
+                public: "Public",
+                private: "Private",
+              },
+        
+              columns: {
+                clientId: "Client ID",
+                clientName: "Client Name",
+                legalId: "Tax/ID",
+                invoiceName: "Invoice Name",
+                primaryContact: "Primary Contact",
+                saleScope: "Scope",
+                phone: "Phone",
+                email: "Email",
+                address: "Address",
+                totalOrderAmount: "Total Revenue",
+                availableByIds: "Sales Rep (IDs)",
+                availableByName: "Sales Rep (Name)",
+              },
+        
+              tooltip: {
+                invoiceTitle: "Invoice Information",
+                taxName: "Company Name",
+                taxCode: "Tax Code",
+                taxEmail: "Email",
+                taxAddress: "Address",
+        
+                contactsTitle: "Contacts",
+              },
+        
+              detail: {
+                title: "Customer Details",
+                noContacts: "No contacts",
+                sections: {
+                  basic: "Basic Information",
+                  availability: "Sales Assignment",
+                  invoiceInfo: "Invoice Info",
+                  contacts: "Contacts",
+                },
+              },
+        
+              invoice: {
+                taxCode: "Tax Code",
+                taxName: "Company Name",
+                taxEmail: "Email",
+                taxAddress: "Address",
+              },
+        
+              contact: {
+                title: "Contact",
+                phone: "Phone",
+                email: "Email",
+                position: "Position",
+                address: "Address",
+              },
+        
+              delete: {
+                title: "Delete customer",
+                description: "Are you sure you want to delete customer",
+              },
         },
         orders: {
             title: "Order Detail",
