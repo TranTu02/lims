@@ -316,56 +316,236 @@ export default {
         },
         orders: {
             title: "Chi tiết đơn hàng",
-            createdAt: "Ngày tạo",
-            sampleCount: "Số lượng mẫu",
-            parameterCount: "Tổng chỉ tiêu",
-            orderId: "Mã đơn hàng",
-            quoteId: "Mã báo giá nguồn",
-            clientId: "Khách hàng",
-            salePerson: "Sale phụ trách",
-            saleCommissionPercent: "% Hoa hồng",
-            samples: "Danh sách mẫu yêu cầu",
-            totalAmount: "Tổng giá trị đơn hàng",
-            totalFeeBeforeTax: "Tổng tiền trước thuế",
-            totalFeeBeforeTaxAndDiscount: "Tổng tiền niêm yết",
-            totalTaxValue: "Tiền thuế",
-            totalDiscountValue: "Tiền giảm giá",
-            orderStatus: "Trạng thái đơn hàng",
-            taxRate: "Thuế suất chung (%)",
-            discountRate: "Chiết khấu (%)",
-            paymentStatusLabel: "Trạng thái thanh toán",
-            transactions: "Lịch sử thanh toán",
-            orderUri: "Link phiếu gửi mẫu",
-            requestForm: "Nội dung phiếu yêu cầu",
-            status: {
-                Pending: "Chờ xử lý",
-                Processing: "Đang xử lý",
-                Completed: "Đã xác nhận",
-                Cancelled: "Hủy bỏ",
+            subtitle: "Quản lý đơn hàng, mẫu và thanh toán",
+          
+            tabs: {
+              orders: "Đơn hàng",
+            },
+          
+            columns: {
+              orderId: "Mã đơn hàng",
+              quoteId: "Mã báo giá",
+              clientId: "Mã khách hàng",
+              salePersonId: "Sale phụ trách (ID)",
+              saleCommissionPercent: "% Hoa hồng",
+              totalAmount: "Tổng tiền",
+          
+              orderStatus: "Trạng thái đơn",
+              paymentStatus: "Trạng thái thanh toán",
+          
+              totalFeeBeforeTax: "Tổng tiền trước thuế",
+              totalFeeBeforeTaxAndDiscount: "Tổng tiền niêm yết",
+              totalTaxValue: "Tiền thuế",
+              totalDiscountValue: "Tiền giảm giá",
+              taxRate: "Thuế suất (%)",
+              discountRate: "Chiết khấu (%)",
+          
+              orderUri: "Link phiếu gửi mẫu",
+              entityType: "Loại tài khoản",
             },
             paymentStatus: {
-                Unpaid: "Chưa thanh toán",
-                Partial: "Thanh toán một phần",
-                Paid: "Đã thanh toán",
-                Debt: "Công nợ",
+              Unpaid: "Chưa thanh toán",
+              Partial: "Thanh toán một phần",
+              Partially: "Thanh toán một phần",
+              Paid: "Đã thanh toán",
+              Debt: "Công nợ",
             },
-        },
-        quotes: {
-            unitPrice: "Đơn giá",
-            tax: "Thuế",
-            subTotal: "Tạm tính",
-            total: "Tổng tiền",
-            quoteId: "ID Báo giá",
-            quoteCode: "Mã số báo giá",
-            clientId: "Khách hàng",
-            salePerson: "Sale phụ trách",
-            samples: "Chi tiết báo giá",
-            totalFeeBeforeTax: "Thành tiền (Chưa thuế)",
-            totalTaxValue: "Tiền thuế",
-            discount: "Chiết khấu",
-            totalAmount: "Tổng cộng thanh toán",
-            quoteStatus: "Trạng thái báo giá",
-        },
+          
+            orderStatus: {
+              Pending: "Chờ xử lý",
+              Processing: "Đang xử lý",
+              Completed: "Đã xác nhận",
+              Cancelled: "Hủy bỏ",
+            },
+          
+            create: { title: "Tạo đơn hàng" },
+            update: { title: "Cập nhật đơn hàng" },
+          
+            form: {
+              sections: {
+                basic: "Thông tin đơn",
+                contact: "Liên hệ",
+                requestForm: "Phiếu yêu cầu",
+                samples: "Danh sách mẫu",
+                transactions: "Lịch sử thanh toán",
+              },
+              placeholders: {
+                orderId: "Nhập mã đơn hàng...",
+                quoteId: "Nhập mã báo giá...",
+                clientId: "Nhập mã khách hàng...",
+                salePersonId: "Nhập ID sale...",
+                saleCommissionPercent: "Nhập % hoa hồng...",
+          
+                totalAmount: "Nhập tổng tiền...",
+                taxRate: "Nhập % thuế...",
+                discountRate: "Nhập % chiết khấu...",
+          
+                orderStatus: "Chọn trạng thái đơn...",
+                paymentStatus: "Chọn trạng thái thanh toán...",
+          
+                contactName: "Nhập tên người liên hệ...",
+                contactEmail: "Nhập email...",
+                contactPhone: "Nhập số điện thoại...",
+          
+                requestedBy: "Nhập người yêu cầu...",
+                requestedAt: "Chọn ngày...",
+                requestNotes: "Nhập ghi chú...",
+          
+                sampleName: "Nhập tên mẫu...",
+                userSampleId: "Nhập mã mẫu KH...",
+                sampleTypeId: "Nhập loại mẫu (ID)...",
+                sampleTypeName: "Nhập loại mẫu...",
+                matrixId: "Nhập Matrix ID...",
+          
+                txDate: "Chọn ngày...",
+                txMethod: "Nhập phương thức...",
+                txAmount: "Nhập số tiền...",
+                txNote: "Nhập ghi chú...",
+              },
+            },
+          
+            contact: {
+              contactName: "Tên người liên hệ",
+              contactEmail: "Email",
+              contactPhone: "Điện thoại",
+            },
+          
+            requestForm: {
+              requestedBy: "Người yêu cầu",
+              requestedAt: "Ngày yêu cầu",
+              notes: "Ghi chú",
+            },
+          
+            samples: {
+              sample: "Mẫu",
+              analyses: "Chỉ tiêu",
+          
+              sampleId: "Mã mẫu",
+              sampleTypeId: "Loại mẫu (ID)",
+              sampleTypeName: "Loại mẫu",
+              userSampleId: "Mã mẫu KH",
+              matrixId: "Matrix ID",
+          
+              fields: {
+                sampleName: "Tên mẫu",
+                userSampleId: "Mã mẫu KH",
+                sampleTypeId: "Loại mẫu (ID)",
+                sampleTypeName: "Loại mẫu",
+                matrixId: "Matrix ID",
+              },
+            },
+          
+            transactions: {
+              title: "Thanh toán",
+              method: "Phương thức",
+              amount: "Số tiền",
+              fields: {
+                date: "Ngày",
+                method: "Phương thức",
+                amount: "Số tiền",
+                note: "Ghi chú",
+              },
+            },
+          
+            detail: {
+              title: "Chi tiết đơn hàng",
+              sections: {
+                basic: "Thông tin đơn",
+                amounts: "Thông tin tiền",
+                audit: "Hệ thống",
+                client: "Khách hàng",
+                contactPerson: "Người liên hệ",
+                samples: "Mẫu & chỉ tiêu",
+                transactions: "Thanh toán",
+                requestForm: "Phiếu yêu cầu",
+                reportRecipient: "Người nhận báo cáo",
+              },
+            },
+          
+            delete: {
+              title: "Xóa đơn hàng",
+              description: "Bạn có chắc chắn muốn xóa đơn hàng",
+            },
+          },
+          quotes: {
+            columns: {
+              quoteId: "Mã báo giá",
+              quoteCode: "Mã số báo giá",
+              clientId: "Mã khách hàng",
+              salePersonId: "Sale phụ trách (ID)",
+      
+              totalAmount: "Tổng tiền",
+              quoteStatus: "Trạng thái báo giá",
+      
+              taxRate: "Thuế suất (%)",
+              discount: "Chiết khấu (%)",
+              totalFeeBeforeTax: "Tạm tính (Chưa thuế)",
+              totalFeeBeforeTaxAndDiscount: "Tạm tính gốc",
+              totalTaxValue: "Tiền thuế",
+              totalDiscountValue: "Tiền giảm giá",
+      
+              contactName: "Tên người liên hệ",
+              contactEmail: "Email",
+              contactPhone: "Điện thoại",
+              contactPosition: "Chức vụ",
+            },
+      
+            placeholders: {
+              quoteId: "Tự động tạo...",
+              quoteCode: "Nhập mã báo giá...",
+              clientId: "Nhập mã khách hàng...",
+              salePersonId: "Nhập ID sale...",
+      
+              totalAmount: "Nhập tổng tiền...",
+              quoteStatus: "Chọn trạng thái...",
+      
+              taxRate: "Nhập % thuế...",
+              discount: "Nhập % chiết khấu...",
+      
+              totalFeeBeforeTax: "Nhập tạm tính (chưa thuế)...",
+              totalFeeBeforeTaxAndDiscount: "Nhập tạm tính gốc...",
+              totalTaxValue: "Nhập tiền thuế...",
+              totalDiscountValue: "Nhập tiền giảm giá...",
+      
+              contactName: "Nhập tên người liên hệ...",
+              contactEmail: "Nhập email...",
+              contactPhone: "Nhập số điện thoại...",
+              contactPosition: "Nhập chức vụ...",
+            },
+      
+            status: {
+              draft: "Nháp",
+              sent: "Đã gửi",
+              approved: "Đã duyệt",
+              expired: "Hết hạn",
+            },
+      
+            create: { title: "Tạo báo giá" },
+            update: { title: "Cập nhật báo giá" },
+      
+            form: {
+              sections: {
+                basic: "Thông tin báo giá",
+                contact: "Người liên hệ",
+                amounts: "Thông tin tiền",
+              },
+            },
+      
+            detail: {
+              title: "Chi tiết báo giá",
+              sections: {
+                basic: "Thông tin báo giá",
+                contact: "Người liên hệ",
+                amounts: "Thông tin tiền",
+                audit: "Thông tin hệ thống",
+              },
+            },
+      
+            delete: {
+              title: "Xóa báo giá",
+              description: "Bạn có chắc chắn muốn xóa báo giá",
+            },
+          },
     },
     library: {
         matrices: {
