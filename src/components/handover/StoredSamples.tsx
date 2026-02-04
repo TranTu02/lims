@@ -1,349 +1,486 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, ChevronDown, ChevronRight, Calendar, User } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Plus, Search, AlertCircle, Check, ChevronsUpDown } from "lucide-react";
+
+import * as PopoverPrimitive from "@radix-ui/react-popover";
+
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-interface StoredSample {
-    id: string;
-    code: string;
-    name: string;
-    description: string;
-    handoverDate: string;
-    handoverPerson: string;
-    sampleType: string;
-    productCategory: string;
-    condition: string;
-    quantity: number;
-    unit: string;
-    notes: string;
-    parameters: {
-        id: string;
-        name: string;
-        group: string;
-        status: string;
-        result?: string;
-        unit?: string;
-        performer?: string;
-    }[];
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+
+import type { ApiResponse } from "@/api/client";
+import { samplesGetList } from "@/api/samples";
+import { samplesKeys } from "@/api/samplesKeys";
+
+import { receiptsGetList } from "@/api/receipts";
+import type { ReceiptListItem } from "@/types/receipt";
+
+import type {
+  SampleListItem,
+  SamplesGetListInput,
+  SampleStatus,
+} from "@/types/sample";
+
+import { RowActionIcons } from "../common/RowActionIcons";
+import { useQuery } from "@tanstack/react-query";
+import { SampleDetailModal } from "../samples/SampleDetailModal";
+import { SampleUpsertModal } from "../samples/SampleUpsertModal";
+
+function Skeleton() {
+  return (
+    <div className="bg-card border border-border rounded-lg p-4">
+      <div className="animate-pulse space-y-3">
+        <div className="h-4 w-48 bg-muted rounded" />
+        <div className="h-9 w-full bg-muted rounded" />
+        <div className="h-40 w-full bg-muted rounded" />
+      </div>
+    </div>
+  );
 }
 
-const mockStoredSamples: StoredSample[] = [
-    {
-        id: "1",
-        code: "TNM2501-001-S01",
-        name: "Mẫu nước thải điểm 1",
-        description: "Nước thải công nghiệp từ nhà máy sản xuất",
-        handoverDate: "15/01/2026 10:30",
-        handoverPerson: "Nguyễn Văn A",
-        sampleType: "Nước thải",
-        productCategory: "Môi trường",
-        condition: "Bảo quản lạnh",
-        quantity: 2,
-        unit: "Lít",
-        notes: "Cần phân tích trong vòng 48h",
-        parameters: [
-            { id: "p1", name: "pH", group: "Hoá lý cơ bản", status: "in-progress", result: "7.2", unit: "pH", performer: "Trần Văn B" },
-            { id: "p2", name: "COD", group: "Ô nhiễm", status: "pending", unit: "mg/L", performer: "Lê Thị C" },
-            { id: "p3", name: "BOD", group: "Ô nhiễm", status: "pending", unit: "mg/L", performer: "Nguyễn Văn D" },
-        ],
-    },
-    {
-        id: "2",
-        code: "TNM2501-002-S01",
-        name: "Mẫu nước sinh hoạt",
-        description: "Nước máy từ trạm xử lý nước",
-        handoverDate: "14/01/2026 14:20",
-        handoverPerson: "Trần Thị B",
-        sampleType: "Nước sạch",
-        productCategory: "Nước uống",
-        condition: "Bảo quản nhiệt độ phòng",
-        quantity: 1,
-        unit: "Lít",
-        notes: "Mẫu đạt yêu cầu",
-        parameters: [
-            { id: "p4", name: "Phosphate", group: "Dinh dưỡng", status: "completed", result: "0.5", unit: "mg/L", performer: "Phạm Văn E" },
-            { id: "p5", name: "E. coli", group: "Vi sinh", status: "in-progress", unit: "CFU/100mL", performer: "Hoàng Thị F" },
-        ],
-    },
-    {
-        id: "3",
-        code: "TNM2501-003-S01",
-        name: "Mẫu thực phẩm chức năng",
-        description: "Viên uống sâm Hàn Quốc",
-        handoverDate: "16/01/2026 09:15",
-        handoverPerson: "Lê Văn C",
-        sampleType: "Thực phẩm chức năng",
-        productCategory: "Dược liệu",
-        condition: "Bảo quản khô ráo",
-        quantity: 500,
-        unit: "Gram",
-        notes: "Kiểm tra hàm lượng ginsenoside",
-        parameters: [{ id: "p6", name: "Ginsenoside", group: "Định tính dược liệu", status: "pending", unit: "mg/g", performer: "Võ Văn G" }],
-    },
-    {
-        id: "4",
-        code: "TNM2501-003-S02",
-        name: "Mẫu đất nông nghiệp",
-        description: "Đất canh tác tại vùng ngoại thành",
-        handoverDate: "16/01/2026 11:00",
-        handoverPerson: "Phạm Thị D",
-        sampleType: "Đất",
-        productCategory: "Môi trường",
-        condition: "Bảo quản khô",
-        quantity: 2,
-        unit: "Kg",
-        notes: "Phân tích kim loại nặng",
-        parameters: [
-            { id: "p7", name: "Cadmium", group: "Kim loại", status: "in-progress", result: "0.8", unit: "mg/kg", performer: "Đặng Văn H" },
-            { id: "p8", name: "Lead", group: "Kim loại", status: "pending", unit: "mg/kg", performer: "Bùi Thị I" },
-        ],
-    },
-    {
-        id: "5",
-        code: "TNM2501-004-S01",
-        name: "Mẫu thực phẩm",
-        description: "Thịt gà đông lạnh",
-        handoverDate: "17/01/2026 08:45",
-        handoverPerson: "Nguyễn Văn E",
-        sampleType: "Thực phẩm",
-        productCategory: "Thực phẩm tươi sống",
-        condition: "Bảo quản đông lạnh -18°C",
-        quantity: 1,
-        unit: "Kg",
-        notes: "Kiểm tra vi sinh",
-        parameters: [
-            { id: "p9", name: "E. coli", group: "Vi sinh", status: "completed", result: "<10", unit: "CFU/g", performer: "Ngô Văn J" },
-            { id: "p10", name: "Salmonella", group: "Vi sinh", status: "in-progress", unit: "CFU/25g", performer: "Lý Thị K" },
-        ],
-    },
-];
+function StatusBadge({ status }: { status?: string | null }) {
+  const { t } = useTranslation();
+
+  if (!status) {
+    return (
+      <Badge variant="outline" className="text-xs">
+        {t("common.noData")}
+      </Badge>
+    );
+  }
+
+  if (status === "Stored") {
+    return (
+      <Badge variant="success" className="text-xs">
+        {t("lab.samples.status.Stored")}
+      </Badge>
+    );
+  }
+
+  if (status === "Analyzing") {
+    return (
+      <Badge variant="warning" className="text-xs">
+        {t("lab.samples.status.Analyzing")}
+      </Badge>
+    );
+  }
+
+  if (status === "Received") {
+    return (
+      <Badge variant="secondary" className="text-xs">
+        {t("lab.samples.status.Received")}
+      </Badge>
+    );
+  }
+
+  if (status === "Disposed") {
+    return (
+      <Badge variant="destructive" className="text-xs">
+        {t("lab.samples.status.Disposed")}
+      </Badge>
+    );
+  }
+
+  return (
+    <Badge variant="outline" className="text-xs">
+      {status}
+    </Badge>
+  );
+}
+
+const STATUS_ALL = "__ALL__" as const;
+type StatusFilterValue = typeof STATUS_ALL | SampleStatus;
 
 export function StoredSamples() {
-    const { t } = useTranslation();
-    const [searchTerm, setSearchTerm] = useState("");
-    const [expandedSamples, setExpandedSamples] = useState<string[]>([]);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage] = useState(5);
+  const { t } = useTranslation();
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [receiptSearch, setReceiptSearch] = useState("");
+  const [debouncedReceiptSearch, setDebouncedReceiptSearch] = useState("");
+  const [receiptIdFilter, setReceiptIdFilter] = useState<string>("");
+  const [receiptOpen, setReceiptOpen] = useState(false);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
-    const filteredSamples = mockStoredSamples.filter((sample) => {
-        if (!searchTerm) return true;
-        const term = searchTerm.toLowerCase();
-        return (
-            sample.code.toLowerCase().includes(term) || sample.name.toLowerCase().includes(term) || sample.description.toLowerCase().includes(term) || sample.sampleType.toLowerCase().includes(term)
-        );
-    });
+  useEffect(() => {
+    const v = receiptSearch.trim();
+    const tmr = window.setTimeout(() => {
+      setDebouncedReceiptSearch(v);
+    }, 300);
+    return () => window.clearTimeout(tmr);
+  }, [receiptSearch]);
 
-    const toggleExpand = (sampleId: string) => {
-        if (expandedSamples.includes(sampleId)) {
-            setExpandedSamples(expandedSamples.filter((id) => id !== sampleId));
-        } else {
-            setExpandedSamples([...expandedSamples, sampleId]);
-        }
-    };
+  const [status, setStatus] = useState<StatusFilterValue>(STATUS_ALL);
 
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case "pending":
-                return (
-                    <Badge variant="outline" className="text-xs border-border text-foreground">
-                        {t("handover.status.pending")}
-                    </Badge>
-                );
-            case "in-progress":
-                return (
-                    <Badge variant="default" className="bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 text-xs">
-                        {t("handover.status.inProgress")}
-                    </Badge>
-                );
-            case "completed":
-                return (
-                    <Badge variant="default" className="bg-green-500 hover:bg-green-600 dark:bg-green-600 text-xs">
-                        {t("handover.status.completed")}
-                    </Badge>
-                );
-            default:
-                return (
-                    <Badge variant="outline" className="text-xs border-border text-foreground">
-                        {status}
-                    </Badge>
-                );
-        }
-    };
+  const [page, setPage] = useState(1);
 
-    const getConditionBadge = (condition: string) => {
-        if (condition.includes("lạnh") || condition.includes("đông")) {
-            return (
-                <Badge variant="default" className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 text-xs">
-                    {condition}
-                </Badge>
-            );
-        }
-        return (
-            <Badge variant="outline" className="text-xs border-border text-muted-foreground">
-                {condition}
-            </Badge>
-        );
-    };
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [upsertOpen, setUpsertOpen] = useState(false);
+  const [upsertMode, setUpsertMode] = useState<"create" | "update">("create");
+  const [selected, setSelected] = useState<SampleListItem | null>(null);
 
-    const indexOfLastItem = currentPage * itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentItems = filteredSamples.slice(indexOfFirstItem, indexOfLastItem);
+  function toDash(v: unknown, dash = t("common.noData")): string {
+    if (typeof v === "string") {
+      const s = v.trim();
+      return s.length > 0 ? s : dash;
+    }
+    if (v == null) return dash;
+    return String(v);
+  }
+  const receiptOptionsQuery = useMemo(
+    () => ({
+      query: {
+        page: 1,
+        itemsPerPage: 50,
+        search:
+          debouncedReceiptSearch.length > 0
+            ? debouncedReceiptSearch
+            : undefined,
+      },
+      sort: {},
+    }),
+    [debouncedReceiptSearch]
+  );
 
-    return (
-        <div className="p-6 space-y-6">
-            {/* Header */}
-            <div className="bg-card rounded-lg border border-border p-6">
-                <h2 className="text-xl font-semibold text-foreground mb-2">{t("handover.storedSamples.title")}</h2>
-                <p className="text-sm text-muted-foreground">{t("handover.storedSamples.description")}</p>
-            </div>
+  const receiptsQ = useQuery<ApiResponse<ReceiptListItem[]>, Error>({
+    queryKey: [
+      "operations",
+      "receipts",
+      "list",
+      receiptOptionsQuery.query?.search ?? "",
+      receiptOptionsQuery.query?.itemsPerPage ?? 50,
+    ],
+    enabled: debouncedReceiptSearch.length > 0,
+    queryFn: async () => {
+      const res = await receiptsGetList(receiptOptionsQuery);
+      if (!res.success) throw new Error(res.error?.message ?? "Request failed");
+      return res;
+    },
+    placeholderData: (prev) => prev,
+  });
 
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-card rounded-lg border border-border p-4">
-                    <div className="text-sm text-muted-foreground">{t("handover.storedSamples.stats.total")}</div>
-                    <div className="text-3xl font-semibold mt-1 text-foreground">{mockStoredSamples.length}</div>
-                </div>
-                <div className="bg-card rounded-lg border border-border p-4">
-                    <div className="text-sm text-muted-foreground">{t("handover.storedSamples.stats.analyzing")}</div>
-                    <div className="text-3xl font-semibold mt-1 text-blue-600 dark:text-blue-400">{mockStoredSamples.filter((s) => s.parameters.some((p) => p.status === "in-progress")).length}</div>
-                </div>
-                <div className="bg-card rounded-lg border border-border p-4">
-                    <div className="text-sm text-muted-foreground">{t("handover.storedSamples.stats.completed")}</div>
-                    <div className="text-3xl font-semibold mt-1 text-green-600 dark:text-green-400">{mockStoredSamples.filter((s) => s.parameters.every((p) => p.status === "completed")).length}</div>
-                </div>
-                <div className="bg-card rounded-lg border border-border p-4">
-                    <div className="text-sm text-muted-foreground">{t("handover.storedSamples.stats.pending")}</div>
-                    <div className="text-3xl font-semibold mt-1 text-orange-600 dark:text-orange-400">{mockStoredSamples.filter((s) => s.parameters.some((p) => p.status === "pending")).length}</div>
-                </div>
-            </div>
+  const receiptOptions = receiptsQ.data?.data ?? [];
 
-            {/* Search */}
-            <div className="bg-card rounded-lg border border-border p-4">
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder={t("handover.storedSamples.searchPlaceholder")} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 bg-background" />
-                </div>
-            </div>
+  const listInput: SamplesGetListInput = useMemo(
+    () => ({
+      query: {
+        page,
+        itemsPerPage,
+        receiptId:
+          receiptIdFilter.trim().length > 0
+            ? receiptIdFilter.trim()
+            : undefined,
+        status: status === STATUS_ALL ? undefined : status,
+      },
+      sort: {},
+    }),
+    [page, itemsPerPage, receiptIdFilter, status]
+  );
 
-            {/* Samples List */}
-            <div className="space-y-3">
-                {currentItems.map((sample) => {
-                    const isExpanded = expandedSamples.includes(sample.id);
-                    return (
-                        <div key={sample.id} className="bg-card rounded-lg border border-border overflow-hidden">
-                            {/* Sample Header */}
-                            <button onClick={() => toggleExpand(sample.id)} className="w-full p-4 hover:bg-accent/30 transition-colors">
-                                <div className="flex items-start gap-4">
-                                    <div className="mt-1">{isExpanded ? <ChevronDown className="h-5 w-5 text-muted-foreground" /> : <ChevronRight className="h-5 w-5 text-muted-foreground" />}</div>
-                                    <div className="flex-1 grid grid-cols-1 md:grid-cols-6 gap-4 text-left">
-                                        <div>
-                                            <div className="text-xs text-muted-foreground">{t("handover.storedSamples.table.code")}</div>
-                                            <div className="font-medium text-blue-600 dark:text-blue-400 text-sm mt-1">{sample.code}</div>
-                                        </div>
-                                        <div>
-                                            <div className="text-xs text-muted-foreground">{t("handover.storedSamples.table.name")}</div>
-                                            <div className="text-sm text-foreground mt-1">{sample.name}</div>
-                                        </div>
-                                        <div>
-                                            <div className="text-xs text-muted-foreground">{t("handover.storedSamples.table.type")}</div>
-                                            <div className="mt-1">
-                                                <Badge variant="outline" className="text-xs border-border text-foreground">
-                                                    {sample.sampleType}
-                                                </Badge>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div className="text-xs text-muted-foreground">{t("handover.storedSamples.table.category")}</div>
-                                            <div className="mt-1">
-                                                <Badge variant="secondary" className="text-xs bg-muted text-foreground hover:bg-muted/80">
-                                                    {sample.productCategory}
-                                                </Badge>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div className="text-xs text-muted-foreground">{t("handover.storedSamples.table.condition")}</div>
-                                            <div className="mt-1">{getConditionBadge(sample.condition)}</div>
-                                        </div>
-                                        <div>
-                                            <div className="text-xs text-muted-foreground">{t("handover.storedSamples.table.quantity")}</div>
-                                            <div className="text-sm text-foreground mt-1">
-                                                {sample.quantity} {sample.unit}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </button>
+  const listQ = useQuery<ApiResponse<SampleListItem[]>, Error>({
+    queryKey: samplesKeys.list(
+      (listInput.query ?? {}) as Record<string, unknown>,
+      (listInput.sort ?? {}) as Record<string, unknown>
+    ),
+    queryFn: async () => {
+      const res = await samplesGetList(listInput);
+      if (!res.success) throw new Error(res.error?.message ?? "Request failed");
+      return res;
+    },
+    placeholderData: (prev) => prev,
+  });
 
-                            {/* Expanded Content */}
-                            {isExpanded && (
-                                <div className="border-t border-border bg-muted/20 p-4 space-y-4">
-                                    {/* Details */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <div className="text-xs text-muted-foreground">{t("handover.storedSamples.detail.description")}</div>
-                                            <div className="text-sm text-foreground mt-1">{sample.description}</div>
-                                        </div>
-                                        <div>
-                                            <div className="text-xs text-muted-foreground">{t("handover.storedSamples.detail.date")}</div>
-                                            <div className="text-sm text-foreground mt-1">{sample.handoverDate}</div>
-                                        </div>
-                                        <div>
-                                            <div className="text-xs text-muted-foreground">{t("handover.storedSamples.detail.person")}</div>
-                                            <div className="text-sm text-foreground mt-1">{sample.handoverPerson}</div>
-                                        </div>
-                                        <div className="md:col-span-2">
-                                            <div className="text-xs text-muted-foreground">{t("handover.storedSamples.detail.note")}</div>
-                                            <div className="text-sm text-foreground mt-1">{sample.notes}</div>
-                                        </div>
-                                    </div>
+  const items = listQ.data?.data ?? [];
+  const totalItems = listQ.data?.meta?.total ?? 0;
+  const totalPages = listQ.data?.meta?.totalPages ?? 1;
 
-                                    {/* Parameters Table */}
-                                    <div>
-                                        <div className="text-xs font-medium text-foreground mb-2">{t("handover.storedSamples.detail.parameterList")}</div>
-                                        <div className="bg-card border border-border rounded-lg overflow-x-auto">
-                                            <table className="w-full min-w-[800px]">
-                                                <thead className="bg-muted/50 border-b border-border">
-                                                    <tr>
-                                                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">{t("handover.storedSamples.parameters.name")}</th>
-                                                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">{t("handover.storedSamples.parameters.group")}</th>
-                                                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">{t("handover.storedSamples.parameters.result")}</th>
-                                                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">{t("handover.storedSamples.parameters.unit")}</th>
-                                                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">{t("handover.storedSamples.parameters.performer")}</th>
-                                                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">{t("handover.storedSamples.parameters.status")}</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-border">
-                                                    {sample.parameters.map((param) => (
-                                                        <tr key={param.id} className="hover:bg-accent/30 transition-colors">
-                                                            <td className="px-3 py-2 text-sm text-foreground">{param.name}</td>
-                                                            <td className="px-3 py-2">
-                                                                <Badge variant="secondary" className="text-xs bg-muted text-foreground hover:bg-muted/80">
-                                                                    {param.group}
-                                                                </Badge>
-                                                            </td>
-                                                            <td className="px-3 py-2 text-sm text-foreground">{param.result || "-"}</td>
-                                                            <td className="px-3 py-2 text-sm text-muted-foreground">{param.unit || "-"}</td>
-                                                            <td className="px-3 py-2 text-sm text-foreground">{param.performer || "-"}</td>
-                                                            <td className="px-3 py-2">{getStatusBadge(param.status)}</td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+  const onOpenDetail = (row: SampleListItem) => {
+    setSelected(row);
+    setDetailOpen(true);
+  };
+
+  const onOpenCreate = () => {
+    setSelected(null);
+    setUpsertMode("create");
+    setUpsertOpen(true);
+  };
+
+  const onOpenUpdate = (row: SampleListItem) => {
+    setSelected(row);
+    setUpsertMode("update");
+    setUpsertOpen(true);
+  };
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="bg-card rounded-lg border border-border p-4">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center">
+            <div className="md:w-100">
+              <PopoverPrimitive.Root
+                open={receiptOpen}
+                onOpenChange={setReceiptOpen}>
+                <PopoverPrimitive.Anchor asChild>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+
+                    <Input
+                      ref={(el) => {
+                        inputRef.current = el;
+                      }}
+                      value={receiptSearch}
+                      placeholder={t("handover.storedSamples.searchPlaceholder")}
+                      className="pl-10 pr-10 bg-background"
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setPage(1);
+                        setReceiptSearch(v);
+                        setReceiptIdFilter("");
+                        if (v.trim().length > 0) {
+                          window.setTimeout(() => setReceiptOpen(true), 0);
+                        } else {
+                          setReceiptOpen(false);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") {
+                          setReceiptOpen(false);
+                          return;
+                        }
+                        if (e.key === "Enter") {
+                          const v = receiptSearch.trim();
+                          setPage(1);
+                          setReceiptIdFilter(v);
+                          setReceiptOpen(false);
+                        }
+                      }}
+                    />
+
+                    <ChevronsUpDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  </div>
+                </PopoverPrimitive.Anchor>
+
+                <PopoverPrimitive.Content
+                  align="start"
+                  sideOffset={6}
+                  className="z-50 w-[--radix-popover-anchor-width] rounded-md border border-border bg-popover p-0 shadow-md"
+                  onOpenAutoFocus={(e) => e.preventDefault()}
+                  onInteractOutside={(e) => {
+                    const node = e.target as Node;
+                    if (inputRef.current && inputRef.current.contains(node)) {
+                      e.preventDefault();
+                    }
+                  }}>
+                  <Command shouldFilter={false}>
+                    <CommandList>
+                      <CommandEmpty>
+                        <div className="px-3 py-4 text-sm text-muted-foreground">
+                          {receiptsQ.isFetching
+                            ? t("common.loading")
+                            : t("common.noData")}
                         </div>
-                    );
-                })}
+                      </CommandEmpty>
+
+                      <CommandGroup>
+                        {receiptOptions.map((r: ReceiptListItem) => {
+                          const isSelected = receiptIdFilter === r.receiptId;
+                          return (
+                            <CommandItem
+                              key={r.receiptId}
+                              value={r.receiptId}
+                              onSelect={() => {
+                                setPage(1);
+                                setReceiptSearch(r.receiptId);
+                                setReceiptIdFilter(r.receiptId);
+                                setReceiptOpen(false);
+                              }}>
+                              <span className="mr-2 inline-flex h-4 w-4 items-center justify-center">
+                                {isSelected ? (
+                                  <Check className="h-4 w-4" />
+                                ) : null}
+                              </span>
+                              <span className="truncate">{r.receiptId}</span>
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverPrimitive.Content>
+              </PopoverPrimitive.Root>
             </div>
 
-            {/* Pagination */}
-            <div className="mt-4">
-                <Pagination totalItems={filteredSamples.length} itemsPerPage={itemsPerPage} currentPage={currentPage} onPageChange={setCurrentPage} />
+            <div className="md:w-60">
+              <Select
+                value={status}
+                onValueChange={(v) => {
+                  setPage(1);
+                  setStatus(v as StatusFilterValue);
+                }}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue
+                    placeholder={t("common.status")}
+                  />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value={STATUS_ALL}>{t("common.all")}</SelectItem>
+                  <SelectItem value="Received">
+                    {t("lab.samples.status.Received")}
+                  </SelectItem>
+                  <SelectItem value="Analyzing">
+                    {t("lab.samples.status.Analyzing")}
+                  </SelectItem>
+                  <SelectItem value="Stored">
+                    {t("lab.samples.status.Stored")}
+                  </SelectItem>
+                  <SelectItem value="Disposed">
+                    {t("lab.samples.status.Disposed")}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+          </div>
+
+          <div className="flex md:justify-end">
+            <Button onClick={onOpenCreate} className="w-full md:w-auto">
+              <Plus className="h-4 w-4 mr-2" />
+              {t("common.create")}
+            </Button>
+          </div>
         </div>
-    );
+      </div>
+
+      {listQ.isLoading ? (
+        <Skeleton />
+      ) : listQ.isError ? (
+        <div className="bg-card border border-border rounded-lg p-4 flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
+          <div>
+            <div className="font-medium text-foreground">
+              {t("common.error")}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {t("common.toast.failed")}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-card border border-border rounded-lg overflow-x-auto">
+          <table className="w-full min-w-4xl">
+            <thead className="bg-muted/50 border-b border-border">
+              <tr>
+                <th className="px-3 py-4 text-left text-xs font-medium text-muted-foreground uppercase">
+                  {t("lab.samples.sampleId")}
+                </th>
+                <th className="px-3 py-4 text-left text-xs font-medium text-muted-foreground uppercase">
+                  {t("lab.samples.receiptId")}
+                </th>
+                <th className="px-3 py-4 text-left text-xs font-medium text-muted-foreground uppercase">
+                  {t("lab.samples.sampleTypeName")}
+                </th>
+                <th className="px-3 py-4 text-left text-xs font-medium text-muted-foreground uppercase">
+                  {t("lab.samples.sampleVolume")}
+                </th>
+                <th className="px-3 py-4 text-left text-xs font-medium text-muted-foreground uppercase">
+                  {t("lab.samples.sampleStatus")}
+                </th>
+                <th className="px-3 py-4 text-center text-xs font-medium text-muted-foreground uppercase">
+                  {t("common.actions")}
+                </th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-border">
+              {items.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-3 py-6 text-center text-sm text-muted-foreground">
+                    {t("common.noData")}
+                  </td>
+                </tr>
+              ) : (
+                items.map((row: SampleListItem) => (
+                  <tr
+                    key={row.sampleId}
+                    className="hover:bg-accent/30 transition-colors">
+                    <td className="px-3 py-4 font-semibold text-sm text-foreground">
+                      <button
+                        className="text-primary hover:underline"
+                        onClick={() => onOpenDetail(row)}>
+                        {row.sampleId}
+                      </button>
+                    </td>
+
+                    <td className="px-3 py-4 text-sm text-foreground">
+                      {toDash(row.receiptId)}
+                    </td>
+                    <td className="px-3 py-4 text-sm text-foreground">
+                      {toDash(row.sampleTypeName)}
+                    </td>
+                    <td className="px-3 py-4 text-sm text-muted-foreground">
+                      {toDash(row.sampleVolume)}
+                    </td>
+                    <td className="px-3 py-4">
+                      <StatusBadge status={row.sampleStatus ?? null} />
+                    </td>
+
+                    <td className="px-3 py-4">
+                      <RowActionIcons
+                        onView={() => onOpenDetail(row)}
+                        onEdit={() => onOpenUpdate(row)}
+                        showDelete={false}
+                      />
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div className="mt-2">
+        <Pagination
+          totalItems={totalItems}
+          totalPages={totalPages}
+          itemsPerPage={itemsPerPage}
+          currentPage={page}
+          onPageChange={setPage}
+          onItemsPerPageChange={(n) => {
+            setPage(1);
+            setItemsPerPage(n);
+          }}
+        />
+      </div>
+
+      <SampleDetailModal
+        open={detailOpen}
+        sampleId={selected?.sampleId ?? null}
+        onClose={() => setDetailOpen(false)}
+      />
+
+      <SampleUpsertModal
+        open={upsertOpen}
+        mode={upsertMode}
+        sampleId={upsertMode === "update" ? selected?.sampleId ?? null : null}
+        onClose={() => setUpsertOpen(false)}
+      />
+    </div>
+  );
 }
