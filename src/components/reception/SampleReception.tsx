@@ -1,435 +1,665 @@
-import React, { useState, useMemo } from "react";
-import { Search, AlertCircle, FileText, Truck, Package, Plus, Clock } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Search, AlertCircle, Truck, Package, Plus, Clock } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
+
 import { ReceiptDetailModal } from "@/components/reception/ReceiptDetailModal";
-import { SampleDetailModal } from "@/components/reception/SampleDetailModal";
 import { CreateReceiptModal } from "@/components/reception/CreateReceiptModal";
-import { OrdersTab } from "@/components/reception/OrdersTab";
-import { OrderDetailModal } from "@/components/reception/OrderDetailModal";
+import { ReceiptDeleteModal } from "@/components/reception/ReceiptDeleteModal";
 
-import type { Receipt, Sample } from "@/types/lab";
-import type { Order } from "@/types/crm";
-import { mockReceipts, mockSamples, mockOrders } from "@/types/mockdata";
+import { RowActionIcons } from "@/components/common/RowActionIcons";
 
-// Helper type for UI View
-type ReceiptWithSamples = Receipt & { samples: Sample[] };
+import { receiptsGetFull, receiptsGetList } from "@/api/receipts";
+import type {
+  ReceiptDetail,
+  ReceiptListItem,
+  ReceiptStatus,
+} from "@/types/receipt";
 
-const getStatusBadge = (status: Receipt["receiptStatus"]) => {
-    switch (status) {
-        case "Pending":
-            return (
-                <Badge variant="outline" className="bg-blue-50/50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800">
-                    Mới tiếp nhận
-                </Badge>
-            );
-        case "Processing":
-            return (
-                <Badge variant="default" className="bg-orange-500 dark:bg-orange-600 hover:bg-orange-600">
-                    Đang xử lý
-                </Badge>
-            );
-        case "Done":
-            return (
-                <Badge variant="default" className="bg-green-500 dark:bg-green-600 hover:bg-green-600">
-                    Hoàn thành
-                </Badge>
-            );
-        case "Cancelled":
-            return <Badge variant="destructive">Hủy</Badge>;
-    }
-};
+type TabKey = "processing" | "return-results";
 
-const getSampleStatusBadge = (status: Sample["sampleStatus"]) => {
-    switch (status) {
-        case "Received":
-            return (
-                <Badge variant="outline" className="text-muted-foreground border-border">
-                    Chờ xử lý
-                </Badge>
-            );
-        case "Analyzing":
-            return (
-                <Badge variant="default" className="bg-blue-500 dark:bg-blue-600 hover:bg-blue-600">
-                    Đang thực hiện
-                </Badge>
-            );
-        case "Stored":
-            return (
-                <Badge variant="default" className="bg-green-500 dark:bg-green-600 hover:bg-green-600">
-                    Lưu kho
-                </Badge>
-            );
-        case "Disposed":
-            return <Badge variant="secondary">Hủy bỏ</Badge>;
-    }
-};
+function parseIsoDateOnly(iso?: string | null, fallback = "--"): string {
+  if (!iso) return fallback;
+  const t = iso.split("T")[0];
+  return t.length > 0 ? t : fallback;
+}
+
+function safeDaysLeft(deadlineIso?: string | null): number | null {
+  if (!deadlineIso) return null;
+  const tt = new Date(deadlineIso).getTime();
+  if (!Number.isFinite(tt)) return null;
+  const days = Math.ceil((tt - Date.now()) / (1000 * 3600 * 24));
+  return Number.isFinite(days) ? days : null;
+}
+
+function isOverdue(deadlineIso?: string | null): boolean {
+  if (!deadlineIso) return false;
+  const tt = new Date(deadlineIso).getTime();
+  if (!Number.isFinite(tt)) return false;
+  return tt < Date.now();
+}
+
+function toReceiptStatusLabelKey(status: ReceiptStatus): string {
+  if (status === "Draft") return "reception.receipts.status.draft";
+  if (status === "Received") return "reception.receipts.status.receive";
+  if (status === "Processing") return "reception.receipts.status.processing";
+  if (status === "Completed") return "reception.receipts.status.completed";
+  if (status === "Reported") return "reception.receipts.status.reported";
+  if (status === "Cancelled") return "reception.receipts.status.cancelled";
+  return "";
+}
+
+function getReceiptStatusBadge(
+  status: ReceiptStatus,
+  t: (k: string, opt?: Record<string, unknown>) => unknown,
+) {
+  const key = toReceiptStatusLabelKey(status);
+  const label = key ? String(t(key, { defaultValue: status })) : String(status);
+
+  switch (status) {
+    case "Draft":
+      return (
+        <Badge variant="outline" className="text-muted-foreground border-border">
+          {label}
+        </Badge>
+      );
+
+    case "Received":
+      return (
+        <Badge variant="outline" className="text-muted-foreground border-border">
+          {label}
+        </Badge>
+      );
+
+    case "Processing":
+      return (
+        <Badge variant="default" className="bg-warning text-warning-foreground hover:bg-warning/90">
+          {label}
+        </Badge>
+      );
+
+    case "Completed":
+      return (
+        <Badge variant="default" className="bg-success text-success-foreground hover:bg-success/90">
+          {label}
+        </Badge>
+      );
+
+    case "Reported":
+      return (
+        <Badge variant="default" className="bg-primary text-primary-foreground hover:bg-primary/90">
+          {label}
+        </Badge>
+      );
+
+    case "Cancelled":
+      return <Badge variant="destructive">{label}</Badge>;
+
+    default:
+      return (
+        <Badge variant="secondary" className="text-muted-foreground">
+          {label}
+        </Badge>
+      );
+  }
+}
 
 export function SampleReception() {
-    const [searchTerm, setSearchTerm] = useState("");
-    const [activeTab, setActiveTab] = useState<"orders" | "processing" | "return-results">("orders");
-    const [selectedReceipt, setSelectedReceipt] = useState<ReceiptWithSamples | null>(null);
-    const [selectedSample, setSelectedSample] = useState<Sample | null>(null);
-    const [isCreateReceiptModalOpen, setIsCreateReceiptModalOpen] = useState(false);
-    const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const { t } = useTranslation();
 
-    // Prepare data with join
-    const allReceipts: ReceiptWithSamples[] = useMemo(() => {
-        return mockReceipts.map((r) => ({
-            ...r,
-            samples: mockSamples.filter((s) => s.receiptId === r.receiptId),
-        }));
-    }, []);
+  const dash = t("common.noData");
 
-    // Filter for Return Results (Done receipts)
-    const returnResults = useMemo(() => {
-        return allReceipts.filter((r) => r.receiptStatus === "Done");
-    }, [allReceipts]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState<TabKey>("processing");
 
-    // Helper function to find receipt by ID
-    const findReceiptById = (receiptId: string) => {
-        return allReceipts.find((r) => r.receiptId === receiptId);
+  const [selectedReceiptFull, setSelectedReceiptFull] =
+    useState<ReceiptDetail | null>(null);
+  const [isCreateReceiptModalOpen, setIsCreateReceiptModalOpen] =
+    useState(false);
+
+  const [deleteReceiptId, setDeleteReceiptId] = useState<string | null>(null);
+  const [refreshTick, setRefreshTick] = useState(0);
+
+  const [page, setPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  const [loadingList, setLoadingList] = useState(false);
+  const [errorList, setErrorList] = useState<string | null>(null);
+
+  const [list, setList] = useState<ReceiptListItem[]>([]);
+  const [meta, setMeta] = useState<{
+    totalPages: number;
+    total: number;
+  } | null>(null);
+
+  const [openingReceiptId, setOpeningReceiptId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function run() {
+      setLoadingList(true);
+      setErrorList(null);
+
+      const res = await receiptsGetList({
+        query: {
+          page,
+          itemsPerPage,
+        },
+      });
+
+      if (cancelled) return;
+
+      if (!res.success) {
+        setList([]);
+        setMeta(null);
+        setErrorList(res.error?.message ?? t("common.toast.requestFailed"));
+        setLoadingList(false);
+        return;
+      }
+
+      const data = res.data ?? [];
+      setList(data);
+
+      const m = res.meta ?? null;
+
+      const totalPages =
+        typeof m?.totalPages === "number" && Number.isFinite(m.totalPages)
+          ? m.totalPages
+          : 1;
+      
+      const totalItems =
+        typeof (m as { totalItems?: unknown })?.totalItems === "number" &&
+        Number.isFinite((m as { totalItems: number }).totalItems)
+          ? (m as { totalItems: number }).totalItems
+          : data.length;
+      
+      setMeta({ totalPages, total: totalItems });
+      
+      setLoadingList(false);
+    }
+
+    void run();
+    return () => {
+      cancelled = true;
     };
+  }, [page, itemsPerPage, refreshTick, t]);
 
-    const filteredReceipts = allReceipts.filter((receipt) => {
-        if (!searchTerm) return true;
-        const term = searchTerm.toLowerCase();
-        const clientName = receipt.client?.clientName || "";
-        return (
-            receipt.receiptCode.toLowerCase().includes(term) ||
-            clientName.toLowerCase().includes(term) ||
-            receipt.samples.some((s) => s.sampleId.toLowerCase().includes(term) || s.sampleClientInfo?.toLowerCase().includes(term) || "")
-        );
+  const filteredProcessing = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    const base = list;
+    if (!term) return base;
+  
+    return base.filter((r) => {
+      const code = (r.receiptCode ?? "").toLowerCase();
+      const clientName = (r.client?.clientName ?? "").toLowerCase();
+      return code.includes(term) || clientName.includes(term);
     });
+  }, [list, searchTerm]);
 
-    const filteredReturnResults = returnResults.filter((receipt) => {
-        if (!searchTerm) return true;
-        const term = searchTerm.toLowerCase();
-        const clientName = receipt.client?.clientName || "";
-        const clientEmail = receipt.client?.clientEmail || "";
-        return receipt.receiptCode.toLowerCase().includes(term) || clientName.toLowerCase().includes(term) || clientEmail.toLowerCase().includes(term);
+  const filteredReturnResults = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    const base = list;
+  
+    if (!term) return base;
+  
+    return base.filter((r) => {
+      const code = (r.receiptCode ?? "").toLowerCase();
+      const clientName = (r.client?.clientName ?? "").toLowerCase();
+      const clientEmail = (
+        (r.client as { clientEmail?: string | null } | null)?.clientEmail ?? ""
+      ).toLowerCase();
+  
+      return code.includes(term) || clientName.includes(term) || clientEmail.includes(term);
     });
+  }, [list, searchTerm]);  
 
-    const totalReceipts = allReceipts.length;
-    // Mock 'overdue' logic
-    const overdueReceipts = allReceipts.filter((r) => new Date(r.receiptDeadline).getTime() < Date.now()).length;
-    const pendingSamples = allReceipts.reduce((acc, r) => acc + r.samples.filter((s) => s.sampleStatus === "Received").length, 0);
-    const returnResultsCount = returnResults.length;
+  const totalReceipts = meta?.total ?? list.length;
 
-    const getDaysLeft = (deadline: string) => {
-        const days = Math.ceil((new Date(deadline).getTime() - Date.now()) / (1000 * 3600 * 24));
-        return days;
-    };
+  const overdueReceipts = useMemo(() => {
+    return list.filter((r) => isOverdue(r.receiptDeadline)).length;
+  }, [list]);
 
-    return (
-        <div className="p-6 space-y-6">
-            {/* Modals */}
-            {selectedReceipt && (
-                <ReceiptDetailModal
-                    receipt={selectedReceipt}
-                    onClose={() => setSelectedReceipt(null)}
-                    onSampleClick={(sample) => {
-                        setSelectedSample(sample);
-                        setSelectedReceipt(null);
-                    }}
-                />
-            )}
+  const pendingSamples = 0;
+  const returnResultsCount = filteredReturnResults.length;
 
-            {selectedSample && (
-                <SampleDetailModal
-                    sample={selectedSample}
-                    receipt={findReceiptById(selectedSample.receiptId)!}
-                    onClose={() => setSelectedSample(null)}
-                    onSave={(updatedSample) => {
-                        console.log("Saving sample", updatedSample);
-                        // Logic to update sample in global state/API would go here
-                        setSelectedSample(null);
-                    }}
-                />
-            )}
+  async function openReceipt(receiptId: string) {
+    if (openingReceiptId) return;
 
-            {isCreateReceiptModalOpen && <CreateReceiptModal onClose={() => setIsCreateReceiptModalOpen(false)} order={selectedOrder} />}
+    setOpeningReceiptId(receiptId);
+    const res = await receiptsGetFull({ receiptId });
 
-            {/* Header Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-card rounded-lg border border-border p-4">
-                    <div className="text-sm text-muted-foreground">Tổng phiếu tháng này</div>
-                    <div className="text-3xl font-semibold mt-1 text-foreground">{totalReceipts}</div>
-                </div>
-                <div className="bg-card rounded-lg border border-border p-4">
-                    <div className="text-sm text-muted-foreground">Phiếu quá hạn</div>
-                    <div className="text-3xl font-semibold mt-1 text-destructive">{overdueReceipts}</div>
-                </div>
-                <div className="bg-card rounded-lg border border-border p-4">
-                    <div className="text-sm text-muted-foreground">Mẫu chưa gán KTV</div>
-                    <div className="text-3xl font-semibold mt-1 text-orange-600 dark:text-orange-500">{pendingSamples}</div>
-                </div>
-                <div className="bg-card rounded-lg border border-border p-4">
-                    <div className="text-sm text-muted-foreground">Chờ trả kết quả</div>
-                    <div className="text-3xl font-semibold mt-1 text-blue-600 dark:text-blue-500">{returnResultsCount}</div>
-                </div>
-            </div>
+    if (!res.success) {
+      setOpeningReceiptId(null);
+      return;
+    }
 
-            {/* Tab Selection & Search */}
-            <div className="bg-card rounded-lg border border-border p-4">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-                    <div className="flex gap-2 bg-muted/50 p-1 rounded-lg">
-                        <Button
-                            variant={activeTab === "orders" ? "secondary" : "ghost"}
-                            size="sm"
-                            onClick={() => setActiveTab("orders")}
-                            className={`flex items-center gap-2 ${activeTab === "orders" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}
-                        >
-                            <Package className="h-4 w-4" />
-                            Đơn hàng ({mockOrders.length})
-                        </Button>
-                        <Button
-                            variant={activeTab === "processing" ? "secondary" : "ghost"}
-                            size="sm"
-                            onClick={() => setActiveTab("processing")}
-                            className={`flex items-center gap-2 ${activeTab === "processing" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}
-                        >
-                            <Package className="h-4 w-4" />
-                            Đang xử lý ({allReceipts.length})
-                        </Button>
-                        <Button
-                            variant={activeTab === "return-results" ? "secondary" : "ghost"}
-                            size="sm"
-                            onClick={() => setActiveTab("return-results")}
-                            className={`flex items-center gap-2 ${activeTab === "return-results" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}
-                        >
-                            <Truck className="h-4 w-4" />
-                            Trả kết quả ({returnResults.length})
-                        </Button>
-                    </div>
-                    <div className="flex items-center gap-2 flex-1 w-full md:w-auto md:max-w-md">
-                        <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input placeholder="Tìm kiếm theo mã phiếu, khách hàng, mã mẫu..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 bg-background" />
-                        </div>
-                        <Button variant="default" className="flex items-center gap-2" onClick={() => setIsCreateReceiptModalOpen(true)}>
-                            <Plus className="h-4 w-4" />
-                            Tạo phiếu mới
-                        </Button>
-                    </div>
-                </div>
-            </div>
+    setSelectedReceiptFull(res.data ?? null);
+    setOpeningReceiptId(null);
+  }
 
-            {/* Orders Tab */}
-            {activeTab === "orders" && (
-                <>
-                    {selectedOrder && !isCreateReceiptModalOpen && (
-                        <OrderDetailModal
-                            order={selectedOrder}
-                            onClose={() => setSelectedOrder(null)}
-                            onCreateReceipt={(order) => {
-                                setIsCreateReceiptModalOpen(true);
-                            }}
-                        />
-                    )}
-                    <OrdersTab
-                        orders={mockOrders}
-                        onCreateReceipt={(order) => {
-                            console.log("Creating receipt for order:", order);
-                            setSelectedOrder(order);
-                            setIsCreateReceiptModalOpen(true);
-                        }}
-                        onViewDetail={(order) => {
-                            setSelectedOrder(order);
-                        }}
-                        onReceiptClick={(receiptId) => {
-                            console.log("Opening receipt:", receiptId);
-                            const receipt = findReceiptById(receiptId);
-                            if (receipt) {
-                                setSelectedReceipt(receipt);
-                            }
-                        }}
-                    />
-                </>
-            )}
+  return (
+    <div className="p-6 space-y-6">
+      {selectedReceiptFull && (
+        <ReceiptDetailModal
+          receipt={selectedReceiptFull}
+          onClose={() => setSelectedReceiptFull(null)}
+          onSampleClick={() => {}}
+          onUpdated={(next) => {
+            setSelectedReceiptFull(next);
+            setList((prev) =>
+              prev.map((r) =>
+                r.receiptId === next.receiptId
+                  ? {
+                      ...r,
+                      receiptStatus: next.receiptStatus,
+                      receiptDeadline:
+                        next.receiptDeadline ?? r.receiptDeadline,
+                    }
+                  : r
+              )
+            );
+          }}
+        />
+      )}
 
-            {/* Processing Tab */}
-            {activeTab === "processing" && (
-                <div className="bg-card rounded-lg border border-border overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-muted/50 border-b border-border">
-                                <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Thông tin tiếp nhận</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Trạng thái</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Mã mẫu</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Tên/TT Mẫu</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Trạng thái mẫu</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Chỉ tiêu</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200">
-                                {filteredReceipts.map((receipt) => {
-                                    const daysLeft = getDaysLeft(receipt.receiptDeadline);
-                                    return (
-                                        <React.Fragment key={receipt.receiptId}>
-                                            {receipt.samples.length > 0 ? (
-                                                receipt.samples.map((sample, sampleIndex) => (
-                                                    <tr key={sample.sampleId} className="hover:bg-accent/30 transition-colors">
-                                                        {sampleIndex === 0 && (
-                                                            <td className="px-4 py-4 align-top border-r border-border bg-muted/20" rowSpan={receipt.samples.length}>
-                                                                <div className="space-y-1">
-                                                                    <button onClick={() => setSelectedReceipt(receipt)} className="font-semibold text-primary hover:text-primary/80 hover:underline">
-                                                                        {receipt.receiptCode}
-                                                                    </button>
-                                                                    <div className="text-sm text-foreground">{receipt.client?.clientName}</div>
-                                                                    <div className="text-xs text-muted-foreground">
-                                                                        {receipt.receiptDate.split("T")[0]} - {receipt.createdById}
-                                                                    </div>
-                                                                </div>
-                                                            </td>
-                                                        )}
-                                                        {sampleIndex === 0 && (
-                                                            <td className="px-4 py-4 align-top border-r border-border bg-muted/20" rowSpan={receipt.samples.length}>
-                                                                <div className="space-y-2">
-                                                                    {getStatusBadge(receipt.receiptStatus)}
-                                                                    <div className="flex items-center gap-2 text-sm">
-                                                                        <Clock className="h-3 w-3 text-muted-foreground" />
-                                                                        <span className="font-medium text-foreground">{receipt.receiptDeadline.split("T")[0]}</span>
-                                                                    </div>
-                                                                    {daysLeft < 0 ? (
-                                                                        <Badge variant="destructive" className="flex items-center gap-1 w-fit">
-                                                                            <AlertCircle className="h-3 w-3" />
-                                                                            Quá hạn!
-                                                                        </Badge>
-                                                                    ) : daysLeft <= 2 ? (
-                                                                        <Badge
-                                                                            variant="outline"
-                                                                            className="bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800 w-fit"
-                                                                        >
-                                                                            Còn {daysLeft} ngày
-                                                                        </Badge>
-                                                                    ) : (
-                                                                        <Badge variant="outline" className="text-muted-foreground w-fit">
-                                                                            Còn {daysLeft} ngày
-                                                                        </Badge>
-                                                                    )}
-                                                                </div>
-                                                            </td>
-                                                        )}
-                                                        <td className="px-4 py-3">
-                                                            <span className="font-medium text-foreground text-sm">{sample.sampleId}</span>
-                                                        </td>
-                                                        <td className="px-4 py-3">
-                                                            <span className="text-foreground text-sm">{sample.sampleClientInfo}</span>
-                                                            <div className="text-xs text-muted-foreground">{sample.sampleTypeName}</div>
-                                                        </td>
-                                                        <td className="px-4 py-3">{getSampleStatusBadge(sample.sampleStatus)}</td>
-                                                        <td className="px-4 py-3">
-                                                            <div className="text-xs text-muted-foreground">{Math.floor(Math.random() * 5) + 1} chỉ tiêu</div>
-                                                        </td>
-                                                    </tr>
-                                                ))
-                                            ) : (
-                                                <tr key={receipt.receiptId}>
-                                                    <td className="px-4 py-4 border-r border-border bg-muted/20">
-                                                        <div className="space-y-1">
-                                                            <button onClick={() => setSelectedReceipt(receipt)} className="font-semibold text-primary hover:underline">
-                                                                {receipt.receiptCode}
-                                                            </button>
-                                                            <div className="text-sm text-foreground">{receipt.client?.clientName}</div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-4 py-4 border-r border-border bg-muted/20">{getStatusBadge(receipt.receiptStatus)}</td>
-                                                    <td className="px-4 py-4 text-center text-muted-foreground" colSpan={4}>
-                                                        Chưa có mẫu
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </React.Fragment>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                    <Pagination totalPages={1} currentPage={1} onPageChange={() => {}} />
-                </div>
-            )}
+      {isCreateReceiptModalOpen && (
+        <CreateReceiptModal
+          onClose={() => setIsCreateReceiptModalOpen(false)}
+        />
+      )}
 
-            {/* Return Results Tab */}
-            {activeTab === "return-results" && (
-                <div className="bg-card rounded-lg border border-border overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-muted/50 border-b border-border">
-                                <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Thông tin tiếp nhận</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Vận đơn</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Hạn trả</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Liên hệ</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Mẫu</th>
-                                    <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">Thao tác</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-border">
-                                {filteredReturnResults.map((receipt) => {
-                                    return (
-                                        <tr key={receipt.receiptId} className="hover:bg-accent/30 transition-colors">
-                                            <td className="px-4 py-4">
-                                                <div className="space-y-1">
-                                                    <div className="font-semibold text-foreground">{receipt.receiptCode}</div>
-                                                    <div className="text-sm text-foreground">{receipt.client?.clientName}</div>
-                                                    <div className="text-xs text-muted-foreground">{receipt.receiptDate.split("T")[0]}</div>
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                {receipt.receiptTrackingNo ? (
-                                                    <div className="flex items-center gap-2">
-                                                        <Truck className="h-3 w-3 text-green-600 dark:text-green-500" />
-                                                        <span className="text-sm font-medium text-foreground">{receipt.receiptTrackingNo}</span>
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-sm text-muted-foreground">Chưa có vận đơn</span>
-                                                )}
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <div className="text-sm text-foreground">{receipt.receiptDeadline.split("T")[0]}</div>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <div className="space-y-1 text-sm">
-                                                    <div className="text-foreground">{receipt.client?.clientAddress}</div>
-                                                    <div className="text-muted-foreground">📞 {receipt.client?.clientPhone}</div>
-                                                    <div className="text-muted-foreground">✉️ {receipt.client?.clientEmail}</div>
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <Badge variant="outline" className="text-base text-foreground">
-                                                    {receipt.samples.length} mẫu
-                                                </Badge>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <Button size="sm" variant="outline" className="flex items-center gap-1" onClick={() => setSelectedReceipt(receipt)}>
-                                                        <FileText className="h-3 w-3" />
-                                                        Xem
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="default"
-                                                        className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
-                                                        disabled={!!receipt.receiptTrackingNo}
-                                                    >
-                                                        <Truck className="h-3 w-3" />
-                                                        Tạo vận đơn
-                                                    </Button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                    <Pagination totalPages={1} currentPage={1} onPageChange={() => {}} />
-                </div>
-            )}
+      <ReceiptDeleteModal
+        open={deleteReceiptId !== null}
+        receiptId={deleteReceiptId}
+        onClose={() => setDeleteReceiptId(null)}
+        onDeleted={() => setRefreshTick((x) => x + 1)}
+      />
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-card rounded-lg border border-border p-4">
+          <div className="text-sm text-muted-foreground">
+            {t("reception.sampleReception.metrics.totalReceipts")}
+          </div>
+          <div className="text-3xl font-semibold mt-1 text-foreground">
+            {totalReceipts}
+          </div>
         </div>
-    );
+
+        <div className="bg-card rounded-lg border border-border p-4">
+          <div className="text-sm text-muted-foreground">
+            {t("reception.sampleReception.metrics.overdueReceipts")}
+          </div>
+          <div className="text-3xl font-semibold mt-1 text-destructive">
+            {overdueReceipts}
+          </div>
+        </div>
+
+        <div className="bg-card rounded-lg border border-border p-4">
+          <div className="text-sm text-muted-foreground">
+            {t("reception.sampleReception.metrics.pendingSamples")}
+          </div>
+          <div className="text-3xl font-semibold mt-1 text-warning">
+            {pendingSamples}
+          </div>
+        </div>
+
+        <div className="bg-card rounded-lg border border-border p-4">
+          <div className="text-sm text-muted-foreground">
+            {t("reception.sampleReception.metrics.returnResults")}
+          </div>
+          <div className="text-3xl font-semibold mt-1 text-primary">
+            {returnResultsCount}
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-card rounded-lg border border-border p-4">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+          <div className="flex gap-2 bg-muted/50 p-1 rounded-lg">
+            <Button
+              variant={activeTab === "processing" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => {
+                setActiveTab("processing");
+                setPage(1);
+              }}
+              className={`flex items-center gap-2 ${
+                activeTab === "processing"
+                  ? "bg-background shadow-sm text-foreground"
+                  : "text-muted-foreground"
+              }`}>
+              <Package className="h-4 w-4" />
+              {t("reception.sampleReception.tabs.processing")} (
+              {filteredProcessing.length})
+            </Button>
+
+            <Button
+              variant={activeTab === "return-results" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => {
+                setActiveTab("return-results");
+                setPage(1);
+              }}
+              className={`flex items-center gap-2 ${
+                activeTab === "return-results"
+                  ? "bg-background shadow-sm text-foreground"
+                  : "text-muted-foreground"
+              }`}>
+              <Truck className="h-4 w-4" />
+              {t("reception.sampleReception.tabs.returnResults")} (
+              {filteredReturnResults.length})
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-2 flex-1 w-full md:w-auto md:max-w-md">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={t("reception.sampleReception.search.placeholder")}
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(1);
+                }}
+                className="pl-10 bg-background"
+              />
+            </div>
+
+            <Button
+              variant="default"
+              className="flex items-center gap-2"
+              onClick={() => setIsCreateReceiptModalOpen(true)}>
+              <Plus className="h-4 w-4" />
+              {t("reception.sampleReception.actions.createReceipt")}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {loadingList && (
+        <div className="bg-card rounded-lg border border-border p-4">
+          <div className="animate-pulse space-y-3">
+            <div className="h-4 w-44 bg-muted rounded" />
+            <div className="h-9 w-full bg-muted rounded" />
+            <div className="h-40 w-full bg-muted rounded" />
+          </div>
+        </div>
+      )}
+
+      {!loadingList && errorList && (
+        <div className="bg-card rounded-lg border border-border p-4 flex items-center gap-2 text-destructive">
+          <AlertCircle className="h-4 w-4" />
+          <span className="text-sm">{errorList}</span>
+        </div>
+      )}
+
+      {!loadingList && !errorList && activeTab === "processing" && (
+        <div className="bg-card rounded-lg border border-border overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-muted/50 border-b border-border">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {t("reception.sampleReception.receiptInfo")}
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {t("reception.sampleReception.table.processing.status")}
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {t("reception.sampleReception.table.processing.deadline")}
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {t("reception.sampleReception.table.processing.notes")}
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {t("reception.sampleReception.table.processing.actions")}
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-border">
+                {filteredProcessing.map((receipt) => {
+                  const daysLeft = safeDaysLeft(receipt.receiptDeadline);
+
+                  return (
+                    <tr
+                      key={receipt.receiptId}
+                      className="hover:bg-accent/30 transition-colors">
+                      <td className="px-4 py-4">
+                        <div className="space-y-1">
+                          <button
+                            onClick={() => void openReceipt(receipt.receiptId)}
+                            className="font-semibold text-primary hover:text-primary/80 hover:underline"
+                            disabled={openingReceiptId === receipt.receiptId}>
+                            {receipt.receiptCode ?? dash}
+                          </button>
+
+                          <div className="text-sm text-foreground">
+                            {receipt.client?.clientName ?? dash}
+                          </div>
+
+                          <div className="text-xs text-muted-foreground">
+                            {parseIsoDateOnly(receipt.receiptDate, dash)}{" "}
+                            {receipt.createdBy?.identityName
+                              ? `- ${receipt.createdBy.identityName}`
+                              : ""}
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="px-4 py-4">
+                        {getReceiptStatusBadge(receipt.receiptStatus, t)}
+                      </td>
+
+                      <td className="px-4 py-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Clock className="h-3 w-3 text-muted-foreground" />
+                            <span className="font-medium text-foreground">
+                              {parseIsoDateOnly(receipt.receiptDeadline, dash)}
+                            </span>
+                          </div>
+
+                          {typeof daysLeft === "number" ? (
+                            daysLeft < 0 ? (
+                              <Badge
+                                variant="destructive"
+                                className="flex items-center gap-1 w-fit">
+                                <AlertCircle className="h-3 w-3" />
+                                {t(
+                                  "reception.sampleReception.deadline.overdue"
+                                )}
+                              </Badge>
+                            ) : daysLeft <= 2 ? (
+                              <Badge
+                                variant="outline"
+                                className="bg-warning/10 text-warning border-warning/20 w-fit">
+                                {t(
+                                  "reception.sampleReception.deadline.daysLeft",
+                                  { count: daysLeft }
+                                )}
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="text-muted-foreground w-fit">
+                                {t(
+                                  "reception.sampleReception.deadline.daysLeft",
+                                  { count: daysLeft }
+                                )}
+                              </Badge>
+                            )
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="text-muted-foreground w-fit">
+                              {dash}
+                            </Badge>
+                          )}
+                        </div>
+                      </td>
+
+                      <td className="px-4 py-4 text-sm text-muted-foreground">
+                        {dash}
+                      </td>
+
+                      <td className="px-4 py-4">
+                        <RowActionIcons
+                          onView={() => void openReceipt(receipt.receiptId)}
+                          onDelete={() => setDeleteReceiptId(receipt.receiptId)}
+                          showEdit={false}
+                          disabled={openingReceiptId === receipt.receiptId}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <Pagination
+            totalPages={meta?.totalPages ?? 1}
+            currentPage={page}
+            itemsPerPage={itemsPerPage}
+            totalItems={meta?.total ?? list.length}
+            onPageChange={(p) => setPage(p)}
+            onItemsPerPageChange={(n) => {
+              setItemsPerPage(n);
+              setPage(1);
+            }}
+          />
+        </div>
+      )}
+
+      {!loadingList && !errorList && activeTab === "return-results" && (
+        <div className="bg-card rounded-lg border border-border overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-muted/50 border-b border-border">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {t(
+                      "reception.sampleReception.table.returnResults.receiptInfo"
+                    )}
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {t(
+                      "reception.sampleReception.table.returnResults.tracking"
+                    )}
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {t(
+                      "reception.sampleReception.table.returnResults.deadline"
+                    )}
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {t("reception.sampleReception.table.returnResults.contact")}
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {t("reception.sampleReception.table.returnResults.actions")}
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-border">
+                {filteredReturnResults.map((receipt) => {
+                  const trackingNo =
+                    (receipt as { receiptTrackingNo?: string | null })
+                      .receiptTrackingNo ??
+                    (receipt as { trackingNumber?: string | null })
+                      .trackingNumber ??
+                    null;
+
+                  const clientEmail =
+                    (receipt.client as { clientEmail?: string | null } | null)
+                      ?.clientEmail ?? null;
+                  const clientAddress =
+                    (receipt.client as { clientAddress?: string | null } | null)
+                      ?.clientAddress ?? null;
+                  const clientPhone =
+                    (receipt.client as { clientPhone?: string | null } | null)
+                      ?.clientPhone ?? null;
+
+                  return (
+                    <tr
+                      key={receipt.receiptId}
+                      className="hover:bg-accent/30 transition-colors">
+                      <td className="px-4 py-4">
+                        <div className="space-y-1">
+                          <div className="font-semibold text-foreground">
+                            {receipt.receiptCode ?? dash}
+                          </div>
+                          <div className="text-sm text-foreground">
+                            {receipt.client?.clientName ?? dash}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {parseIsoDateOnly(receipt.receiptDate, dash)}
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="px-4 py-4">
+                        {trackingNo ? (
+                          <div className="flex items-center gap-2">
+                            <Truck className="h-3 w-3 text-success" />
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">
+                            {t("reception.sampleReception.tracking.none")}
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="px-4 py-4">
+                        <div className="text-sm text-foreground">
+                          {parseIsoDateOnly(receipt.receiptDeadline, dash)}
+                        </div>
+                      </td>
+
+                      <td className="px-4 py-4">
+                        <div className="space-y-1 text-sm">
+                          <div className="text-foreground">
+                            {clientAddress ?? dash}
+                          </div>
+                          <div className="text-muted-foreground">
+                            {t("reception.sampleReception.contact.phoneLabel")}{" "}
+                            {clientPhone ?? dash}
+                          </div>
+                          <div className="text-muted-foreground">
+                            {t("reception.sampleReception.contact.emailLabel")}{" "}
+                            {clientEmail ?? dash}
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="px-4 py-4">
+                        <RowActionIcons
+                          onView={() => void openReceipt(receipt.receiptId)}
+                          onDelete={() => setDeleteReceiptId(receipt.receiptId)}
+                          showEdit={false}
+                          disabled={openingReceiptId === receipt.receiptId}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <Pagination
+            totalPages={meta?.totalPages ?? 1}
+            currentPage={page}
+            onPageChange={(p) => setPage(p)}
+          />
+        </div>
+      )}
+    </div>
+  );
 }

@@ -55,7 +55,7 @@ export function ParametersTable(props: Props) {
                 </td>
 
                 <td className="px-4 py-3 text-sm text-muted-foreground">
-                  {param.technicianAlias?.trim().length ? param.technicianAlias : t("common.na")}
+                  {param.technicianAlias?.trim().length ? param.technicianAlias : t("common.noData")}
                 </td>
 
                 <td className="px-4 py-3 text-sm text-muted-foreground">

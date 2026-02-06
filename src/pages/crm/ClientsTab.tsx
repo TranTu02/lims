@@ -37,7 +37,7 @@ import {
 import { ClientDetailModal } from "@/components/crm/ClientDetailModal";
 import { ClientUpsertModal } from "@/components/crm/ClientUpsertModal";
 import { ClientDeleteModal } from "@/components/crm/ClientDeleteModal";
-import { RowActionIcons } from "@/components/crm/RowActionIcons";
+import { RowActionIcons } from "@/components/common/RowActionIcons";
 
 import {
   toClientCreateBody,

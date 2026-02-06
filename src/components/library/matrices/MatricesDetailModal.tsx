@@ -91,24 +91,24 @@ export function MatricesDetailModal(props: Props) {
               const protocolLabel = safeText(m.protocolCode).trim() || m.protocolId;
               const sampleTypeLabel = safeText(m.sampleTypeName).trim() || m.sampleTypeId;
 
-              const protocolSource = safeText(m.protocolSource).trim() || t("common.notAvailable");
+              const protocolSource = safeText(m.protocolSource).trim() || t("common.noData");
 
-              const feeBeforeTaxText = formatNumberVi(m.feeBeforeTax) ?? t("common.notAvailable");
-              const feeAfterTaxText = formatNumberVi(m.feeAfterTax) ?? t("common.notAvailable");
-              const taxRateText = formatPercent(m.taxRate) ?? t("common.notAvailable");
+              const feeBeforeTaxText = formatNumberVi(m.feeBeforeTax) ?? t("common.noData");
+              const feeAfterTaxText = formatNumberVi(m.feeAfterTax) ?? t("common.noData");
+              const taxRateText = formatPercent(m.taxRate) ?? t("common.noData");
 
-              const lodText = safeText(m.LOD).trim() || t("common.notAvailable");
-              const loqText = safeText(m.LOQ).trim() || t("common.notAvailable");
-              const thresholdText = safeText(m.thresholdLimit).trim() || t("common.notAvailable");
+              const lodText = safeText(m.LOD).trim() || t("common.noData");
+              const loqText = safeText(m.LOQ).trim() || t("common.noData");
+              const thresholdText = safeText(m.thresholdLimit).trim() || t("common.noData");
 
               const turnaroundText =
                 m.turnaroundTime === null || m.turnaroundTime === undefined
-                  ? t("common.notAvailable")
+                  ? t("common.noData")
                   : String(m.turnaroundTime);
 
-              const tgText = safeText(m.technicianGroupId).trim() || t("common.notAvailable");
+              const tgText = safeText(m.technicianGroupId).trim() || t("common.noData");
 
-              const createdAtText = formatIsoDate(m.createdAt) ?? t("common.notAvailable");
+              const createdAtText = formatIsoDate(m.createdAt) ?? t("common.noData");
 
               const createdByName = safeText(m.createdBy?.identityName).trim();
 
@@ -132,7 +132,7 @@ export function MatricesDetailModal(props: Props) {
                             {acc.TDC ? <Badge variant="secondary">TDC</Badge> : null}
                           </div>
                         ) : (
-                          t("common.notAvailable")
+                          t("common.noData")
                         )
                       }
                     />

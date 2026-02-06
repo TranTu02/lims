@@ -5,7 +5,10 @@ import { toast } from "sonner";
 import { crmKeys } from "@/api/crm/crmKeys";
 import { ordersCreate } from "@/api/crm/orders";
 import { OrderUpsertModal } from "@/components/crm/OrderUpsertModal";
-import type { OrdersCreateBody } from "@/types/crm/order";
+import {
+  toOrdersCreateBody,
+  type OrderUpsertFormState,
+} from "@/components/crm/orderUpsertMapper";
 
 type Props = { open: boolean; onClose: () => void };
 
@@ -14,17 +17,16 @@ export function OrderCreateModal({ open, onClose }: Props) {
   const qc = useQueryClient();
 
   const mut = useMutation({
-    mutationFn: (body: OrdersCreateBody) => ordersCreate({ body }),
-    onSuccess: async (res) => {
-      if (!res.success) throw new Error(res.error?.message ?? "Create failed");
+    mutationFn: async (values: OrderUpsertFormState) => {
+      const body = toOrdersCreateBody(values);
+      return ordersCreate({ body });
+    },
+    onSuccess: async () => {
       toast.success(t("common.toast.saved"));
       await qc.invalidateQueries({ queryKey: crmKeys.orders.all });
       onClose();
     },
-    onError: (err) => {
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error(msg);
-    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : String(err)),
   });
 
   return (
@@ -32,7 +34,8 @@ export function OrderCreateModal({ open, onClose }: Props) {
       open={open}
       mode="create"
       onClose={onClose}
-      onSubmit={(values) => mut.mutateAsync(values as OrdersCreateBody)}
+      onSubmit={(values) => mut.mutateAsync(values)}
+      submitting={mut.isPending}
     />
   );
 }

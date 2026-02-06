@@ -7,6 +7,7 @@ export type ApiMeta = {
   page: number;
   itemsPerPage: number;
   total: number;
+  totalItems?: number;
   totalPages: number;
   [key: string]: unknown;
   countsByEntity?: Record<string, number>;

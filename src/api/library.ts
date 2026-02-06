@@ -25,7 +25,10 @@ export type ListSort = {
 export type ApiMeta = {
   page: number;
   itemsPerPage: number;
-  total: number;
+
+  totalItems?: number;
+  total?: number;
+
   totalPages: number;
   [k: string]: unknown;
 };
@@ -58,10 +61,23 @@ function assertSuccess<T>(res: ApiResponse<T>): T {
 }
 
 function assertSuccessWithMeta<T>(res: ApiResponse<T>): ListResult<T> {
-  if (!res.success) {
-    throw new Error(res.error?.message ?? "Unknown API error");
-  }
-  return { data: res.data as T, meta: res.meta ?? null };
+  if (!res.success) throw new Error(res.error?.message ?? "Unknown API error");
+
+  const meta = res.meta ?? null;
+  const normalizedMeta =
+    meta && typeof meta === "object"
+      ? {
+          ...meta,
+          total:
+            typeof meta.total === "number"
+              ? meta.total
+              : typeof meta.totalItems === "number"
+              ? meta.totalItems
+              : 0,
+        }
+      : null;
+
+  return { data: res.data as T, meta: normalizedMeta };
 }
 
 function stableKey(value: unknown): string {

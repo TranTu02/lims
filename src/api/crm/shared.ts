@@ -28,15 +28,14 @@ export type ListResponse<TItem> = {
   pagination: Pagination;
 };
 
-// ✅ assert cho ApiResponse (các endpoint chuẩn)
 export function assertSuccess<T>(res: ApiResponse<T>): T {
   if (!res.success) throw new Error(res.error?.message ?? "Unknown error");
   if (res.data === undefined) throw new Error("Missing data");
   return res.data;
 }
 
-// ✅ assert cho CRM list raw response
 export function assertList<TItem>(res: ListResponse<TItem>): ListResponse<TItem> {
-  if (!res || !Array.isArray(res.data)) throw new Error("Invalid list response shape");
+  if (!res || !Array.isArray(res.data)) throw new Error("Invalid list response shape: missing data[]");
+  if (!res.pagination) throw new Error("Invalid list response shape: missing pagination");
   return res;
 }
