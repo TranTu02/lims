@@ -1,18 +1,30 @@
 import { forwardRef, useImperativeHandle, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 
-import type { QuoteListItem } from "@/types/crm/quote";
+import type {
+  QuoteDetail,
+  QuoteListItem,
+  QuotesCreateBody,
+  QuotesUpdateBody,
+} from "@/types/crm/quote";
 import { crmKeys } from "@/api/crm/crmKeys";
-import { quotesGetList } from "@/api/crm/quotes";
+import {
+  quotesCreate,
+  quotesDelete,
+  quotesGetDetail,
+  quotesGetList,
+  quotesUpdate,
+} from "@/api/crm/quotes";
 import { QuoteDetailModal } from "@/components/crm/QuoteDetailModal";
 import { QuoteUpsertModal } from "@/components/crm/QuoteUpsertModal";
 import { QuoteDeleteModal } from "@/components/crm/QuoteDeleteModal";
-import { RowActionIcons } from "@/components/crm/RowActionIcons";
+import { RowActionIcons } from "@/components/common/RowActionIcons";
+import { formatCurrency } from "@/utils/format";
 
 type Props = {
   externalSearch: string;
@@ -34,9 +46,22 @@ function CardSkeleton() {
 }
 
 function quoteStatusBadge(status: string | null, t: (k: string) => string) {
-  if (status === "Converted")
-    return <Badge variant="default">{t("crm.quotes.status.converted")}</Badge>;
-  return <Badge variant="outline">{status ?? t("common.unknown")}</Badge>;
+  const s = status ?? "";
+
+  switch (s) {
+    case "Approved":
+      return <Badge variant="success">{t("crm.quotes.status.approved")}</Badge>;
+    case "Sent":
+      return <Badge variant="warning">{t("crm.quotes.status.sent")}</Badge>;
+    case "Draft":
+      return <Badge variant="secondary">{t("crm.quotes.status.draft")}</Badge>;
+    case "Expired":
+      return (
+        <Badge variant="destructive">{t("crm.quotes.status.expired")}</Badge>
+      );
+    default:
+      return <Badge variant="outline">{s ? s : t("common.noData")}</Badge>;
+  }
 }
 
 export const QuotesTab = forwardRef<QuotesTabHandle, Props>(function QuotesTab(
@@ -44,6 +69,8 @@ export const QuotesTab = forwardRef<QuotesTabHandle, Props>(function QuotesTab(
   ref
 ) {
   const { t } = useTranslation();
+  const qc = useQueryClient();
+
   const [page, setPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
 
@@ -70,22 +97,81 @@ export const QuotesTab = forwardRef<QuotesTabHandle, Props>(function QuotesTab(
     [page, itemsPerPage, props.externalSearch]
   );
 
-  const q = useQuery({
+  const listQ = useQuery({
     queryKey: crmKeys.quotes.list(query),
+    queryFn: async () => quotesGetList({ query }),
+  });
+
+  const editQuoteId = selected?.quoteId ?? null;
+  const detailQ = useQuery({
+    queryKey: editQuoteId
+      ? crmKeys.quotes.detail(editQuoteId)
+      : ["crm", "quotes", "detail", "null"],
+    enabled: editOpen && !!editQuoteId,
     queryFn: async () => {
-      const res = await quotesGetList({ query });
-      return res as unknown as {
-        data: QuoteListItem[];
-        pagination: { total: number; totalPages: number };
-      };
+      if (!editQuoteId) throw new Error("Missing quoteId");
+      const res = await quotesGetDetail({ params: { quoteId: editQuoteId } });
+      if (!res.success)
+        throw new Error(res.error?.message ?? "Load detail failed");
+      return res.data as QuoteDetail;
     },
   });
 
-  const items: QuoteListItem[] = q.data?.data ?? [];
-  const totalCount = q.data?.pagination?.total ?? items.length;
-  const totalPages = q.data?.pagination?.totalPages ?? 1;
+  const createMut = useMutation({
+    mutationFn: (body: QuotesCreateBody) => quotesCreate({ body }),
+    onSuccess: async (res) => {
+      if (!res.success) throw new Error(res.error?.message ?? "Create failed");
+      toast.success(t("common.toast.saved"));
+      await qc.invalidateQueries({ queryKey: crmKeys.quotes.all });
+      setCreateOpen(false);
+    },
+    onError: (err) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(msg);
+    },
+  });
 
-  if (q.isLoading) return <CardSkeleton />;
+  const updateMut = useMutation({
+    mutationFn: (body: QuotesUpdateBody) => quotesUpdate({ body }),
+    onSuccess: async (res) => {
+      if (!res.success) throw new Error(res.error?.message ?? "Update failed");
+      toast.success(t("common.toast.saved"));
+      await qc.invalidateQueries({ queryKey: crmKeys.quotes.all });
+      setEditOpen(false);
+    },
+    onError: (err) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(msg);
+    },
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (quoteId: string) => quotesDelete({ params: { quoteId } }),
+    onSuccess: async (res) => {
+      if (!res.success) throw new Error(res.error?.message ?? "Delete failed");
+      toast.success(t("common.toast.deleted"));
+      await qc.invalidateQueries({ queryKey: crmKeys.quotes.all });
+      setDeleteOpen(false);
+    },
+    onError: (err) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(msg);
+    },
+  });
+
+  const items: QuoteListItem[] = listQ.data?.data ?? [];
+  const totalCount = listQ.data?.pagination?.total ?? items.length;
+  const totalPages = listQ.data?.pagination?.totalPages ?? 1;
+
+  if (listQ.isLoading) return <CardSkeleton />;
+
+  if (listQ.isError) {
+    return (
+      <div className="bg-card rounded-lg border border-border p-4 text-sm text-muted-foreground">
+        {t("common.error")}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">
@@ -100,21 +186,30 @@ export const QuotesTab = forwardRef<QuotesTabHandle, Props>(function QuotesTab(
         open={createOpen}
         mode="create"
         onClose={() => setCreateOpen(false)}
-        onSubmit={async () => {
-          toast.success(t("common.toast.saved"));
-          await q.refetch();
-        }}
+        submitting={createMut.isPending}
+        onSubmit={(body) =>
+          createMut.mutateAsync(body as QuotesCreateBody).then(() => undefined)
+        }
       />
 
-      {editOpen && selected ? (
+      {editOpen ? (
         <QuoteUpsertModal
+          key={editQuoteId ?? "edit-null"}
           open={editOpen}
           mode="update"
-          initial={selected}
+          initial={
+            (detailQ.data ?? selected) as QuoteDetail | QuoteListItem | null
+          }
           onClose={() => setEditOpen(false)}
-          onSubmit={async () => {
+          submitting={detailQ.isLoading || updateMut.isPending}
+          onSubmit={(body) =>
+            updateMut
+              .mutateAsync(body as QuotesUpdateBody)
+              .then(() => undefined)
+          }
+          onSaved={async () => {
             toast.success(t("common.toast.saved"));
-            await q.refetch();
+            await qc.invalidateQueries({ queryKey: crmKeys.quotes.all });
           }}
         />
       ) : null}
@@ -123,10 +218,10 @@ export const QuotesTab = forwardRef<QuotesTabHandle, Props>(function QuotesTab(
         open={deleteOpen}
         quoteId={selected?.quoteId ?? null}
         onClose={() => setDeleteOpen(false)}
-        onConfirm={async () => {
-          toast.success(t("common.toast.deleted"));
-          await q.refetch();
-        }}
+        onConfirm={(quoteId) =>
+          deleteMut.mutateAsync(quoteId).then(() => undefined)
+        }
+        submitting={deleteMut.isPending}
       />
 
       <div className="flex items-center justify-between gap-2">
@@ -151,9 +246,6 @@ export const QuotesTab = forwardRef<QuotesTabHandle, Props>(function QuotesTab(
                 </th>
                 <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   {t("crm.quotes.columns.quoteStatus")}
-                </th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {t("common.createdAt")}
                 </th>
                 <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   {t("common.actions")}
@@ -185,19 +277,15 @@ export const QuotesTab = forwardRef<QuotesTabHandle, Props>(function QuotesTab(
                     </td>
 
                     <td className="px-4 py-4 text-sm text-foreground">
-                      {qit.clientId}
+                      {qit.clientId ?? "-"}
                     </td>
 
                     <td className="px-4 py-4 text-right text-sm text-foreground">
-                      {qit.totalAmount ?? "-"}
+                      {formatCurrency(qit.totalAmount)}
                     </td>
 
                     <td className="px-4 py-4 text-center">
                       {quoteStatusBadge(qit.quoteStatus ?? null, t)}
-                    </td>
-
-                    <td className="px-4 py-4 text-center text-sm text-foreground">
-                      {qit.createdAt}
                     </td>
 
                     <td className="px-4 py-4">

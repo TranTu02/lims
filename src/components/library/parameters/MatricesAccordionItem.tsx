@@ -153,7 +153,7 @@ export function MatricesAccordionItem(props: Props) {
                   disabled={!matrix.protocolId}
                 >
                   <FileText className="h-3 w-3" />
-                  {matrix.protocolId ?? t("common.na")}
+                  {matrix.protocolId ?? t("common.noData")}
                 </button>
 
                 <div className="flex items-center gap-1">

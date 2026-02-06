@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useState } from "react";
 
 import {
   Dialog,
@@ -15,22 +15,25 @@ type Props = {
   quoteId: string | null;
   onClose: () => void;
   onConfirm?: (quoteId: string) => Promise<void> | void;
+  submitting?: boolean;
 };
 
-export function QuoteDeleteModal({ open, quoteId, onClose, onConfirm }: Props) {
+export function QuoteDeleteModal({ open, quoteId, onClose, onConfirm, submitting }: Props) {
   const { t } = useTranslation();
-  const [submitting, setSubmitting] = useState(false);
+  const [localSubmitting, setLocalSubmitting] = useState(false);
 
   if (!open) return null;
+
+  const busy = Boolean(submitting) || localSubmitting;
 
   const confirm = async () => {
     if (!quoteId) return;
     try {
-      setSubmitting(true);
+      setLocalSubmitting(true);
       await onConfirm?.(quoteId);
       onClose();
     } finally {
-      setSubmitting(false);
+      setLocalSubmitting(false);
     }
   };
 
@@ -47,10 +50,10 @@ export function QuoteDeleteModal({ open, quoteId, onClose, onConfirm }: Props) {
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose} disabled={submitting}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
             {t("common.cancel")}
           </Button>
-          <Button type="button" variant="destructive" onClick={confirm} disabled={submitting}>
+          <Button type="button" variant="destructive" onClick={confirm} disabled={busy}>
             {t("common.delete")}
           </Button>
         </DialogFooter>

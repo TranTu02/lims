@@ -115,6 +115,13 @@ export function Sidebar({ activeTab, onTabChange, sidebarOpen = true }: SidebarP
         descriptionKey: "nav.storedSamplesDescription",
       },
       {
+        type: "item",
+        id: "analyses",
+        icon: TestTube2,
+        titleKey: "nav.analysesTitle",
+        descriptionKey: "nav.analysesDescription",
+      },
+      {
         type: "group",
         id: "libraries",
         icon: BookOpen,

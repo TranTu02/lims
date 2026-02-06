@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -15,23 +14,17 @@ type Props = {
   orderId: string | null;
   onClose: () => void;
   onConfirm?: (orderId: string) => Promise<void> | void;
+  submitting?: boolean;
 };
 
-export function OrderDeleteModal({ open, orderId, onClose, onConfirm }: Props) {
+export function OrderDeleteModal({ open, orderId, onClose, onConfirm, submitting }: Props) {
   const { t } = useTranslation();
-  const [submitting, setSubmitting] = useState(false);
 
   if (!open) return null;
 
   const confirm = async () => {
     if (!orderId) return;
-    try {
-      setSubmitting(true);
-      await onConfirm?.(orderId);
-      onClose();
-    } finally {
-      setSubmitting(false);
-    }
+    await onConfirm?.(orderId);
   };
 
   return (
@@ -47,10 +40,15 @@ export function OrderDeleteModal({ open, orderId, onClose, onConfirm }: Props) {
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose} disabled={submitting}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={Boolean(submitting)}>
             {t("common.cancel")}
           </Button>
-          <Button type="button" variant="destructive" onClick={confirm} disabled={submitting}>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={confirm}
+            disabled={Boolean(submitting)}
+          >
             {t("common.delete")}
           </Button>
         </DialogFooter>

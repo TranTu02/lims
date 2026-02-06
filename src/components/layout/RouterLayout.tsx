@@ -10,6 +10,7 @@ type TabKey =
   | "assignment"
   | "handover"
   | "stored-samples"
+  | "analyses"
   | "document"
   | "inventory"
   | "crm"
@@ -30,6 +31,8 @@ function getTabFromPath(pathname: string): TabKey {
     if (pathname.startsWith("/library/parameter-groups")) return "library-parameter-groups";
     return "library-parameters";
   }
+
+  if (pathname.startsWith("/analyses")) return "analyses";
 
   switch (pathname) {
     case "/reception":
@@ -79,10 +82,7 @@ export function RouterLayout() {
   const location = useLocation();
   const { t } = useTranslation();
 
-  const activeTab = useMemo<TabKey>(
-    () => getTabFromPath(location.pathname),
-    [location.pathname],
-  );
+  const activeTab = useMemo<TabKey>(() => getTabFromPath(location.pathname), [location.pathname]);
 
   const TAB_INFO = useMemo<Record<TabKey, TabInfo>>(
     () => ({
@@ -110,7 +110,10 @@ export function RouterLayout() {
         title: t("nav.storedSamplesTitle"),
         description: t("nav.storedSamplesDescription"),
       },
-
+      analyses: {
+        title: t("nav.analysesTitle"),
+        description: t("nav.analysesDescription"),
+      },
       "library-parameters": {
         title: t("nav.parameterTitle"),
         description: t("nav.parameterDescription"),
@@ -131,7 +134,6 @@ export function RouterLayout() {
         title: t("nav.parameterGroupsTitle"),
         description: t("nav.parameterGroupsDescription"),
       },
-
       document: {
         title: t("nav.documentTitle"),
         description: t("nav.documentDescription"),
@@ -165,12 +167,7 @@ export function RouterLayout() {
   };
 
   return (
-    <Layout
-      activeTab={activeTab}
-      onTabChange={handleTabChange}
-      title={info.title}
-      description={info.description}
-    >
+    <Layout activeTab={activeTab} onTabChange={handleTabChange} title={info.title} description={info.description}>
       <Outlet />
     </Layout>
   );
