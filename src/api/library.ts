@@ -22,31 +22,8 @@ export type ListSort = {
     direction?: SortDirection;
 };
 
-export type ApiMeta = {
-    page: number;
-    itemsPerPage: number;
-
-    totalItems?: number;
-    total?: number;
-
-    totalPages: number;
-    [k: string]: unknown;
-};
-
-export type ApiError = {
-    code: string;
-    message: string;
-    traceId?: string;
-    [k: string]: unknown;
-};
-
-export type ApiResponse<T> = {
-    success: boolean;
-    statusCode: number;
-    data?: T;
-    meta?: ApiMeta | null;
-    error?: ApiError | null;
-};
+import type { ApiResponse, ApiMeta, ApiError } from "@/api/client";
+export type { ApiResponse, ApiMeta, ApiError };
 
 export type ListResult<T> = {
     data: T;
@@ -147,6 +124,7 @@ export type Matrix = {
 
     protocolCode?: string | null;
     protocolSource?: string | null;
+    chemicals?: ProtocolChemical[] | null;
     protocolAccreditation?: ProtocolAccreditation;
 
     parameterName?: string | null;
@@ -169,6 +147,10 @@ export type Matrix = {
     modifiedBy?: IdentityExpanded | null;
 };
 
+export type MatrixFull = Matrix & {
+    protocol?: Protocol;
+};
+
 export type ProtocolParameter = {
     parameterId: string;
     parameterName: string;
@@ -180,12 +162,17 @@ export type ProtocolSampleType = {
 };
 
 export type ProtocolChemical = {
-    chemicalId: string;
+    chemicalSkuId: string;
     chemicalName: string;
-    chemicalCAS?: string;
-    chemicalFormula?: string;
-    amountUsed?: string;
-    measurementUnit?: string;
+    consumedQty?: string;
+    unit?: string;
+};
+
+export type MatrixChemical = {
+    chemicalSkuId: string;
+    chemicalName: string;
+    consumedQty?: string;
+    unit?: string;
 };
 
 export type Protocol = {
@@ -220,6 +207,10 @@ export type Protocol = {
     modifiedAt?: string | null;
     modifiedById?: string | null;
     deletedAt?: string | null;
+};
+
+export type ProtocolFull = Protocol & {
+    matrices?: Record<string, unknown>[];
 };
 
 export type ParameterDisplayStyle = {
@@ -300,6 +291,7 @@ export type MatrixCreateBody = {
     protocolCode?: string | null;
     protocolSource?: string | null;
     sampleTypeName?: string | null;
+    chemicals?: MatrixChemical[] | null;
 };
 
 export type MatrixPatch = Partial<MatrixCreateBody>;
@@ -371,7 +363,13 @@ export type ParameterUpdateBody = {
 
 export type SampleTypeCreateBody = {
     sampleTypeName: string;
-    displayTypeStyle?: SampleTypeDisplayTypeStyle;
+    displayTypeStyle?: Record<string, string>;
+};
+
+export type SampleTypeUpdateBody = {
+    sampleTypeId: string;
+    sampleTypeName?: string;
+    displayTypeStyle?: Record<string, string>;
 };
 
 export type ParameterGroupCreateFullBody = {
@@ -472,6 +470,8 @@ export const libraryApi = {
 
         detail: (input: { params: { matrixId: string } }) => api.get<Matrix>("/v2/matrices/get/detail", { query: input.params }),
 
+        full: (matrixId: string) => api.get<MatrixFull>("/v2/matrices/get/full", { query: { matrixId } }),
+
         create: (input: { body: MatrixCreateBody }) => api.post<Matrix>("/v2/matrices/create", { body: input.body }),
 
         update: (input: { params: { matrixId: string }; patch: MatrixPatch }) =>
@@ -498,7 +498,7 @@ export const libraryApi = {
 
         detail: (input: { params: { protocolId: string } }) => api.get<Protocol>("/v2/protocols/get/detail", { query: { id: input.params.protocolId } }),
 
-        full: (id: string) => api.getRaw<Protocol>("/v2/protocols/get/full", { query: { id } }),
+        full: (id: string) => api.getRaw<ProtocolFull>("/v2/protocols/get/full", { query: { id } }),
 
         create: (input: { body: ProtocolCreateBody }) => api.post<Protocol>("/v2/protocols/create", { body: input.body }),
 
@@ -543,6 +543,8 @@ export const libraryApi = {
 
         create: (input: { body: SampleTypeCreateBody }) => api.post<SampleType>("/v2/sampletypes/create", { body: input.body }),
 
+        update: (input: { body: any }) => api.post<SampleType>("/v2/sampletypes/update", { body: input.body }),
+
         filter: (input: { body: SampleTypesFilterBody }) =>
             api.post<SampleTypesFilterItem[]>("/v2/sampletypes/filter", {
                 body: input.body,
@@ -573,6 +575,7 @@ export const libraryKeys = {
     matrices: () => [...libraryKeys.all, "matrices"] as const,
     matricesList: (input?: { query?: ListQuery; sort?: ListSort }) => [...libraryKeys.matrices(), "list", stableKey(input ?? {})] as const,
     matrixDetail: (matrixId: string) => [...libraryKeys.matrices(), "detail", matrixId] as const,
+    matrixFull: (matrixId: string) => [...libraryKeys.matrices(), "full", matrixId] as const,
     matricesFilter: (input: { body: MatricesFilterBody }) => [...libraryKeys.matrices(), "filter", stableKey(input)] as const,
     protocols: () => [...libraryKeys.all, "protocols"] as const,
     protocolsList: (input?: { query?: ListQuery; sort?: ListSort }) => [...libraryKeys.protocols(), "list", stableKey(input ?? {})] as const,
@@ -609,6 +612,22 @@ export function useMatrixDetail(input: { params: { matrixId: string } }) {
         enabled: Boolean(input.params.matrixId),
         retry: false,
         queryFn: async () => assertSuccess(await libraryApi.matrices.detail(input)),
+    });
+}
+
+export function useMatrixFull(id: string | null) {
+    return useQuery({
+        queryKey: libraryKeys.matrixFull(id ?? ""),
+        enabled: Boolean(id),
+        queryFn: async () => assertSuccess(await libraryApi.matrices.full(id!)),
+    });
+}
+
+export function useProtocolFull(id: string | null) {
+    return useQuery({
+        queryKey: ["library", "protocols", "full", id],
+        enabled: Boolean(id),
+        queryFn: async () => await libraryApi.protocols.full(id!),
     });
 }
 
@@ -921,6 +940,20 @@ export function useCreateSampleType() {
             toast.success(t("library.sampleTypes.createSuccess"));
         },
         onError: () => toast.error(t("library.sampleTypes.createError")),
+    });
+}
+
+export function useUpdateSampleType() {
+    const qc = useQueryClient();
+    const { t } = useTranslation();
+
+    return useMutation({
+        mutationFn: async (input: { body: SampleTypeUpdateBody }) => assertSuccess(await libraryApi.sampleTypes.update(input)),
+        onSuccess: async () => {
+            await qc.invalidateQueries({ queryKey: libraryKeys.sampleTypes() });
+            toast.success(t("common.toast.updated"));
+        },
+        onError: () => toast.error(t("common.toast.failed")),
     });
 }
 

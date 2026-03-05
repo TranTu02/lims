@@ -59,12 +59,12 @@ export function ParameterDetailPanel(props: Props) {
 
             <div>
                 <div className="flex items-center justify-between gap-2 mb-2">
-                    <div className="text-sm font-medium text-foreground">{t("library.parameters.detail.matrices", { count: matrices.length })}</div>
+                    <div className="text-sm font-medium text-foreground">{String(t("library.parameters.detail.matrices", { count: matrices.length }))}</div>
 
                     {isLoading ? (
                         <div className="text-xs text-muted-foreground flex items-center gap-2">
                             <Loader2 className="h-3 w-3 animate-spin" />
-                            {t("common.loading")}
+                            {String(t("common.loading"))}
                         </div>
                     ) : null}
                 </div>
@@ -73,7 +73,7 @@ export function ParameterDetailPanel(props: Props) {
                     <div className="bg-background border border-border rounded-lg p-3 flex items-start gap-3">
                         <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
                         <div className="flex-1">
-                            <div className="text-sm font-medium text-foreground">{t("common.errorTitle")}</div>
+                            <div className="text-sm font-medium text-foreground">{String(t("common.errorTitle"))}</div>
                             <div className="text-sm text-muted-foreground">{error instanceof Error ? error.message : t("library.matrices.errors.loadFailed")}</div>
                         </div>
                     </div>
@@ -93,7 +93,7 @@ export function ParameterDetailPanel(props: Props) {
                             ))}
                         </div>
 
-                        {matrices.length === 0 ? <div className="text-sm text-muted-foreground">{t("common.noData")}</div> : null}
+                        {matrices.length === 0 ? <div className="text-sm text-muted-foreground">{String(t("common.noData"))}</div> : null}
                     </>
                 ) : null}
             </div>

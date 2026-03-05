@@ -6,20 +6,24 @@ Quản lý danh sách **loại mẫu** (Sample Types). Mỗi loại mẫu (VD: N
 
 ## Danh sách file
 
-| File                        | Mô tả                                                                                      |
-| --------------------------- | ------------------------------------------------------------------------------------------ |
-| `SampleTypesView.tsx`       | Component chính: state, API, phân trang, quản lý modal create (hỗ trợ edit pre-fill)       |
-| `SampleTypesTable.tsx`      | Bảng danh sách với filter Excel-style. Cột: ID, Tên, Display Style, Ngày tạo, Actions      |
-| `SampleTypeDetailPanel.tsx` | Panel chi tiết bên phải khi click vào hàng, hiển thị thông tin chung và danh sách matrices |
-| `SampleTypeCreateModal.tsx` | Modal tạo mới / chỉnh sửa. Nhận `initialData` prop tùy chọn để pre-fill khi edit           |
+| File                          | Mô tả                                                                                              |
+| ----------------------------- | -------------------------------------------------------------------------------------------------- |
+| `SampleTypesView.tsx`         | Component chính: state, API, phân trang, quản lý danh sách.                                        |
+| `SampleTypesTable.tsx`        | Bảng danh sách với filter Excel-style. Cột: ID, Tên, Display Style, Ngày tạo, Actions              |
+| `SampleTypeDetailPanel.tsx`   | Panel chi tiết bên phải khi click vào hàng, hiển thị thông tin chung và danh sách matrices         |
+| `SampleTypeFormModal.tsx`     | Modal tạo mới / chỉnh sửa. Chế độ Edit hiển thị layout 2 cột với SampleTypeMatrixManager bên phải. |
+| `SampleTypeMatrixManager.tsx` | Quản lý ma trận liên quan đến loại mẫu này. Tích hợp MatricesCreateModal/EditModal.                |
 
 ## Luồng hoạt động
 
 1. **Xem danh sách**: `SampleTypesView` gọi `useSampleTypesList` với phân trang server-side (20/page)
 2. **Lọc**: Filter Excel-style cho cột: sampleTypeId, sampleTypeName, displayTypeStyle
 3. **Xem chi tiết**: Click hàng → `SampleTypeDetailPanel` (sidebar phải)
-4. **Chỉnh sửa**: Click nút Edit → `SampleTypeCreateModal` được mở với `initialData` pre-filled
-5. **Tạo mới**: Click nút Add → `SampleTypeCreateModal` mở với form trống
+4. **Tạo/Chỉnh sửa**: Click nút Add/Edit → Mở `SampleTypeFormModal`.
+    - **Chế độ Edit**: Modal mở rộng (80% width) với layout 2 cột.
+    - **Cột Trái**: Thông tin cơ bản của Loại mẫu.
+    - **Cột Phải**: Quản lý ma trận (`SampleTypeMatrixManager`) - cho phép quản lý ma trận nền mẫu của loại mẫu này ngay tại chỗ.
+5. **Quản lý Ma trận**: `SampleTypeMatrixManager` gọi `MatricesCreateModal` và `MatricesEditModal`. Khi thêm mới từ đây, `sampleTypeId` sẽ được khóa (locked) theo loại mẫu hiện tại.
 
 ## Cột Display Type Style
 
@@ -37,5 +41,4 @@ Cột `displayTypeStyle` hiển thị **2 dòng**:
 
 ## Lưu ý
 
-- Hiện tại chưa có API update cho Sample Types. Nút Edit mở modal tạo mới pre-filled
-- `SampleTypeCreateModal` nhận prop `initialData?: { sampleTypeName, displayDefault, displayEng }` để hỗ trợ edit
+- `SampleTypeFormModal` nhận prop `initialData?: { sampleTypeName, displayDefault, displayEng }` để hỗ trợ edit

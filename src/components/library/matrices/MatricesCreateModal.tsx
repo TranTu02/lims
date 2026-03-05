@@ -16,13 +16,23 @@ import {
     type Parameter,
     type Protocol,
     type SampleType,
+    useProtocolFull,
+    type ProtocolChemical,
 } from "@/api/library";
 
 import { SearchableSelect, type Option } from "@/components/common/SearchableSelect";
+import { ChemicalBomTable, type ChemicalBomItem } from "../shared/ChemicalBomTable";
+import { ExternalLink } from "lucide-react";
+import { ParameterFormModal } from "../parameters/ParameterFormModal";
+import { SampleTypeFormModal } from "../sampleTypes/SampleTypeFormModal";
+import { ProtocolFormModal } from "../protocols/ProtocolFormModal";
 
 type Props = {
     open: boolean;
     onClose: () => void;
+    lockedParameter?: { id: string; name: string };
+    lockedProtocol?: { id: string; code: string; source: string; chemicals?: ProtocolChemical[] };
+    lockedSampleType?: { id: string; name: string };
 };
 
 type FormState = {
@@ -49,22 +59,24 @@ type FormState = {
     LOD: string;
     LOQ: string;
     thresholdLimit: string;
+
+    chemicals: ChemicalBomItem[];
 };
 
-function initForm(): FormState {
+function initForm(props?: Props): FormState {
     return {
-        parameterId: "",
-        parameterName: "",
+        parameterId: props?.lockedParameter?.id || "",
+        parameterName: props?.lockedParameter?.name || "",
 
-        protocolId: "",
-        protocolCode: "",
-        protocolSource: "",
+        protocolId: props?.lockedProtocol?.id || "",
+        protocolCode: props?.lockedProtocol?.code || "",
+        protocolSource: props?.lockedProtocol?.source || "",
 
         accreditationVILAS: false,
         accreditationTDC: false,
 
-        sampleTypeId: "",
-        sampleTypeName: "",
+        sampleTypeId: props?.lockedSampleType?.id || "",
+        sampleTypeName: props?.lockedSampleType?.name || "",
 
         technicianGroupId: "",
 
@@ -76,6 +88,8 @@ function initForm(): FormState {
         LOD: "",
         LOQ: "",
         thresholdLimit: "",
+
+        chemicals: [],
     };
 }
 
@@ -109,15 +123,15 @@ function FieldLabel(props: { children: React.ReactNode }) {
 }
 
 function toParameterOption(p: Parameter): Option {
-    return { value: p.parameterId, label: p.parameterName, keywords: p.parameterName };
+    return { value: p.parameterId, label: `[${p.parameterId}] ${p.parameterName}`, keywords: p.parameterName };
 }
 
 function toProtocolOption(p: Protocol): Option {
-    return { value: p.protocolId, label: p.protocolCode, keywords: `${p.protocolSource}` };
+    return { value: p.protocolId, label: `[${p.protocolId}] ${p.protocolCode}`, keywords: `${p.protocolSource}` };
 }
 
 function toSampleTypeOption(s: SampleType): Option {
-    return { value: s.sampleTypeId, label: s.sampleTypeName, keywords: s.sampleTypeName };
+    return { value: s.sampleTypeId, label: `[${s.sampleTypeId}] ${s.sampleTypeName}`, keywords: s.sampleTypeName };
 }
 
 export function MatricesCreateModal(props: Props) {
@@ -129,15 +143,61 @@ export function MatricesCreateModal(props: Props) {
     const createProtocol = useCreateProtocol();
     const createSampleType = useCreateSampleType();
 
-    const [form, setForm] = useState<FormState>(() => initForm());
+    const [form, setForm] = useState<FormState>(() => initForm(props));
 
     const [parameterSearch, setParameterSearch] = useState("");
     const [protocolSearch, setProtocolSearch] = useState("");
     const [sampleTypeSearch, setSampleTypeSearch] = useState("");
 
+    const [openParameterModal, setOpenParameterModal] = useState(false);
+    const [openSampleTypeModal, setOpenSampleTypeModal] = useState(false);
+    const [openProtocolModal, setOpenProtocolModal] = useState(false);
+    const [editParameterId, setEditParameterId] = useState<string | null>(null);
+    const [editSampleTypeId, setEditSampleTypeId] = useState<string | null>(null);
+    const [editProtocolId, setEditProtocolId] = useState<string | null>(null);
+
+    const [createParameterName, setCreateParameterName] = useState<string>("");
+    const [createSampleTypeName, setCreateSampleTypeName] = useState<string>("");
+    const [createProtocolCode, setCreateProtocolCode] = useState<string>("");
+
     const debouncedParameterSearch = useDebouncedValue(parameterSearch, 250);
     const debouncedProtocolSearch = useDebouncedValue(protocolSearch, 250);
     const debouncedSampleTypeSearch = useDebouncedValue(sampleTypeSearch, 250);
+
+    const protocolFullQ = useProtocolFull(form.protocolId);
+    const [protocolSnapshotChemicals, setProtocolSnapshotChemicals] = useState<ProtocolChemical[]>([]);
+
+    useEffect(() => {
+        if (props.open) {
+            setForm(initForm(props));
+        }
+    }, [props.open]);
+
+    useEffect(() => {
+        if (props.lockedProtocol?.chemicals) {
+            setProtocolSnapshotChemicals(props.lockedProtocol.chemicals);
+            return;
+        }
+        if (!protocolFullQ.data?.chemicals) {
+            setProtocolSnapshotChemicals([]);
+            return;
+        }
+        setProtocolSnapshotChemicals(protocolFullQ.data.chemicals);
+    }, [protocolFullQ.data, props.lockedProtocol]);
+
+    const handleLoadChemicals = () => {
+        if (protocolSnapshotChemicals.length > 0) {
+            setForm((s) => ({
+                ...s,
+                chemicals: protocolSnapshotChemicals.map((c) => ({
+                    chemicalSkuId: c.chemicalSkuId,
+                    chemicalName: c.chemicalName,
+                    consumedQty: c.consumedQty || "",
+                    unit: c.unit || "",
+                })),
+            }));
+        }
+    };
 
     const parametersQ = useParametersList({
         query: {
@@ -211,7 +271,7 @@ export function MatricesCreateModal(props: Props) {
     }, [form, feeBeforeTaxNum, taxRateNum]);
 
     const resetAndClose = () => {
-        setForm(initForm());
+        setForm(initForm(props));
         setParameterSearch("");
         setProtocolSearch("");
         setSampleTypeSearch("");
@@ -231,13 +291,16 @@ export function MatricesCreateModal(props: Props) {
                 parameterName: found.parameterName ?? "",
             }));
         } else {
-            const res = await createParameter.mutateAsync({ body: { parameterName: idOrVal } });
-            setForm((s) => ({
-                ...s,
-                parameterId: res.parameterId,
-                parameterName: res.parameterName ?? "",
-            }));
+            setCreateParameterName(idOrVal);
+            setEditParameterId(null);
+            setOpenParameterModal(true);
         }
+    };
+
+    const handleCreateNewParameter = (searchVal: string) => {
+        setCreateParameterName(searchVal);
+        setEditParameterId(null);
+        setOpenParameterModal(true);
     };
 
     const onPickSampleType = async (idOrVal: string | null) => {
@@ -253,13 +316,16 @@ export function MatricesCreateModal(props: Props) {
                 sampleTypeName: found.sampleTypeName ?? "",
             }));
         } else {
-            const res = await createSampleType.mutateAsync({ body: { sampleTypeName: idOrVal } });
-            setForm((s) => ({
-                ...s,
-                sampleTypeId: res.sampleTypeId,
-                sampleTypeName: res.sampleTypeName ?? "",
-            }));
+            setCreateSampleTypeName(idOrVal);
+            setEditSampleTypeId(null);
+            setOpenSampleTypeModal(true);
         }
+    };
+
+    const handleCreateNewSampleType = (searchVal: string) => {
+        setCreateSampleTypeName(searchVal);
+        setEditSampleTypeId(null);
+        setOpenSampleTypeModal(true);
     };
 
     const onPickProtocol = async (idOrVal: string | null) => {
@@ -286,16 +352,16 @@ export function MatricesCreateModal(props: Props) {
                 accreditationVILAS: Boolean(found.protocolAccreditation?.VILAS),
             }));
         } else {
-            const res = await createProtocol.mutateAsync({ body: { protocolCode: idOrVal, protocolSource: "Unknown" } });
-            setForm((s) => ({
-                ...s,
-                protocolId: res.protocolId,
-                protocolCode: res.protocolCode ?? "",
-                protocolSource: res.protocolSource ?? "",
-                accreditationTDC: Boolean(res.protocolAccreditation?.TDC),
-                accreditationVILAS: Boolean(res.protocolAccreditation?.VILAS),
-            }));
+            setCreateProtocolCode(idOrVal);
+            setEditProtocolId(null);
+            setOpenProtocolModal(true);
         }
+    };
+
+    const handleCreateNewProtocol = (searchVal: string) => {
+        setCreateProtocolCode(searchVal);
+        setEditProtocolId(null);
+        setOpenProtocolModal(true);
     };
 
     const submit = async () => {
@@ -313,7 +379,6 @@ export function MatricesCreateModal(props: Props) {
         if (feeAfterTax === null) return;
 
         const turnaroundTime = parseOptionalInt(form.turnaroundTime);
-        const hasAccreditation = form.accreditationVILAS || form.accreditationTDC;
 
         const body: MatrixCreateBody = {
             parameterId: form.parameterId.trim(),
@@ -324,18 +389,25 @@ export function MatricesCreateModal(props: Props) {
             sampleTypeName: form.sampleTypeName.trim().length ? form.sampleTypeName.trim() : null,
             protocolCode: form.protocolCode.trim().length ? form.protocolCode.trim() : null,
             protocolSource: form.protocolSource.trim().length ? form.protocolSource.trim() : null,
-            protocolAccreditation: hasAccreditation ? { VILAS: form.accreditationVILAS, TDC: form.accreditationTDC } : undefined,
 
             feeBeforeTax,
             taxRate: taxRate ?? undefined,
             feeAfterTax,
 
-            LOD: form.LOD.trim().length ? form.LOD.trim() : null,
-            LOQ: form.LOQ.trim().length ? form.LOQ.trim() : null,
-            thresholdLimit: form.thresholdLimit.trim().length ? form.thresholdLimit.trim() : null,
-            turnaroundTime,
+            turnaroundTime: turnaroundTime,
+            LOD: form.LOD.trim() || undefined,
+            LOQ: form.LOQ.trim() || undefined,
+            thresholdLimit: form.thresholdLimit.trim() || undefined,
 
-            technicianGroupId: form.technicianGroupId.trim().length ? form.technicianGroupId.trim() : null,
+            technicianGroupId: form.technicianGroupId.trim() || undefined,
+
+            protocolAccreditation: form.accreditationVILAS || form.accreditationTDC ? { VILAS: form.accreditationVILAS, TDC: form.accreditationTDC } : undefined,
+            chemicals: form.chemicals.map((c) => ({
+                chemicalSkuId: c.chemicalSkuId || "",
+                chemicalName: c.chemicalName,
+                consumedQty: c.consumedQty || "",
+                unit: c.unit || "",
+            })),
         };
 
         await createM.mutateAsync({ body });
@@ -348,161 +420,30 @@ export function MatricesCreateModal(props: Props) {
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-background rounded-lg border border-border w-full max-w-4xl shadow-xl">
-                <div className="px-5 py-4 border-b border-border flex items-center justify-between">
-                    <div className="text-base font-semibold text-foreground">{t("library.matrices.create.title")}</div>
+            <div className="bg-background rounded-lg border border-border w-[95vw] md:w-[80vw] h-[90vh] max-w-none shadow-xl flex flex-col overflow-hidden">
+                <div className="px-5 py-4 border-b border-border flex items-center justify-between shrink-0 bg-background z-10">
+                    <div className="text-base font-semibold text-foreground">{String(t("library.matrices.create.title"))}</div>
                     <Button variant="ghost" size="sm" onClick={resetAndClose} type="button">
-                        {t("common.close")}
+                        {String(t("common.close"))}
                     </Button>
                 </div>
 
-                <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-6 min-w-0">
+                <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 overflow-y-auto">
+                    {/* LEFT COLUMN: Pricing, Limits, Accreditation */}
+                    <div className="space-y-6 min-w-0 pr-4">
                         <div className="space-y-3">
-                            <SectionTitle>{t("library.matrices.create.sampleParameter")}</SectionTitle>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-1 min-w-0">
-                                    <FieldLabel>{t("library.matrices.parameterId")}</FieldLabel>
-                                    <SearchableSelect
-                                        value={form.parameterId || null}
-                                        options={parameterOptions}
-                                        placeholder={t("library.parameters.searchPlaceholder")}
-                                        searchPlaceholder={t("library.parameters.searchPlaceholder")}
-                                        loading={parametersQ.isLoading || createParameter.isPending}
-                                        error={parametersQ.isError}
-                                        disabled={createM.isPending}
-                                        onChange={(idOrVal) => void onPickParameter(idOrVal)}
-                                        resetKey={resetKey}
-                                        filterMode="server"
-                                        searchValue={parameterSearch}
-                                        onSearchChange={setParameterSearch}
-                                        allowCustomValue
-                                    />
-                                </div>
-
-                                <div className="space-y-1 min-w-0">
-                                    <FieldLabel>{t("library.matrices.parameterName")}</FieldLabel>
-                                    <Input value={form.parameterName} disabled />
-                                </div>
-
-                                <div className="space-y-1 min-w-0">
-                                    <FieldLabel>{t("library.matrices.sampleTypeId")}</FieldLabel>
-                                    <SearchableSelect
-                                        value={form.sampleTypeId || null}
-                                        options={sampleTypeOptions}
-                                        placeholder={t("library.sampleTypes.searchPlaceholder")}
-                                        searchPlaceholder={t("library.sampleTypes.searchPlaceholder")}
-                                        loading={sampleTypesQ.isLoading || createSampleType.isPending}
-                                        error={sampleTypesQ.isError}
-                                        disabled={createM.isPending}
-                                        onChange={(idOrVal) => void onPickSampleType(idOrVal)}
-                                        resetKey={resetKey}
-                                        filterMode="server"
-                                        searchValue={sampleTypeSearch}
-                                        onSearchChange={setSampleTypeSearch}
-                                        allowCustomValue
-                                    />
-                                </div>
-
-                                <div className="space-y-1 min-w-0">
-                                    <FieldLabel>{t("library.matrices.sampleTypeName")}</FieldLabel>
-                                    <Input value={form.sampleTypeName} disabled />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="space-y-3">
-                            <SectionTitle>{t("library.matrices.create.protocol")}</SectionTitle>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-1 min-w-0 md:col-span-2">
-                                    <FieldLabel>{t("library.matrices.protocolId")}</FieldLabel>
-                                    <SearchableSelect
-                                        value={form.protocolId || null}
-                                        options={protocolOptions}
-                                        placeholder={t("library.protocols.searchPlaceholder")}
-                                        searchPlaceholder={t("library.protocols.searchPlaceholder")}
-                                        loading={protocolsQ.isLoading || createProtocol.isPending}
-                                        error={protocolsQ.isError}
-                                        disabled={createM.isPending}
-                                        onChange={(idOrVal) => void onPickProtocol(idOrVal)}
-                                        resetKey={resetKey}
-                                        filterMode="server"
-                                        searchValue={protocolSearch}
-                                        onSearchChange={setProtocolSearch}
-                                        allowCustomValue
-                                    />
-                                </div>
-
-                                <div className="space-y-1 min-w-0">
-                                    <FieldLabel>{t("library.matrices.protocolCode")}</FieldLabel>
-                                    <Input value={form.protocolCode} disabled />
-                                </div>
-
-                                <div className="space-y-1 min-w-0">
-                                    <FieldLabel>{t("library.matrices.protocolSource")}</FieldLabel>
-                                    <Input value={form.protocolSource} disabled />
-                                </div>
-
-                                <div className="space-y-2 min-w-0 md:col-span-2">
-                                    <FieldLabel>{t("library.matrices.protocolAccreditation")}</FieldLabel>
-
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <Button
-                                            type="button"
-                                            className="w-full whitespace-normal"
-                                            variant={form.accreditationVILAS ? "secondary" : "outline"}
-                                            aria-pressed={form.accreditationVILAS}
-                                            onClick={() =>
-                                                setForm((s) => ({
-                                                    ...s,
-                                                    accreditationVILAS: !s.accreditationVILAS,
-                                                }))
-                                            }
-                                            disabled={createM.isPending}
-                                        >
-                                            {t("library.protocols.protocolAccreditation.vilas")}
-                                        </Button>
-
-                                        <Button
-                                            type="button"
-                                            className="w-full whitespace-normal"
-                                            variant={form.accreditationTDC ? "secondary" : "outline"}
-                                            aria-pressed={form.accreditationTDC}
-                                            onClick={() =>
-                                                setForm((s) => ({
-                                                    ...s,
-                                                    accreditationTDC: !s.accreditationTDC,
-                                                }))
-                                            }
-                                            disabled={createM.isPending}
-                                        >
-                                            {t("library.protocols.protocolAccreditation.tdc")}
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="space-y-6 min-w-0">
-                        <div className="space-y-3">
-                            <SectionTitle>{t("library.matrices.create.pricing")}</SectionTitle>
-
+                            <SectionTitle>{String(t("library.matrices.create.pricing"))}</SectionTitle>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="space-y-1 min-w-0">
-                                    <FieldLabel>{t("library.matrices.feeBeforeTax")}</FieldLabel>
+                                    <FieldLabel>{String(t("library.matrices.feeBeforeTax"))}</FieldLabel>
                                     <Input inputMode="numeric" value={form.feeBeforeTax} onChange={(e) => setForm((s) => ({ ...s, feeBeforeTax: e.target.value }))} disabled={createM.isPending} />
                                 </div>
-
                                 <div className="space-y-1 min-w-0">
-                                    <FieldLabel>{t("library.matrices.taxRate")}</FieldLabel>
+                                    <FieldLabel>{String(t("library.matrices.taxRate"))}</FieldLabel>
                                     <Input inputMode="numeric" value={form.taxRate} onChange={(e) => setForm((s) => ({ ...s, taxRate: e.target.value }))} disabled={createM.isPending} />
                                 </div>
-
                                 <div className="space-y-1 min-w-0">
-                                    <FieldLabel>{t("library.matrices.feeAfterTax")}</FieldLabel>
+                                    <FieldLabel>{String(t("library.matrices.feeAfterTax"))}</FieldLabel>
                                     <Input
                                         inputMode="numeric"
                                         value={form.feeAfterTax}
@@ -514,49 +455,299 @@ export function MatricesCreateModal(props: Props) {
                         </div>
 
                         <div className="space-y-3">
-                            <SectionTitle>{t("library.matrices.create.limits")}</SectionTitle>
-
+                            <SectionTitle>{String(t("library.matrices.create.limits"))}</SectionTitle>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-1 min-w-0">
-                                    <FieldLabel>{t("library.matrices.LOD")}</FieldLabel>
+                                    <FieldLabel>{String(t("library.matrices.LOD"))}</FieldLabel>
                                     <Input value={form.LOD} onChange={(e) => setForm((s) => ({ ...s, LOD: e.target.value }))} disabled={createM.isPending} />
                                 </div>
-
                                 <div className="space-y-1 min-w-0">
-                                    <FieldLabel>{t("library.matrices.LOQ")}</FieldLabel>
+                                    <FieldLabel>{String(t("library.matrices.LOQ"))}</FieldLabel>
                                     <Input value={form.LOQ} onChange={(e) => setForm((s) => ({ ...s, LOQ: e.target.value }))} disabled={createM.isPending} />
                                 </div>
-
                                 <div className="space-y-1 min-w-0 md:col-span-2">
-                                    <FieldLabel>{t("library.matrices.thresholdLimit")}</FieldLabel>
+                                    <FieldLabel>{String(t("library.matrices.thresholdLimit"))}</FieldLabel>
                                     <Input value={form.thresholdLimit} onChange={(e) => setForm((s) => ({ ...s, thresholdLimit: e.target.value }))} disabled={createM.isPending} />
                                 </div>
-
                                 <div className="space-y-1 min-w-0">
-                                    <FieldLabel>{t("library.matrices.turnaroundTime")}</FieldLabel>
+                                    <FieldLabel>{String(t("library.matrices.turnaroundTime"))}</FieldLabel>
                                     <Input inputMode="numeric" value={form.turnaroundTime} onChange={(e) => setForm((s) => ({ ...s, turnaroundTime: e.target.value }))} disabled={createM.isPending} />
                                 </div>
-
                                 <div className="space-y-1 min-w-0">
-                                    <FieldLabel>{t("library.matrices.technicianGroupId")}</FieldLabel>
+                                    <FieldLabel>{String(t("library.matrices.technicianGroupId", { defaultValue: "ID nhóm KTV" }))}</FieldLabel>
                                     <Input value={form.technicianGroupId} onChange={(e) => setForm((s) => ({ ...s, technicianGroupId: e.target.value }))} disabled={createM.isPending} />
                                 </div>
                             </div>
                         </div>
+
+                        <div className="space-y-3 pt-6 border-t border-border mt-6">
+                            <SectionTitle>{String(t("library.matrices.protocolAccreditation", { defaultValue: "Phạm vi công nhận" }))}</SectionTitle>
+                            <div className="grid grid-cols-2 gap-2">
+                                <Button
+                                    type="button"
+                                    className="w-full whitespace-normal"
+                                    variant={form.accreditationVILAS ? "secondary" : "outline"}
+                                    aria-pressed={form.accreditationVILAS}
+                                    onClick={() => setForm((s) => ({ ...s, accreditationVILAS: !s.accreditationVILAS }))}
+                                    disabled={createM.isPending}
+                                >
+                                    {String(t("library.protocols.protocolAccreditation.vilas", { defaultValue: "VILAS" }))}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    className="w-full whitespace-normal"
+                                    variant={form.accreditationTDC ? "secondary" : "outline"}
+                                    aria-pressed={form.accreditationTDC}
+                                    onClick={() => setForm((s) => ({ ...s, accreditationTDC: !s.accreditationTDC }))}
+                                    disabled={createM.isPending}
+                                >
+                                    {String(t("library.protocols.protocolAccreditation.tdc", { defaultValue: "Chỉ định TĐC" }))}
+                                </Button>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="md:col-span-2">
-                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
-                            <Button variant="outline" onClick={resetAndClose} type="button">
-                                {t("common.cancel")}
-                            </Button>
-                            <Button onClick={() => void submit()} disabled={!canSave || createM.isPending} type="button">
-                                {createM.isPending ? t("common.saving") : t("common.save")}
-                            </Button>
+                    {/* RIGHT COLUMN: Parameter/Sample/Protocol/Chemicals */}
+                    <div className="space-y-6 min-w-0 border-l pl-4 border-border flex flex-col">
+                        <div className="space-y-3">
+                            <SectionTitle>{String(t("library.matrices.create.sampleParameter", { defaultValue: "Thông tin chỉ tiêu" }))}</SectionTitle>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1 min-w-0">
+                                    <FieldLabel>{String(t("library.matrices.parameterId"))}</FieldLabel>
+                                    <div className="flex gap-2 items-center">
+                                        {props.lockedParameter ? (
+                                            <Input value={`[${props.lockedParameter.id}] ${props.lockedParameter.name}`} disabled />
+                                        ) : (
+                                            <div className="flex-1 min-w-0">
+                                                <SearchableSelect
+                                                    value={form.parameterId || null}
+                                                    options={parameterOptions}
+                                                    placeholder={String(t("library.parameters.searchPlaceholder"))}
+                                                    searchPlaceholder={String(t("library.parameters.searchPlaceholder"))}
+                                                    loading={parametersQ.isLoading || createParameter.isPending}
+                                                    error={parametersQ.isError}
+                                                    disabled={createM.isPending}
+                                                    onChange={(v) => void onPickParameter(v)}
+                                                    resetKey={resetKey}
+                                                    filterMode="server"
+                                                    searchValue={parameterSearch}
+                                                    onSearchChange={setParameterSearch}
+                                                    onCreateNew={handleCreateNewParameter}
+                                                    allowCustomValue
+                                                />
+                                            </div>
+                                        )}
+                                        {form.parameterId && !props.lockedParameter && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="icon"
+                                                className="shrink-0"
+                                                title={String(t("library.parameters.edit.title", { defaultValue: "Sửa chỉ tiêu" }))}
+                                                onClick={() => {
+                                                    setEditParameterId(form.parameterId);
+                                                    setOpenParameterModal(true);
+                                                }}
+                                            >
+                                                <ExternalLink className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="space-y-1 min-w-0">
+                                    <FieldLabel>{String(t("library.matrices.parameterName"))}</FieldLabel>
+                                    <Input value={form.parameterName} disabled />
+                                </div>
+                                <div className="space-y-1 min-w-0">
+                                    <FieldLabel>{String(t("library.matrices.sampleTypeId"))}</FieldLabel>
+                                    <div className="flex gap-2 items-center">
+                                        {props.lockedSampleType ? (
+                                            <Input value={`[${props.lockedSampleType.id}] ${props.lockedSampleType.name}`} disabled />
+                                        ) : (
+                                            <div className="flex-1 min-w-0">
+                                                <SearchableSelect
+                                                    value={form.sampleTypeId || null}
+                                                    options={sampleTypeOptions}
+                                                    placeholder={String(t("library.sampleTypes.searchPlaceholder"))}
+                                                    searchPlaceholder={String(t("library.sampleTypes.searchPlaceholder"))}
+                                                    loading={sampleTypesQ.isLoading || createSampleType.isPending}
+                                                    error={sampleTypesQ.isError}
+                                                    disabled={createM.isPending}
+                                                    onChange={(v) => void onPickSampleType(v)}
+                                                    resetKey={resetKey}
+                                                    filterMode="server"
+                                                    searchValue={sampleTypeSearch}
+                                                    onSearchChange={setSampleTypeSearch}
+                                                    onCreateNew={handleCreateNewSampleType}
+                                                    allowCustomValue
+                                                />
+                                            </div>
+                                        )}
+                                        {form.sampleTypeId && !props.lockedSampleType && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="icon"
+                                                className="shrink-0"
+                                                title={String(t("library.sampleTypes.edit.title", { defaultValue: "Sửa dạng mẫu" }))}
+                                                onClick={() => {
+                                                    setEditSampleTypeId(form.sampleTypeId);
+                                                    setOpenSampleTypeModal(true);
+                                                }}
+                                            >
+                                                <ExternalLink className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="space-y-1 min-w-0">
+                                    <FieldLabel>{String(t("library.matrices.sampleTypeName"))}</FieldLabel>
+                                    <Input value={form.sampleTypeName} disabled />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <SectionTitle>{String(t("library.matrices.create.protocol"))}</SectionTitle>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1 min-w-0">
+                                    <FieldLabel>{String(t("library.matrices.protocolId"))}</FieldLabel>
+                                    <div className="flex gap-2 items-center">
+                                        {props.lockedProtocol ? (
+                                            <Input value={`[${props.lockedProtocol.id}] ${props.lockedProtocol.code}`} disabled />
+                                        ) : (
+                                            <div className="flex-1 min-w-0">
+                                                <SearchableSelect
+                                                    value={form.protocolId || null}
+                                                    options={protocolOptions}
+                                                    placeholder={String(t("library.protocols.searchPlaceholder"))}
+                                                    searchPlaceholder={String(t("library.protocols.searchPlaceholder"))}
+                                                    loading={protocolsQ.isLoading || createProtocol.isPending}
+                                                    error={protocolsQ.isError}
+                                                    disabled={createM.isPending}
+                                                    onChange={(v) => void onPickProtocol(v)}
+                                                    resetKey={resetKey}
+                                                    filterMode="server"
+                                                    searchValue={protocolSearch}
+                                                    onSearchChange={setProtocolSearch}
+                                                    onCreateNew={handleCreateNewProtocol}
+                                                    allowCustomValue
+                                                />
+                                            </div>
+                                        )}
+                                        {form.protocolId && !props.lockedProtocol && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="icon"
+                                                className="shrink-0"
+                                                title={String(t("library.protocols.edit.title", { defaultValue: "Sửa phương pháp" }))}
+                                                onClick={() => {
+                                                    setEditProtocolId(form.protocolId);
+                                                    setOpenProtocolModal(true);
+                                                }}
+                                            >
+                                                <ExternalLink className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="space-y-1 min-w-0">
+                                    <FieldLabel>{String(t("library.matrices.protocolCode"))}</FieldLabel>
+                                    <Input value={form.protocolCode} disabled />
+                                </div>
+                                <div className="space-y-1 min-w-0 md:col-span-2">
+                                    <FieldLabel>{String(t("library.matrices.protocolSource"))}</FieldLabel>
+                                    <Input value={form.protocolSource} disabled />
+                                </div>
+
+                                {form.protocolId && protocolSnapshotChemicals.length > 0 && (
+                                    <div className="space-y-2 min-w-0 mt-4 md:col-span-2">
+                                        <FieldLabel>{String(t("library.matrices.protocolChemicals", { defaultValue: "Hóa chất theo phương pháp" }))}</FieldLabel>
+                                        <div className="bg-muted/30 border border-border rounded p-3 space-y-1">
+                                            {protocolSnapshotChemicals.map((c, idx) => (
+                                                <div key={idx} className="text-xs flex justify-between items-center text-muted-foreground italic">
+                                                    <span>
+                                                        • {c.chemicalName} {c.chemicalSkuId ? `(${c.chemicalSkuId})` : ""}
+                                                    </span>
+                                                    <span className="font-medium text-foreground">
+                                                        {c.consumedQty} {c.unit}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="space-y-1 min-w-0 flex-1 flex flex-col pt-6 border-t border-border mt-6">
+                            <SectionTitle>{String(t("library.matrices.create.chemicals", { defaultValue: "Hóa chất" }))}</SectionTitle>
+                            <div className="flex-1 min-h-[300px]">
+                                <ChemicalBomTable items={form.chemicals} onChange={(chemicals) => setForm((s) => ({ ...s, chemicals }))} onLoadFromProtocol={handleLoadChemicals} />
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                <div className="px-5 py-4 border-t border-border flex justify-end gap-3 shrink-0 bg-background z-10">
+                    <Button variant="outline" onClick={resetAndClose} type="button">
+                        {String(t("common.cancel"))}
+                    </Button>
+                    <Button onClick={() => void submit()} disabled={!canSave || createM.isPending} type="button">
+                        {createM.isPending ? t("common.saving") : t("common.save")}
+                    </Button>
+                </div>
             </div>
+
+            {openParameterModal && (
+                <ParameterFormModal
+                    onClose={() => {
+                        setOpenParameterModal(false);
+                        setEditParameterId(null);
+                    }}
+                    parameterId={editParameterId || undefined}
+                    initialData={!editParameterId ? { parameterName: createParameterName } : undefined}
+                    onSuccess={(p: any) => {
+                        setForm((s) => ({ ...s, parameterId: p.parameterId, parameterName: p.parameterName }));
+                    }}
+                />
+            )}
+
+            {openSampleTypeModal && (
+                <SampleTypeFormModal
+                    onClose={() => {
+                        setOpenSampleTypeModal(false);
+                        setEditSampleTypeId(null);
+                    }}
+                    sampleTypeId={editSampleTypeId || undefined}
+                    initialData={!editSampleTypeId ? { sampleTypeName: createSampleTypeName, displayEng: "", displayDefault: "" } : undefined}
+                    onSuccess={(p: any) => {
+                        setForm((s) => ({ ...s, sampleTypeId: p.sampleTypeId, sampleTypeName: p.sampleTypeName }));
+                    }}
+                />
+            )}
+
+            {openProtocolModal && (
+                <ProtocolFormModal
+                    onClose={() => {
+                        setOpenProtocolModal(false);
+                        setEditProtocolId(null);
+                    }}
+                    protocolId={editProtocolId || undefined}
+                    initialData={!editProtocolId ? { protocolCode: createProtocolCode } : undefined}
+                    onSuccess={(p: any) => {
+                        setForm((s) => ({
+                            ...s,
+                            protocolId: p.protocolId,
+                            protocolCode: p.protocolCode || p.protocolId,
+                            protocolSource: p.protocolSource || "Unknown",
+                            accreditationTDC: Boolean(p.protocolAccreditation?.TDC),
+                            accreditationVILAS: Boolean(p.protocolAccreditation?.VILAS),
+                        }));
+                    }}
+                />
+            )}
         </div>
     );
 }

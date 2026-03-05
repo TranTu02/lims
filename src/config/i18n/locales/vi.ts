@@ -30,8 +30,8 @@ export default {
         protocolsTitle: "Phương pháp",
         protocolsDescription: "Thư viện phương pháp",
 
-        matricesTitle: "Nền mẫu",
-        matricesDescription: "Thư viện nền mẫu",
+        matricesTitle: "Ma trận chỉ tiêu",
+        matricesDescription: "Thư viện ma trận chỉ tiêu",
 
         sampleTypesTitle: "Loại mẫu",
         sampleTypesDescription: "Thư viện loại mẫu",
@@ -43,7 +43,10 @@ export default {
         documentDescription: "Văn bản & Biểu mẫu",
 
         inventoryTitle: "Kho & Tài sản",
-        inventoryDescription: "Hóa chất & Thiết bị",
+        inventoryDescription: "Quản lý thiết bị",
+
+        chemicalInventoryTitle: "Kho hóa chất",
+        chemicalInventoryDescription: "Quản lý hóa chất",
 
         crmTitle: "Khách hàng",
         crmDescription: "Quản lý quan hệ khách hàng",
@@ -62,6 +65,14 @@ export default {
             themeLight: "Sáng",
             themeDark: "Tối",
             themeSystem: "Hệ thống",
+            dashboard: "Bảng điều khiển",
+            orders: "Đơn hàng",
+            samples: "Mẫu",
+            clients: "Khách hàng",
+            inventory: "Tài sản",
+            chemicalInventory: "Kho hóa chất",
+            accounting: "Kế toán",
+            settings: "Cài đặt",
         },
     },
     notifications: {
@@ -439,14 +450,14 @@ export default {
                 sampleTypeId: "Loại mẫu (ID)",
                 sampleTypeName: "Loại mẫu",
                 userSampleId: "Mã mẫu KH",
-                matrixId: "Matrix ID",
+                matrixId: "Mã ma trận",
 
                 fields: {
                     sampleName: "Tên mẫu",
                     userSampleId: "Mã mẫu KH",
                     sampleTypeId: "Loại mẫu (ID)",
                     sampleTypeName: "Loại mẫu",
-                    matrixId: "Matrix ID",
+                    matrixId: "Mã ma trận",
                 },
             },
 
@@ -564,9 +575,9 @@ export default {
     },
     library: {
         matrices: {
-            title: "Danh sách cấu hình",
-            total: "Tổng số: {{count}} cấu hình",
-            matrixId: "Mã cấu hình (Matrix ID)",
+            title: "Danh sách ma trận chỉ tiêu",
+            total: "Tổng số: {{count}} ma trận",
+            matrixId: "Ma trận (Matrix ID)",
             parameterId: "Mã chỉ tiêu",
             protocolId: "Mã phương pháp",
             sampleTypeId: "Loại mẫu",
@@ -583,16 +594,16 @@ export default {
             thresholdLimit: "Ngưỡng quy chuẩn (GHK)",
             turnaroundTime: "Thời gian trả kết quả (Ngày)",
             technicianGroupId: "Tổ kỹ thuật phụ trách",
-            searchPlaceholder: "Tìm kiếm cấu hình...",
+            searchPlaceholder: "Tìm kiếm ma trận...",
             create: {
-                title: "Tạo mới cấu hình",
+                title: "Tạo mới ma trận chỉ tiêu",
                 sampleParameter: "Chỉ tiêu/Mẫu",
                 protocol: "Phương pháp",
                 pricing: "Đơn giá",
                 limits: "Ngưỡng/Giới hạn",
             },
             detail: {
-                title: "Chi tiết cấu hình",
+                title: "Chi tiết ma trận chỉ tiêu",
                 sampleParameter: "Chỉ tiêu/Mẫu",
                 protocol: "Phương pháp",
                 pricing: "Đơn giá",
@@ -600,9 +611,9 @@ export default {
                 information: "Thông tin thêm",
             },
             edit: {
-                title: "Chỉnh sửa cấu hình",
+                title: "Chỉnh sửa ma trận chỉ tiêu",
             },
-            cofirmDelete: "Chắc chắn muốn xóa cấu hình này?",
+            cofirmDelete: "Chắc chắn muốn xóa ma trận chỉ tiêu này?",
         },
         protocols: {
             protocolId: "ID Phương pháp",
@@ -662,6 +673,14 @@ export default {
                 name: "Tên hóa chất",
                 cas: "Mã CAS",
                 amount: "Lượng sử dụng",
+                bomTitle: "Hóa chất sử dụng (BOM)",
+                loadFromProtocol: "Nạp từ Phương pháp",
+                searchPlaceholder: "Tìm hóa chất (SKU)...",
+                chemicalName: "Tên hóa chất",
+                skuId: "SKU ID",
+                consumedQty: "Định mức",
+                unit: "ĐVT",
+                emptyBom: "Chưa có hóa chất. Tìm kiếm và thêm ở trên.",
             },
         },
         parameters: {
@@ -689,6 +708,8 @@ export default {
             },
             edit: {
                 title: "Chỉnh sửa chỉ tiêu",
+                matrixSection: "Ma trận chỉ tiêu (Nền mẫu)",
+                relatedSection: "Chỉ tiêu / Mẫu / Hóa chất",
             },
             columns: {
                 code: "Mã",
@@ -697,8 +718,8 @@ export default {
                 matrixCount: "Số lượng Matrix",
             },
             detail: {
-                matrices: "Matrices",
-                matrixCode: "Mã Matrix",
+                matrices: "Ma trận chỉ tiêu",
+                matrixCode: "Mã ma trận",
                 feeBeforeTax: "Phí trước thuế",
                 feeAfterTax: "Phí sau thuế",
                 lod: "LOD",
@@ -803,7 +824,7 @@ export default {
         samples: {
             sampleId: "Mã số mẫu (Lab ID)",
             receiptId: "Thuộc phiếu nhận",
-            sampleTypeId: "Loại nền mẫu",
+            sampleTypeId: "Loại mẫu",
             productType: "Nhóm sản phẩm",
             sampleName: "Tên mẫu",
             sampleTypeName: "Tên loại mẫu",
@@ -843,7 +864,7 @@ export default {
             price: "Đơn giá",
             analysisId: "Mã phép thử",
             sampleId: "Mã mẫu",
-            matrixId: "Cấu hình phân tích",
+            matrixId: "Ma trận chỉ tiêu",
             parameterId: "Chỉ tiêu",
             parameterName: "Tên chỉ tiêu",
             protocolCode: "Mã hiệu phương pháp",

@@ -15,15 +15,6 @@ import { MatricesDeleteConfirm } from "./MatricesDeleteConfirm";
 import { MatricesEditModal } from "./MatricesEditModal";
 import { MatrixDetailPanel } from "./MatrixDetailPanel";
 
-type CreateMatrixForm = {
-    parameterId: string;
-    protocolId: string;
-    sampleTypeId: string;
-    feeBeforeTax: string;
-    taxRate: string;
-    feeAfterTax: string;
-};
-
 export type ExcelFiltersState = {
     matrixId: string[];
     parameterId: string[];
@@ -120,16 +111,6 @@ export function MatricesView() {
     const [editOpen, setEditOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [createForm, setCreateForm] = useState<CreateMatrixForm>({
-        parameterId: "",
-        protocolId: "",
-        sampleTypeId: "",
-        feeBeforeTax: "",
-        taxRate: "",
-        feeAfterTax: "",
-    });
-
     const [serverTotalPages, setServerTotalPages] = useState<number | null>(null);
     const pagination = useServerPagination(serverTotalPages, 20);
 
@@ -163,14 +144,6 @@ export function MatricesView() {
     };
 
     const openCreate = () => {
-        setCreateForm({
-            parameterId: "",
-            protocolId: "",
-            sampleTypeId: "",
-            feeBeforeTax: "",
-            taxRate: "",
-            feeAfterTax: "",
-        });
         setCreateOpen(true);
     };
 
@@ -213,8 +186,8 @@ export function MatricesView() {
                 <div className="bg-background border border-border rounded-lg p-4 flex items-start gap-3">
                     <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
                     <div>
-                        <div className="text-sm font-medium text-foreground">{t("common.errorTitle")}</div>
-                        <div className="text-sm text-muted-foreground">{t("library.matrices.errors.loadFailed")}</div>
+                        <div className="text-sm font-medium text-foreground">{String(t("common.errorTitle"))}</div>
+                        <div className="text-sm text-muted-foreground">{String(t("library.matrices.errors.loadFailed"))}</div>
                     </div>
                 </div>
             ) : null}

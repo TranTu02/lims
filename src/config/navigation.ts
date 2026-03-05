@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, FileText, FlaskConical, Settings, Package, Truck, Wallet } from "lucide-react";
+import { LayoutDashboard, Users, FileText, FlaskConical, Settings, Package, Wallet, Beaker } from "lucide-react";
 
 export type NavItem = {
     title: string;
@@ -42,6 +42,11 @@ export const MAIN_NAV: NavItem[] = [
         title: "sidebar.inventory",
         href: "/inventory",
         icon: Package,
+    },
+    {
+        title: "sidebar.chemicalInventory", // Key for i18n
+        href: "/chemical-inventory",
+        icon: Beaker,
     },
     {
         title: "sidebar.accounting",

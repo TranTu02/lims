@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
 
-import { useCreateParameter, useParametersList } from "@/api/library";
+import { useCreateParameter, useUpdateParameter, useParametersList } from "@/api/library";
 
 import type { Parameter } from "@/types/library";
 import type { ParameterWithMatrices } from "../hooks/useLibraryData";
@@ -17,8 +17,10 @@ import { useDebouncedValue } from "../hooks/useDebouncedValue";
 
 import { ParametersTable, type ParametersExcelFiltersState } from "./ParametersTable";
 import { ParameterDetailPanel } from "./ParametersDetailPanel";
+import { ParameterMatrixManager } from "./ParameterMatrixManager";
 
 type CreateParameterForm = {
+    parameterId?: string;
     parameterName: string;
     technicianAlias: string;
     technicianGroupId: string;
@@ -78,6 +80,17 @@ function createEmptyFilters(): ParametersExcelFiltersState {
     };
 }
 
+const EMPTY_FORM: CreateParameterForm = {
+    parameterName: "",
+    technicianAlias: "",
+    technicianGroupId: "",
+    parameterSearchKeys: "",
+    parameterStatus: "Active",
+    parameterNote: "",
+    displayStyleEng: "",
+    displayStyleDefault: "",
+};
+
 export function ParametersView() {
     const { t } = useTranslation();
 
@@ -87,17 +100,7 @@ export function ParametersView() {
     const [selectedParameter, setSelectedParameter] = useState<ParameterWithMatrices | null>(null);
 
     const [createOpen, setCreateOpen] = useState(false);
-    const [editParameterId, setEditParameterId] = useState<string | null>(null);
-    const [createForm, setCreateForm] = useState<CreateParameterForm>({
-        parameterName: "",
-        technicianAlias: "",
-        technicianGroupId: "",
-        parameterSearchKeys: "",
-        parameterStatus: "Active",
-        parameterNote: "",
-        displayStyleEng: "",
-        displayStyleDefault: "",
-    });
+    const [createForm, setCreateForm] = useState<CreateParameterForm>(EMPTY_FORM);
 
     const [serverTotalPages, setServerTotalPages] = useState<number | null>(null);
     const pagination = useServerPagination(serverTotalPages, 20);
@@ -130,6 +133,7 @@ export function ParametersView() {
     const [excelFilters] = useState<ParametersExcelFiltersState>(() => createEmptyFilters());
 
     const createParam = useCreateParameter();
+    const updateParam = useUpdateParameter();
 
     const onSearchChange = (v: string) => {
         setSearchTerm(v);
@@ -137,22 +141,13 @@ export function ParametersView() {
     };
 
     const openCreate = () => {
-        setCreateForm({
-            parameterName: "",
-            technicianAlias: "",
-            technicianGroupId: "",
-            parameterSearchKeys: "",
-            parameterStatus: "Active",
-            parameterNote: "",
-            displayStyleEng: "",
-            displayStyleDefault: "",
-        });
+        setCreateForm(EMPTY_FORM);
         setCreateOpen(true);
     };
 
     const openEdit = (p: ParameterWithMatrices) => {
-        setEditParameterId(p.parameterId);
         setCreateForm({
+            parameterId: p.parameterId,
             parameterName: p.parameterName || "",
             technicianAlias: p.technicianAlias || "",
             technicianGroupId: p.technicianGroupId || "",
@@ -164,6 +159,8 @@ export function ParametersView() {
         });
         setCreateOpen(true);
     };
+
+    // ─── Submit ──────────────────────────────────────────────────────────
 
     const submitCreate = async () => {
         const name = createForm.parameterName.trim();
@@ -180,23 +177,36 @@ export function ParametersView() {
 
         if (!name) return;
 
-        await createParam.mutateAsync({
-            body: {
-                parameterName: name,
-                technicianAlias: alias.length ? alias : null,
-                technicianGroupId: groupId.length ? groupId : null,
-                parameterSearchKeys: searchKeys.length ? searchKeys : null,
-                parameterStatus: status.length ? status : null,
-                parameterNote: note.length ? note : null,
-                displayStyle: eng.length || def.length ? { eng: eng.length ? eng : undefined, default: def.length ? def : undefined } : undefined,
-            },
-        });
+        const body: any = {
+            parameterName: name,
+            technicianAlias: alias.length ? alias : null,
+            technicianGroupId: groupId.length ? groupId : null,
+            parameterSearchKeys: searchKeys.length ? searchKeys : null,
+            parameterStatus: status.length ? status : null,
+            parameterNote: note.length ? note : null,
+            displayStyle: eng.length || def.length ? { eng: eng.length ? eng : undefined, default: def.length ? def : undefined } : undefined,
+        };
+
+        if (createForm.parameterId) {
+            await updateParam.mutateAsync({ body: { parameterId: createForm.parameterId, ...body } });
+        } else {
+            const result = await createParam.mutateAsync({ body });
+            // Keep the form open after creating so they can now add matrices if they want
+            setCreateForm({
+                ...createForm,
+                parameterId: result.parameterId,
+            });
+            // Don't close immediately if just created, so they can see the matrix panel
+            return;
+        }
 
         setCreateOpen(false);
     };
 
     const isLoading = parametersQ.isLoading;
     const isError = parametersQ.isError;
+
+    const isPending = createParam.isPending || updateParam.isPending;
 
     return (
         <div className="space-y-4">
@@ -217,8 +227,8 @@ export function ParametersView() {
                 <div className="bg-background border border-border rounded-lg p-4 flex items-start gap-3">
                     <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
                     <div>
-                        <div className="text-sm font-medium text-foreground">{t("common.errorTitle")}</div>
-                        <div className="text-sm text-muted-foreground">{t("library.parameters.errors.loadFailed")}</div>
+                        <div className="text-sm font-medium text-foreground">{String(t("common.errorTitle"))}</div>
+                        <div className="text-sm text-muted-foreground">{String(t("library.parameters.errors.loadFailed"))}</div>
                     </div>
                 </div>
             ) : null}
@@ -251,103 +261,109 @@ export function ParametersView() {
                 </div>
             ) : null}
 
+            {/* ═══ Create / Edit Modal ═══ */}
             {createOpen ? (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-background rounded-lg border border-border w-full max-w-lg shadow-xl">
-                        <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+                    <div className="bg-background rounded-lg border border-border shadow-xl overflow-hidden flex flex-col" style={{ width: "80vw", height: "80vh", minWidth: 900, minHeight: 600 }}>
+                        {/* Header */}
+                        <div className="px-5 py-4 border-b border-border flex items-center justify-between shrink-0">
                             <div className="text-base font-semibold text-foreground">
-                                {editParameterId ? t("library.parameters.edit.title", { defaultValue: "Chỉnh sửa chỉ tiêu" }) : t("library.parameters.create.title")}
+                                {createForm.parameterId ? t("library.parameters.edit.title", { defaultValue: "Chỉnh sửa chỉ tiêu" }) : t("library.parameters.create.title")}
                             </div>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                    setCreateOpen(false);
-                                    setEditParameterId(null);
-                                }}
-                                type="button"
-                            >
-                                {t("common.close")}
+                            <Button variant="ghost" size="icon" onClick={() => setCreateOpen(false)} type="button">
+                                <X className="h-4 w-4" />
                             </Button>
                         </div>
 
-                        <div className="p-5 space-y-4">
-                            <div className="space-y-2">
-                                <div className="text-sm font-medium text-foreground">{t("library.parameters.parameterName")}</div>
-                                <Input
-                                    value={createForm.parameterName}
-                                    onChange={(e) => setCreateForm((s) => ({ ...s, parameterName: e.target.value }))}
-                                    placeholder={t("library.parameters.create.parameterNamePlaceholder")}
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
+                        {/* Body — left/right split */}
+                        <div className="flex-1 overflow-hidden flex">
+                            {/* LEFT — Parameter fields */}
+                            <div className="w-[45%] border-r border-border overflow-y-auto p-5 space-y-4">
                                 <div className="space-y-2">
-                                    <div className="text-sm font-medium text-foreground">{t("library.parameters.technicianAlias")}</div>
+                                    <div className="text-sm font-medium text-foreground">{String(t("library.parameters.parameterNameLong", { defaultValue: "Tên chỉ tiêu phân tích" }))}</div>
                                     <Input
-                                        value={createForm.technicianAlias}
-                                        onChange={(e) => setCreateForm((s) => ({ ...s, technicianAlias: e.target.value }))}
-                                        placeholder={t("library.parameters.create.technicianAliasPlaceholder")}
+                                        value={createForm.parameterName}
+                                        onChange={(e) => setCreateForm((s) => ({ ...s, parameterName: e.target.value }))}
+                                        placeholder={String(t("library.parameters.create.parameterNamePlaceholder", { defaultValue: "Nhập tên chỉ tiêu..." }))}
                                     />
                                 </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <div className="text-sm font-medium text-foreground">{String(t("library.parameters.technicianAlias", { defaultValue: "Vị trí phụ trách" }))}</div>
+                                        <Input
+                                            value={createForm.technicianAlias}
+                                            onChange={(e) => setCreateForm((s) => ({ ...s, technicianAlias: e.target.value }))}
+                                            placeholder={String(t("library.parameters.create.technicianAliasPlaceholder", { defaultValue: "e.g. CHEM01" }))}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="text-sm font-medium text-foreground">{String(t("library.parameters.technicianGroupId", { defaultValue: "ID nhóm kỹ thuật viên" }))}</div>
+                                        <Input
+                                            value={createForm.technicianGroupId}
+                                            onChange={(e) => setCreateForm((s) => ({ ...s, technicianGroupId: e.target.value }))}
+                                            placeholder={String(t("library.parameters.create.technicianGroupIdPlaceholder", { defaultValue: "Nhập ID nhóm kỹ thuật viên" }))}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <div className="text-sm font-medium text-foreground">{String(t("library.parameters.parameterSearchKeys", { defaultValue: "Từ khóa tìm kiếm" }))}</div>
+                                        <Input
+                                            value={createForm.parameterSearchKeys}
+                                            onChange={(e) => setCreateForm((s) => ({ ...s, parameterSearchKeys: e.target.value }))}
+                                            placeholder={String(t("library.parameters.create.parameterSearchKeysPlaceholder", { defaultValue: "Nhập các từ khóa cách nhau bằng dấu phẩy" }))}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="text-sm font-medium text-foreground">{String(t("library.parameters.parameterStatus", { defaultValue: "Trạng thái" }))}</div>
+                                        <select
+                                            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                            value={createForm.parameterStatus}
+                                            onChange={(e) => setCreateForm((s) => ({ ...s, parameterStatus: e.target.value }))}
+                                        >
+                                            <option value="Active">Active</option>
+                                            <option value="Inactive">Inactive</option>
+                                        </select>
+                                    </div>
+                                </div>
+
                                 <div className="space-y-2">
-                                    <div className="text-sm font-medium text-foreground">{t("library.parameters.technicianGroupId")}</div>
+                                    <div className="text-sm font-medium text-foreground">{String(t("library.parameters.parameterNote", { defaultValue: "Ghi chú" }))}</div>
                                     <Input
-                                        value={createForm.technicianGroupId}
-                                        onChange={(e) => setCreateForm((s) => ({ ...s, technicianGroupId: e.target.value }))}
-                                        placeholder={t("library.parameters.create.technicianGroupIdPlaceholder")}
+                                        value={createForm.parameterNote}
+                                        onChange={(e) => setCreateForm((s) => ({ ...s, parameterNote: e.target.value }))}
+                                        placeholder={String(t("library.parameters.create.parameterNotePlaceholder", { defaultValue: "Ghi chú thêm về chỉ tiêu..." }))}
                                     />
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <div className="text-sm font-medium text-foreground">{t("library.parameters.parameterSearchKeys")}</div>
-                                    <Input
-                                        value={createForm.parameterSearchKeys}
-                                        onChange={(e) => setCreateForm((s) => ({ ...s, parameterSearchKeys: e.target.value }))}
-                                        placeholder={t("library.parameters.create.parameterSearchKeysPlaceholder")}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <div className="text-sm font-medium text-foreground">{t("library.parameters.parameterStatus")}</div>
-                                    <select
-                                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                        value={createForm.parameterStatus}
-                                        onChange={(e) => setCreateForm((s) => ({ ...s, parameterStatus: e.target.value }))}
-                                    >
-                                        <option value="Active">Active</option>
-                                        <option value="Inactive">Inactive</option>
-                                    </select>
-                                </div>
+                            {/* RIGHT — Matrix / Protocols / SampleTypes / Chemicals */}
+                            <div className="w-[55%] overflow-y-auto p-5 relative">
+                                {!createForm.parameterId ? (
+                                    <div className="h-full flex flex-col items-center justify-center text-muted-foreground p-8 text-center bg-muted/20 border border-dashed rounded-lg">
+                                        {String(t("library.parameters.edit.saveParameterFirst", {
+                                            defaultValue: 'Vui lòng lưu thông tin Chỉ tiêu trước (Bấm "Lưu") để có thể thêm và cấu hình các Ma trận nền mẫu.',
+                                        }))}
+                                    </div>
+                                ) : (
+                                    <ParameterMatrixManager parameterId={createForm.parameterId} />
+                                )}
                             </div>
+                        </div>
 
-                            <div className="space-y-2">
-                                <div className="text-sm font-medium text-foreground">{t("library.parameters.parameterNote")}</div>
-                                <Input
-                                    value={createForm.parameterNote}
-                                    onChange={(e) => setCreateForm((s) => ({ ...s, parameterNote: e.target.value }))}
-                                    placeholder={t("library.parameters.create.parameterNotePlaceholder")}
-                                />
-                            </div>
-
-                            <div className="flex items-center justify-end gap-2 pt-2">
-                                <Button
-                                    variant="outline"
-                                    onClick={() => {
-                                        setCreateOpen(false);
-                                        setEditParameterId(null);
-                                    }}
-                                    type="button"
-                                >
-                                    {t("common.cancel")}
-                                </Button>
-                                <Button onClick={() => void submitCreate()} disabled={createParam.isPending || createForm.parameterName.trim().length === 0} type="button">
-                                    {createParam.isPending ? t("common.saving") : t("common.save")}
-                                </Button>
-                            </div>
-
-                            {createParam.isError ? <div className="text-sm text-destructive">{t("library.parameters.create.error")}</div> : null}
+                        {/* Footer */}
+                        <div className="px-5 py-3 border-t border-border flex items-center justify-end gap-2 shrink-0">
+                            {(createParam.isError || updateParam.isError) && (
+                                <div className="text-sm text-destructive mr-auto">{String(t("library.parameters.create.error", { defaultValue: "Lỗi khi lưu chỉ tiêu" }))}</div>
+                            )}
+                            <Button variant="outline" onClick={() => setCreateOpen(false)} type="button">
+                                {String(t("common.cancel", { defaultValue: "Hủy" }))}
+                            </Button>
+                            <Button onClick={() => void submitCreate()} disabled={isPending || createForm.parameterName.trim().length === 0} type="button">
+                                {isPending ? t("common.saving", { defaultValue: "Đang lưu..." }) : t("common.save", { defaultValue: "Lưu" })}
+                            </Button>
                         </div>
                     </div>
                 </div>

@@ -129,7 +129,7 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
     return (
         <Popover open={open} onOpenChange={onOpenChange}>
             <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" type="button" aria-label={t("common.filter")} className="relative">
+                <Button variant="ghost" size="icon" type="button" aria-label={String(t("common.filter"))} className="relative">
                     <Filter className="h-4 w-4" />
                     {props.activeCount > 0 ? <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-primary" /> : null}
                 </Button>
@@ -144,18 +144,18 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
                 </div>
 
                 <div className="p-3 space-y-2">
-                    <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("common.search")} className="border border-border" />
+                    <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={String(t("common.search"))} className="border border-border" />
                 </div>
 
                 <div className="border-t border-border">
                     <Command shouldFilter={false}>
                         <CommandList className="max-h-64">
                             {q.isLoading ? (
-                                <div className="p-3 text-sm text-muted-foreground">{t("common.loading")}</div>
+                                <div className="p-3 text-sm text-muted-foreground">{String(t("common.loading"))}</div>
                             ) : q.isError ? (
-                                <div className="p-3 text-sm text-muted-foreground">{t("common.toast.failed")}</div>
+                                <div className="p-3 text-sm text-muted-foreground">{String(t("common.toast.failed"))}</div>
                             ) : options.length === 0 ? (
-                                <CommandEmpty>{t("common.noData")}</CommandEmpty>
+                                <CommandEmpty>{String(t("common.noData"))}</CommandEmpty>
                             ) : null}
 
                             {!q.isLoading && !q.isError ? (
@@ -188,10 +188,10 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
 
                     <div className="p-3 border-t border-border flex items-center justify-end gap-2">
                         <Button variant="outline" type="button" onClick={clear} disabled={props.activeCount === 0}>
-                            {t("common.clear")}
+                            {String(t("common.clear"))}
                         </Button>
                         <Button type="button" onClick={apply}>
-                            {t("common.apply")}
+                            {String(t("common.apply"))}
                         </Button>
                     </div>
                 </div>
@@ -245,7 +245,7 @@ function AccreditationFilterPopover(props: AccreditationFilterPopoverProps) {
     return (
         <Popover open={open} onOpenChange={onOpenChange}>
             <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" type="button" aria-label={t("common.filter")} className="relative">
+                <Button variant="ghost" size="icon" type="button" aria-label={String(t("common.filter"))} className="relative">
                     <Filter className="h-4 w-4" />
                     {props.activeCount > 0 ? <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-primary" /> : null}
                 </Button>
@@ -288,10 +288,10 @@ function AccreditationFilterPopover(props: AccreditationFilterPopoverProps) {
 
                     <div className="p-3 border-t border-border flex items-center justify-end gap-2">
                         <Button variant="outline" type="button" onClick={clear} disabled={props.activeCount === 0}>
-                            {t("common.clear")}
+                            {String(t("common.clear"))}
                         </Button>
                         <Button type="button" onClick={apply}>
-                            {t("common.apply")}
+                            {String(t("common.apply"))}
                         </Button>
                     </div>
                 </div>
@@ -318,9 +318,9 @@ export function ProtocolsTable(props: Props) {
                     <tr>
                         <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-[20%]">
                             <span className="inline-flex items-center gap-2">
-                                {t("library.protocols.protocolCode")}
+                                {String(t("library.protocols.protocolCode"))}
                                 <ExcelFilterPopover
-                                    title={t("library.protocols.protocolCode")}
+                                    title={String(t("library.protocols.protocolCode"))}
                                     filterKey="protocolCode"
                                     activeCount={excelFilters.protocolCode.length}
                                     selected={excelFilters.protocolCode}
@@ -331,13 +331,13 @@ export function ProtocolsTable(props: Props) {
                             </span>
                         </th>
 
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-[30%]">{t("library.protocols.protocolTitle")}</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-[30%]">{String(t("library.protocols.protocolTitle"))}</th>
 
                         <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-[15%]">
                             <span className="inline-flex items-center gap-2">
-                                {t("library.protocols.protocolSource")}
+                                {String(t("library.protocols.protocolSource"))}
                                 <ExcelFilterPopover
-                                    title={t("library.protocols.protocolSource")}
+                                    title={String(t("library.protocols.protocolSource"))}
                                     filterKey="protocolSource"
                                     activeCount={excelFilters.protocolSource.length}
                                     selected={excelFilters.protocolSource}
@@ -350,9 +350,9 @@ export function ProtocolsTable(props: Props) {
 
                         <th className="px-3 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-[15%]">
                             <span className="inline-flex items-center gap-2">
-                                {t("library.protocols.protocolAccreditation.title")}
+                                {String(t("library.protocols.protocolAccreditation.title"))}
                                 <AccreditationFilterPopover
-                                    title={t("library.protocols.protocolAccreditation.title")}
+                                    title={String(t("library.protocols.protocolAccreditation.title"))}
                                     activeCount={excelFilters.accreditation.length}
                                     selected={excelFilters.accreditation}
                                     onApply={(v) => setStr("accreditation", v)}
@@ -361,9 +361,9 @@ export function ProtocolsTable(props: Props) {
                             </span>
                         </th>
 
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-[15%]">{t("library.protocols.detail.description", { defaultValue: "Mô tả" })}</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-[15%]">{String(t("library.protocols.detail.description", { defaultValue: "Mô tả" }))}</th>
 
-                        <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground uppercase w-[5%]">{t("library.protocols.columns.actions")}</th>
+                        <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground uppercase w-[5%]">{String(t("library.protocols.columns.actions"))}</th>
                     </tr>
                 </thead>
 
@@ -394,13 +394,13 @@ export function ProtocolsTable(props: Props) {
                                     <div className="flex flex-wrap gap-1">
                                         {p.protocolAccreditation?.VILAS ? (
                                             <Badge variant="secondary" className="text-xs">
-                                                {t("library.protocols.protocolAccreditation.vilas")}
+                                                {String(t("library.protocols.protocolAccreditation.vilas"))}
                                             </Badge>
                                         ) : null}
 
                                         {p.protocolAccreditation?.TDC ? (
                                             <Badge variant="secondary" className="text-xs">
-                                                {t("library.protocols.protocolAccreditation.tdc")}
+                                                {String(t("library.protocols.protocolAccreditation.tdc"))}
                                             </Badge>
                                         ) : null}
 
@@ -420,7 +420,7 @@ export function ProtocolsTable(props: Props) {
 
                                 <td className="px-3 py-3 align-top" onClick={(e) => e.stopPropagation()}>
                                     <div className="flex items-center justify-center gap-1">
-                                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => onEdit(p)} type="button" title={t("common.edit")}>
+                                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => onEdit(p)} type="button" title={String(t("common.edit"))}>
                                             <Edit className="h-4 w-4" />
                                         </Button>
                                     </div>
@@ -431,7 +431,7 @@ export function ProtocolsTable(props: Props) {
                 </tbody>
             </table>
 
-            {items.length === 0 ? <div className="p-4 text-sm text-muted-foreground">{t("common.noData")}</div> : null}
+            {items.length === 0 ? <div className="p-4 text-sm text-muted-foreground">{String(t("common.noData"))}</div> : null}
         </div>
     );
 }

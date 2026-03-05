@@ -113,22 +113,22 @@ export function MatricesAccordionItem(props: Props) {
                         <>
                             <div className="grid grid-cols-2 gap-2 text-xs">
                                 <div>
-                                    <div className="text-muted-foreground">{t("library.parameters.detail.feeBeforeTax")}</div>
+                                    <div className="text-muted-foreground">{String(t("library.parameters.detail.feeBeforeTax"))}</div>
                                     <div className="font-medium text-foreground">{Number.isFinite(feeBeforeTaxNumber) ? feeBeforeTaxNumber.toLocaleString("vi-VN") : "-"}</div>
                                 </div>
 
                                 <div>
-                                    <div className="text-muted-foreground">{t("library.parameters.detail.feeAfterTax")}</div>
+                                    <div className="text-muted-foreground">{String(t("library.parameters.detail.feeAfterTax"))}</div>
                                     <div className="font-medium text-foreground">{Number.isFinite(feeAfterTaxNumber) ? feeAfterTaxNumber.toLocaleString("vi-VN") : "-"}</div>
                                 </div>
 
                                 <div>
-                                    <div className="text-muted-foreground">{t("library.protocols.protocolId")}</div>
+                                    <div className="text-muted-foreground">{String(t("library.protocols.protocolId"))}</div>
                                     <div className="font-medium text-foreground">{matrix.protocolId ?? "-"}</div>
                                 </div>
 
                                 <div>
-                                    <div className="text-muted-foreground">{t("library.matrices.turnaroundTime")}</div>
+                                    <div className="text-muted-foreground">{String(t("library.matrices.turnaroundTime"))}</div>
                                     <div className="font-medium text-foreground">{matrix.turnaroundTime ?? "-"}</div>
                                 </div>
                             </div>
@@ -147,12 +147,12 @@ export function MatricesAccordionItem(props: Props) {
                                 <div className="flex items-center gap-1">
                                     <Button variant="ghost" size="sm" onClick={() => setEditing(true)} type="button" className="gap-2">
                                         <Pencil className="h-4 w-4" />
-                                        {t("common.edit")}
+                                        {String(t("common.edit"))}
                                     </Button>
 
                                     <Button variant="ghost" size="sm" onClick={() => void onDelete()} disabled={deleteM.isPending} type="button" className="gap-2">
                                         <Trash2 className="h-4 w-4" />
-                                        {t("common.delete")}
+                                        {String(t("common.delete"))}
                                     </Button>
                                 </div>
                             </div>
@@ -161,24 +161,24 @@ export function MatricesAccordionItem(props: Props) {
                         <>
                             <div className="grid grid-cols-3 gap-3">
                                 <div className="space-y-1">
-                                    <div className="text-xs text-muted-foreground">{t("library.parameters.detail.feeBeforeTax")}</div>
+                                    <div className="text-xs text-muted-foreground">{String(t("library.parameters.detail.feeBeforeTax"))}</div>
                                     <Input value={edit.feeBeforeTax} onChange={(e) => setEdit((s) => ({ ...s, feeBeforeTax: e.target.value }))} />
                                 </div>
 
                                 <div className="space-y-1">
-                                    <div className="text-xs text-muted-foreground">{t("library.parameters.detail.feeAfterTax")}</div>
+                                    <div className="text-xs text-muted-foreground">{String(t("library.parameters.detail.feeAfterTax"))}</div>
                                     <Input value={edit.feeAfterTax} onChange={(e) => setEdit((s) => ({ ...s, feeAfterTax: e.target.value }))} />
                                 </div>
 
                                 <div className="space-y-1">
-                                    <div className="text-xs text-muted-foreground">{t("library.matrices.turnaroundTime")}</div>
+                                    <div className="text-xs text-muted-foreground">{String(t("library.matrices.turnaroundTime"))}</div>
                                     <Input value={edit.turnaroundTime} onChange={(e) => setEdit((s) => ({ ...s, turnaroundTime: e.target.value }))} />
                                 </div>
                             </div>
 
                             <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
                                 <Button variant="outline" onClick={onCancel} type="button">
-                                    {t("common.cancel")}
+                                    {String(t("common.cancel"))}
                                 </Button>
                                 <Button onClick={() => void onSave()} disabled={!canSave || updateM.isPending} type="button">
                                     {updateM.isPending ? t("common.saving") : t("common.save")}

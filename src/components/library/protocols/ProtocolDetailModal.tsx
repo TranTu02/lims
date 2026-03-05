@@ -82,7 +82,7 @@ function DocumentItem({ doc }: { doc: SnapshotDoc }) {
                     </div>
                     <Button variant="secondary" size="sm" className="h-6 text-[10px] px-2 shrink-0" disabled={urlLoading} onClick={handlePreview}>
                         {urlLoading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Eye className="h-3 w-3 mr-1" />}
-                        {t("common.view")}
+                        {String(t("common.view"))}
                     </Button>
                 </div>
             </div>
@@ -106,7 +106,7 @@ export function ProtocolDetailModal(props: Props) {
             <div className="bg-background rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl border border-border flex flex-col">
                 <div className="sticky top-0 bg-background border-b border-border px-6 py-4 flex items-center justify-between z-10 shrink-0">
                     <div>
-                        <h2 className="text-xl font-semibold text-foreground">{t("library.protocols.detail.generalInfo")}</h2>
+                        <h2 className="text-xl font-semibold text-foreground">{String(t("library.protocols.detail.generalInfo"))}</h2>
                         <p className="text-sm text-muted-foreground mt-0.5">{displayProtocol.protocolCode}</p>
                     </div>
 
@@ -124,28 +124,28 @@ export function ProtocolDetailModal(props: Props) {
                         {/* General Information */}
                         <div className="grid grid-cols-2 gap-6">
                             <div className="col-span-2">
-                                <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{t("library.protocols.protocolTitle")}</div>
+                                <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{String(t("library.protocols.protocolTitle"))}</div>
                                 <div className="text-base text-foreground font-medium mt-1">{displayProtocol.protocolTitle || "-"}</div>
                             </div>
 
                             <div>
-                                <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{t("library.protocols.protocolCode")}</div>
+                                <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{String(t("library.protocols.protocolCode"))}</div>
                                 <div className="text-sm text-foreground font-medium mt-1">{displayProtocol.protocolCode}</div>
                             </div>
 
                             <div>
-                                <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{t("library.protocols.protocolSource")}</div>
+                                <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{String(t("library.protocols.protocolSource"))}</div>
                                 <div className="text-sm text-foreground font-medium mt-1">{displayProtocol.protocolSource}</div>
                             </div>
 
                             <div>
-                                <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{t("library.protocols.protocolAccreditation.title")}</div>
+                                <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{String(t("library.protocols.protocolAccreditation.title"))}</div>
                                 <div className="mt-1 flex flex-wrap gap-2">
-                                    {displayProtocol.protocolAccreditation?.VILAS ? <Badge variant="secondary">{t("library.protocols.protocolAccreditation.vilas")}</Badge> : null}
+                                    {displayProtocol.protocolAccreditation?.VILAS ? <Badge variant="secondary">{String(t("library.protocols.protocolAccreditation.vilas"))}</Badge> : null}
 
-                                    {displayProtocol.protocolAccreditation?.TDC ? <Badge variant="secondary">{t("library.protocols.protocolAccreditation.tdc")}</Badge> : null}
+                                    {displayProtocol.protocolAccreditation?.TDC ? <Badge variant="secondary">{String(t("library.protocols.protocolAccreditation.tdc"))}</Badge> : null}
 
-                                    {!displayProtocol.protocolAccreditation?.VILAS && !displayProtocol.protocolAccreditation?.TDC ? <Badge variant="outline">{t("common.noData")}</Badge> : null}
+                                    {!displayProtocol.protocolAccreditation?.VILAS && !displayProtocol.protocolAccreditation?.TDC ? <Badge variant="outline">{String(t("common.noData"))}</Badge> : null}
                                 </div>
                             </div>
                         </div>
@@ -153,7 +153,7 @@ export function ProtocolDetailModal(props: Props) {
                         {/* Description */}
                         {displayProtocol.protocolDescription && (
                             <div className="space-y-2">
-                                <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{t("library.protocols.detail.description")}</div>
+                                <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{String(t("library.protocols.detail.description"))}</div>
                                 <div className="text-sm text-foreground bg-muted/30 p-3 rounded-md border border-border whitespace-pre-wrap">{displayProtocol.protocolDescription}</div>
                             </div>
                         )}
@@ -163,7 +163,7 @@ export function ProtocolDetailModal(props: Props) {
                             <div className="space-y-2">
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider font-semibold">
                                     <FlaskConical className="h-3.5 w-3.5" />
-                                    {t("library.protocols.detail.parameters")}
+                                    {String(t("library.protocols.detail.parameters"))}
                                 </div>
                                 <div className="flex flex-wrap gap-1.5 text-sm">
                                     {displayProtocol.parameters?.length
@@ -179,7 +179,7 @@ export function ProtocolDetailModal(props: Props) {
                             <div className="space-y-2">
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider font-semibold">
                                     <Beaker className="h-3.5 w-3.5" />
-                                    {t("library.protocols.detail.sampleTypes")}
+                                    {String(t("library.protocols.detail.sampleTypes"))}
                                 </div>
                                 <div className="flex flex-wrap gap-1.5 text-sm">
                                     {displayProtocol.sampleTypes?.length
@@ -195,7 +195,7 @@ export function ProtocolDetailModal(props: Props) {
 
                         {/* Documents */}
                         <div className="space-y-2">
-                            <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{t("library.protocols.detail.documents")}</div>
+                            <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{String(t("library.protocols.detail.documents"))}</div>
                             {docsArray.length ? (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     {docsArray.map((doc, idx) => (
@@ -203,13 +203,13 @@ export function ProtocolDetailModal(props: Props) {
                                     ))}
                                 </div>
                             ) : (
-                                <div className="text-sm text-muted-foreground">{t("common.noData")}</div>
+                                <div className="text-sm text-muted-foreground">{String(t("common.noData"))}</div>
                             )}
                         </div>
 
                         <div className="pt-4 border-t border-border flex justify-end">
                             <Button variant="outline" onClick={onClose} type="button">
-                                {t("common.close")}
+                                {String(t("common.close"))}
                             </Button>
                         </div>
                     </div>

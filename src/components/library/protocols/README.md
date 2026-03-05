@@ -6,13 +6,15 @@ Quản lý danh sách **phương pháp phân tích** (Protocols). Mỗi phương
 
 ## Danh sách file
 
-| File                      | Mô tả                                                                                                                                              |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ProtocolsView.tsx`       | Component chính: quản lý toàn bộ state, API, modal create/edit (inline trong cùng file), document upload                                           |
-| `ProtocolsTable.tsx`      | Bảng danh sách với filter Excel-style. Cột: Code, Title, Source, Accreditation, Actions                                                            |
-| `ProtocolDetailPanel.tsx` | Panel chi tiết bên phải khi click vào hàng. Có nút **Edit** (✏️) bên cạnh nút Close. Hiển thị matrices snapshot bên dưới documents.                |
-| `ProtocolDetailModal.tsx` | Modal chi tiết (dạng popup toàn màn hình), kèm bảng hóa chất và danh sách tài liệu. Có nút Edit. Fetch full protocol data via `useProtocolDetail`. |
-| `SearchSelectPicker.tsx`  | Component tìm kiếm + chọn nhiều item (dùng cho parameters, sample types, documents trong modal edit)                                               |
+| File                        | Mô tả                                                                                                                                |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `ProtocolsView.tsx`         | Component chính: quản lý toàn bộ state, API, danh sách.                                                                              |
+| `ProtocolsTable.tsx`        | Bảng danh sách với filter Excel-style. Cột: Code, Title, Source, Accreditation, Actions                                              |
+| `ProtocolDetailPanel.tsx`   | Panel chi tiết bên phải khi click vào hàng. Có nút **Edit** (✏️) bên cạnh nút Close. Hiển thị matrices snapshot bên dưới documents.  |
+| `ProtocolDetailModal.tsx`   | Modal chi tiết (dạng popup toàn màn hình), kèm bảng hóa chất và danh sách tài liệu.Fetch full protocol data via `useProtocolDetail`. |
+| `ProtocolFormModal.tsx`     | Modal tạo mới / chỉnh sửa phương pháp. Chế độ Edit hiển thị layout 2 cột với ProtocolMatrixManager bên phải.                         |
+| `ProtocolMatrixManager.tsx` | Quản lý danh sách các ma trận liên quan đến phương pháp này. Tích hợp MatricesCreateModal/EditModal.                                 |
+| `SearchSelectPicker.tsx`    | Component tìm kiếm + chọn nhiều item (dùng cho parameters, sample types, documents trong modal edit)                                 |
 
 ## Luồng hoạt động
 
@@ -21,8 +23,12 @@ Quản lý danh sách **phương pháp phân tích** (Protocols). Mỗi phương
     - Tự động fetch full protocol data via `useProtocolDetail` (endpoint `/v2/protocols/get/full`)
     - Hiển thị loading spinner trong khi fetch
     - Sử dụng `displayProtocol` (full data hoặc fallback prop)
-3. **Tạo/Chỉnh sửa**: Modal nội tuyến trong `ProtocolsView`, hoặc click nút ✏️ trên Detail Panel
-4. **Upload tài liệu**: Nút "Tải lên tài liệu" trong modal edit → tạo document → thêm vào `documentIds`
+3. **Tạo/Chỉnh sửa**: Click nút Add/Edit → Mở `ProtocolFormModal`.
+    - **Chế độ Edit**: Modal mở rộng (80% width) với layout 2 cột.
+    - **Cột Trái**: Thông tin phương pháp, hóa chất, tài liệu.
+    - **Cột Phải**: Quản lý ma trận (`ProtocolMatrixManager`) - cho phép quản lý ma trận nền mẫu của phương pháp này ngay tại chỗ.
+4. **Quản lý Ma trận**: `ProtocolMatrixManager` gọi `MatricesCreateModal` và `MatricesEditModal`. Khi thêm mới từ đây, `protocolId` sẽ được khóa (locked) theo phương pháp hiện tại.
+5. **Upload tài liệu**: Nút "Tải lên tài liệu" trong modal edit → tạo document → thêm vào `documentIds`.
 
 ## Chi tiết hiển thị tài liệu đính kèm (DocumentItem)
 

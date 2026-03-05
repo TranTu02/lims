@@ -383,6 +383,7 @@ Bảng trung gian quan trọng nhất, kết hợp 3 bảng trên để tạo ra
 | `turnaroundTime` | `int` | | Thời gian thực hiện tiêu chuẩn (số ngày). |
 
 | `technicianGroupId` | `text` | | Tổ chuyên môn phụ trách. |
+| `chemicals` | `jsonb` | | Danh sách hóa chất định mức cho 1 lần thử (BOM): `[{chemicalSkuId, chemicalName, consumedQty, unit}]`. |
 
 | _Audit Cols_ | ... | | |
 
@@ -412,7 +413,7 @@ Danh mục các tiêu chuẩn áp dụng (TCVN, ISO, ASTM...).
 
 | `sampleTypes` | `jsonb` | | Danh sách loại mẫu: `[{sampleTypeId, sampleTypeName}]`. |
 
-| `chemicals` | `jsonb` | | **[Deprecated]** Sử dụng định mức trong bảng `matrixChemicals` thay thế. |
+| `chemicals` | `jsonb` | | Danh sách hóa chất định mức tiêu chuẩn cho 1 lần thử (Template): `[{chemicalSkuId, chemicalName, consumedQty, unit}]`. |
 
 | _Audit Cols_ | ... | | |
 
@@ -496,19 +497,15 @@ Bảng định nghĩa các gói/nhóm chỉ tiêu để tư vấn bán hàng và
 
 - `idx_paramgroup_matrices` (GIN) on `matrixIds` (Tìm gói chứa matrixId cụ thể).
 
-#### 6. Bảng `matrixChemicals` (Định mức hóa chất - BOM)
+#### 6. Bảng `matrixChemicals` (Định mức BOM)
 
-Bảng này định mức lượng hóa chất cần thiết cho mỗi test (matrix), hỗ trợ tự động trừ lùi tồn kho thực tế.
-
-| Column Name        | Type      | Key    | Description                                      |
-| :----------------- | :-------- | :----- | :----------------------------------------------- |
-| `matrixChemicalId` | `text`    | **PK** | ID định mức (Tự động sinh hoặc UUID).            |
-| `matrixId`         | `text`    | **FK** | Liên kết với cấu hình bài test trong `matrices`. |
-| `chemicalSku`      | `text`    | **FK** | Liên kết với mã gốc của Kho (`chemicals`).       |
-| `chemicalName`     | `text`    |        | **[Snapshot]** Tên hóa chất (VD: `Axit Nitric`). |
-| `consumedQty`      | `numeric` |        | Lượng tiêu hao dự kiến.                          |
-| `measurementUnit`  | `text`    |        | Đơn vị định mức (VD: `ml`, `g`).                 |
-| _Audit Cols_       | ...       |        |                                                  |
+| Column Name        | Type      | Key    | Description                                |
+| :----------------- | :-------- | :----- | :----------------------------------------- |
+| `matrixChemicalId` | `text`    | **PK** | ID định mức.                               |
+| `matrixId`         | `text`    | **FK** | Tham chiếu cấu hình Phép thử.              |
+| `chemicalSkuId`    | `text`    | **FK** | Mã hóa chất cần tiêu hao (`chemicalSkus`). |
+| `consumedQty`      | `numeric` |        | Số lượng tiêu hao tiêu chuẩn (BOM).        |
+| `unit`             | `text`    |        | Đơn vị định mức.                           |
 
 ---
 
@@ -931,35 +928,152 @@ Liên quan đến các dịch vụ ngoài và hỗ trợ.
 
 ---
 
-### G. SCHEMA INVENTORY (`inventory`)
+### G. SCHEMA CHEMICAL INVENTORY (`chemicalInventory`)
 
-Hệ thống quản lý kho hóa chất thực tế và tự động trừ lùi (Auto-Deduction với FEFO). Mô đun này thay thế và mở rộng sâu hơn cho `lab.inventoryItems`.
+#### Phân hệ 1: INVENTORY MASTER DATA
 
-#### 1. Bảng `chemicals` (Danh mục hóa chất Master)
+#### 1. Bảng `chemicalSkus` (Danh mục Hóa chất Master)
 
-| Column Name            | Type      | Key    | Description                                      |
-| :--------------------- | :-------- | :----- | :----------------------------------------------- |
-| `chemicalSku`          | `text`    | **PK** | Mã gốc của hóa chất (VD: `CHEM-HNO3-MERCK`).     |
-| `chemicalCasNumber`    | `text`    |        | Số CAS.                                          |
-| `chemicalName`         | `text`    |        | Tên gọi hóa chất.                                |
-| `chemicalBaseUnit`     | `text`    |        | Đơn vị tính cơ bản (VD: `ml`, `g`).              |
-| `chemicalTotalQty`     | `numeric` |        | Tổng lượng khả dụng (Tự động SUM từ bảng items). |
-| `chemicalReorderLevel` | `numeric` |        | Tồn kho tối thiểu để cảnh báo đặt hàng.          |
-| _Audit Cols_           | ...       |        |                                                  |
+| Column Name                 | Type      | Key    | Description                                  |
+| :-------------------------- | :-------- | :----- | :------------------------------------------- |
+| `chemicalSkuId`             | `text`    | **PK** | Mã gốc hóa chất (VD: `SKU_HNO3`).            |
+| `chemicalName`              | `text`    |        | Tên gọi hóa chất (VD: `Axit Nitric 65%`).    |
+| `chemicalCasNumber`         | `text`    |        | Số CAS.                                      |
+| `chemicalBaseUnit`          | `text`    |        | Đơn vị lưu kho cơ bản (VD: `ml`, `g`).       |
+| `chemicalTotalAvailableQty` | `numeric` |        | Tổng tồn kho khả dụng hiện tại.              |
+| `chemicalReorderLevel`      | `numeric` |        | Mức cảnh báo tồn tối thiểu.                  |
+| `chemicalHazardClass`       | `text`    |        | Phân loại độc hại (`Flammable`, `Toxic`...). |
 
-#### 2. Bảng `items` (Tồn kho thực tế - Quản lý theo lô & Lọ)
+#### 2. Bảng `chemicalSuppliers` (Danh mục Nhà cung cấp)
 
-Bảng này sẽ bị tác động (trừ lùi) ngay tại thời điểm **Bàn giao/Cấp phát**.
+| Column Name                 | Type      | Key    | Description                                       |
+| :-------------------------- | :-------- | :----- | :------------------------------------------------ |
+| `chemicalSupplierId`        | `text`    | **PK** | Mã Nhà cung cấp (VD: `SUP_001`).                  |
+| `supplierName`              | `text`    |        | Tên pháp nhân nhà cung cấp.                       |
+| `supplierTaxCode`           | `text`    |        | Mã số thuế.                                       |
+| `supplierAddress`           | `text`    |        | Địa chỉ trụ sở.                                   |
+| `supplierContactPerson`     | `jsonb[]` |        | Liên hệ: `[{"contactName": "A", "phone": "123"}]` |
+| `supplierStatus`            | `text`    |        | `Active`, `Inactive`, `Blacklisted`.              |
+| `supplierEvaluationScore`   | `numeric` |        | Điểm đánh giá NCC (0 - 100).                      |
+| `supplierIsoCertifications` | `jsonb`   |        | Danh sách chứng chỉ.                              |
 
-| Column Name        | Type      | Key    | Description                                                    |
-| :----------------- | :-------- | :----- | :------------------------------------------------------------- |
-| `itemCode`         | `text`    | **PK** | Mã vạch/QR dán trên từng lọ (VD: `LOT123-BTL01`).              |
-| `chemicalSku`      | `text`    | **FK** | Liên kết `chemicals`.                                          |
-| `itemLotNumber`    | `text`    |        | Số lô của nhà sản xuất.                                        |
-| `itemAvailableQty` | `numeric` |        | Thể tích/Khối lượng còn khả dụng.                              |
-| `itemExpDate`      | `date`    |        | Hạn sử dụng (Để chạy FEFO).                                    |
-| `itemStatus`       | `text`    |        | `New` (Mới), `InUse` (Đang sử dụng), `Empty` (Hết), `Expired`. |
-| _Audit Cols_       | ...       |        |                                                                |
+#### 3. Bảng `chemicalSku_chemicalSupplier` (Bảng nối)
+
+| Column Name                      | Type      | Key    | Description                     |
+| :------------------------------- | :-------- | :----- | :------------------------------ |
+| `chemicalSku_chemicalSupplierId` | `text`    | **PK** | ID bản ghi.                     |
+| `chemicalSkuId`                  | `text`    | **FK** | Tham chiếu `chemicalSkus`.      |
+| `chemicalSupplierId`             | `text`    | **FK** | Tham chiếu `chemicalSuppliers`. |
+| `catalogNumber`                  | `text`    |        | Mã Catalog của hãng.            |
+| `brandManufacturer`              | `text`    |        | Hãng sản xuất (VD: `Merck`).    |
+| `packagingSize`                  | `numeric` |        | Quy cách đóng gói (VD: `500`).  |
+| `leadTimeDays`                   | `int`     |        | Thời gian giao hàng dự kiến.    |
+
+#### Phân hệ 2: WAREHOUSE OPERATIONS (Vận hành & Giao dịch Kho)
+
+#### 4. Bảng `chemicalInventories` (Tồn kho vật lý thực tế - Từng chai)
+
+| Column Name               | Type      | Key    | Description                                                    |
+| :------------------------ | :-------- | :----- | :------------------------------------------------------------- |
+| `chemicalInventoryId`     | `text`    | **PK** | Mã Barcode trên chai (VD: `BTL_2603_001`).                     |
+| `chemicalSkuId`           | `text`    | **FK** | Mã SKU hóa chất.                                               |
+| `chemicalSupplierId`      | `text`    | **FK** | Mua từ NCC nào.                                                |
+| `lotNumber`               | `text`    |        | Số Lô (Lot).                                                   |
+| `manufacturerName`        | `text`    |        | Hãng sản xuất.                                                 |
+| `manufacturerCountry`     | `text`    |        | Nước sản xuất.                                                 |
+| `inventoryCoaDocumentIds` | `text[]`  |        | File chứng nhận COA của lô.                                    |
+| `currentAvailableQty`     | `numeric` |        | Số lượng khả dụng hiện tại trong lọ.                           |
+| `mfgDate`                 | `date`    |        | Ngày sản xuất.                                                 |
+| `expDate`                 | `date`    |        | Ngày hết hạn.                                                  |
+| `openedDate`              | `date`    |        | Ngày mở nắp.                                                   |
+| `openedExpDate`           | `date`    |        | Hạn sau mở nắp.                                                |
+| `inventoryStatus`         | `text`    |        | `Quarantined`, `New`, `InUse`, `Empty`, `Expired`, `Disposed`. |
+| `storageBinLocation`      | `text`    |        | Vị trí lưu trữ.                                                |
+
+#### 5. Bảng `chemicalTransactionBlocks` (Phiếu Giao Dịch - Header)
+
+| Column Name                  | Type        | Key    | Description                                                                      |
+| :--------------------------- | :---------- | :----- | :------------------------------------------------------------------------------- |
+| `chemicalTransactionBlockId` | `text`      | **PK** | Mã Phiếu (VD: `TRB_2603_01`).                                                    |
+| `transactionType`            | `text`      |        | `IMPORT` (Nhập), `EXPORT` (Xuất), `ADJUSTMENT` (Điều chỉnh).                     |
+| `transactionBlockStatus`     | `text`      |        | **[MỚI]** Trạng thái Phiếu: `DRAFT`, `PENDING_APPROVAL`, `APPROVED`, `REJECTED`. |
+| `referenceDocument`          | `text`      |        | Số Yêu cầu / PO tham chiếu.                                                      |
+| `createdBy`                  | `text`      |        | Người tạo phiếu.                                                                 |
+| `createdAt`                  | `timestamp` |        | Thời gian tạo.                                                                   |
+| `approvedBy`                 | `text`      |        | **[MỚI]** Người duyệt phiếu.                                                     |
+| `approvedAt`                 | `timestamp` |        | **[MỚI]** Thời gian duyệt.                                                       |
+
+#### 6. Bảng `chemicalTransactionBlockDetails` (Chi tiết Yêu cầu - BẢNG TẠM CHỜ DUYỆT)
+
+_Lưu dữ liệu mà thuật toán gợi ý hoặc KTV xin xuất/nhập, nhưng CHƯA TÁC ĐỘNG VÀO KHO._
+
+| Column Name                        | Type      | Key    | Description                                  |
+| :--------------------------------- | :-------- | :----- | :------------------------------------------- |
+| `chemicalTransactionBlockDetailId` | `text`    | **PK** | Mã dòng chi tiết tạm.                        |
+| `chemicalTransactionBlockId`       | `text`    | **FK** | Thuộc Phiếu nào.                             |
+| `actionType`                       | `text`    |        | `INITIAL_ISSUE`, `SUPPLEMENTAL`, `RETURN`... |
+| `chemicalSkuId`                    | `text`    | **FK** | Mã SKU.                                      |
+| `chemicalName`                     | `text`    |        | Tên Hóa chất.                                |
+| `casNumber`                        | `text`    |        | Số CAS.                                      |
+| `chemicalInventoryId`              | `text`    | **FK** | **Dự kiến** bốc chai/lọ nào.                 |
+| `changeQty`                        | `numeric` |        | **Dự kiến** thay đổi bao nhiêu.              |
+| `unit`                             | `text`    |        | Đơn vị tính.                                 |
+| `testName`                         | `text`    |        | Xuất ra cho Phép thử nào.                    |
+| `analysisId`                       | `text`    | **FK** | Phục vụ mã chỉ tiêu thực hiện nào.           |
+| `note`                             | `text`    |        | Ghi chú.                                     |
+
+#### 7. Bảng `chemicalTransactions` (Lịch sử giao dịch chính thức - LEDGER)
+
+_Chỉ sinh ra dữ liệu khi Phiếu ở trạng thái APPROVED. Đây là Sổ cái không thể xóa sửa._
+
+| Column Name                  | Type      | Key    | Description                                  |
+| :--------------------------- | :-------- | :----- | :------------------------------------------- |
+| `chemicalTransactionId`      | `text`    | **PK** | Mã dòng giao dịch thực tế (VD: `TXN_99901`). |
+| `chemicalTransactionBlockId` | `text`    | **FK** | Nguồn gốc từ Phiếu nào.                      |
+| `actionType`                 | `text`    |        | `INITIAL_ISSUE`, `SUPPLEMENTAL`, `RETURN`... |
+| `chemicalSkuId`              | `text`    | **FK** | Mã SKU.                                      |
+| `chemicalName`               | `text`    |        | Tên Hóa chất.                                |
+| `casNumber`                  | `text`    |        | Số CAS.                                      |
+| `chemicalInventoryId`        | `text`    | **FK** | Mã Barcode của chai/lọ.                      |
+| `changeQty`                  | `numeric` |        | Số lượng thay đổi.                           |
+| `unit`                       | `text`    |        | Đơn vị tính.                                 |
+| `testName`                   | `text`    |        | Xuất ra cho Phép thử nào.                    |
+| `analysisId`                 | `text`    | **FK** | Phục vụ mã chỉ tiêu thực hiện nào.           |
+| `note`                       | `text`    |        | Ghi chú.                                     |
+
+#### Phân hệ 3: INVENTORY AUDIT (Kiểm kê kho)
+
+#### 8. Bảng `chemicalAuditBlocks` (Phiếu Kiểm Kê - Header)
+
+| Column Name                  | Type        | Key    | Description                                                                                                    |
+| :--------------------------- | :---------- | :----- | :------------------------------------------------------------------------------------------------------------- |
+| `chemicalAuditBlockId`       | `text`      | **PK** | Mã phiếu kiểm kê (VD: `AUD_2603_01`).                                                                          |
+| `auditName`                  | `text`      |        | Tên kỳ kiểm kê (VD: `Kiểm kê kho hóa chất Q1/2026`).                                                           |
+| `auditScope`                 | `text`      |        | Phạm vi kiểm kê: `ALL`, `LOCATION`, `HAZARD_CLASS`, `SKU`.                                                     |
+| `auditScopeValue`            | `text`      |        | Giá trị tương ứng với Scope (VD: Chọn Location `Tủ A`).                                                        |
+| `auditBlockStatus`           | `text`      |        | Trạng thái Phiếu: `DRAFT`, `IN_PROGRESS`, `PENDING_APPROVAL`, `COMPLETED`, `CANCELLED`.                        |
+| `chemicalTransactionBlockId` | `text`      | **FK** | Tham chiếu đến mã Phiếu giao dịch tự động sinh ra khi duyệt chênh lệch (Link tới `chemicalTransactionBlocks`). |
+| `assignedTo`                 | `text`      |        | User ID của nhân viên được giao đi kiểm kê.                                                                    |
+| `createdBy`                  | `text`      |        | Người tạo phiếu.                                                                                               |
+| `createdAt`                  | `timestamp` |        | Thời gian tạo (Lúc này hệ thống sẽ snapshot dữ liệu).                                                          |
+| `approvedBy`                 | `text`      |        | Người quản lý duyệt kết quả kiểm kê.                                                                           |
+| `approvedAt`                 | `timestamp` |        | Thời gian duyệt.                                                                                               |
+
+#### 9. Bảng `chemicalAuditDetails` (Chi tiết Kiểm Kê)
+
+| Column Name             | Type      | Key    | Description                                                                                                 |
+| :---------------------- | :-------- | :----- | :---------------------------------------------------------------------------------------------------------- |
+| `chemicalAuditDetailId` | `text`    | **PK** | Mã dòng chi tiết kiểm kê.                                                                                   |
+| `chemicalAuditBlockId`  | `text`    | **FK** | Thuộc phiếu kiểm kê nào.                                                                                    |
+| `chemicalSkuId`         | `text`    | **FK** | Mã gốc hóa chất (Tham chiếu `chemicalSkus`).                                                                |
+| `chemicalInventoryId`   | `text`    | **FK** | Mã Barcode của chai/lọ cụ thể (Tham chiếu `chemicalInventories`).                                           |
+| `systemAvailableQty`    | `numeric` |        | Số lượng trên hệ thống lúc bắt đầu kiểm kê (Lấy từ `currentAvailableQty`).                                  |
+| `systemInventoryStatus` | `text`    |        | Trạng thái trên hệ thống (Lấy từ `inventoryStatus`).                                                        |
+| `actualAvailableQty`    | `numeric` |        | Số lượng thực tế đếm/cân được ở kho.                                                                        |
+| `actualInventoryStatus` | `text`    |        | Trạng thái thực tế khi KTV ghi nhận (`InUse`, `Disposed`...).                                               |
+| `varianceQty`           | `numeric` |        | **Độ lệch** (`actualAvailableQty - systemAvailableQty`). >0 là Thừa, <0 là Thiếu, =0 là Khớp.               |
+| `isScanned`             | `boolean` |        | `true` nếu KTV đã quét mã vạch này bằng máy. Quản lý việc chai có trên hệ thống nhưng tìm không thấy ở kho. |
+| `note`                  | `text`    |        | Ghi chú/Giải trình cho độ lệch (VD: "Bay hơi", "Đổ vỡ", "Hàng mượn chưa nhập hệ thống").                    |
 
 ---
 
@@ -1109,51 +1223,64 @@ interface ClientSnapshot {
 
 ## V. LUỒNG NGHIỆP VỤ ĐẶC THÙ (SPECIAL BUSINESS FLOWS)
 
-### 1. Luồng Cấp phát & Trừ kho Hóa chất (Auto-Deduction with FEFO)
+### 1. Luồng Quy Trình Kho Theo Mô Hình "Maker - Checker"
 
-Dựa trên quy trình thực tế: **Tính toán -> Xin cấp phát/Bàn giao theo hàng đợi -> Trừ kho vật lý -> Ghi nhận vào biên bản -> KTV thực hiện**.
+Với việc thêm trạng thái và bảng Detail, quy trình sẽ được chia làm 3 bước rõ ràng để ngăn chặn sai sót: **Đề xuất -> Thẩm định -> Thực thi.**
 
-**Mọi thao tác cập nhật dưới đây phải nằm trong 1 Single DB Transaction (BEGIN...COMMIT):**
+#### NGHIỆP VỤ 1: QUY TRÌNH XUẤT KHO / CẤP PHÁT HÓA CHẤT
 
-1.  **Thuật toán FEFO & Khóa dòng (Row-level Lock):**
-    Khi Thủ kho bấm duyệt cấp phát cho phép thử `ANL-001`, hệ thống truy vấn tìm lọ gần hết hạn nhất và **khóa dòng đó lại** bằng `FOR UPDATE`.
+_(VD: KTV nhận 5 phép thử, cần xuất kho hóa chất)_
 
-    ```sql
-    SELECT itemCode, itemAvailableQty, itemLotNumber
-    FROM items
-    WHERE chemicalSku = 'HEX-001' AND itemAvailableQty >= 5 AND itemStatus != 'Expired'
-    ORDER BY itemExpDate ASC
-    LIMIT 1 FOR UPDATE;
-    ```
+**Bước 1: Khởi tạo Yêu cầu (Maker - DRAFT)**
 
-2.  **Trừ lùi vật lý:**
+- Hệ thống đọc BOM (Định mức) và chạy thuật toán FEFO để tìm ra các chai cần xuất.
+- **Database Action:**
+    - Tạo 1 bản ghi `chemicalTransactionBlocks` (Type: `EXPORT`, Status: `PENDING_APPROVAL`).
+    - Tạo N bản ghi vào `chemicalTransactionBlockDetails` với số lượng dự kiến lấy từ các chai gợi ý.
+    - _Lúc này: Tồn kho thực tế trong `chemicalInventories` và `chemicalSkus` VẪN GIỮ NGUYÊN. Lịch sử Ledger `chemicalTransactions` trống._
 
-    ```sql
-    UPDATE items
-    SET itemAvailableQty = itemAvailableQty - 5,
-        itemStatus = CASE WHEN itemAvailableQty - 5 <= 0 THEN 'Empty' ELSE 'InUse' END
-    WHERE itemCode = 'LOT123-BTL01';
-    ```
+**Bước 2: Phê duyệt Phiếu (Checker - APPROVE / REJECT)**
 
-3.  **Đẩy lịch sử cấp phát vào JSONB:**
-    Lịch sử lấy lô nào được đẩy trực tiếp vào phiếu `analyses.consumablesUsed`:
+- Quản lý Lab hoặc Thủ kho chính mở Phiếu đang chờ duyệt. Màn hình hiển thị chi tiết (bảng Details) hệ thống dự định trừ chai nào, xuất cho ai.
+- **Trường hợp Từ chối (Reject):** Bấm Reject. `transactionBlockStatus` chuyển thành `REJECTED`. Quy trình kết thúc, không ai bị trừ kho.
+- **Trường hợp Chấp nhận (Approve):** Bấm Approve + Ký điện tử.
 
-    ```sql
-    UPDATE analyses
-    SET consumablesUsed = COALESCE(consumablesUsed, '[]'::jsonb) ||
-        '[{"itemCode": "LOT123-BTL01", "chemicalSku": "HEX-001", "lotNo": "L-2024", "allocatedQty": 5, "unit": "ml", "type": "Initial"}]'::jsonb,
-        analysisStatus = 'HandedOver'
-    WHERE analysisId = 'ANL-001';
-    ```
+**Bước 3: Thực thi hệ thống ngầm (System Commit - 1 Single DB Transaction)**
+Ngay khi người dùng bấm Approve, Backend xử lý Transaction SQL theo trình tự:
 
-4.  **Truy xuất nguồn gốc (Traceability):**
-    Tìm tất cả các bài Test đã từng sử dụng lô hóa chất `L-2024`:
-    ```sql
-    SELECT analysisId, parameterName, analysisStatus
-    FROM analyses,
-         jsonb_array_elements(consumablesUsed) as used_items
-    WHERE used_items->>'lotNo' = 'L-2024';
-    ```
+1.  **Validation (Kiểm tra lại):** Quét lại lượng tồn thực tế của các chai trong bảng Details xem _ngay lúc này_ có bị phiếu nào khác nẫng tay trên không? Nếu đủ -> Đi tiếp. Nếu thiếu -> Báo lỗi văng ra ngoài.
+2.  **Cập nhật Trạng thái Header:** Set `transactionBlockStatus` = `APPROVED`, lưu `approvedBy`, `approvedAt`.
+3.  **Trừ kho vật lý:** Update `currentAvailableQty` trong bảng `chemicalInventories`.
+4.  **Trừ tồn tổng:** Update `chemicalTotalAvailableQty` trong `chemicalSkus`.
+5.  **GHI SỔ CÁI (Ledger Entry):** `INSERT INTO chemicalTransactions SELECT * FROM chemicalTransactionBlockDetails WHERE chemicalTransactionBlockId = 'XYZ'`. (Toàn bộ Detail biến thành Transaction chính thức).
+6.  **Đồng bộ Phép thử:** Đẩy JSON vào `consumablesUsed` trong bảng `analyses` để KTV có thông tin làm bài.
+
+#### NGHIỆP VỤ 2: QUY TRÌNH KIỂM KÊ KHO (INVENTORY COUNTING)
+
+Quy trình này tận dụng hoàn hảo cấu trúc "Phiếu Chờ Duyệt".
+
+**Bước 1: Quét mã đếm thực tế (Maker)**
+
+- Thủ kho đi đếm kho, phát hiện Lọ cồn `BTL_01` bị hao hụt 50ml do bay hơi.
+- Tạo Phiếu Điều Chỉnh trên hệ thống:
+    - Tạo `chemicalTransactionBlocks` (Type: `ADJUSTMENT`, Status: `PENDING_APPROVAL`).
+    - Tạo 1 dòng `chemicalTransactionBlockDetails` (Action: `ADJUSTMENT`, qty: `-50`, Note: "Hao hụt bay hơi").
+
+**Bước 2: Phê duyệt hao hụt (Checker)**
+
+- Kế toán kho hoặc Trưởng Lab xem phiếu. Đánh giá hao hụt 50ml này là tự nhiên, hợp lý. Bấm Duyệt (Approve).
+
+**Bước 3: Thực thi ngầm**
+
+- Trừ 50ml trong `chemicalInventories` của chai `BTL_01`.
+- Sinh ra 1 dòng giao dịch chính thức trong `chemicalTransactions` làm bằng chứng đối soát.
+
+#### TỔNG KẾT KIẾN TRÚC MỚI:
+
+Với mô hình **Block -> Details (Tạm) -> Transactions (Chính thức)**, hệ thống đạt mức **Enterprise Grade (Chuẩn Doanh nghiệp)**:
+
+1.  **Chống sai lệch dữ liệu kho:** Người dùng thao tác sai trên UI lúc tạo phiếu có thể xóa đi tạo lại thoải mái (ở bảng Detail), vì tồn kho chưa bị trừ. Chỉ khi Kế toán/Quản lý chốt (Approve) thì dữ liệu mới khóa cứng.
+2.  **Performance cực tốt:** Bảng `chemicalTransactions` chỉ chứa dữ liệu đã duyệt và không bao giờ bị UPDATE hay DELETE, biến nó thành nơi lý tưởng để chạy báo cáo Report siêu tốc độ.
 
 ---
 

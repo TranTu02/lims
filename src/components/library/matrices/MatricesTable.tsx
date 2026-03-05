@@ -180,7 +180,7 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
     return (
         <Popover open={open} onOpenChange={onOpenChange}>
             <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" type="button" aria-label={t("common.filter")} className="relative">
+                <Button variant="ghost" size="icon" type="button" aria-label={String(t("common.filter"))} className="relative">
                     <Filter className="h-4 w-4" />
                     {props.activeCount > 0 ? <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-primary" /> : null}
                 </Button>
@@ -195,18 +195,18 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
                 </div>
 
                 <div className="p-3 space-y-2">
-                    <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("common.search")} className="border border-border" />
+                    <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={String(t("common.search"))} className="border border-border" />
                 </div>
 
                 <div className="border-t border-border">
                     <Command shouldFilter={false}>
                         <CommandList className="max-h-64">
                             {q.isLoading ? (
-                                <div className="p-3 text-sm text-muted-foreground">{t("common.loading")}</div>
+                                <div className="p-3 text-sm text-muted-foreground">{String(t("common.loading"))}</div>
                             ) : q.isError ? (
-                                <div className="p-3 text-sm text-muted-foreground">{t("common.toast.failed")}</div>
+                                <div className="p-3 text-sm text-muted-foreground">{String(t("common.toast.failed"))}</div>
                             ) : filteredOptions.length === 0 ? (
-                                <CommandEmpty>{t("common.noData")}</CommandEmpty>
+                                <CommandEmpty>{String(t("common.noData"))}</CommandEmpty>
                             ) : null}
 
                             {!q.isLoading && !q.isError ? (
@@ -240,10 +240,10 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
 
                     <div className="p-3 border-t border-border flex items-center justify-end gap-2">
                         <Button variant="outline" type="button" onClick={clear} disabled={props.activeCount === 0}>
-                            {t("common.clear")}
+                            {String(t("common.clear"))}
                         </Button>
                         <Button type="button" onClick={apply}>
-                            {t("common.apply")}
+                            {String(t("common.apply"))}
                         </Button>
                     </div>
                 </div>
@@ -271,10 +271,10 @@ export function MatricesTable(props: Props) {
                     <tr>
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                             <span className="inline-flex items-center gap-2">
-                                {t("library.matrices.matrixId")}
+                                {String(t("library.matrices.matrixId"))}
                                 <ExcelFilterPopover
                                     type="string"
-                                    title={t("library.matrices.matrixId")}
+                                    title={String(t("library.matrices.matrixId"))}
                                     filterKey="matrixId"
                                     activeCount={excelFilters.matrixId.length}
                                     selected={excelFilters.matrixId}
@@ -287,10 +287,10 @@ export function MatricesTable(props: Props) {
 
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                             <span className="inline-flex items-center gap-2">
-                                {t("library.matrices.parameterId")}
+                                {String(t("library.matrices.parameterId"))}
                                 <ExcelFilterPopover
                                     type="string"
-                                    title={t("library.matrices.parameterId")}
+                                    title={String(t("library.matrices.parameterId"))}
                                     filterKey="parameterId"
                                     activeCount={excelFilters.parameterId.length}
                                     selected={excelFilters.parameterId}
@@ -303,10 +303,10 @@ export function MatricesTable(props: Props) {
 
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                             <span className="inline-flex items-center gap-2">
-                                {t("library.matrices.protocolId")}
+                                {String(t("library.matrices.protocolId"))}
                                 <ExcelFilterPopover
                                     type="string"
-                                    title={t("library.matrices.protocolId")}
+                                    title={String(t("library.matrices.protocolId"))}
                                     filterKey="protocolId"
                                     activeCount={excelFilters.protocolId.length}
                                     selected={excelFilters.protocolId}
@@ -319,10 +319,10 @@ export function MatricesTable(props: Props) {
 
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                             <span className="inline-flex items-center gap-2">
-                                {t("library.matrices.sampleTypeId")}
+                                {String(t("library.matrices.sampleTypeId"))}
                                 <ExcelFilterPopover
                                     type="string"
-                                    title={t("library.matrices.sampleTypeId")}
+                                    title={String(t("library.matrices.sampleTypeId"))}
                                     filterKey="sampleTypeId"
                                     activeCount={excelFilters.sampleTypeId.length}
                                     selected={excelFilters.sampleTypeId}
@@ -335,10 +335,10 @@ export function MatricesTable(props: Props) {
 
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                             <span className="inline-flex items-center gap-2">
-                                {t("library.matrices.feeBeforeTax")}
+                                {String(t("library.matrices.feeBeforeTax"))}
                                 <ExcelFilterPopover
                                     type="number"
-                                    title={t("library.matrices.feeBeforeTax")}
+                                    title={String(t("library.matrices.feeBeforeTax"))}
                                     filterKey="feeBeforeTax"
                                     activeCount={excelFilters.feeBeforeTax.length}
                                     selected={excelFilters.feeBeforeTax}
@@ -351,10 +351,10 @@ export function MatricesTable(props: Props) {
 
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                             <span className="inline-flex items-center gap-2">
-                                {t("library.matrices.feeAfterTax")}
+                                {String(t("library.matrices.feeAfterTax"))}
                                 <ExcelFilterPopover
                                     type="number"
-                                    title={t("library.matrices.feeAfterTax")}
+                                    title={String(t("library.matrices.feeAfterTax"))}
                                     filterKey="feeAfterTax"
                                     activeCount={excelFilters.feeAfterTax.length}
                                     selected={excelFilters.feeAfterTax}
@@ -365,7 +365,7 @@ export function MatricesTable(props: Props) {
                             </span>
                         </th>
 
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t("common.actions")}</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("common.actions"))}</th>
                     </tr>
                 </thead>
 
@@ -375,7 +375,7 @@ export function MatricesTable(props: Props) {
                         const active = selectedRowKey === rowKey;
 
                         const protocolLabel = getProtocolLabel(m);
-                        const feeAfterTaxText = formatNumberVi(m.feeAfterTax) ?? t("common.noData");
+                        const feeAfterTaxText = formatNumberVi(m.feeAfterTax) ?? String(t("common.noData"));
 
                         return (
                             <tr key={rowKey} onClick={() => onSelectRow(rowKey, m.matrixId)} className={`hover:bg-muted/50 cursor-pointer ${active ? "bg-muted" : ""}`}>
@@ -384,7 +384,7 @@ export function MatricesTable(props: Props) {
                                 <td className="px-4 py-3 text-sm text-foreground">{protocolLabel}</td>
                                 <td className="px-4 py-3 text-sm text-foreground">{m.sampleTypeId}</td>
 
-                                <td className="px-4 py-3 text-sm text-foreground">{formatNumberVi(m.feeBeforeTax) ?? t("common.noData")}</td>
+                                <td className="px-4 py-3 text-sm text-foreground">{formatNumberVi(m.feeBeforeTax) ?? String(t("common.noData"))}</td>
 
                                 <td className="px-4 py-3 text-sm text-foreground">{feeAfterTaxText}</td>
 
@@ -394,7 +394,7 @@ export function MatricesTable(props: Props) {
                                             variant="ghost"
                                             size="icon"
                                             type="button"
-                                            aria-label={t("common.edit")}
+                                            aria-label={String(t("common.edit"))}
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 onOpenEdit(m.matrixId);
@@ -407,7 +407,7 @@ export function MatricesTable(props: Props) {
                                             variant="ghost"
                                             size="icon"
                                             type="button"
-                                            aria-label={t("common.delete")}
+                                            aria-label={String(t("common.delete"))}
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 onOpenDelete(m.matrixId);
@@ -423,7 +423,7 @@ export function MatricesTable(props: Props) {
                 </tbody>
             </table>
 
-            {items.length === 0 ? <div className="p-4 text-sm text-muted-foreground">{t("common.noData")}</div> : null}
+            {items.length === 0 ? <div className="p-4 text-sm text-muted-foreground">{String(t("common.noData"))}</div> : null}
         </div>
     );
 }

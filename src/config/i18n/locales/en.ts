@@ -30,8 +30,8 @@ export default {
         protocolsTitle: "Methods",
         protocolsDescription: "Method Library",
 
-        matricesTitle: "Matrices",
-        matricesDescription: "Matrix Library",
+        matricesTitle: "Parameter Matrices",
+        matricesDescription: "Parameter Matrix Library",
 
         sampleTypesTitle: "Sample Types",
         sampleTypesDescription: "Sample Type Library",
@@ -43,7 +43,10 @@ export default {
         documentDescription: "Forms & Templates",
 
         inventoryTitle: "Inventory & Assets",
-        inventoryDescription: "Chemicals & equipment",
+        inventoryDescription: "Equipment & Assets",
+
+        chemicalInventoryTitle: "Chemical Inventory",
+        chemicalInventoryDescription: "Chemicals & Reagents",
 
         crmTitle: "Customers",
         crmDescription: "Customer relationship management",
@@ -62,6 +65,14 @@ export default {
             themeLight: "Light",
             themeDark: "Dark",
             themeSystem: "System",
+            dashboard: "Dashboard",
+            orders: "Orders",
+            samples: "Samples",
+            clients: "Clients",
+            inventory: "Assets & Inventory",
+            chemicalInventory: "Chemical Inventory",
+            accounting: "Accounting",
+            settings: "Settings",
         },
     },
 
@@ -580,9 +591,9 @@ export default {
     },
     library: {
         matrices: {
-            title: "Matrix List",
+            title: "Parameter Matrix List",
             total: "Total: {{count}} matrices",
-            matrixId: "Matrix Configuration ID",
+            matrixId: "Parameter Matrix (ID)",
             parameterId: "Parameter ID",
             protocolId: "Protocol ID",
             sampleTypeId: "Sample Type",
@@ -601,14 +612,14 @@ export default {
             technicianGroupId: "Responsible Tech Group",
             searchPlaceholder: "Search Matrices...",
             create: {
-                title: "Create New Matrix",
+                title: "Create New Parameter Matrix",
                 sampleParameter: "Parameter/Sample",
                 protocol: "Protocol",
                 pricing: "Pricing",
                 limits: "Limits",
             },
             detail: {
-                title: "Matrix Detail",
+                title: "Parameter Matrix Detail",
                 sampleParameter: "Parameter/Sample",
                 protocol: "Protocol",
                 pricing: "Pricing",
@@ -616,7 +627,7 @@ export default {
                 information: "Information",
             },
             edit: {
-                title: "Edit Matrix",
+                title: "Edit Parameter Matrix",
             },
             cofirmDelete: "Are you sure you want to delete this matrix?",
         },
@@ -670,6 +681,19 @@ export default {
                 equipment: "Required Equipment",
                 chemicals: "Chemicals",
             },
+            chemicals: {
+                name: "Chemical Name",
+                cas: "CAS Code",
+                amount: "Amount Used",
+                bomTitle: "Chemicals Used (BOM)",
+                loadFromProtocol: "Load from Protocol",
+                searchPlaceholder: "Search chemicals (SKU)...",
+                chemicalName: "Chemical Name",
+                skuId: "SKU ID",
+                consumedQty: "Consumed Qty",
+                unit: "Unit",
+                emptyBom: "No chemicals added. Search and add above.",
+            },
         },
         parameters: {
             parameterId: "Parameter ID",
@@ -692,6 +716,8 @@ export default {
             },
             edit: {
                 title: "Edit Parameter",
+                matrixSection: "Parameter Matrix (Configuration)",
+                relatedSection: "Parameters / Samples / Chemicals",
             },
             columns: {
                 code: "Code",
@@ -700,7 +726,7 @@ export default {
                 matrixCount: "Matrix Count",
             },
             detail: {
-                matrices: "Matrices",
+                matrices: "Parameter Matrices",
                 matrixCode: "Matrix Code",
                 feeBeforeTax: "Fee (Pre-tax)",
                 feeAfterTax: "Fee (Post-tax)",
@@ -1162,11 +1188,6 @@ export default {
             customerTypes: {
                 company: "Company",
                 individual: "Individual",
-            },
-            status: {
-                pass: "Pass",
-                fail: "Fail",
-                warning: "Warning",
             },
         },
     },

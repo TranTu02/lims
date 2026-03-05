@@ -130,7 +130,7 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
     return (
         <Popover open={open} onOpenChange={onOpenChange}>
             <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" type="button" aria-label={t("common.filter")} className="relative">
+                <Button variant="ghost" size="icon" type="button" aria-label={String(t("common.filter"))} className="relative">
                     <Filter className="h-4 w-4" />
                     {props.activeCount > 0 ? <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-primary" /> : null}
                 </Button>
@@ -145,18 +145,18 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
                 </div>
 
                 <div className="p-3 space-y-2">
-                    <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("common.search")} className="border border-border" />
+                    <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={String(t("common.search"))} className="border border-border" />
                 </div>
 
                 <div className="border-t border-border">
                     <Command shouldFilter={false}>
                         <CommandList className="max-h-64">
                             {q.isLoading ? (
-                                <div className="p-3 text-sm text-muted-foreground">{t("common.loading")}</div>
+                                <div className="p-3 text-sm text-muted-foreground">{String(t("common.loading"))}</div>
                             ) : q.isError ? (
-                                <div className="p-3 text-sm text-muted-foreground">{t("common.toast.failed")}</div>
+                                <div className="p-3 text-sm text-muted-foreground">{String(t("common.toast.failed"))}</div>
                             ) : options.length === 0 ? (
-                                <CommandEmpty>{t("common.noData")}</CommandEmpty>
+                                <CommandEmpty>{String(t("common.noData"))}</CommandEmpty>
                             ) : null}
 
                             {!q.isLoading && !q.isError ? (
@@ -189,10 +189,10 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
 
                     <div className="p-3 border-t border-border flex items-center justify-end gap-2">
                         <Button variant="outline" type="button" onClick={clear} disabled={props.activeCount === 0}>
-                            {t("common.clear")}
+                            {String(t("common.clear"))}
                         </Button>
                         <Button type="button" onClick={apply}>
-                            {t("common.apply")}
+                            {String(t("common.apply"))}
                         </Button>
                     </div>
                 </div>
@@ -216,9 +216,9 @@ export function ParametersTable(props: Props) {
                     <tr>
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                             <span className="inline-flex items-center gap-2">
-                                {t("library.parameters.parameterId")}
+                                {String(t("library.parameters.parameterId"))}
                                 <ExcelFilterPopover
-                                    title={t("library.parameters.parameterId")}
+                                    title={String(t("library.parameters.parameterId"))}
                                     filterKey="parameterId"
                                     activeCount={excelFilters.parameterId.length}
                                     selected={excelFilters.parameterId}
@@ -231,9 +231,9 @@ export function ParametersTable(props: Props) {
 
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                             <span className="inline-flex items-center gap-2">
-                                {t("library.parameters.parameterName")}
+                                {String(t("library.parameters.parameterName"))}
                                 <ExcelFilterPopover
-                                    title={t("library.parameters.parameterName")}
+                                    title={String(t("library.parameters.parameterName"))}
                                     filterKey="parameterName"
                                     activeCount={excelFilters.parameterName.length}
                                     selected={excelFilters.parameterName}
@@ -246,9 +246,9 @@ export function ParametersTable(props: Props) {
 
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                             <span className="inline-flex items-center gap-2">
-                                {t("library.parameters.technicianAlias")}
+                                {String(t("library.parameters.technicianAlias"))}
                                 <ExcelFilterPopover
-                                    title={t("library.parameters.technicianAlias")}
+                                    title={String(t("library.parameters.technicianAlias"))}
                                     filterKey="technicianAlias"
                                     activeCount={excelFilters.technicianAlias.length}
                                     selected={excelFilters.technicianAlias}
@@ -258,10 +258,10 @@ export function ParametersTable(props: Props) {
                                 />
                             </span>
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t("library.parameters.technicianGroupId")}</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t("library.parameters.parameterStatus")}</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t("library.parameters.displayStyle")}</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t("common.actions")}</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.parameters.technicianGroupId"))}</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.parameters.parameterStatus"))}</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.parameters.displayStyle"))}</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("common.actions"))}</th>
                     </tr>
                 </thead>
 
@@ -300,14 +300,14 @@ export function ParametersTable(props: Props) {
                                     <div className="px-4 py-3 flex flex-col gap-0.5">
                                         {def ? <div className="text-sm text-foreground break-words whitespace-normal">{renderInlineEm(def)}</div> : null}
                                         {eng ? <div className="text-xs text-muted-foreground break-words whitespace-normal">{renderInlineEm(eng)}</div> : null}
-                                        {!def && !eng ? <span className="text-sm text-muted-foreground">{t("common.noData")}</span> : null}
+                                        {!def && !eng ? <span className="text-sm text-muted-foreground">{String(t("common.noData"))}</span> : null}
                                     </div>
                                 </td>
 
                                 <td className="px-4 py-3 text-left" onClick={(e) => e.stopPropagation()}>
                                     {onEdit && (
                                         <div className="inline-flex items-center justify-start gap-1">
-                                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => onEdit(param)} type="button" title={t("common.edit")}>
+                                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => onEdit(param)} type="button" title={String(t("common.edit"))}>
                                                 <Edit className="h-4 w-4" />
                                             </Button>
                                         </div>
@@ -319,7 +319,7 @@ export function ParametersTable(props: Props) {
                 </tbody>
             </table>
 
-            {items.length === 0 ? <div className="p-4 text-sm text-muted-foreground">{t("common.noData")}</div> : null}
+            {items.length === 0 ? <div className="p-4 text-sm text-muted-foreground">{String(t("common.noData"))}</div> : null}
         </div>
     );
 }

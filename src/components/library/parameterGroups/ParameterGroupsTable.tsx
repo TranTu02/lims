@@ -130,7 +130,7 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
     return (
         <Popover open={open} onOpenChange={onOpenChange}>
             <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" type="button" aria-label={t("common.filter")} className="relative">
+                <Button variant="ghost" size="icon" type="button" aria-label={String(t("common.filter"))} className="relative">
                     <Filter className="h-4 w-4" />
                     {props.activeCount > 0 ? <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-primary" /> : null}
                 </Button>
@@ -145,18 +145,18 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
                 </div>
 
                 <div className="p-3 space-y-2">
-                    <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("common.search")} className="border border-border" />
+                    <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={String(t("common.search"))} className="border border-border" />
                 </div>
 
                 <div className="border-t border-border">
                     <Command shouldFilter={false}>
                         <CommandList className="max-h-72">
                             {q.isLoading ? (
-                                <div className="p-3 text-sm text-muted-foreground">{t("common.loading")}</div>
+                                <div className="p-3 text-sm text-muted-foreground">{String(t("common.loading"))}</div>
                             ) : q.isError ? (
-                                <div className="p-3 text-sm text-muted-foreground">{t("common.toast.failed")}</div>
+                                <div className="p-3 text-sm text-muted-foreground">{String(t("common.toast.failed"))}</div>
                             ) : options.length === 0 ? (
-                                <CommandEmpty>{t("common.noData")}</CommandEmpty>
+                                <CommandEmpty>{String(t("common.noData"))}</CommandEmpty>
                             ) : null}
 
                             {!q.isLoading && !q.isError ? (
@@ -189,10 +189,10 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
 
                     <div className="p-3 border-t border-border flex items-center justify-end gap-2">
                         <Button variant="outline" type="button" onClick={clear} disabled={props.activeCount === 0}>
-                            {t("common.clear")}
+                            {String(t("common.clear"))}
                         </Button>
                         <Button type="button" onClick={apply}>
-                            {t("common.apply")}
+                            {String(t("common.apply"))}
                         </Button>
                     </div>
                 </div>
@@ -218,9 +218,9 @@ export function ParameterGroupsTable(props: Props) {
                     <tr>
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                             <span className="inline-flex items-center gap-2">
-                                {t("library.parameterGroups.groupId")}
+                                {String(t("library.parameterGroups.groupId"))}
                                 <ExcelFilterPopover
-                                    title={t("library.parameterGroups.groupId")}
+                                    title={String(t("library.parameterGroups.groupId"))}
                                     filterKey="groupId"
                                     activeCount={excelFilters.groupId.length}
                                     selected={excelFilters.groupId}
@@ -233,9 +233,9 @@ export function ParameterGroupsTable(props: Props) {
 
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                             <span className="inline-flex items-center gap-2">
-                                {t("library.parameterGroups.groupName")}
+                                {String(t("library.parameterGroups.groupName"))}
                                 <ExcelFilterPopover
-                                    title={t("library.parameterGroups.groupName")}
+                                    title={String(t("library.parameterGroups.groupName"))}
                                     filterKey="groupName"
                                     activeCount={excelFilters.groupName.length}
                                     selected={excelFilters.groupName}
@@ -248,9 +248,9 @@ export function ParameterGroupsTable(props: Props) {
 
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                             <span className="inline-flex items-center gap-2">
-                                {t("library.parameterGroups.sampleType")}
+                                {String(t("library.parameterGroups.sampleType"))}
                                 <ExcelFilterPopover
-                                    title={t("library.parameterGroups.sampleType")}
+                                    title={String(t("library.parameterGroups.sampleType"))}
                                     filterKey="sampleTypeName"
                                     activeCount={excelFilters.sampleTypeName.length}
                                     selected={excelFilters.sampleTypeName}
@@ -261,12 +261,12 @@ export function ParameterGroupsTable(props: Props) {
                             </span>
                         </th>
 
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t("library.parameterGroups.matrixIds")}</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.parameterGroups.matrixIds"))}</th>
 
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t("library.parameterGroups.feeBeforeTaxAndDiscount")}</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t("library.parameterGroups.feeBeforeTax")}</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t("library.parameterGroups.feeAfterTax")}</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t("common.actions")}</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.parameterGroups.feeBeforeTaxAndDiscount"))}</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.parameterGroups.feeBeforeTax"))}</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.parameterGroups.feeAfterTax"))}</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("common.actions"))}</th>
                     </tr>
                 </thead>
 
@@ -298,9 +298,9 @@ export function ParameterGroupsTable(props: Props) {
 
                                         {matrixCount > matrixPreview.length ? (
                                             <span className="text-xs text-muted-foreground">
-                                                {t("library.parameterGroups.values.moreMatrices", {
+                                                {String(t("library.parameterGroups.values.moreMatrices", {
                                                     count: matrixCount - matrixPreview.length,
-                                                })}
+                                                }))}
                                             </span>
                                         ) : null}
                                     </div>
@@ -315,7 +315,7 @@ export function ParameterGroupsTable(props: Props) {
                                 <td className="px-4 py-3 text-left" onClick={(e) => e.stopPropagation()}>
                                     {onEdit && (
                                         <div className="inline-flex items-center justify-start gap-1">
-                                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => onEdit(x)} type="button" title={t("common.edit")}>
+                                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => onEdit(x)} type="button" title={String(t("common.edit"))}>
                                                 <Edit className="h-4 w-4" />
                                             </Button>
                                         </div>
@@ -327,7 +327,7 @@ export function ParameterGroupsTable(props: Props) {
                 </tbody>
             </table>
 
-            {items.length === 0 ? <div className="p-4 text-sm text-muted-foreground">{t("common.noData")}</div> : null}
+            {items.length === 0 ? <div className="p-4 text-sm text-muted-foreground">{String(t("common.noData"))}</div> : null}
         </div>
     );
 }

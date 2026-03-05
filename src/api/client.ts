@@ -3,12 +3,20 @@ import type { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from "a
 import Cookies from "js-cookie";
 import { toast } from "sonner";
 
-export type ApiMeta = {
+export type ApiPagination = {
     page: number;
     itemsPerPage: number;
-    total: number;
-    totalItems?: number;
+    totalItems: number;
     totalPages: number;
+};
+
+export type ApiMeta = {
+    page?: number;
+    itemsPerPage?: number;
+    total?: number;
+    totalItems?: number;
+    totalPages?: number;
+    pagination?: ApiPagination;
     [key: string]: unknown;
     countsByEntity?: Record<string, number>;
 };
@@ -25,6 +33,7 @@ export interface ApiResponse<T = unknown> {
     statusCode: number;
     data?: T;
     meta?: ApiMeta | null;
+    pagination?: ApiPagination | null;
     error?: ApiError | null;
 }
 

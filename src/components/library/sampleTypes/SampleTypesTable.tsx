@@ -158,7 +158,7 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
     return (
         <Popover open={open} onOpenChange={onOpenChange}>
             <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" type="button" aria-label={t("common.filter")} className="relative">
+                <Button variant="ghost" size="icon" type="button" aria-label={String(t("common.filter"))} className="relative">
                     <Filter className="h-4 w-4" />
                     {props.activeCount > 0 ? <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-primary" /> : null}
                 </Button>
@@ -173,18 +173,18 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
                 </div>
 
                 <div className="p-3 space-y-2">
-                    <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("common.search")} className="border border-border" />
+                    <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={String(t("common.search"))} className="border border-border" />
                 </div>
 
                 <div className="border-t border-border">
                     <Command shouldFilter={false}>
                         <CommandList className="max-h-64">
                             {q.isLoading ? (
-                                <div className="p-3 text-sm text-muted-foreground">{t("common.loading")}</div>
+                                <div className="p-3 text-sm text-muted-foreground">{String(t("common.loading"))}</div>
                             ) : q.isError ? (
-                                <div className="p-3 text-sm text-muted-foreground">{t("common.toast.failed")}</div>
+                                <div className="p-3 text-sm text-muted-foreground">{String(t("common.toast.failed"))}</div>
                             ) : options.length === 0 ? (
-                                <CommandEmpty>{t("common.noData")}</CommandEmpty>
+                                <CommandEmpty>{String(t("common.noData"))}</CommandEmpty>
                             ) : null}
 
                             {!q.isLoading && !q.isError ? (
@@ -217,10 +217,10 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
 
                     <div className="p-3 border-t border-border flex items-center justify-end gap-2">
                         <Button variant="outline" type="button" onClick={clear} disabled={props.activeCount === 0}>
-                            {t("common.clear")}
+                            {String(t("common.clear"))}
                         </Button>
                         <Button type="button" onClick={apply}>
-                            {t("common.apply")}
+                            {String(t("common.apply"))}
                         </Button>
                     </div>
                 </div>
@@ -247,9 +247,9 @@ export function SampleTypesTable(props: Props) {
                     <tr>
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                             <span className="inline-flex items-center gap-2">
-                                {t("library.sampleTypes.table.sampleTypeId")}
+                                {String(t("library.sampleTypes.table.sampleTypeId"))}
                                 <ExcelFilterPopover
-                                    title={t("library.sampleTypes.table.sampleTypeId")}
+                                    title={String(t("library.sampleTypes.table.sampleTypeId"))}
                                     filterKey="sampleTypeId"
                                     activeCount={excelFilters.sampleTypeId.length}
                                     selected={excelFilters.sampleTypeId}
@@ -262,9 +262,9 @@ export function SampleTypesTable(props: Props) {
 
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                             <span className="inline-flex items-center gap-2">
-                                {t("library.sampleTypes.table.sampleTypeName")}
+                                {String(t("library.sampleTypes.table.sampleTypeName"))}
                                 <ExcelFilterPopover
-                                    title={t("library.sampleTypes.table.sampleTypeName")}
+                                    title={String(t("library.sampleTypes.table.sampleTypeName"))}
                                     filterKey="sampleTypeName"
                                     activeCount={excelFilters.sampleTypeName.length}
                                     selected={excelFilters.sampleTypeName}
@@ -277,9 +277,9 @@ export function SampleTypesTable(props: Props) {
 
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                             <span className="inline-flex items-center gap-2">
-                                {t("library.sampleTypes.table.displayTypeStyle")}
+                                {String(t("library.sampleTypes.table.displayTypeStyle"))}
                                 <ExcelFilterPopover
-                                    title={t("library.sampleTypes.table.displayTypeStyle")}
+                                    title={String(t("library.sampleTypes.table.displayTypeStyle"))}
                                     filterKey="displayTypeStyle"
                                     activeCount={excelFilters.displayTypeStyle.length}
                                     selected={excelFilters.displayTypeStyle}
@@ -290,8 +290,8 @@ export function SampleTypesTable(props: Props) {
                             </span>
                         </th>
 
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t("library.sampleTypes.table.createAt")}</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t("common.actions")}</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.sampleTypes.table.createAt"))}</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("common.actions"))}</th>
                     </tr>
                 </thead>
 
@@ -311,7 +311,7 @@ export function SampleTypesTable(props: Props) {
                                     <div className="px-4 py-3 flex flex-col gap-0.5">
                                         {def ? <div className="text-sm text-foreground break-words whitespace-normal">{renderInlineEm(def)}</div> : null}
                                         {eng ? <div className="text-xs text-muted-foreground break-words whitespace-normal">{renderInlineEm(eng)}</div> : null}
-                                        {!def && !eng ? <span className="text-sm text-muted-foreground">{t("common.none")}</span> : null}
+                                        {!def && !eng ? <span className="text-sm text-muted-foreground">{String(t("common.none"))}</span> : null}
                                     </div>
                                 </td>
 
@@ -320,7 +320,7 @@ export function SampleTypesTable(props: Props) {
                                 <td className="px-4 py-3 text-left" onClick={(e) => e.stopPropagation()}>
                                     {onEdit && (
                                         <div className="inline-flex items-center justify-start gap-1">
-                                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => onEdit(x)} type="button" title={t("common.edit")}>
+                                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => onEdit(x)} type="button" title={String(t("common.edit"))}>
                                                 <Edit className="h-4 w-4" />
                                             </Button>
                                         </div>
@@ -332,7 +332,7 @@ export function SampleTypesTable(props: Props) {
                 </tbody>
             </table>
 
-            {items.length === 0 ? <div className="p-4 text-sm text-muted-foreground">{t("common.noData")}</div> : null}
+            {items.length === 0 ? <div className="p-4 text-sm text-muted-foreground">{String(t("common.noData"))}</div> : null}
         </div>
     );
 }

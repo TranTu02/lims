@@ -87,7 +87,7 @@ function DocumentItem({ doc }: { doc: SnapshotDoc }) {
                     </div>
                     <Button variant="secondary" size="sm" className="h-6 text-[10px] px-2" disabled={urlLoading} onClick={handlePreview}>
                         {urlLoading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Eye className="h-3 w-3 mr-1" />}
-                        {t("common.view")}
+                        {String(t("common.view"))}
                     </Button>
                 </div>
             </div>
@@ -115,7 +115,7 @@ export function ProtocolDetailPanel(props: Props) {
         <div className="w-96 lg:w-[450px] shrink-0 bg-background rounded-lg border border-border overflow-y-auto max-h-[calc(100vh-140px)] sticky top-[72px]">
             <div className="sticky top-0 bg-background border-b border-border px-4 py-3 flex items-start justify-between z-10">
                 <div>
-                    <h2 className="text-base font-semibold text-foreground">{t("library.protocols.detail.generalInfo")}</h2>
+                    <h2 className="text-base font-semibold text-foreground">{String(t("library.protocols.detail.generalInfo"))}</h2>
                     <p className="text-xs text-muted-foreground mt-0.5">{displayProtocol.protocolCode}</p>
                 </div>
                 <div className="flex items-center gap-1">
@@ -139,26 +139,26 @@ export function ProtocolDetailPanel(props: Props) {
                     {/* General Information */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="col-span-1 md:col-span-2">
-                            <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">{t("library.protocols.protocolTitle")}</div>
+                            <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">{String(t("library.protocols.protocolTitle"))}</div>
                             <div className="text-sm text-foreground font-medium mt-1">{displayProtocol.protocolTitle || "-"}</div>
                         </div>
 
                         <div>
-                            <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">{t("library.protocols.protocolCode")}</div>
+                            <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">{String(t("library.protocols.protocolCode"))}</div>
                             <div className="text-sm text-foreground font-medium mt-1 break-words">{displayProtocol.protocolCode}</div>
                         </div>
 
                         <div>
-                            <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">{t("library.protocols.protocolSource")}</div>
+                            <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">{String(t("library.protocols.protocolSource"))}</div>
                             <div className="text-sm text-foreground font-medium mt-1">{displayProtocol.protocolSource}</div>
                         </div>
 
                         <div className="col-span-1 md:col-span-2">
-                            <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">{t("library.protocols.protocolAccreditation.title")}</div>
+                            <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">{String(t("library.protocols.protocolAccreditation.title"))}</div>
                             <div className="mt-1 flex flex-wrap gap-2">
-                                {displayProtocol.protocolAccreditation?.VILAS ? <Badge variant="secondary">{t("library.protocols.protocolAccreditation.vilas")}</Badge> : null}
-                                {displayProtocol.protocolAccreditation?.TDC ? <Badge variant="secondary">{t("library.protocols.protocolAccreditation.tdc")}</Badge> : null}
-                                {!displayProtocol.protocolAccreditation?.VILAS && !displayProtocol.protocolAccreditation?.TDC ? <Badge variant="outline">{t("common.noData")}</Badge> : null}
+                                {displayProtocol.protocolAccreditation?.VILAS ? <Badge variant="secondary">{String(t("library.protocols.protocolAccreditation.vilas"))}</Badge> : null}
+                                {displayProtocol.protocolAccreditation?.TDC ? <Badge variant="secondary">{String(t("library.protocols.protocolAccreditation.tdc"))}</Badge> : null}
+                                {!displayProtocol.protocolAccreditation?.VILAS && !displayProtocol.protocolAccreditation?.TDC ? <Badge variant="outline">{String(t("common.noData"))}</Badge> : null}
                             </div>
                         </div>
                     </div>
@@ -166,7 +166,7 @@ export function ProtocolDetailPanel(props: Props) {
                     {/* Description */}
                     {displayProtocol.protocolDescription && (
                         <div className="space-y-1.5">
-                            <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">{t("library.protocols.detail.description")}</div>
+                            <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">{String(t("library.protocols.detail.description"))}</div>
                             <div className="text-sm text-foreground bg-muted/30 p-2.5 rounded-md border border-border whitespace-pre-wrap">{displayProtocol.protocolDescription}</div>
                         </div>
                     )}
@@ -176,7 +176,7 @@ export function ProtocolDetailPanel(props: Props) {
                         <div className="space-y-1.5">
                             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
                                 <FlaskConical className="h-3 w-3" />
-                                {t("library.protocols.detail.parameters")}
+                                {String(t("library.protocols.detail.parameters"))}
                             </div>
                             <div className="flex flex-wrap gap-1.5 text-sm">
                                 {displayProtocol.parameters?.length
@@ -192,7 +192,7 @@ export function ProtocolDetailPanel(props: Props) {
                         <div className="space-y-1.5">
                             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
                                 <Beaker className="h-3 w-3" />
-                                {t("library.protocols.detail.sampleTypes")}
+                                {String(t("library.protocols.detail.sampleTypes"))}
                             </div>
                             <div className="flex flex-wrap gap-1.5 text-sm">
                                 {displayProtocol.sampleTypes?.length
@@ -208,7 +208,7 @@ export function ProtocolDetailPanel(props: Props) {
 
                     {/* Documents */}
                     <div className="space-y-1.5">
-                        <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">{t("library.protocols.detail.documents")}</div>
+                        <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">{String(t("library.protocols.detail.documents"))}</div>
                         {docsArray.length ? (
                             <div className="grid grid-cols-1 gap-3">
                                 {docsArray.map((doc, idx) => (
@@ -216,7 +216,7 @@ export function ProtocolDetailPanel(props: Props) {
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-sm text-muted-foreground">{t("common.noData")}</div>
+                            <div className="text-sm text-muted-foreground">{String(t("common.noData"))}</div>
                         )}
                     </div>
 
@@ -225,15 +225,15 @@ export function ProtocolDetailPanel(props: Props) {
                         <div className="space-y-1.5">
                             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
                                 <Grid3X3 className="h-3 w-3" />
-                                {t("library.matrices.title")} ({matrices.length})
+                                {String(t("library.matrices.title"))} ({matrices.length})
                             </div>
                             <div className="max-h-[300px] overflow-y-auto border border-border rounded-md">
                                 <table className="w-full text-xs">
                                     <thead className="bg-muted/50 sticky top-0">
                                         <tr>
-                                            <th className="text-left px-2 py-1.5 font-semibold text-muted-foreground">{t("library.matrices.parameterName")}</th>
-                                            <th className="text-left px-2 py-1.5 font-semibold text-muted-foreground">{t("library.matrices.sampleTypeId")}</th>
-                                            <th className="text-right px-2 py-1.5 font-semibold text-muted-foreground">{t("library.matrices.feeAfterTax")}</th>
+                                            <th className="text-left px-2 py-1.5 font-semibold text-muted-foreground">{String(t("library.matrices.parameterName"))}</th>
+                                            <th className="text-left px-2 py-1.5 font-semibold text-muted-foreground">{String(t("library.matrices.sampleTypeId"))}</th>
+                                            <th className="text-right px-2 py-1.5 font-semibold text-muted-foreground">{String(t("library.matrices.feeAfterTax"))}</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-border">

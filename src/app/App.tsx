@@ -22,72 +22,66 @@ import { ParameterGroupsPage } from "@/pages/library/ParameterGroupsPage";
 import { IdentityPage } from "@/pages/IdentityPage";
 import { CRMPage } from "@/pages/crm/CRMPage";
 import { AnalysesPage } from "@/pages/AnalysesPage";
+import { ChemicalInventoryPage } from "@/pages/inventory/chemical/ChemicalInventoryPage";
 
 // Protected Route Wrapper
 const ProtectedRoute = () => {
-  const { user, isGuest, loading } = useAuth();
-  const isAuthenticated = !!user || isGuest;
+    const { user, isGuest, loading } = useAuth();
+    const isAuthenticated = !!user || isGuest;
 
-  if (loading)
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-background text-foreground">
-        Loading...
-      </div>
-    );
+    if (loading) return <div className="h-screen w-full flex items-center justify-center bg-background text-foreground">Loading...</div>;
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+    if (!isAuthenticated) {
+        return <Navigate to="/login" replace />;
+    }
 
-  return <RouterLayout />;
+    return <RouterLayout />;
 };
 
 function App() {
-  return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/login" element={<LoginPage />} />
+    return (
+        <AuthProvider>
+            <BrowserRouter>
+                <Routes>
+                    {/* Public Routes */}
+                    <Route path="/login" element={<LoginPage />} />
 
-          {/* Private Dashboard Routes */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<Navigate to="/reception" replace />} />
+                    {/* Private Dashboard Routes */}
+                    <Route element={<ProtectedRoute />}>
+                        <Route path="/" element={<Navigate to="/reception" replace />} />
 
-            <Route path="/reception" element={<ReceptionPage />} />
-            <Route path="/technician" element={<TechnicianPage />} />
-            <Route path="/manager" element={<LabManagerPage />} />
-            <Route path="/assignment" element={<AssignmentPage />} />
-            <Route path="/handover" element={<HandoverPage />} />
-            <Route path="/stored-samples" element={<StoredSamplesPage />} />
-            <Route path="/analyses" element={<AnalysesPage />} />
-            <Route path="/crm" element={<CRMPage />} />
+                        <Route path="/reception" element={<ReceptionPage />} />
+                        <Route path="/technician" element={<TechnicianPage />} />
+                        <Route path="/manager" element={<LabManagerPage />} />
+                        <Route path="/assignment" element={<AssignmentPage />} />
+                        <Route path="/handover" element={<HandoverPage />} />
+                        <Route path="/stored-samples" element={<StoredSamplesPage />} />
+                        <Route path="/analyses" element={<AnalysesPage />} />
+                        <Route path="/crm" element={<CRMPage />} />
 
-            <Route path="/library" element={<LibraryPage />}>
-              <Route index element={<Navigate to="parameters" replace />} />
+                        <Route path="/library" element={<LibraryPage />}>
+                            <Route index element={<Navigate to="parameters" replace />} />
 
-              <Route path="parameters" element={<ParametersPage />} />
-              <Route path="protocols" element={<ProtocolsPage />} />
-              <Route path="matrices" element={<MatricesPage />} />
-              <Route path="sample-types" element={<SampleTypesPage />} />
-              <Route
-                path="parameter-groups"
-                element={<ParameterGroupsPage />}
-              />
-            </Route>
+                            <Route path="parameters" element={<ParametersPage />} />
+                            <Route path="protocols" element={<ProtocolsPage />} />
+                            <Route path="matrices" element={<MatricesPage />} />
+                            <Route path="sample-types" element={<SampleTypesPage />} />
+                            <Route path="parameter-groups" element={<ParameterGroupsPage />} />
+                        </Route>
 
-            <Route path="/document" element={<DocumentPage />} />
-            <Route path="/inventory" element={<InventoryPage />} />
-            <Route path="/hr" element={<IdentityPage />} />
-          </Route>
+                        <Route path="/document" element={<DocumentPage />} />
+                        <Route path="/inventory" element={<InventoryPage />} />
+                        <Route path="/chemical-inventory" element={<ChemicalInventoryPage />} />
+                        <Route path="/hr" element={<IdentityPage />} />
+                    </Route>
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-        <Toaster position="top-right" expand={true} richColors />
-      </BrowserRouter>
-    </AuthProvider>
-  );
+                    {/* Fallback */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+                <Toaster position="top-right" expand={true} richColors />
+            </BrowserRouter>
+        </AuthProvider>
+    );
 }
 
 export default App;

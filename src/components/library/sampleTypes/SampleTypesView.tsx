@@ -10,7 +10,7 @@ import { useServerPagination } from "../hooks/useServerPagination";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 
 import { SampleTypesTable, type SampleTypesExcelFiltersState } from "./SampleTypesTable";
-import { SampleTypeCreateModal } from "./SampleTypeCreateModal";
+import { SampleTypeFormModal } from "./SampleTypeFormModal";
 import { SampleTypeDetailPanel } from "./SampleTypeDetailPanel";
 
 function Skeleton() {
@@ -98,8 +98,8 @@ export function SampleTypesView() {
                 <div className="bg-background border border-border rounded-lg p-4 flex items-start gap-3">
                     <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
                     <div>
-                        <div className="text-sm font-medium text-foreground">{t("common.errorTitle")}</div>
-                        <div className="text-sm text-muted-foreground">{t("library.sampleTypes.errors.loadFailed")}</div>
+                        <div className="text-sm font-medium text-foreground">{String(t("common.errorTitle"))}</div>
+                        <div className="text-sm text-muted-foreground">{String(t("library.sampleTypes.errors.loadFailed"))}</div>
                     </div>
                 </div>
             ) : null}
@@ -136,7 +136,7 @@ export function SampleTypesView() {
             ) : null}
 
             {createOpen ? (
-                <SampleTypeCreateModal
+                <SampleTypeFormModal
                     onClose={() => {
                         setCreateOpen(false);
                         setEditSampleType(null);

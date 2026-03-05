@@ -52,7 +52,7 @@ export function MatrixDetailPanel(props: Props) {
         <div className="w-96 lg:w-[450px] shrink-0 bg-background rounded-lg border border-border overflow-y-auto max-h-[calc(100vh-140px)] sticky top-[72px]">
             <div className="sticky top-0 bg-background border-b border-border px-4 py-3 flex items-start justify-between z-10">
                 <div>
-                    <h2 className="text-base font-semibold text-foreground">{t("library.matrices.detail.title")}</h2>
+                    <h2 className="text-base font-semibold text-foreground">{String(t("library.matrices.detail.title"))}</h2>
                     <p className="text-xs text-muted-foreground mt-0.5">{matrixId}</p>
                 </div>
 
@@ -69,14 +69,14 @@ export function MatrixDetailPanel(props: Props) {
             </div>
 
             <div className="p-4 space-y-4">
-                {q.isLoading ? <div className="text-sm text-muted-foreground">{t("common.loading")}</div> : null}
+                {q.isLoading ? <div className="text-sm text-muted-foreground">{String(t("common.loading"))}</div> : null}
 
                 {q.isError ? (
                     <div className="flex items-start gap-3 bg-red-50/50 p-3 rounded-md border border-red-100 dark:border-red-900/30 dark:bg-red-900/10">
                         <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
                         <div>
-                            <div className="text-sm font-medium text-destructive">{t("common.errorTitle")}</div>
-                            <div className="text-xs text-destructive/80 mt-1">{t("library.matrices.errors.loadFailed")}</div>
+                            <div className="text-sm font-medium text-destructive">{String(t("common.errorTitle"))}</div>
+                            <div className="text-xs text-destructive/80 mt-1">{String(t("library.matrices.errors.loadFailed"))}</div>
                         </div>
                     </div>
                 ) : null}
@@ -114,20 +114,20 @@ export function MatrixDetailPanel(props: Props) {
                               <div className="space-y-0 relative">
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                       <div className="col-span-1 md:col-span-2">
-                                          <Field label={t("library.matrices.parameterName")} value={parameterLabel} />
+                                          <Field label={String(t("library.matrices.parameterName"))} value={parameterLabel} />
                                       </div>
                                       <div className="col-span-1 md:col-span-2">
-                                          <Field label={t("library.matrices.sampleTypeId")} value={sampleTypeLabel} />
+                                          <Field label={String(t("library.matrices.sampleTypeId"))} value={sampleTypeLabel} />
                                       </div>
                                       <div className="col-span-1 md:col-span-2">
-                                          <Field label={t("library.matrices.protocolCode")} value={protocolLabel} />
+                                          <Field label={String(t("library.matrices.protocolCode"))} value={protocolLabel} />
                                       </div>
                                       <div className="col-span-1 md:col-span-2">
-                                          <Field label={t("library.matrices.protocolSource")} value={protocolSource} />
+                                          <Field label={String(t("library.matrices.protocolSource"))} value={protocolSource} />
                                       </div>
                                       <div className="col-span-1 md:col-span-2">
                                           <Field
-                                              label={t("library.matrices.protocolAccreditation")}
+                                              label={String(t("library.matrices.protocolAccreditation"))}
                                               value={
                                                   hasAcc ? (
                                                       <div className="flex items-center justify-start gap-1.5 mt-1">
@@ -136,7 +136,7 @@ export function MatrixDetailPanel(props: Props) {
                                                       </div>
                                                   ) : (
                                                       <Badge variant="outline" className="font-normal mt-1 text-muted-foreground">
-                                                          {t("common.noData")}
+                                                          {String(t("common.noData"))}
                                                       </Badge>
                                                   )
                                               }
@@ -144,30 +144,30 @@ export function MatrixDetailPanel(props: Props) {
                                       </div>
                                   </div>
 
-                                  <SectionTitle>{t("library.matrices.detail.pricing")}</SectionTitle>
+                                  <SectionTitle>{String(t("library.matrices.detail.pricing"))}</SectionTitle>
                                   <div className="grid grid-cols-2 gap-4 mt-3">
-                                      <Field label={t("library.matrices.feeBeforeTax")} value={feeBeforeTaxText} />
-                                      <Field label={t("library.matrices.taxRate")} value={taxRateText} />
+                                      <Field label={String(t("library.matrices.feeBeforeTax"))} value={feeBeforeTaxText} />
+                                      <Field label={String(t("library.matrices.taxRate"))} value={taxRateText} />
                                       <div className="col-span-1 md:col-span-2">
-                                          <Field label={t("library.matrices.feeAfterTax")} value={<span className="text-primary font-bold">{feeAfterTaxText}</span>} />
+                                          <Field label={String(t("library.matrices.feeAfterTax"))} value={<span className="text-primary font-bold">{feeAfterTaxText}</span>} />
                                       </div>
                                   </div>
 
-                                  <SectionTitle>{t("library.matrices.detail.limits")}</SectionTitle>
+                                  <SectionTitle>{String(t("library.matrices.detail.limits"))}</SectionTitle>
                                   <div className="grid grid-cols-2 gap-4 mt-3">
                                       <Field label="LOD" value={lodText} />
                                       <Field label="LOQ" value={loqText} />
-                                      <Field label={t("library.matrices.thresholdLimit")} value={thresholdText} />
-                                      <Field label={t("library.matrices.turnaroundTime")} value={turnaroundText} />
+                                      <Field label={String(t("library.matrices.thresholdLimit"))} value={thresholdText} />
+                                      <Field label={String(t("library.matrices.turnaroundTime"))} value={turnaroundText} />
                                       <div className="col-span-1 md:col-span-2">
-                                          <Field label={t("library.matrices.technicianGroupId")} value={tgText} />
+                                          <Field label={String(t("library.matrices.technicianGroupId"))} value={tgText} />
                                       </div>
                                   </div>
 
-                                  <SectionTitle>{t("library.matrices.detail.information")}</SectionTitle>
+                                  <SectionTitle>{String(t("library.matrices.detail.information"))}</SectionTitle>
                                   <div className="grid grid-cols-2 gap-4 mt-3 pb-3">
-                                      <Field label={t("common.createdAt")} value={createdAtText} />
-                                      <Field label={t("common.createdById")} value={createdByName} />
+                                      <Field label={String(t("common.createdAt"))} value={createdAtText} />
+                                      <Field label={String(t("common.createdById"))} value={createdByName} />
                                   </div>
                               </div>
                           );
