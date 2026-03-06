@@ -15,7 +15,7 @@ import { useReceiptsFilter } from "@/api/receipts";
 import type { ReceiptListItem, ReceiptStatus } from "@/types/receipt";
 import { useDebouncedValue } from "@/components/library/hooks/useDebouncedValue";
 
-export type TabKey = "processing" | "return-results";
+export type TabKey = "incoming-requests" | "processing" | "return-results";
 
 export type ReceiptExcelFiltersState = {
     receiptStatus: ReceiptStatus[];

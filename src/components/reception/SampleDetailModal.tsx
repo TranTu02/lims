@@ -316,12 +316,12 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
                                     <Label className="text-xs text-muted-foreground">{String(t("lab.samples.sampleNote", { defaultValue: "Ghi chú mẫu" }))}</Label>
                                     {isEditing ? (
                                         <Input
-                                            value={editedSample.sampleNote ?? ""}
+                                            value={String(editedSample.sampleNote ?? "")}
                                             onChange={(e) => setEditedSample({ ...editedSample, sampleNote: e.target.value })}
                                             className="mt-1 h-8 text-sm bg-background"
                                         />
                                     ) : (
-                                        <div className="text-sm font-medium text-foreground mt-1">{sample.sampleNote ?? "-"}</div>
+                                        <div className="text-sm font-medium text-foreground mt-1">{String(sample.sampleNote ?? "-")}</div>
                                     )}
                                 </div>
                             </div>

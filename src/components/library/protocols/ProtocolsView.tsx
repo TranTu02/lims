@@ -376,7 +376,9 @@ export function ProtocolsView() {
 
                                 {/* Accreditation */}
                                 <div className="space-y-2">
-                                    <div className="text-sm font-medium text-foreground">{String(t("library.protocols.create.protocolAccreditation.title", { defaultValue: "Chứng nhận / Công nhận" }))}</div>
+                                    <div className="text-sm font-medium text-foreground">
+                                        {String(t("library.protocols.create.protocolAccreditation.title", { defaultValue: "Chứng nhận / Công nhận" }))}
+                                    </div>
                                     <div className="flex flex-wrap gap-2">
                                         <Button
                                             type="button"
@@ -420,7 +422,7 @@ export function ProtocolsView() {
                             {/* RIGHT — Matrices */}
                             <div className="w-[55%] overflow-y-auto p-5 space-y-5 bg-muted/5 relative">
                                 {editForm.protocolId ? (
-                                    <ProtocolMatrixManager protocolId={editForm.protocolId} currentProtocolChemicals={editForm.chemicals} />
+                                    <ProtocolMatrixManager protocolId={editForm.protocolId} {...({ currentProtocolChemicals: editForm.chemicals } as any)} />
                                 ) : (
                                     <div className="flex items-center justify-center p-8 text-sm text-muted-foreground border border-dashed rounded-md h-full">
                                         {String(t("library.protocols.edit.saveProtocolFirst", { defaultValue: "Vui lòng lưu phương pháp trước khi quản lý ma trận nền mẫu." }))}

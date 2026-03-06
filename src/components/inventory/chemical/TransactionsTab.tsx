@@ -10,17 +10,26 @@ import type { ChemicalTransaction } from "@/types/chemical";
 import { TransactionDetailPanel } from "./TransactionDetailPanel";
 import { Pagination } from "@/components/ui/pagination";
 
-const ACTION_TYPE_MAP: Record<string, { label: string; cls: string }> = {
-    INITIAL_ISSUE: { label: "Xuất ban đầu", cls: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" },
-    SUPPLEMENTAL: { label: "Bổ sung thêm", cls: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300" },
-    RETURN: { label: "Hoàn trả", cls: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
-    WASTE: { label: "Thải bỏ", cls: "bg-gray-200 text-gray-600" },
-    IMPORT: { label: "Nhập kho", cls: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" },
-    EXPORT: { label: "Xuất kho", cls: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" },
-    ADJUSTMENT: { label: "Điều chỉnh", cls: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
-};
-
 function ActionBadge({ type }: { type?: string | null }) {
+    const { t } = useTranslation();
+    const ACTION_TYPE_MAP: Record<string, { label: string; cls: string }> = {
+        INITIAL_ISSUE: {
+            label: t("inventory.chemical.transactions.actionTypeLabels.INITIAL_ISSUE", { defaultValue: "Xuất ban đầu" }),
+            cls: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+        },
+        SUPPLEMENTAL: {
+            label: t("inventory.chemical.transactions.actionTypeLabels.SUPPLEMENTAL", { defaultValue: "Bổ sung thêm" }),
+            cls: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+        },
+        RETURN: { label: t("inventory.chemical.transactions.actionTypeLabels.RETURN", { defaultValue: "Hoàn trả" }), cls: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
+        WASTE: { label: t("inventory.chemical.transactions.actionTypeLabels.WASTE", { defaultValue: "Thải bỏ" }), cls: "bg-gray-200 text-gray-600" },
+        IMPORT: { label: t("inventory.chemical.transactions.actionTypeLabels.IMPORT", { defaultValue: "Nhập kho" }), cls: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" },
+        EXPORT: { label: t("inventory.chemical.transactions.actionTypeLabels.EXPORT", { defaultValue: "Xuất kho" }), cls: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" },
+        ADJUSTMENT: {
+            label: t("inventory.chemical.transactions.actionTypeLabels.ADJUSTMENT", { defaultValue: "Điều chỉnh" }),
+            cls: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+        },
+    };
     const s = type ? ACTION_TYPE_MAP[type] : undefined;
     if (s) return <Badge className={s.cls}>{s.label}</Badge>;
     return <Badge variant="outline">{type ?? "-"}</Badge>;
@@ -67,7 +76,7 @@ export function TransactionsTab() {
                             <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 id="txn-search"
-                                placeholder={String(t("chemical.txnSearchPlaceholder", { defaultValue: "Tìm mã giao dịch, tên hóa chất, CAS, phép thử..." }))}
+                                placeholder={t("inventory.chemical.transactions.searchPlaceholder", { defaultValue: "Tìm mã giao dịch, tên hóa chất, CAS, phép thử..." })}
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -75,7 +84,7 @@ export function TransactionsTab() {
                             />
                         </div>
                         <Button variant="outline" size="sm" type="button" onClick={handleSearch}>
-                            {String(t("common.search", { defaultValue: "Tìm kiếm" }))}
+                            {t("common.search", { defaultValue: "Tìm kiếm" })}
                         </Button>
                     </div>
                 </div>
@@ -86,17 +95,39 @@ export function TransactionsTab() {
                         <table className="w-full text-sm">
                             <thead className="bg-muted/50 border-b border-border sticky top-0 z-10">
                                 <tr>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">Mã Giao Dịch</th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">Mã Phiếu</th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">Hành động</th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">Tên hóa chất</th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">Số CAS</th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">Mã lọ/chai</th>
-                                    <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground whitespace-nowrap">Số lượng</th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">Đơn vị</th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">Phép thử</th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">Ghi chú</th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">Ngày tạo</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.transactions.chemicalTransactionId", { defaultValue: "Mã Giao Dịch" })}
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.transactions.chemicalTransactionBlockId", { defaultValue: "Mã Phiếu" })}
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.transactions.actionType", { defaultValue: "Hành động" })}
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.transactions.chemicalName", { defaultValue: "Tên hóa chất" })}
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.transactions.casNumber", { defaultValue: "Số CAS" })}
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.transactions.chemicalInventoryId", { defaultValue: "Mã lọ/chai" })}
+                                    </th>
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.transactions.changeQty", { defaultValue: "Số lượng" })}
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.transactions.unit", { defaultValue: "Đơn vị" })}
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.transactions.testName", { defaultValue: "Phép thử" })}
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.transactions.note", { defaultValue: "Ghi chú" })}
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.transactions.createdAt", { defaultValue: "Ngày tạo" })}
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
@@ -113,7 +144,7 @@ export function TransactionsTab() {
                                 ) : (result?.data as any[])?.length === 0 ? (
                                     <tr>
                                         <td colSpan={11} className="p-8 text-center text-muted-foreground">
-                                            {String(t("common.noData", { defaultValue: "Không có dữ liệu" }))}
+                                            {t("common.noData", { defaultValue: "Không có dữ liệu" })}
                                         </td>
                                     </tr>
                                 ) : (

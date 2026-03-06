@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { X, Edit, Save, Upload, FileText, Printer, FileCheck, Mail, ChevronLeft, ChevronRight, ImageOff, Camera, Plus, Search } from "lucide-react";
+import { X, Edit, Save, Upload, FileText, Printer, FileCheck, Mail, ChevronLeft, ChevronRight, ImageOff, Camera, Search } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -436,10 +436,6 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
 
         await updateMut.mutateAsync(body);
     };
-
-    // legacy stubs — no longer used (kept to avoid downstream reference errors)
-    const handlePrevImage = handlePrevImg;
-    const handleNextImage = handleNextImg;
 
     const handleEmailChange = useCallback((field: "from" | "to" | "subject" | "content", value: string) => {
         setEmailForm((p) => ({ ...p, [field]: value }));

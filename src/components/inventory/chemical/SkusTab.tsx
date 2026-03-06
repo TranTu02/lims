@@ -7,12 +7,14 @@ import { useChemicalSkusList } from "@/api/chemical";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ChemicalSku } from "@/types/chemical";
 import { SkuDetailPanel } from "./SkuDetailPanel";
+import { SkuEditModal } from "./SkuEditModal";
 import { Pagination } from "@/components/ui/pagination";
 export function SkusTab() {
     const { t } = useTranslation();
     const [search, setSearch] = useState("");
     const [submittedSearch, setSubmittedSearch] = useState("");
     const [activeSku, setActiveSku] = useState<ChemicalSku | null>(null);
+    const [createOpen, setCreateOpen] = useState(false);
     const [page, setPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(20);
 
@@ -36,7 +38,7 @@ export function SkusTab() {
     };
 
     if (error) {
-        return <div className="p-4 text-destructive bg-destructive/10 rounded-md">{(error as any).message || "Failed to load"}</div>;
+        return <div className="p-4 text-destructive bg-destructive/10 rounded-md">{(error as any).message || t("common.loadError", { defaultValue: "Không thể tải dữ liệu" })}</div>;
     }
 
     return (
@@ -49,7 +51,7 @@ export function SkusTab() {
                             <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 id="skus-search"
-                                placeholder="Tìm mã SKU, tên, CAS..."
+                                placeholder={t("inventory.chemical.skus.searchPlaceholder", { defaultValue: "Tìm mã SKU, tên, CAS..." })}
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -57,12 +59,12 @@ export function SkusTab() {
                             />
                         </div>
                         <Button variant="outline" size="sm" type="button" onClick={handleSearch}>
-                            {String(t("common.search", { defaultValue: "Tìm kiếm" }))}
+                            {t("common.search", { defaultValue: "Tìm kiếm" })}
                         </Button>
                     </div>
-                    <Button variant="default" type="button">
+                    <Button variant="default" type="button" onClick={() => setCreateOpen(true)}>
                         <Plus className="h-4 w-4 mr-2" />
-                        {String(t("chemical.addSku", { defaultValue: "Thêm Hóa chất" }))}
+                        {t("inventory.chemical.skus.add", { defaultValue: "Thêm Hóa chất" })}
                     </Button>
                 </div>
 
@@ -72,20 +74,26 @@ export function SkusTab() {
                         <table className="w-full text-sm">
                             <thead className="bg-muted/50 border-b border-border sticky top-0 z-10">
                                 <tr>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">{String(t("chemical.skuId", { defaultValue: "Mã SKU" }))}</th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">{String(t("chemical.casNumber", { defaultValue: "Số CAS" }))}</th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {String(t("chemical.skuName", { defaultValue: "Tên hóa chất" }))}
+                                        {t("inventory.chemical.skus.chemicalSkuId", { defaultValue: "Mã SKU" })}
                                     </th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">{String(t("chemical.baseUnit", { defaultValue: "Đơn vị" }))}</th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {String(t("chemical.hazardClass", { defaultValue: "Phân loại nguy hiểm" }))}
+                                        {t("inventory.chemical.skus.chemicalCASNumber", { defaultValue: "Số CAS" })}
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.skus.chemicalName", { defaultValue: "Tên hóa chất" })}
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.skus.chemicalBaseUnit", { defaultValue: "Đơn vị" })}
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.skus.chemicalHazardClass", { defaultValue: "Phân loại nguy hiểm" })}
                                     </th>
                                     <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {String(t("chemical.totalQty", { defaultValue: "Tổng Tồn C/D" }))}
+                                        {t("inventory.chemical.skus.chemicalTotalAvailableQty", { defaultValue: "Tổng Tồn C/D" })}
                                     </th>
                                     <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {String(t("chemical.reorderLevel", { defaultValue: "Mức tối thiểu" }))}
+                                        {t("inventory.chemical.skus.chemicalReorderLevel", { defaultValue: "Mức tối thiểu" })}
                                     </th>
                                 </tr>
                             </thead>
@@ -103,7 +111,7 @@ export function SkusTab() {
                                 ) : (result?.data as any[])?.length === 0 ? (
                                     <tr>
                                         <td colSpan={7} className="p-6 text-center text-muted-foreground">
-                                            {String(t("common.noData", { defaultValue: "Không có dữ liệu" }))}
+                                            {t("common.noData", { defaultValue: "Không có dữ liệu" })}
                                         </td>
                                     </tr>
                                 ) : (
@@ -145,6 +153,8 @@ export function SkusTab() {
             </div>
 
             {activeSku && <SkuDetailPanel sku={activeSku} onClose={() => setActiveSku(null)} />}
+
+            {createOpen && <SkuEditModal sku={null} onClose={() => setCreateOpen(false)} />}
         </div>
     );
 }

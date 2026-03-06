@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { chemicalApi, useChemicalCreateTransactionBlock, useChemicalTransactionBlocksList } from "@/api/chemical";
@@ -7,25 +7,46 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, X, Package } from "lucide-react";
+import { Plus, Search, X, Package, Printer, Scan } from "lucide-react";
+import { toast } from "sonner";
+import { useQrScanner } from "@/hooks/useQrScanner";
 import type { ChemicalTransactionBlock, ChemicalInventory } from "@/types/chemical";
 import { TransactionBlockDetailPanel } from "./TransactionBlockDetailPanel";
 import { Pagination } from "@/components/ui/pagination";
+import { InventoryEditModal } from "./InventoryEditModal";
+import { PrintLabelModal } from "./PrintLabelModal";
+import { AllocateStockModal } from "./AllocateStockModal";
 
 // --- Helper ---
-const BLOCK_TYPE_MAP: Record<string, { label: string; cls: string }> = {
-    IMPORT: { label: "Nhập kho", cls: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" },
-    EXPORT: { label: "Xuất kho", cls: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" },
-    ADJUSTMENT: { label: "Điều chỉnh", cls: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
-};
+function BlockStatusBadge({ status }: { status?: string | null }) {
+    const { t } = useTranslation();
+    const BLOCK_STATUS_MAP: Record<string, { label: string; cls: string }> = {
+        DRAFT: { label: t("inventory.chemical.transactionBlocks.statusLabels.DRAFT", { defaultValue: "Nháp" }), cls: "bg-muted text-muted-foreground" },
+        PENDING_APPROVAL: {
+            label: t("inventory.chemical.transactionBlocks.statusLabels.PENDING_APPROVAL", { defaultValue: "Chờ duyệt" }),
+            cls: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
+        },
+        APPROVED: { label: t("inventory.chemical.transactionBlocks.statusLabels.APPROVED", { defaultValue: "Đã duyệt" }), cls: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" },
+        REJECTED: { label: t("inventory.chemical.transactionBlocks.statusLabels.REJECTED", { defaultValue: "Từ chối" }), cls: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" },
+    };
+    const s = status ? BLOCK_STATUS_MAP[status] : undefined;
+    if (s) return <Badge className={s.cls}>{s.label}</Badge>;
+    return <Badge variant="outline">{status ?? "-"}</Badge>;
+}
 
 function BlockBadge({ type }: { type?: string | null }) {
+    const { t } = useTranslation();
+    const BLOCK_TYPE_MAP: Record<string, { label: string; cls: string }> = {
+        IMPORT: { label: t("inventory.chemical.transactionBlocks.types.INBOUND", { defaultValue: "Nhập kho" }), cls: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" },
+        EXPORT: { label: t("inventory.chemical.transactionBlocks.types.OUTBOUND", { defaultValue: "Xuất kho" }), cls: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" },
+        ADJUSTMENT: { label: t("inventory.chemical.transactionBlocks.types.ADJUSTMENT", { defaultValue: "Điều chỉnh" }), cls: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
+    };
     const s = type ? BLOCK_TYPE_MAP[type] : undefined;
     if (s) return <Badge className={s.cls}>{s.label}</Badge>;
     return <Badge variant="outline">{type ?? "-"}</Badge>;
 }
 
-// --- Import modal ---
+// --- Inventory Picker Modal ---
 type InventoryPickerProps = {
     selectedIds: string[];
     onToggle: (inv: ChemicalInventory) => void;
@@ -33,13 +54,13 @@ type InventoryPickerProps = {
 };
 
 function InventoryPickerModal({ selectedIds, onToggle, onClose }: InventoryPickerProps) {
+    const { t } = useTranslation();
     const [invSearch, setInvSearch] = useState("");
     const { data: invResult, isLoading: invLoading } = useQuery({
         queryKey: chemicalKeys.inventories.list(invSearch || undefined),
         queryFn: async () => {
             const res = await chemicalApi.inventories.list(invSearch ? { query: { search: invSearch } } : undefined);
             if (!res.success && (res as any).statusCode !== 404) throw new Error(res.error?.message || "Error");
-            // res.data is { data: [...], meta: ... } — extract the inner array
             const inner = res.data as any;
             if (Array.isArray(inner)) return inner as ChemicalInventory[];
             if (inner?.data && Array.isArray(inner.data)) return inner.data as ChemicalInventory[];
@@ -47,34 +68,94 @@ function InventoryPickerModal({ selectedIds, onToggle, onClose }: InventoryPicke
         },
     });
 
+    const [createOpen, setCreateOpen] = useState(false);
+    const [isScanningPicker, setIsScanningPicker] = useState(false);
+
+    // Global QR scanner: khi quét trong picker, tự động chọn nếu tìm thấy
+    useQrScanner(
+        async (scannedId) => {
+            // Nếu picker đang mở và không phải đang trong một input → tìm và chọn
+            const existing = (invResult as ChemicalInventory[] | undefined)?.find((inv) => inv.chemicalInventoryId === scannedId);
+            if (existing) {
+                onToggle(existing);
+                return;
+            }
+            // Không có trong kết quả hiện tại → fetch trực tiếp
+            setIsScanningPicker(true);
+            try {
+                const res = await chemicalApi.inventories.full({ id: scannedId });
+                if (res.success && res.data) {
+                    onToggle(res.data as ChemicalInventory);
+                } else {
+                    toast.error(t("inventory.chemical.inventories.notFound", { defaultValue: "Không tìm thấy mã: {{id}}", id: scannedId }));
+                }
+            } finally {
+                setIsScanningPicker(false);
+            }
+        },
+        { enabled: !createOpen },
+    );
+
     return (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center" onClick={onClose}>
-            <div className="bg-background rounded-xl shadow-2xl border border-border w-[680px] max-h-[75vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+            <div className="bg-background rounded-xl shadow-2xl border border-border flex flex-col" style={{ width: "50%", height: "70%", minWidth: "700px" }} onClick={(e) => e.stopPropagation()}>
                 <div className="px-4 py-3 border-b border-border flex items-center justify-between">
                     <div>
-                        <h3 className="text-base font-semibold">Chọn hóa chất xuất kho</h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">Chọn một hoặc nhiều lọ/chai để thêm vào phiếu</p>
+                        <h3 className="text-base font-semibold">{t("inventory.chemical.inventories.selectFromStock", { defaultValue: "Chọn hóa chất từ kho" })}</h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                            {t("inventory.chemical.inventories.selectFromStockDesc", { defaultValue: "Chọn một hoặc nhiều lọ/chai để thêm vào phiếu" })}
+                        </p>
                     </div>
                     <button type="button" onClick={onClose} className="p-1.5 hover:bg-muted rounded-md transition-colors">
                         <X className="h-4 w-4" />
                     </button>
                 </div>
-                <div className="p-3 border-b border-border">
-                    <div className="relative">
-                        <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                        <Input placeholder="Tìm barcode, mã SKU, số lô..." value={invSearch} onChange={(e) => setInvSearch(e.target.value)} className="pl-8" id="inv-picker-search" />
+                <div className="p-3 border-b border-border flex items-center gap-2">
+                    <div className="relative flex-1">
+                        {isScanningPicker ? (
+                            <div className="flex items-center h-9 px-3 text-sm text-muted-foreground bg-muted rounded-md gap-2">
+                                <Scan className="h-4 w-4 animate-pulse text-primary" />
+                                {t("common.scanning", { defaultValue: "Đang quét..." })}
+                            </div>
+                        ) : (
+                            <>
+                                <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                    placeholder={t("inventory.chemical.inventories.searchPlaceholder", { defaultValue: "Tìm barcode, mã SKU, số lô..." })}
+                                    value={invSearch}
+                                    onChange={(e) => setInvSearch(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" && invResult && (invResult as any[]).length === 1) {
+                                            onToggle((invResult as any[])[0]);
+                                            setInvSearch("");
+                                        }
+                                    }}
+                                    className="pl-8"
+                                    id="inv-picker-search"
+                                />
+                            </>
+                        )}
                     </div>
+                    <Button type="button" variant="outline" onClick={() => setCreateOpen(true)} className="shrink-0">
+                        <Plus className="h-4 w-4 mr-1" /> {t("common.add", { defaultValue: "Thêm" })} {t("inventory.chemical.tabs.inventories", { defaultValue: "Lọ mới" })}
+                    </Button>
                 </div>
                 <div className="flex-1 overflow-y-auto">
                     <table className="w-full text-sm">
                         <thead className="bg-muted/50 sticky top-0 border-b border-border">
                             <tr>
                                 <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground w-8"></th>
-                                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Barcode / ID</th>
-                                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Mã SKU</th>
-                                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Số Lô</th>
-                                <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground">Tồn hiện tại</th>
-                                <th className="px-3 py-2 text-center text-xs font-medium text-muted-foreground">Trạng thái</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                                    {t("inventory.chemical.inventories.chemicalInventoryId", { defaultValue: "Barcode / ID" })}
+                                </th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">{t("inventory.chemical.inventories.chemicalSkuId", { defaultValue: "Mã SKU" })}</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">{t("inventory.chemical.inventories.lotNumber", { defaultValue: "Số Lô" })}</th>
+                                <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground">
+                                    {t("inventory.chemical.inventories.currentAvailableQty", { defaultValue: "Tồn hiện tại" })}
+                                </th>
+                                <th className="px-3 py-2 text-center text-xs font-medium text-muted-foreground">
+                                    {t("inventory.chemical.inventories.chemicalInventoryStatus", { defaultValue: "Trạng thái" })}
+                                </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -104,7 +185,7 @@ function InventoryPickerModal({ selectedIds, onToggle, onClose }: InventoryPicke
                                               <td className="px-3 py-2 text-muted-foreground">{inv.lotNumber ?? "-"}</td>
                                               <td className="px-3 py-2 text-right font-medium">{inv.currentAvailableQty ?? 0}</td>
                                               <td className="px-3 py-2 text-center">
-                                                  <Badge variant="outline">{inv.inventoryStatus ?? "-"}</Badge>
+                                                  <Badge variant="outline">{inv.chemicalInventoryStatus ?? "-"}</Badge>
                                               </td>
                                           </tr>
                                       );
@@ -112,108 +193,304 @@ function InventoryPickerModal({ selectedIds, onToggle, onClose }: InventoryPicke
                         </tbody>
                     </table>
                 </div>
-                <div className="px-4 py-3 border-t border-border flex items-center justify-between">
+                <div className="px-4 py-3 border-t border-border flex items-center justify-between mt-auto shrink-0">
                     <span className="text-sm text-muted-foreground">
-                        Đã chọn: <strong>{selectedIds.length}</strong>
+                        {t("common.selectedCount", { defaultValue: "Đã chọn" })}: <strong>{selectedIds.length}</strong>
                     </span>
                     <Button type="button" onClick={onClose} size="sm">
-                        Xác nhận
+                        {t("common.confirm", { defaultValue: "Xác nhận" })}
                     </Button>
+                </div>
+            </div>
+
+            {/* Create inline */}
+            {createOpen && <InventoryEditModal inventory={null} onClose={() => setCreateOpen(false)} />}
+        </div>
+    );
+}
+
+// --- Item Card (for 2-column layout) ---
+export type EditLineItem = {
+    id: string; // unique string e.g. Math.random().toString()
+    inventory: ChemicalInventory;
+    changeQty: number;
+    analysisId: string;
+    chemicalTransactionBlockDetailNote: string;
+};
+
+type ItemCardProps = {
+    item: EditLineItem;
+    transactionType: string;
+    onUpdate: (field: "changeQty" | "chemicalTransactionBlockDetailNote" | "analysisId", value: any) => void;
+    onRemove: () => void;
+    onDuplicate: () => void;
+};
+
+function ItemCard({ item, transactionType, onUpdate, onRemove, onDuplicate }: ItemCardProps) {
+    const { t } = useTranslation();
+    const inv = item.inventory;
+    return (
+        <div className="border border-border rounded-lg p-3 bg-background space-y-2 relative group">
+            {/* Header */}
+            <div className="flex items-start justify-between">
+                <div className="min-w-0">
+                    <div className="font-medium text-sm truncate">{inv.chemicalSkuId ?? "Unknown SKU"}</div>
+                    <div className="text-[10px] font-mono text-muted-foreground">
+                        ID: {inv.chemicalInventoryId} | {t("inventory.chemical.inventories.lotNumber", { defaultValue: "Lô" })}: {inv.lotNumber ?? "-"}
+                    </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs text-muted-foreground">
+                        {t("inventory.dashboard.table.stock", { defaultValue: "Tồn" })}: <strong className="text-foreground">{inv.currentAvailableQty}</strong>
+                    </span>
+                    <button
+                        type="button"
+                        onClick={onDuplicate}
+                        className="text-muted-foreground hover:text-primary transition-colors opacity-0 group-hover:opacity-100"
+                        title={t("common.duplicate", { defaultValue: "Thêm chỉ tiêu khác" })}
+                    >
+                        <Plus className="h-3.5 w-3.5" />
+                    </button>
+                    <button type="button" onClick={onRemove} className="text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100">
+                        <X className="h-3.5 w-3.5" />
+                    </button>
+                </div>
+            </div>
+            {/* Fields */}
+            <div className={`grid gap-2 items-end ${transactionType === "EXPORT" ? "grid-cols-3" : "grid-cols-2"}`}>
+                <div className="space-y-0.5">
+                    <label className="text-[10px] font-medium text-muted-foreground uppercase">{t("common.quantity", { defaultValue: "Số lượng" })}</label>
+                    <Input
+                        type="number"
+                        className="h-8 text-xs"
+                        placeholder="0"
+                        value={item.changeQty ?? ""}
+                        onChange={(e) => onUpdate("changeQty", e.target.value === "" ? "" : parseFloat(e.target.value))}
+                    />
+                </div>
+                {transactionType === "EXPORT" && (
+                    <div className="space-y-0.5">
+                        <label className="text-[10px] font-medium text-muted-foreground uppercase">{t("lab.analyses.parameterId", { defaultValue: "Chỉ tiêu" })}</label>
+                        <Input
+                            className="h-8 text-xs"
+                            placeholder={t("inventory.chemical.allocateStock.analysisIdPlaceholder", { defaultValue: "Mã PT..." })}
+                            value={item.analysisId || ""}
+                            onChange={(e) => onUpdate("analysisId", e.target.value)}
+                        />
+                    </div>
+                )}
+                <div className="space-y-0.5">
+                    <label className="text-[10px] font-medium text-muted-foreground uppercase">{t("common.note", { defaultValue: "Ghi chú" })}</label>
+                    <Input
+                        className="h-8 text-xs"
+                        placeholder={t("common.note", { defaultValue: "Ghi chú..." })}
+                        value={item.chemicalTransactionBlockDetailNote || ""}
+                        onChange={(e) => onUpdate("chemicalTransactionBlockDetailNote", e.target.value)}
+                    />
                 </div>
             </div>
         </div>
     );
 }
 
-// --- Create Block Modal ---
-type CreateBlockModalProps = { onClose: () => void };
+// --- Create Block Modal (80% w, 90% h, 2-col ≥1536px) ---
+type CreateBlockModalProps = {
+    onClose: () => void;
+    initialType?: "IMPORT" | "EXPORT" | "ADJUSTMENT";
+    initialItems?: ChemicalInventory[];
+    initialTxnData?: Record<string, { changeQty: number; chemicalTransactionBlockDetailNote: string; analysisId?: string }>;
+    initialRef?: string;
+};
 
-function CreateBlockModal({ onClose }: CreateBlockModalProps) {
-    const [transactionType, setTransactionType] = useState<"IMPORT" | "EXPORT" | "ADJUSTMENT">("EXPORT");
-    const [referenceDocument, setReferenceDocument] = useState("");
-    const [selectedInventories, setSelectedInventories] = useState<ChemicalInventory[]>([]);
-    const [txnData, setTxnData] = useState<Record<string, { changeQty: number; note: string; analysisId?: string }>>({});
+function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, initialRef }: CreateBlockModalProps) {
+    const { t } = useTranslation();
+    const [transactionType, setTransactionType] = useState<"IMPORT" | "EXPORT" | "ADJUSTMENT">(initialType ?? "EXPORT");
+    const [referenceDocument, setReferenceDocument] = useState(initialRef ?? "");
+    const [viewMode, setViewMode] = useState<"DETAILS" | "SUMMARY">("DETAILS");
+
+    const [lineItems, setLineItems] = useState<EditLineItem[]>(() => {
+        if (initialItems && initialItems.length > 0) {
+            return initialItems.map((inv) => ({
+                id: crypto.randomUUID(),
+                inventory: inv,
+                changeQty: initialTxnData?.[inv.chemicalInventoryId]?.changeQty ?? 0,
+                analysisId: initialTxnData?.[inv.chemicalInventoryId]?.analysisId ?? "",
+                chemicalTransactionBlockDetailNote: initialTxnData?.[inv.chemicalInventoryId]?.chemicalTransactionBlockDetailNote ?? "",
+            }));
+        }
+        return [];
+    });
+
     const [pickerOpen, setPickerOpen] = useState(false);
+    const [printLabelOpen, setPrintLabelOpen] = useState(false);
+    const [isScanning, setIsScanning] = useState(false);
+
+    const summaryItems = useMemo(() => {
+        const map = new Map<string, { inventory: ChemicalInventory; totalQty: number; analyses: Set<string> }>();
+        lineItems.forEach((item) => {
+            const key = item.inventory.chemicalInventoryId;
+            if (!map.has(key)) {
+                map.set(key, { inventory: item.inventory, totalQty: 0, analyses: new Set() });
+            }
+            const data = map.get(key)!;
+            data.totalQty += item.changeQty || 0;
+            if (item.analysisId) data.analyses.add(item.analysisId);
+        });
+        return Array.from(map.values());
+    }, [lineItems]);
+
+    const handleQrScan = useCallback(
+        async (scannedId: string) => {
+            setIsScanning(true);
+            try {
+                const res = await chemicalApi.inventories.full({ id: scannedId });
+                if (res.success && res.data) {
+                    const inv = res.data as ChemicalInventory;
+                    setLineItems((prev) => [
+                        ...prev,
+                        {
+                            id: crypto.randomUUID(),
+                            inventory: inv,
+                            changeQty: 0,
+                            analysisId: "",
+                            chemicalTransactionBlockDetailNote: "",
+                        },
+                    ]);
+                    toast.success(t("inventory.chemical.inventories.addedByScan", { defaultValue: "Đã thêm: {{id}}", id: scannedId }));
+                } else {
+                    toast.error(t("inventory.chemical.inventories.notFound", { defaultValue: "Không tìm thấy mã: {{id}}", id: scannedId }));
+                }
+            } catch {
+                toast.error(t("common.error", { defaultValue: "Có lỗi xảy ra" }));
+            } finally {
+                setIsScanning(false);
+            }
+        },
+        [t],
+    );
+
+    // Global QR scanner – kích hoạt khi modal đang mở và picker chưa mở
+    useQrScanner(handleQrScan, { enabled: !pickerOpen && !printLabelOpen });
 
     const createMutation = useChemicalCreateTransactionBlock();
 
+    const BLOCK_TYPE_MAP: Record<string, { label: string; cls: string }> = {
+        IMPORT: {
+            label: t("inventory.chemical.transactionBlocks.types.INBOUND", { defaultValue: "Nhập kho" }),
+            cls: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+        },
+        EXPORT: {
+            label: t("inventory.chemical.transactionBlocks.types.OUTBOUND", { defaultValue: "Xuất kho" }),
+            cls: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+        },
+        ADJUSTMENT: {
+            label: t("inventory.chemical.transactionBlocks.types.ADJUSTMENT", { defaultValue: "Điều chỉnh" }),
+            cls: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+        },
+    };
+
     const toggleInventory = (inv: ChemicalInventory) => {
-        setSelectedInventories((prev) => {
-            const exists = prev.some((p) => p.chemicalInventoryId === inv.chemicalInventoryId);
+        setLineItems((prev) => {
+            const exists = prev.some((p) => p.inventory.chemicalInventoryId === inv.chemicalInventoryId);
             if (exists) {
-                return prev.filter((p) => p.chemicalInventoryId !== inv.chemicalInventoryId);
-            } else {
-                return [...prev, inv];
+                return prev.filter((p) => p.inventory.chemicalInventoryId !== inv.chemicalInventoryId);
             }
+            return [
+                ...prev,
+                {
+                    id: crypto.randomUUID(),
+                    inventory: inv,
+                    changeQty: 0,
+                    analysisId: "",
+                    chemicalTransactionBlockDetailNote: "",
+                },
+            ];
         });
     };
 
-    const removeInventory = (id: string) => {
-        setSelectedInventories((prev) => prev.filter((p) => p.chemicalInventoryId !== id));
+    const duplicateItem = (sourceId: string) => {
+        setLineItems((prev) => {
+            const idx = prev.findIndex((p) => p.id === sourceId);
+            if (idx === -1) return prev;
+            const item = prev[idx];
+            const newArr = [...prev];
+            newArr.splice(idx + 1, 0, {
+                ...item,
+                id: crypto.randomUUID(),
+                analysisId: "", // Reset analysis for the clone
+            });
+            return newArr;
+        });
     };
 
-    const updateTxn = (id: string, field: "changeQty" | "note" | "analysisId", value: any) => {
-        setTxnData((prev) => ({
-            ...prev,
-            [id]: {
-                ...(prev[id] || { changeQty: 0, note: "", analysisId: "" }),
-                [field]: value,
-            },
-        }));
+    const removeLineItem = (id: string) => setLineItems((prev) => prev.filter((p) => p.id !== id));
+
+    const updateLineItem = (id: string, field: keyof Omit<EditLineItem, "id" | "inventory">, value: any) => {
+        setLineItems((prev) => prev.map((p) => (p.id === id ? { ...p, [field]: value } : p)));
     };
 
     const handleSubmit = async () => {
         const payload = {
-            chemicalTransactionBlock: {
-                transactionType,
-                referenceDocument,
-            },
-            chemicalTransactions: selectedInventories.map((inv) => ({
-                chemicalInventoryId: inv.chemicalInventoryId,
-                chemicalSkuId: inv.chemicalSkuId,
-                chemicalName: (inv as any).chemicalSku?.chemicalName || "",
-                casNumber: (inv as any).chemicalSku?.chemicalCASNumber || "",
-                changeQty:
-                    transactionType === "EXPORT"
-                        ? -Math.abs(txnData[inv.chemicalInventoryId]?.changeQty || 0)
-                        : transactionType === "IMPORT"
-                          ? Math.abs(txnData[inv.chemicalInventoryId]?.changeQty || 0)
-                          : txnData[inv.chemicalInventoryId]?.changeQty || 0,
-                note: txnData[inv.chemicalInventoryId]?.note || "",
-                analysisId: txnData[inv.chemicalInventoryId]?.analysisId || "",
-                unit: (inv as any).chemicalSku?.chemicalBaseUnit || "",
-                actionType: transactionType === "IMPORT" ? "INITIAL_ISSUE" : transactionType === "EXPORT" ? "SUPPLEMENTAL" : "ADJUSTMENT",
-            })),
+            chemicalTransactionBlock: { transactionType, referenceDocument },
+            chemicalTransactions: lineItems.map((item) => {
+                const inv = item.inventory;
+                return {
+                    chemicalInventoryId: inv.chemicalInventoryId,
+                    chemicalSkuId: inv.chemicalSkuId,
+                    chemicalName: (inv as any).chemicalSku?.chemicalName || "",
+                    casNumber: (inv as any).chemicalSku?.chemicalCASNumber || "",
+                    changeQty: transactionType === "EXPORT" ? -Math.abs(item.changeQty || 0) : transactionType === "IMPORT" ? Math.abs(item.changeQty || 0) : item.changeQty || 0,
+                    chemicalTransactionNote: item.chemicalTransactionBlockDetailNote || "",
+                    chemicalTransactionBlockDetailNote: item.chemicalTransactionBlockDetailNote || "",
+                    analysisId: item.analysisId || "",
+                    chemicalTransactionUnit: (inv as any).chemicalSku?.chemicalBaseUnit || "",
+                    chemicalTransactionBlockDetailUnit: (inv as any).chemicalSku?.chemicalBaseUnit || "",
+                    actionType: transactionType === "IMPORT" ? "INITIAL_ISSUE" : transactionType === "EXPORT" ? "SUPPLEMENTAL" : "ADJUSTMENT",
+                };
+            }),
         };
 
         createMutation.mutate(
             { body: payload as any },
             {
-                onSuccess: () => onClose(),
+                onSuccess: () => {
+                    if (transactionType === "IMPORT" && lineItems.length > 0) {
+                        // Auto-open print label after import
+                        setPrintLabelOpen(true);
+                    } else {
+                        onClose();
+                    }
+                },
             },
         );
     };
 
     return (
         <>
-            <div className="fixed inset-0 z-40 bg-black/50 flex items-center justify-center" onClick={onClose}>
-                <div className="bg-background rounded-xl shadow-2xl border border-border w-[800px] max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="fixed inset-0 z-40 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+                <div
+                    className="bg-background rounded-xl shadow-2xl border border-border flex flex-col"
+                    style={{ width: "80%", height: "90%", maxWidth: "1600px" }}
+                    onClick={(e) => e.stopPropagation()}
+                >
                     {/* Header */}
-                    <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+                    <div className="px-5 py-4 border-b border-border flex items-center justify-between shrink-0">
                         <div>
-                            <h3 className="text-base font-semibold">Tạo phiếu Xuất/Nhập Kho</h3>
-                            <p className="text-xs text-muted-foreground mt-0.5">Chọn loại phiếu và điền số lượng tương ứng</p>
+                            <h3 className="text-base font-semibold">{t("inventory.chemical.transactionBlocks.create", { defaultValue: "Tạo phiếu Xuất/Nhập Kho" })}</h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                {t("inventory.chemical.transactionBlocks.createDesc", { defaultValue: "Chọn loại phiếu và điền số lượng tương ứng" })}
+                            </p>
                         </div>
                         <button type="button" onClick={onClose} className="p-1.5 hover:bg-muted rounded-md transition-colors">
                             <X className="h-4 w-4" />
                         </button>
                     </div>
 
-                    <div className="p-5 space-y-5 flex-1 overflow-y-auto">
-                        {/* Loại phiếu */}
+                    <div className="flex-1 overflow-y-auto p-5 space-y-5">
+                        {/* Type + Reference */}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                                <label className="text-sm font-medium">Loại phiếu</label>
+                                <label className="text-sm font-medium">{t("inventory.chemical.transactionBlocks.type", { defaultValue: "Loại phiếu" })}</label>
                                 <div className="flex gap-2">
                                     {(["IMPORT", "EXPORT", "ADJUSTMENT"] as const).map((type) => (
                                         <button
@@ -229,113 +506,173 @@ function CreateBlockModal({ onClose }: CreateBlockModalProps) {
                                     ))}
                                 </div>
                             </div>
-
                             <div className="space-y-1.5">
                                 <label className="text-sm font-medium" htmlFor="ref-doc">
-                                    Số chứng từ tham chiếu
+                                    {t("inventory.chemical.transactionBlocks.referenceCode", { defaultValue: "Số chứng từ tham chiếu" })}
                                 </label>
-                                <Input id="ref-doc" placeholder="VD: PO-2024-001, REQUEST-002..." value={referenceDocument} onChange={(e) => setReferenceDocument(e.target.value)} />
+                                <Input
+                                    id="ref-doc"
+                                    placeholder={t("inventory.chemical.transactionBlocks.referenceCodePlaceholder", { defaultValue: "VD: PO-2024-001, REQUEST-002..." })}
+                                    value={referenceDocument}
+                                    onChange={(e) => setReferenceDocument(e.target.value)}
+                                />
                             </div>
                         </div>
 
-                        {/* Danh sách chai/lọ */}
+                        {/* Item list */}
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
-                                <label className="text-sm font-medium flex items-center gap-1.5">
-                                    <Package className="h-4 w-4 text-muted-foreground" />
-                                    Danh sách {transactionType === "EXPORT" ? "xuất" : transactionType === "IMPORT" ? "nhập" : "điều chỉnh"}
-                                </label>
-                                <Button type="button" variant="outline" size="sm" onClick={() => setPickerOpen(true)}>
-                                    <Plus className="h-4 w-4 mr-1" /> Chọn hóa chất từ kho
-                                </Button>
+                                <div className="flex items-center gap-4">
+                                    <label className="text-sm font-medium flex items-center gap-1.5">
+                                        <Package className="h-4 w-4 text-muted-foreground" />
+                                        {t("common.list", { defaultValue: "Danh sách" })}{" "}
+                                        {transactionType === "EXPORT"
+                                            ? t("inventory.chemical.transactionBlocks.types.OUTBOUND", { defaultValue: "xuất" })
+                                            : transactionType === "IMPORT"
+                                              ? t("inventory.chemical.transactionBlocks.types.INBOUND", { defaultValue: "nhập" })
+                                              : t("inventory.chemical.transactionBlocks.types.ADJUSTMENT", { defaultValue: "điều chỉnh" })}
+                                        <Badge variant="secondary" className="ml-1 rounded-full">
+                                            {lineItems.length}
+                                        </Badge>
+                                    </label>
+
+                                    <div className="flex items-center bg-muted p-0.5 rounded-md">
+                                        <button
+                                            type="button"
+                                            onClick={() => setViewMode("DETAILS")}
+                                            className={`px-3 py-1 text-xs font-medium rounded-sm transition-colors ${viewMode === "DETAILS" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                                        >
+                                            {t("common.details", { defaultValue: "Chi tiết" })}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setViewMode("SUMMARY")}
+                                            className={`px-3 py-1 text-xs font-medium rounded-sm transition-colors ${viewMode === "SUMMARY" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                                        >
+                                            {t("common.summary", { defaultValue: "Tổng hợp" })}
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {/* QR scan indicator - no input needed, scanner works globally */}
+                                    <div
+                                        className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                                            isScanning ? "border-primary/50 bg-primary/5 text-primary" : "border-border text-muted-foreground bg-muted/30"
+                                        }`}
+                                    >
+                                        <Scan className={`h-3.5 w-3.5 ${isScanning ? "animate-pulse" : ""}`} />
+                                        <span>
+                                            {isScanning
+                                                ? t("inventory.chemical.inventories.scanning", { defaultValue: "Đang xử lý..." })
+                                                : t("inventory.chemical.inventories.scanReady", { defaultValue: "Sẵn sàng quét QR" })}
+                                        </span>
+                                    </div>
+                                    <Button type="button" variant="outline" size="sm" onClick={() => setPickerOpen(true)}>
+                                        <Plus className="h-4 w-4 mr-1" /> {t("inventory.chemical.inventories.selectFromStock", { defaultValue: "Chọn từ kho" })}
+                                    </Button>
+                                </div>
                             </div>
 
-                            {selectedInventories.length > 0 ? (
-                                <div className="border border-border rounded-lg overflow-hidden">
-                                    <table className="w-full text-sm">
-                                        <thead className="bg-muted/50 border-b border-border">
-                                            <tr>
-                                                <th className="px-3 py-2 text-left font-medium text-muted-foreground">Hóa chất / Barcode</th>
-                                                <th className="px-3 py-2 text-right font-medium text-muted-foreground w-20">Tồn</th>
-                                                <th className="px-3 py-2 text-left font-medium text-muted-foreground w-24">Số lượng</th>
-                                                {transactionType === "EXPORT" && <th className="px-3 py-2 text-left font-medium text-muted-foreground w-32">Chỉ tiêu xuất</th>}
-                                                <th className="px-3 py-2 text-left font-medium text-muted-foreground">Ghi chú</th>
-                                                <th className="px-3 py-2 text-center w-10"></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-border">
-                                            {selectedInventories.map((inv) => (
-                                                <tr key={inv.chemicalInventoryId} className="hover:bg-muted/10 transition-colors">
-                                                    <td className="px-3 py-2">
-                                                        <div className="font-medium">{inv.chemicalSkuId}</div>
-                                                        <div className="text-[10px] font-mono text-muted-foreground">
-                                                            ID: {inv.chemicalInventoryId} | Lô: {inv.lotNumber}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-3 py-2 text-right font-mono">{inv.currentAvailableQty}</td>
-                                                    <td className="px-3 py-2">
-                                                        <Input
-                                                            type="number"
-                                                            className="h-8 text-sm"
-                                                            placeholder="SL"
-                                                            value={txnData[inv.chemicalInventoryId]?.changeQty ?? ""}
-                                                            onChange={(e) => updateTxn(inv.chemicalInventoryId, "changeQty", e.target.value === "" ? "" : parseFloat(e.target.value))}
-                                                        />
-                                                    </td>
-                                                    {transactionType === "EXPORT" && (
-                                                        <td className="px-3 py-2">
-                                                            <Input
-                                                                className="h-8 text-sm"
-                                                                placeholder="Mã phân tích..."
-                                                                value={txnData[inv.chemicalInventoryId]?.analysisId || ""}
-                                                                onChange={(e) => updateTxn(inv.chemicalInventoryId, "analysisId", e.target.value)}
-                                                            />
-                                                        </td>
-                                                    )}
-                                                    <td className="px-3 py-2">
-                                                        <Input
-                                                            className="h-8 text-sm"
-                                                            placeholder="Ghi chú..."
-                                                            value={txnData[inv.chemicalInventoryId]?.note || ""}
-                                                            onChange={(e) => updateTxn(inv.chemicalInventoryId, "note", e.target.value)}
-                                                        />
-                                                    </td>
-                                                    <td className="px-3 py-2 text-center">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => removeInventory(inv.chemicalInventoryId)}
-                                                            className="text-muted-foreground hover:text-destructive transition-colors"
-                                                        >
-                                                            <X className="h-4 w-4" />
-                                                        </button>
-                                                    </td>
+                            {lineItems.length > 0 ? (
+                                viewMode === "DETAILS" ? (
+                                    <div className="grid grid-cols-1 2xl:grid-cols-2 gap-3 max-h-[calc(100vh-380px)] overflow-y-auto pr-1">
+                                        {lineItems.map((item) => (
+                                            <ItemCard
+                                                key={item.id}
+                                                item={item}
+                                                transactionType={transactionType}
+                                                onUpdate={(field, value) => updateLineItem(item.id, field, value)}
+                                                onRemove={() => removeLineItem(item.id)}
+                                                onDuplicate={() => duplicateItem(item.id)}
+                                            />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="border border-border rounded-lg overflow-hidden max-h-[calc(100vh-380px)] overflow-y-auto">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-muted text-xs text-muted-foreground uppercase sticky top-0 z-10">
+                                                <tr>
+                                                    <th className="px-4 py-2 font-medium text-left">Chai/Lọ (ID)</th>
+                                                    <th className="px-4 py-2 font-medium text-left">SKU</th>
+                                                    <th className="px-4 py-2 font-medium text-left">Lô</th>
+                                                    <th className="px-4 py-2 font-medium text-left">Các Chỉ Tiêu (Analyses)</th>
+                                                    <th className="px-4 py-2 font-medium text-right">Tổng Giao Dịch</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                            </thead>
+                                            <tbody className="divide-y divide-border bg-background">
+                                                {summaryItems.map((sum) => (
+                                                    <tr key={sum.inventory.chemicalInventoryId} className="hover:bg-muted/50">
+                                                        <td className="px-4 py-2 font-mono text-xs">{sum.inventory.chemicalInventoryId}</td>
+                                                        <td className="px-4 py-2">{sum.inventory.chemicalSkuId || "-"}</td>
+                                                        <td className="px-4 py-2">{sum.inventory.lotNumber || "-"}</td>
+                                                        <td className="px-4 py-2 max-w-[200px] truncate" title={Array.from(sum.analyses).join(", ")}>
+                                                            {sum.analyses.size > 0 ? Array.from(sum.analyses).join(", ") : "-"}
+                                                        </td>
+                                                        <td className="px-4 py-2 text-right font-medium text-primary">{transactionType === "EXPORT" ? -Math.abs(sum.totalQty) : sum.totalQty}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )
                             ) : (
-                                <div className="border border-dashed border-border rounded-lg p-8 text-center text-muted-foreground text-sm bg-muted/20">Chưa có hóa chất nào được chọn</div>
+                                <div className="border border-dashed border-border rounded-lg p-8 text-center text-muted-foreground text-sm bg-muted/20">
+                                    {t("inventory.chemical.transactionBlocks.emptyItems", { defaultValue: 'Chưa có hóa chất nào được chọn. Nhấn "Chọn hóa chất từ kho" để bắt đầu.' })}
+                                </div>
                             )}
                         </div>
                     </div>
 
                     {/* Footer */}
-                    <div className="px-5 py-3.5 border-t border-border flex items-center justify-end gap-2">
-                        <Button type="button" variant="outline" onClick={onClose}>
-                            Hủy
-                        </Button>
-                        <Button type="button" onClick={handleSubmit} disabled={selectedInventories.length === 0 || createMutation.isPending}>
-                            {createMutation.isPending ? "Đang xử lý..." : "Tạo phiếu & Giao dịch"}
-                        </Button>
+                    <div className="px-5 py-3.5 border-t border-border flex items-center justify-between shrink-0">
+                        <div className="text-xs text-muted-foreground">
+                            {lineItems.length > 0 && t("common.itemsSelectedCount", { count: lineItems.length, defaultValue: `${lineItems.length} mục đã chọn` })}
+                        </div>
+                        <div className="flex gap-2">
+                            {transactionType === "IMPORT" && lineItems.length > 0 && (
+                                <Button type="button" variant="outline" onClick={() => setPrintLabelOpen(true)}>
+                                    <Printer className="h-4 w-4 mr-2" /> {t("inventory.chemical.transactionBlocks.printLabel", { defaultValue: "In Tem" })}
+                                </Button>
+                            )}
+                            <Button type="button" variant="outline" onClick={onClose}>
+                                {t("common.cancel", { defaultValue: "Hủy" })}
+                            </Button>
+                            <Button type="button" onClick={handleSubmit} disabled={lineItems.length === 0 || createMutation.isPending}>
+                                {createMutation.isPending
+                                    ? t("common.processing", { defaultValue: "Đang xử lý..." })
+                                    : t("inventory.chemical.transactionBlocks.createAndSubmit", { defaultValue: "Tạo phiếu & Giao dịch" })}
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {pickerOpen && <InventoryPickerModal selectedIds={selectedInventories.map((i) => i.chemicalInventoryId)} onToggle={toggleInventory} onClose={() => setPickerOpen(false)} />}
+            {pickerOpen && (
+                <InventoryPickerModal selectedIds={Array.from(new Set(lineItems.map((i) => i.inventory.chemicalInventoryId)))} onToggle={toggleInventory} onClose={() => setPickerOpen(false)} />
+            )}
+
+            {printLabelOpen && (
+                <PrintLabelModal
+                    items={summaryItems.map((sum) => ({
+                        chemicalInventoryId: sum.inventory.chemicalInventoryId,
+                        chemicalSkuId: sum.inventory.chemicalSkuId,
+                        chemicalName: (sum.inventory as any).chemicalSku?.chemicalName,
+                        chemicalCASNumber: (sum.inventory as any).chemicalSku?.chemicalCASNumber,
+                        lotNumber: sum.inventory.lotNumber,
+                        manufacturerName: sum.inventory.manufacturerName,
+                    }))}
+                    onClose={() => {
+                        setPrintLabelOpen(false);
+                        onClose();
+                    }}
+                />
+            )}
         </>
     );
 }
+
+// Export for reuse (e.g., from AuditBlocksTab)
+export { CreateBlockModal };
 
 // --- Main Tab ---
 export function TransactionBlocksTab() {
@@ -344,6 +681,7 @@ export function TransactionBlocksTab() {
     const [submittedSearch, setSubmittedSearch] = useState("");
     const [activeBlock, setActiveBlock] = useState<ChemicalTransactionBlock | null>(null);
     const [createOpen, setCreateOpen] = useState(false);
+    const [allocateOpen, setAllocateOpen] = useState(false);
     const [page, setPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(20);
 
@@ -352,13 +690,7 @@ export function TransactionBlocksTab() {
         isLoading,
         error,
     } = useChemicalTransactionBlocksList({
-        query: {
-            search: submittedSearch,
-            page,
-            itemsPerPage,
-            sortColumn: "createdAt",
-            sortDirection: "DESC",
-        },
+        query: { search: submittedSearch, page, itemsPerPage, sortColumn: "createdAt", sortDirection: "DESC" },
     });
 
     const handleSearch = () => {
@@ -381,7 +713,7 @@ export function TransactionBlocksTab() {
                                 <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                                 <Input
                                     id="blocks-search"
-                                    placeholder="Tìm mã phiếu, tham chiếu..."
+                                    placeholder={t("inventory.chemical.transactionBlocks.searchPlaceholder", { defaultValue: "Tìm mã phiếu, tham chiếu..." })}
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
                                     onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -389,12 +721,16 @@ export function TransactionBlocksTab() {
                                 />
                             </div>
                             <Button variant="outline" size="sm" type="button" onClick={handleSearch}>
-                                {String(t("common.search", { defaultValue: "Tìm kiếm" }))}
+                                {t("common.search", { defaultValue: "Tìm kiếm" })}
                             </Button>
                         </div>
                         <Button variant="default" type="button" onClick={() => setCreateOpen(true)}>
                             <Plus className="h-4 w-4 mr-2" />
-                            Tạo phiếu Xuất/Nhập
+                            {t("inventory.chemical.transactionBlocks.create", { defaultValue: "Tạo phiếu Xuất/Nhập" })}
+                        </Button>
+                        <Button variant="secondary" type="button" onClick={() => setAllocateOpen(true)}>
+                            <Package className="h-4 w-4 mr-2" />
+                            {t("inventory.chemical.transactionBlocks.allocate", { defaultValue: "Cấp phát tự động (FEFO)" })}
                         </Button>
                     </div>
 
@@ -404,18 +740,31 @@ export function TransactionBlocksTab() {
                             <table className="w-full text-sm">
                                 <thead className="bg-muted/50 border-b border-border sticky top-0 z-10">
                                     <tr>
-                                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">Mã Phiếu</th>
-                                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">Loại phiếu</th>
-                                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">Ngày tạo</th>
-                                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">Người tạo</th>
-                                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">Số chứng từ</th>
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                            {String(t("inventory.chemical.transactionBlocks.blockId", { defaultValue: "Mã Phiếu" }))}
+                                        </th>
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                            {String(t("inventory.chemical.transactionBlocks.type", { defaultValue: "Loại phiếu" }))}
+                                        </th>
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                            {String(t("inventory.chemical.transactionBlocks.status", { defaultValue: "Trạng thái" }))}
+                                        </th>
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                            {String(t("inventory.chemical.transactionBlocks.createdAt", { defaultValue: "Ngày tạo" }))}
+                                        </th>
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                            {String(t("inventory.chemical.transactionBlocks.createdBy", { defaultValue: "Người tạo" }))}
+                                        </th>
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                            {String(t("inventory.chemical.transactionBlocks.reference", { defaultValue: "Số chứng từ" }))}
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border">
                                     {isLoading ? (
                                         Array.from({ length: 5 }).map((_, i) => (
                                             <tr key={i}>
-                                                {Array.from({ length: 5 }).map((__, j) => (
+                                                {Array.from({ length: 6 }).map((__, j) => (
                                                     <td key={j} className="p-3">
                                                         <Skeleton className="h-4 w-24" />
                                                     </td>
@@ -424,7 +773,7 @@ export function TransactionBlocksTab() {
                                         ))
                                     ) : result?.data?.length === 0 ? (
                                         <tr>
-                                            <td colSpan={5} className="p-6 text-center text-muted-foreground">
+                                            <td colSpan={6} className="p-6 text-center text-muted-foreground">
                                                 {String(t("common.noData", { defaultValue: "Không có dữ liệu" }))}
                                             </td>
                                         </tr>
@@ -439,8 +788,11 @@ export function TransactionBlocksTab() {
                                                 <td className="px-3 py-2 whitespace-nowrap">
                                                     <BlockBadge type={block.transactionType} />
                                                 </td>
+                                                <td className="px-3 py-2 whitespace-nowrap">
+                                                    <BlockStatusBadge status={block.chemicalTransactionBlockStatus} />
+                                                </td>
                                                 <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{block.createdAt ? new Date(block.createdAt).toLocaleString("vi-VN") : "-"}</td>
-                                                <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{block.createdBy ?? "-"}</td>
+                                                <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{block.createdBy ?? block.createdById ?? "-"}</td>
                                                 <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{block.referenceDocument ?? "-"}</td>
                                             </tr>
                                         ))
@@ -449,7 +801,6 @@ export function TransactionBlocksTab() {
                             </table>
                         </div>
 
-                        {/* Pagination */}
                         {result?.pagination && (
                             <Pagination
                                 currentPage={page}
@@ -470,6 +821,7 @@ export function TransactionBlocksTab() {
             </div>
 
             {createOpen && <CreateBlockModal onClose={() => setCreateOpen(false)} />}
+            {allocateOpen && <AllocateStockModal onClose={() => setAllocateOpen(false)} />}
         </>
     );
 }

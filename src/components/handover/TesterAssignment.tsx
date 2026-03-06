@@ -26,8 +26,6 @@ interface TesterGroup {
     members: string[];
 }
 
-const parameterGroups = ["Định tính dược liệu", "Ô nhiễm", "Kim loại", "Dinh dưỡng", "Hoá lý cơ bản", "Vi sinh"];
-
 const mockAnalyses: Analysis[] = [
     {
         id: "a1",

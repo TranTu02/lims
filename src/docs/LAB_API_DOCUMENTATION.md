@@ -58,8 +58,8 @@ Authorization: Bearer {authToken}
             "requestId": "REQ26d0504",
             "requestDate": "2026-01-21T08:00:00.000Z",
             "senderInfo": {
-                "name": "Grab Driver",
-                "phone": "0911222333"
+                "senderName": "Grab Driver",
+                "senderPhone": "0911222333"
             },
             "requestContent": "Yêu cầu kiểm nghiệm mẫu nước thải công nghiệp",
             "documentIds": null,
@@ -118,8 +118,8 @@ Authorization: Bearer {authToken}
     "requestId": "REQ26d0504",
     "requestDate": "2026-01-21T08:00:00.000Z",
     "senderInfo": {
-        "name": "Grab Driver",
-        "phone": "0911222333"
+        "senderName": "Grab Driver",
+        "senderPhone": "0911222333"
     },
     "requestContent": "Yêu cầu kiểm nghiệm mẫu nước thải công nghiệp",
     "documentIds": null,
@@ -176,8 +176,8 @@ Authorization: Bearer {authToken}
 {
     "requestContent": "Yêu cầu kiểm nghiệm mới",
     "senderInfo": {
-        "name": "Nguyễn Văn A",
-        "phone": "0909123456"
+        "senderName": "Nguyễn Văn A",
+        "senderPhone": "0909123456"
     }
 }
 ```
@@ -238,9 +238,10 @@ Authorization: Bearer {authToken}
 
 - `page` (number): Page number (default: 1)
 - `itemsPerPage` (number): Items per page (default: 20)
-- `searchTerm` (string): Optional search text
+- `search` (string): Optional search text
 - `sortColumn` (string): Column to sort by (default: "createdAt")
 - `sortDirection` (string): Sort direction "ASC" or "DESC" (default: "DESC")
+- `option` (string): "pkey" | "detail" (default) | "full"
 
 **Response Structure**:
 
@@ -248,24 +249,13 @@ Authorization: Bearer {authToken}
 {
     "data": [
         {
-            "entity": {
-                "type": "staff"
-            },
             "receiptId": "REC26d2403",
+            "receiptCode": "...",
             "receiptStatus": "Received",
             "receiptDate": "2026-02-24T00:00:00.000Z",
             "clientId": "CLI26020502",
             "createdAt": "2026-02-24T01:48:05.485Z",
-            "createdById": "USR-MGR-011",
-            "modifiedAt": "2026-02-24T01:48:05.485Z",
-            "modifiedById": "USR-MGR-011",
-            "isBlindCoded": false,
             "createdBy": {
-                "identityId": "USR-MGR-011",
-                "identityName": "Lý Văn Minh",
-                "alias": "IT_LEAD"
-            },
-            "modifiedBy": {
                 "identityId": "USR-MGR-011",
                 "identityName": "Lý Văn Minh",
                 "alias": "IT_LEAD"
@@ -289,47 +279,17 @@ Authorization: Bearer {authToken}
 
 ```json
 {
-    "entity": {
-        "type": "staff"
-    },
-    "receiptDate": "2026-02-13T08:30:09.916Z",
-    "createdById": "IDx873e4",
-    "modifiedById": "IDx873e4",
-    "contactPerson": {
-        "name": "Nguyễn Văn Năm",
-        "email": "bika.nam9690@gmail.com",
-        "phone": "0989983320",
-        "legalId": "026090002865"
-    },
-    "client": {
-        "legalId": "0110188869",
-        "clientName": "CÔNG TY CỔ PHẦN DƯỢC PHẨM BIKA PHARMA",
-        "clientPhone": "0989983320",
-        "invoiceInfo": "CÔNG TY CỔ PHẦN DƯỢC PHẨM BIKA PHARMA - Khu Aluzon ô HTKT, cụm công nghiệp Nguyên Khê, xã Phúc Thịnh, Thành phố Hà Nội, Việt Nam - MST: 0110188869",
-        "invoiceEmail": "bika.nam9690@gmail.com",
-        "clientAddress": "Khu Aluzon ô HTKT, cụm công nghiệp Nguyên Khê, xã Phúc Thịnh, Thành phố Hà Nội, Việt Nam"
-    },
-    "orderId": "DH26D0333",
-    "id": "TNM26d1328",
     "receiptId": "TNM26d1328",
+    "receiptCode": "...",
+    "receiptStatus": "Pending",
+    "receiptDate": "2026-02-13T08:30:09.916Z",
+    "receiptDeadline": "2026-03-09T07:00:00.000Z",
+    "orderId": "DH26D0333",
+    "clientId": "CLI26020502",
+    "client": { ... },
+    "contactPerson": { ... },
     "createdAt": "2026-02-13T08:30:09.926Z",
-    "modifiedAt": "2026-02-13T08:30:09.926Z",
-    "deadline": "2026-03-09T07:00:00.000Z",
-    "_deprecated_requestNumber": "26d1328",
-    "paymentStatus": 1,
-    "_deprecated_recordCode": "26d1328",
-    "reportRecipient": {
-        "name": "",
-        "email": "bika.nam9690@gmail.com",
-        "other": "",
-        "address": "Khu Aluzon ô HTKT, cụm công nghiệp Nguyên Khê, xã Phúc Thịnh, Thành phố Hà Nội, Việt Nam"
-    },
     "createdBy": {
-        "identityId": "IDx873e4",
-        "identityName": "Duy Thị Kim Huyền",
-        "alias": null
-    },
-    "modifiedBy": {
         "identityId": "IDx873e4",
         "identityName": "Duy Thị Kim Huyền",
         "alias": null
@@ -337,15 +297,33 @@ Authorization: Bearer {authToken}
 }
 ```
 
-### 3.3 Get Processing Receipts
+### 3.3 Get Full Receipt (Including Samples & Analyses)
+
+**Endpoint**: `GET /v2/receipts/get/full?receiptId={receiptId}`
+
+**Response Structure**:
+
+```json
+{
+    "receiptId": "REC26c0601",
+    "samples": [ ... ]
+}
+```
+
+### 3.4 Get Processing Receipts (Worklist)
 
 **Endpoint**: `GET /v2/receipts/get/processing`
 
-**Purpose**: Get pending and processing receipts.
+**Purpose**: Returns a list of receipts that are currently being processed (Pending, InProgress, Completed) within a specific timeframe (default: 60 days).
 
-**Response Structure**: `200 OK` - Returns list of processing Receipt objects.
+**Query Parameters**:
 
-### 3.4 Create Receipt
+- `page`, `itemsPerPage`, `search`, `sortColumn`, `sortDirection`
+- `days` (number): Number of days to look back (default: 60)
+
+**Response Structure**: Similar to `Get Receipt List` but with full nested data for each receipt.
+
+### 3.5 Create Receipt (Standard)
 
 **Endpoint**: `POST /v2/receipts/create`
 
@@ -354,14 +332,43 @@ Authorization: Bearer {authToken}
 ```json
 {
     "clientId": "CLI26020502",
-    "receiptStatus": "Pending",
-    "deadline": "2026-03-09T07:00:00.000Z"
+    "receiptStatus": "Received",
+    "receiptDeadline": "2026-03-09T07:00:00.000Z"
 }
 ```
 
-**Response Structure**: `200 OK` - Returns the newly created Receipt object.
+**Response Structure**: `200 OK` - Returns the newly created Receipt object (standard detail).
 
-### 3.5 Update Receipt
+### 3.6 Create Full Receipt (Atomic)
+
+**Endpoint**: `POST /v2/receipts/create/full`
+
+**Description**: Creates a Receipt along with its Samples and Analyses in a single transaction.
+
+**Request Body Example**:
+
+```json
+{
+    "clientId": "CLI26020502",
+    "receiptStatus": "Received",
+    "samples": [
+        {
+            "sampleTypeId": "ST0032",
+            "sampleName": "Mẫu Nước Sinh Hoạt",
+            "analyses": [
+                {
+                    "matrixId": "MX001",
+                    "parameterName": "pH"
+                }
+            ]
+        }
+    ]
+}
+```
+
+**Response Structure**: `200 OK` - Returns the complete Receipt object with nested `samples` and `analyses`.
+
+### 3.7 Update Receipt
 
 **Endpoint**: `POST /v2/receipts/update`
 
@@ -376,7 +383,7 @@ Authorization: Bearer {authToken}
 
 **Response Structure**: `200 OK` - Returns the updated Receipt object.
 
-### 3.6 Delete Receipt
+### 3.8 Delete Receipt
 
 **Endpoint**: `POST /v2/receipts/delete`
 
@@ -395,7 +402,7 @@ Authorization: Bearer {authToken}
     "success": true,
     "id": "TNM26d1328",
     "status": "Deleted",
-    "details": true
+    "details": { ... }
 }
 ```
 
@@ -457,9 +464,9 @@ Authorization: Bearer {authToken}
 }
 ```
 
-### 4.2 Get Sample Detail
+### 3.2 Get Sample Detail
 
-**Endpoint**: `GET /v2/samples/get/detail?sampleId={sampleId}`
+**Endpoint**: `GET /v2/samples/get/{sampleId}`
 
 **Response Structure**:
 
@@ -522,7 +529,7 @@ Authorization: Bearer {authToken}
 }
 ```
 
-### 4.3 Get Processing Samples (Worklist)
+### 3.3 Get Processing Samples (Worklist)
 
 **Endpoint**: `GET /v2/samples/get/processing`
 
@@ -785,9 +792,9 @@ Authorization: Bearer {authToken}
 }
 ```
 
-### 5.2 Get Analysis Detail
+### 4.2 Get Analysis Detail
 
-**Endpoint**: `GET /v2/analyses/get/detail?analysisId={analysisId}`
+**Endpoint**: `GET /v2/analyses/get/{analysisId}`
 
 **Response Structure**:
 
@@ -902,7 +909,7 @@ Authorization: Bearer {authToken}
 }
 ```
 
-### 5.3 Get Processing Tests (Worklist)
+### 4.3 Get Processing Tests (Worklist)
 
 **Endpoint**: `GET /v2/analyses/get/processing`
 
@@ -1031,7 +1038,7 @@ Authorization: Bearer {authToken}
 }
 ```
 
-### 5.4 Get Filter Options
+### 4.4 Get Filter Options
 
 **Endpoint**: `GET /v2/analyses/get/filteroptions`
 
@@ -1144,7 +1151,7 @@ Authorization: Bearer {authToken}
 
 ### 6.2 Get Report Detail
 
-**Endpoint**: `GET /v2/reports/get/detail?reportId={reportId}`
+**Endpoint**: `GET /v2/reports/get/{reportId}`
 
 **Response Structure**:
 

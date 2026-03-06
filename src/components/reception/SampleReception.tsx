@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Search, AlertCircle, Truck, Package, Plus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Search, AlertCircle, Truck, Package, Plus, Inbox } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Input } from "@/components/ui/input";
@@ -9,9 +9,13 @@ import { Pagination } from "@/components/ui/pagination";
 import { ReceiptDetailModal } from "@/components/reception/ReceiptDetailModal";
 import { CreateReceiptModal } from "@/components/reception/CreateReceiptModal";
 import { ReceiptDeleteModal } from "@/components/reception/ReceiptDeleteModal";
+import { IncomingRequestsTable } from "@/components/reception/IncomingRequestsTable";
+import { IncomingRequestDetailModal } from "@/components/reception/IncomingRequestDetailModal";
 
 import { receiptsGetFull, useReceiptsProcessing, useReceiptsList } from "@/api/receipts";
-import type { ReceiptDetail, ReceiptListItem, ReceiptStatus } from "@/types/receipt";
+import { useIncomingRequestsList } from "@/api/incomingRequests";
+import type { ReceiptDetail, ReceiptListItem } from "@/types/receipt";
+import type { IncomingRequestListItem } from "@/types/incomingRequest";
 
 import { useServerPagination } from "@/components/library/hooks/useServerPagination";
 import { useDebouncedValue } from "@/components/library/hooks/useDebouncedValue";
@@ -32,15 +36,10 @@ function isOverdue(deadlineIso?: string | null): boolean {
     return tt < Date.now();
 }
 
-function applyLocalFilters(items: ReceiptListItem[], f: ReceiptExcelFiltersState): ReceiptListItem[] {
-    // Not used locally anymore, but kept for signature compatibility
-    return items;
-}
-
 export function SampleReception() {
     const { t } = useTranslation();
 
-    const [activeTab, setActiveTab] = useState<TabKey>("processing");
+    const [activeTab, setActiveTab] = useState<TabKey>("incoming-requests");
     const [searchTerm, setSearchTerm] = useState("");
     const debouncedSearch = useDebouncedValue(searchTerm, 300);
 
@@ -49,12 +48,34 @@ export function SampleReception() {
     const [deleteReceiptId, setDeleteReceiptId] = useState<string | null>(null);
     const [openingReceiptId, setOpeningReceiptId] = useState<string | null>(null);
 
+    // Fast-convert & Detail modal state
+    const [convertingRequest, setConvertingRequest] = useState<IncomingRequestListItem | null>(null);
+    const [viewingRequestId, setViewingRequestId] = useState<string | null>(null);
+
     const [excelFilters, setExcelFilters] = useState<ReceiptExcelFiltersState>(() => createEmptyFilters());
     const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);
 
     const [serverTotalPages, setServerTotalPages] = useState<number | null>(null);
     const pagination = useServerPagination(serverTotalPages, 10);
 
+    const isIncomingTab = activeTab === "incoming-requests";
+    const isProcessingTab = activeTab === "processing";
+
+    // ── Incoming Requests Query ──────────────────────────────────────────────
+    const incomingInput = useMemo(
+        () => ({
+            query: {
+                page: pagination.currentPage,
+                itemsPerPage: pagination.itemsPerPage,
+                search: debouncedSearch.trim().length ? debouncedSearch.trim() : undefined,
+            },
+        }),
+        [pagination.currentPage, pagination.itemsPerPage, debouncedSearch],
+    );
+
+    const incomingQ = useIncomingRequestsList(incomingInput, { enabled: isIncomingTab });
+
+    // ── Receipts Queries ─────────────────────────────────────────────────────
     const listInput = useMemo(() => {
         const otherFilters: Array<{ filterFrom: string; filterValues: string[] }> = [];
         if (excelFilters.receiptStatus.length > 0) {
@@ -75,17 +96,22 @@ export function SampleReception() {
         };
     }, [pagination.currentPage, pagination.itemsPerPage, debouncedSearch, excelFilters]);
 
-    const isProcessingTab = activeTab === "processing";
-
     const receiptsProcessingQ = useReceiptsProcessing(listInput, { enabled: isProcessingTab });
-    const receiptsListQ = useReceiptsList(listInput, { enabled: !isProcessingTab });
+    const receiptsListQ = useReceiptsList(listInput, { enabled: !isProcessingTab && !isIncomingTab });
 
-    const activeQuery = isProcessingTab ? receiptsProcessingQ : receiptsListQ;
+    // ── Active data ──────────────────────────────────────────────────────────
+    const activeQuery = isIncomingTab ? incomingQ : isProcessingTab ? receiptsProcessingQ : receiptsListQ;
 
     const pageItems = useMemo(() => (activeQuery.data?.data ?? []) as ReceiptListItem[], [activeQuery.data]);
+    const incomingItems = useMemo(() => (incomingQ.data?.data ?? []) as IncomingRequestListItem[], [incomingQ.data]);
 
-    const totalItems = activeQuery.data?.meta?.total ?? pageItems.length;
-    const totalPages = Math.max(1, activeQuery.data?.meta?.totalPages ?? Math.ceil(totalItems / pagination.itemsPerPage));
+    const totalItems = isIncomingTab
+        ? (((incomingQ.data?.pagination as Record<string, unknown>)?.total as number) ?? ((incomingQ.data?.pagination as Record<string, unknown>)?.totalItems as number) ?? incomingItems.length)
+        : ((activeQuery.data as { meta?: { total?: number; totalPages?: number } })?.meta?.total ?? pageItems.length);
+
+    const totalPages = isIncomingTab
+        ? (((incomingQ.data?.pagination as Record<string, unknown>)?.totalPages as number) ?? 1)
+        : Math.max(1, (activeQuery.data as { meta?: { total?: number; totalPages?: number } })?.meta?.totalPages ?? Math.ceil(totalItems / pagination.itemsPerPage));
 
     useEffect(() => {
         setServerTotalPages(totalPages);
@@ -139,6 +165,12 @@ export function SampleReception() {
 
             <ReceiptDeleteModal open={deleteReceiptId !== null} receiptId={deleteReceiptId} onClose={() => setDeleteReceiptId(null)} onDeleted={() => {}} />
 
+            {/* Create Receipt from Incoming Request */}
+            {convertingRequest && <CreateReceiptModal initialIncomingRequest={convertingRequest} onClose={() => setConvertingRequest(null)} onCreated={() => setConvertingRequest(null)} />}
+
+            {/* Incoming Request Detail Modal */}
+            {viewingRequestId && <IncomingRequestDetailModal requestId={viewingRequestId} onClose={() => setViewingRequestId(null)} />}
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="bg-card rounded-lg border border-border p-4">
                     <div className="text-sm text-muted-foreground">{t("reception.sampleReception.metrics.totalReceipts")}</div>
@@ -164,6 +196,21 @@ export function SampleReception() {
             <div className="bg-card rounded-lg border border-border p-4">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-3">
                     <div className="flex gap-2 bg-muted/50 p-1 rounded-lg">
+                        {/* ── Tab: Yêu cầu tiếp nhận ──────────────────── */}
+                        <Button
+                            variant={activeTab === "incoming-requests" ? "secondary" : "ghost"}
+                            size="sm"
+                            onClick={() => {
+                                setActiveTab("incoming-requests");
+                                pagination.resetPage();
+                            }}
+                            className={`flex items-center gap-2 ${activeTab === "incoming-requests" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}
+                        >
+                            <Inbox className="h-4 w-4" />
+                            {t("reception.sampleReception.tabs.incomingRequests", { defaultValue: "Yêu cầu tiếp nhận" })} {activeTab === "incoming-requests" ? `(${totalItems})` : ""}
+                        </Button>
+
+                        {/* ── Tab: Đang xử lý ─────────────────────────── */}
                         <Button
                             variant={activeTab === "processing" ? "secondary" : "ghost"}
                             size="sm"
@@ -174,9 +221,10 @@ export function SampleReception() {
                             className={`flex items-center gap-2 ${activeTab === "processing" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}
                         >
                             <Package className="h-4 w-4" />
-                            {t("reception.sampleReception.tabs.processing")} ({totalItems})
+                            {t("reception.sampleReception.tabs.processing")} {activeTab === "processing" ? `(${totalItems})` : ""}
                         </Button>
 
+                        {/* ── Tab: Trả kết quả ────────────────────────── */}
                         <Button
                             variant={activeTab === "return-results" ? "secondary" : "ghost"}
                             size="sm"
@@ -187,7 +235,7 @@ export function SampleReception() {
                             className={`flex items-center gap-2 ${activeTab === "return-results" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}
                         >
                             <Truck className="h-4 w-4" />
-                            {t("reception.sampleReception.tabs.returnResults")} ({totalItems})
+                            {t("reception.sampleReception.tabs.returnResults")} {activeTab === "return-results" ? `(${totalItems})` : ""}
                         </Button>
                     </div>
 
@@ -202,10 +250,12 @@ export function SampleReception() {
                             />
                         </div>
 
-                        <Button variant="default" className="flex items-center gap-2" onClick={() => setIsCreateReceiptModalOpen(true)}>
-                            <Plus className="h-4 w-4" />
-                            {t("reception.sampleReception.actions.createReceipt")}
-                        </Button>
+                        {!isIncomingTab && (
+                            <Button variant="default" className="flex items-center gap-2" onClick={() => setIsCreateReceiptModalOpen(true)}>
+                                <Plus className="h-4 w-4" />
+                                {t("reception.sampleReception.actions.createReceipt")}
+                            </Button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -229,20 +279,31 @@ export function SampleReception() {
 
             {!isLoading && !isError ? (
                 <div className="bg-card rounded-lg border border-border overflow-hidden">
-                    <ReceiptsTable
-                        items={pageItems}
-                        activeTab={activeTab}
-                        selectedRowKey={selectedRowKey}
-                        onSelectRow={(rowKey, receiptId) => {
-                            setSelectedRowKey(rowKey);
-                            void openReceipt(receiptId);
-                        }}
-                        onView={(id) => void openReceipt(id)}
-                        onDelete={(id) => setDeleteReceiptId(id)}
-                        excelFilters={excelFilters}
-                        onExcelFiltersChange={onExcelFiltersChange}
-                        openingReceiptId={openingReceiptId}
-                    />
+                    {isIncomingTab ? (
+                        /* ── Incoming Requests Table ── */
+                        <IncomingRequestsTable
+                            items={incomingItems}
+                            isLoading={isLoading}
+                            onConvert={(item) => setConvertingRequest(item)}
+                            onViewDetail={(requestId) => setViewingRequestId(requestId)}
+                        />
+                    ) : (
+                        /* ── Receipts Table ── */
+                        <ReceiptsTable
+                            items={pageItems}
+                            activeTab={activeTab}
+                            selectedRowKey={selectedRowKey}
+                            onSelectRow={(rowKey, receiptId) => {
+                                setSelectedRowKey(rowKey);
+                                void openReceipt(receiptId);
+                            }}
+                            onView={(id) => void openReceipt(id)}
+                            onDelete={(id) => setDeleteReceiptId(id)}
+                            excelFilters={excelFilters}
+                            onExcelFiltersChange={onExcelFiltersChange}
+                            openingReceiptId={openingReceiptId}
+                        />
+                    )}
 
                     <div>
                         <Pagination
@@ -256,6 +317,9 @@ export function SampleReception() {
                     </div>
                 </div>
             ) : null}
+
+            {/* Rendering Incoming Request Detail Modal */}
+            {viewingRequestId && <IncomingRequestDetailModal requestId={viewingRequestId} onClose={() => setViewingRequestId(null)} />}
         </div>
     );
 }

@@ -12,15 +12,17 @@ Tài liệu này mô tả chi tiết toàn bộ các component UI trong module Q
 
 File: `ChemicalInventoryLayout.tsx`
 
-Đây là component bố cục (layout) chính chứa hệ thống **5 tab điều hướng** của module:
+Đây là component bố cục (layout) chính chứa hệ thống **7 tab điều hướng** của module:
 
-| Tab             | Component              | Mô tả                      |
-| --------------- | ---------------------- | -------------------------- |
-| Hóa chất (SKU)  | `SkusTab`              | Danh mục hóa chất tổng hợp |
-| Nhà cung cấp    | `SuppliersTab`         | Quản lý nhà cung cấp       |
-| Lọ/Chai         | `InventoriesTab`       | Tồn kho vật lý từng chai   |
-| Phiếu xuất/nhập | `TransactionBlocksTab` | Phiếu giao dịch (Header)   |
-| Lịch sử GD      | `TransactionsTab`      | Log chi tiết giao dịch     |
+| Tab              | Component              | Mô tả                      |
+| ---------------- | ---------------------- | -------------------------- |
+| Hóa chất (SKU)   | `SkusTab`              | Danh mục hóa chất tổng hợp |
+| Nhà cung cấp     | `SuppliersTab`         | Quản lý nhà cung cấp       |
+| Lọ/Chai          | `InventoriesTab`       | Tồn kho vật lý từng chai   |
+| Phiếu xuất/nhập  | `TransactionBlocksTab` | Phiếu giao dịch (Header)   |
+| Lịch sử GD       | `TransactionsTab`      | Log chi tiết giao dịch     |
+| Phiếu kiểm kê    | `AuditBlocksTab`       | Quản lý đợt kiểm kê        |
+| Chi tiết kiểm kê | `AuditDetailsTab`      | Log chi tiết kiểm đếm      |
 
 ---
 
@@ -254,12 +256,21 @@ placeholderData: keepPreviousData; // giữ data cũ khi chờ data mới
 
 **Modal Tạo Phiếu (`CreateBlockModal`):**
 
-1. Chọn loại phiếu (IMPORT / EXPORT / ADJUSTMENT)
-2. Nhập số chứng từ tham chiếu
-3. Click "Chọn hóa chất từ kho" → mở `InventoryPickerModal`
-4. Trong picker: tìm kiếm và chọn chai/lọ (multi-select với checkbox)
-5. Điền số lượng, mã phân tích (nếu EXPORT), ghi chú cho từng chai
-6. Submit → gọi API `POST /v2/chemicaltransactionblocks/createfull`
+Giao diện tạo phiếu được thiết kế phân chia thành 2 phần (Tabs/Views) để hỗ trợ cả việc quản lý chi tiết lẫn in ấn tổng hợp:
+
+1. **Danh sách Chi tiết (Details View):**
+    - Quản lý **từng thao tác vật lý nhỏ nhất** (Line Items).
+    - Cho phép chọn nhiều dòng trên cùng 1 chai/lọ (`chemicalInventoryId`) nếu cần xuất bù cho nhiều chỉ tiêu (`analysisId`) khác nhau (Quan hệ 1:1 giữa Dòng Item và Analysis).
+    - Có thể dùng nút "Duplicate" để nhân bản nhanh 1 chai đang chọn lên dòng mới hoặc quét lại máy quét QR code.
+    - Điền số lượng, mã phân tích (nếu EXPORT), ghi chú cho từng dòng riêng biệt.
+
+2. **Danh sách Tổng Hợp (Summary View):**
+    - Gom nhóm (Group by) tự động theo mã chai/lọ (`chemicalInventoryId`). Mỗi chai chỉ xuất hiện **1 lần duy nhất**.
+    - Cột **Tổng Giao Dịch** tự cộng dồn `changeQty`.
+    - Cột **Các Chỉ Tiêu (Analyses)** tự động nối chuỗi các mã phân tích (VD: `ANL-101, ANL-102`).
+    - Đây là nguồn dữ liệu chính để đối chiếu nhanh và kích hoạt chức năng **In Tem** (đối với phiếu Nhập).
+
+3. Submit → gọi API `POST /v2/chemicaltransactionblocks/createfull`
 
 **Payload gửi lên API tạo phiếu:**
 
@@ -269,6 +280,7 @@ placeholderData: keepPreviousData; // giữ data cũ khi chờ data mới
         "transactionType": "EXPORT",
         "referenceDocument": "REQ-001"
     },
+    // Gửi danh sách phẳng (Flat list) các Line Items từ Details View
     "chemicalTransactions": [
         {
             "chemicalInventoryId": "BTL-xxx",
@@ -278,7 +290,18 @@ placeholderData: keepPreviousData; // giữ data cũ khi chờ data mới
             "changeQty": -50,
             "unit": "ml",
             "actionType": "SUPPLEMENTAL",
-            "analysisId": "ANL-xxx",
+            "analysisId": "ANL-101",
+            "note": "..."
+        },
+        {
+            "chemicalInventoryId": "BTL-xxx", // Cùng mã chai
+            "chemicalSkuId": "SKU-CHEM-xxx",
+            "chemicalName": "...",
+            "casNumber": "...",
+            "changeQty": -10,
+            "unit": "ml",
+            "actionType": "SUPPLEMENTAL",
+            "analysisId": "ANL-102", // Nhưng khác chỉ tiêu
             "note": "..."
         }
     ]
@@ -334,6 +357,21 @@ placeholderData: keepPreviousData; // giữ data cũ khi chờ data mới
 
 ---
 
+### 5.6 AuditBlocksTab & AuditDetailsTab — Kiểm kê kho
+
+**Mục đích:** Hỗ trợ thực hiện kiểm kê định kỳ, so khớp số lượng thực tế tại kho với số lượng trên hệ thống.
+
+**Modal Chỉnh sửa / Tạo đợt kiểm kê (`AuditBlockEditModal`):**
+
+- **Cơ chế Quét QR**: Hỗ trợ quét mã vạch chai/lọ để tự động thêm vào danh sách kiểm đếm. Hệ thống sẽ tự tra cứu thông tin SKU và Số lượng hệ thống (System Qty) của chai đó.
+- **Chống trùng lặp (Duplicate Prevention)**:
+    - Một mã chai (`chemicalInventoryId`) chỉ được phép xuất hiện **duy nhất 1 lần** trong 1 phiếu kiểm kê.
+    - Khi quét QR: Nếu mã đã có, hệ thống sẽ báo lỗi và không thêm dòng.
+    - Khi nhập tay: Nếu nhập mã đã tồn tại ở dòng khác, hệ thống sẽ cảnh báo và từ chối cập nhật.
+- **Tính toán chênh lệch**: Số lượng thực tế (`actualAvailableQty`) sẽ được so sánh với số lượng hệ thống để tính ra `varianceQty`.
+
+---
+
 ## 6. CÁC PANEL CHI TIẾT (Detail Panels)
 
 Mỗi Tab đều có một panel chi tiết mở ra bên phải màn hình khi người dùng click vào một hàng trong bảng.
@@ -345,16 +383,18 @@ Mỗi Tab đều có một panel chi tiết mở ra bên phải màn hình khi n
 | `InventoryDetailPanel`        | InventoriesTab       | Chi tiết chai + thông tin SKU, NCC                               |
 | `TransactionBlockDetailPanel` | TransactionBlocksTab | Chi tiết phiếu + danh sách line-items                            |
 | `TransactionDetailPanel`      | TransactionsTab      | Chi tiết 1 log + thông tin SKU, phiếu, chai                      |
+| `AuditBlockDetailPanel`       | AuditBlocksTab       | Chi tiết đợt kiểm kê + kết quả so khớp                           |
 
 ---
 
 ## 7. CÁC MODAL CHỈNH SỬA
 
-| Modal                | Mục đích                       |
-| -------------------- | ------------------------------ |
-| `SkuEditModal`       | Tạo/Sửa thông tin SKU hóa chất |
-| `SupplierEditModal`  | Tạo/Sửa thông tin nhà cung cấp |
-| `InventoryEditModal` | Sửa thông tin chai/lọ vật lý   |
+| Modal                 | Mục đích                       |
+| --------------------- | ------------------------------ |
+| `SkuEditModal`        | Tạo/Sửa thông tin SKU hóa chất |
+| `SupplierEditModal`   | Tạo/Sửa thông tin nhà cung cấp |
+| `InventoryEditModal`  | Sửa thông tin chai/lọ vật lý   |
+| `AuditBlockEditModal` | Tạo/Sửa đợt kiểm kê            |
 
 ---
 

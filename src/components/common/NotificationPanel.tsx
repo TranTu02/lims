@@ -118,7 +118,6 @@ export function NotificationPanel() {
     };
 
     const unreadNotifications = notifications.filter((n) => !n.isRead);
-    const readNotifications = notifications.filter((n) => n.isRead);
 
     return (
         <>

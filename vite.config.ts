@@ -12,4 +12,14 @@ export default defineConfig({
             "@": path.resolve(__dirname, "./src"),
         },
     },
+    assetsInclude: ["**/*.png", "**/*.jpg", "**/*.svg", "**/*.otf", "**/*.ttf"], // file ảnh, font
+    server: {
+        host: true,
+        allowedHosts: [".irdop.org"],
+    },
+    preview: {
+        host: true, // or '0.0.0.0' for all interfaces
+        port: 4173,
+        allowedHosts: [".irdop.org"],
+    },
 });

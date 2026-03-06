@@ -127,7 +127,7 @@ export const mockMatrices: Matrix[] = [
         modifiedAt: NOW,
         modifiedById: USER_ADMIN_ID,
     },
-];
+] as unknown as Matrix[];
 
 export const mockProtocols: Protocol[] = [
     {
@@ -158,7 +158,7 @@ export const mockProtocols: Protocol[] = [
         modifiedAt: "2024-01-01T00:00:00Z",
         modifiedById: "ADMIN",
     },
-];
+] as unknown as Protocol[];
 
 // --- 3. CRM MODULE ---
 

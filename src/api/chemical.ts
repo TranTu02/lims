@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import api, { type ApiResponse } from "@/api/client";
+import api, { type ApiResponse, type ApiPagination } from "@/api/client";
 import { chemicalKeys } from "./chemicalKeys";
 import type {
     ChemicalSku,
@@ -10,10 +10,17 @@ import type {
     ChemicalInventory,
     ChemicalTransactionBlock,
     ChemicalTransaction,
+    ChemicalAuditBlock,
+    ChemicalAuditDetail,
     AllocateChemicalPayload,
     ReturnChemicalPayload,
     RecalcChemicalPayload,
     CreateTransactionBlockFullPayload,
+    ApproveTransactionBlockPayload,
+    EstimateChemicalPayload,
+    EstimateResponse,
+    AllocateStockPayload,
+    AllocateStockResponse,
 } from "@/types/chemical";
 
 // Helpers
@@ -23,8 +30,6 @@ function assertSuccess<T>(res: ApiResponse<T>): T {
     }
     return res.data as T;
 }
-
-import { type ApiPagination } from "@/api/client";
 
 interface ListResult<T> {
     data: T;
@@ -39,7 +44,6 @@ function assertSuccessWithMeta<T>(res: ApiResponse<T>): ListResult<T> {
     if (res.statusCode === 404 || !res.data) {
         return { data: [] as unknown as T, meta: null, pagination: null };
     }
-    // Support both top-level pagination and meta.pagination
     const pagination: ApiPagination | null =
         res.pagination ??
         (res.meta?.pagination as ApiPagination | undefined) ??
@@ -104,10 +108,24 @@ export const chemicalApi = {
         detail: (input: { id: string }) => api.post<ChemicalTransactionBlock>("/v2/chemicaltransactionblocks/get/detail", { query: { id: input.id }, headers: noCacheHeaders }),
         full: (input: { id: string }) => api.post<ChemicalTransactionBlock>("/v2/chemicaltransactionblocks/get/full", { query: { id: input.id }, headers: noCacheHeaders }),
         createFull: (input: { body: CreateTransactionBlockFullPayload }) => api.post<ChemicalTransactionBlock>("/v2/chemicaltransactionblocks/createfull", { body: input.body }),
+        approve: (input: { body: ApproveTransactionBlockPayload }) => api.post<ChemicalTransactionBlock>("/v2/chemicaltransactionblocks/approve", { body: input.body }),
+        estimate: (input: { body: EstimateChemicalPayload }) => api.post<EstimateResponse>("/v2/chemicaltransactionblocks/estimate", { body: input.body }),
+        allocate: (input: { body: AllocateStockPayload }) => api.post<AllocateStockResponse>("/v2/chemicaltransactionblocks/allocate", { body: input.body }),
     },
     transactions: {
         list: (input?: any) => api.post<ChemicalTransaction[]>("/v2/chemicaltransactions/get/list", { query: { ...DEFAULT_LIST_QUERY, ...(input?.query ?? {}) }, headers: noCacheHeaders }),
         full: (input: { id: string }) => api.post<ChemicalTransaction>("/v2/chemicaltransactions/get/full", { query: { id: input.id }, headers: noCacheHeaders }),
+    },
+    auditBlocks: {
+        list: (input?: any) => api.post<ChemicalAuditBlock[]>("/v2/chemicalauditblocks/get/list", { query: { ...DEFAULT_LIST_QUERY, ...(input?.query ?? {}) }, headers: noCacheHeaders }),
+        detail: (input: { id: string }) => api.post<ChemicalAuditBlock>("/v2/chemicalauditblocks/get/detail", { query: { id: input.id }, headers: noCacheHeaders }),
+        full: (input: { id: string }) => api.post<ChemicalAuditBlock>("/v2/chemicalauditblocks/get/full", { query: { id: input.id }, headers: noCacheHeaders }),
+        create: (input: { body: any }) => api.post<ChemicalAuditBlock>("/v2/chemicalauditblocks/create", { body: input.body }),
+        update: (input: { body: any }) => api.post<ChemicalAuditBlock>("/v2/chemicalauditblocks/update", { body: input.body }),
+    },
+    auditDetails: {
+        list: (input?: any) => api.post<ChemicalAuditDetail[]>("/v2/chemicalauditdetails/get/list", { query: { ...DEFAULT_LIST_QUERY, ...(input?.query ?? {}) }, headers: noCacheHeaders }),
+        update: (input: { body: any }) => api.post<ChemicalAuditDetail>("/v2/chemicalauditdetails/update", { body: input.body }),
     },
 };
 
@@ -211,7 +229,7 @@ export function useChemicalCreateTransactionBlock() {
             qc.invalidateQueries({ queryKey: chemicalKeys.transactionBlocks.all() });
             qc.invalidateQueries({ queryKey: chemicalKeys.inventories.all() });
             qc.invalidateQueries({ queryKey: chemicalKeys.skus.all() });
-            toast.success("Tạo phiếu và giao dịch thành công");
+            toast.success(String(t("common.saveSuccess")));
         },
         onError: (err: any) => toast.error(err.message || String(t("common.error"))),
     });
@@ -223,5 +241,80 @@ export function useChemicalTransactionsList(input?: any, opts?: { enabled?: bool
         queryFn: async () => assertSuccessWithMeta(await chemicalApi.transactions.list(input)),
         enabled: opts?.enabled ?? true,
         placeholderData: keepPreviousData,
+    });
+}
+
+// --- AUDIT HOOKS ---
+
+export function useChemicalAuditBlocksList(input?: any, opts?: { enabled?: boolean }) {
+    return useQuery({
+        queryKey: chemicalKeys.auditBlocks.list(input),
+        queryFn: async () => assertSuccessWithMeta(await chemicalApi.auditBlocks.list(input)),
+        enabled: opts?.enabled ?? true,
+        placeholderData: keepPreviousData,
+    });
+}
+
+export function useChemicalAuditBlockFull(id: string, opts?: { enabled?: boolean }) {
+    return useQuery({
+        queryKey: chemicalKeys.auditBlocks.full(id),
+        queryFn: async () => assertSuccess(await chemicalApi.auditBlocks.full({ id })),
+        enabled: !!id && (opts?.enabled ?? true),
+    });
+}
+
+export function useChemicalAuditDetailsList(input?: any, opts?: { enabled?: boolean }) {
+    return useQuery({
+        queryKey: chemicalKeys.auditDetails.list(input),
+        queryFn: async () => assertSuccessWithMeta(await chemicalApi.auditDetails.list(input)),
+        enabled: opts?.enabled ?? true,
+        placeholderData: keepPreviousData,
+    });
+}
+
+export function useChemicalAuditDetailUpdate() {
+    const qc = useQueryClient();
+    const { t } = useTranslation();
+    return useMutation({
+        mutationFn: async (input: { body: any }) => assertSuccess(await chemicalApi.auditDetails.update(input)),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: chemicalKeys.auditBlocks.all() });
+            qc.invalidateQueries({ queryKey: chemicalKeys.auditDetails.all() });
+            toast.success(String(t("common.saveSuccess")));
+        },
+        onError: (err: any) => toast.error(err.message || String(t("common.error"))),
+    });
+}
+
+// --- NEW HOOKS: Approve / Estimate / Allocate ---
+
+export function useApproveTransactionBlock() {
+    const qc = useQueryClient();
+    const { t } = useTranslation();
+    return useMutation({
+        mutationFn: async (input: { body: ApproveTransactionBlockPayload }) => assertSuccess(await chemicalApi.transactionBlocks.approve(input)),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: chemicalKeys.transactionBlocks.all() });
+            qc.invalidateQueries({ queryKey: chemicalKeys.inventories.all() });
+            qc.invalidateQueries({ queryKey: chemicalKeys.skus.all() });
+            toast.success("Phiếu đã được duyệt thành công");
+        },
+        onError: (err: any) => toast.error(err.message || String(t("common.error"))),
+    });
+}
+
+export function useEstimateChemicals() {
+    const { t } = useTranslation();
+    return useMutation({
+        mutationFn: async (input: { body: EstimateChemicalPayload }) => assertSuccess(await chemicalApi.transactionBlocks.estimate(input)),
+        onError: (err: any) => toast.error(err.message || String(t("common.error"))),
+    });
+}
+
+export function useAllocateStock() {
+    const { t } = useTranslation();
+    return useMutation({
+        mutationFn: async (input: { body: AllocateStockPayload }) => assertSuccess(await chemicalApi.transactionBlocks.allocate(input)),
+        onError: (err: any) => toast.error(err.message || String(t("common.error"))),
     });
 }

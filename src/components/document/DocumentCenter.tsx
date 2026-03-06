@@ -139,13 +139,13 @@ export function DocumentCenter() {
         queryKey: documentCenterKeys.documents(page, searchTerm),
         queryFn: async () =>
             assertSuccessWithMeta(
-                await documentApi.list({
+                (await documentApi.list({
                     page,
                     itemsPerPage: DEFAULT_PAGINATION_SIZE,
                     search: searchTerm || undefined,
                     sortColumn: "createdAt",
                     sortDirection: "DESC",
-                }),
+                })) as any,
             ),
         enabled: viewMode === "documents",
     });
@@ -155,13 +155,13 @@ export function DocumentCenter() {
         queryKey: documentCenterKeys.files(page, searchTerm),
         queryFn: async () =>
             assertSuccessWithMeta(
-                await fileApi.list({
+                (await fileApi.list({
                     page,
                     itemsPerPage: DEFAULT_PAGINATION_SIZE,
                     search: searchTerm || undefined,
                     sortColumn: "createdAt",
                     sortDirection: "DESC",
-                }),
+                })) as any,
             ),
         enabled: viewMode === "files",
     });
@@ -175,7 +175,7 @@ export function DocumentCenter() {
                 return docs.filter(
                     (d) =>
                         d.refType === "Protocol" ||
-                        (d.commonKeys ?? []).some((k) => k.startsWith("PRO")) ||
+                        (d.commonKeys ?? []).some((k: string) => k.startsWith("PRO")) ||
                         (d.documentTitle ?? "").toLowerCase().includes("protocol") ||
                         (d.documentTitle ?? "").toLowerCase().includes("phương pháp") ||
                         (d.documentTitle ?? "").toLowerCase().includes("sop") ||
@@ -186,7 +186,7 @@ export function DocumentCenter() {
                 return docs.filter(
                     (d) =>
                         d.refType !== "Protocol" &&
-                        !(d.commonKeys ?? []).some((k) => k.startsWith("PRO")) &&
+                        !(d.commonKeys ?? []).some((k: string) => k.startsWith("PRO")) &&
                         !(d.documentTitle ?? "").toLowerCase().includes("protocol") &&
                         !(d.documentTitle ?? "").toLowerCase().includes("phương pháp") &&
                         !(d.documentTitle ?? "").toLowerCase().includes("sop") &&
@@ -199,7 +199,7 @@ export function DocumentCenter() {
     }, [documentsQuery.data, activeTab]);
 
     const filteredFiles = useMemo(() => {
-        return filesQuery.data?.data ?? [];
+        return (filesQuery.data?.data ?? []) as FileInfo[];
     }, [filesQuery.data]);
 
     // ─── Preview / Download handlers ─────────────────────────────

@@ -29,6 +29,13 @@ export const QUERY_KEYS = {
         details: () => [...QUERY_KEYS.quotes.all, "detail"] as const,
         detail: (id: string) => [...QUERY_KEYS.quotes.details(), id] as const,
     },
+    incomingRequests: {
+        all: ["crm", "incomingRequests"] as const,
+        lists: () => [...QUERY_KEYS.incomingRequests.all, "list"] as const,
+        list: (filters: Record<string, unknown>) => [...QUERY_KEYS.incomingRequests.lists(), { filters }] as const,
+        details: () => [...QUERY_KEYS.incomingRequests.all, "detail"] as const,
+        detail: (id: string) => [...QUERY_KEYS.incomingRequests.details(), id] as const,
+    },
 
     // Library (Master Data)
     library: {

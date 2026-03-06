@@ -33,7 +33,7 @@ export function SupplierDetailPanel({ supplier, onClose }: Props) {
             <div className="w-96 lg:w-[450px] shrink-0 bg-background rounded-lg border border-border overflow-y-auto max-h-[calc(100vh-140px)] sticky top-[72px]">
                 <div className="sticky top-0 bg-background border-b border-border px-4 py-3 flex items-start justify-between z-10">
                     <div>
-                        <h2 className="text-base font-semibold text-foreground">Hồ sơ Nhà Cung Cấp</h2>
+                        <h2 className="text-base font-semibold text-foreground">{t("inventory.chemical.suppliers.supplierProfile", { defaultValue: "Hồ sơ Nhà Cung Cấp" })}</h2>
                         <p className="text-xs text-muted-foreground mt-0.5">{displaySup.chemicalSupplierId}</p>
                     </div>
                     <div className="flex items-center gap-1">
@@ -55,31 +55,41 @@ export function SupplierDetailPanel({ supplier, onClose }: Props) {
                         {/* General Information */}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="col-span-2">
-                                <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">Tên pháp nhân</div>
+                                <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
+                                    {t("inventory.chemical.suppliers.legalName", { defaultValue: "Tên pháp nhân" })}
+                                </div>
                                 <div className="text-base text-foreground font-semibold mt-1">{displaySup.supplierName || "-"}</div>
                             </div>
 
                             <div>
-                                <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">Trạng thái</div>
+                                <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
+                                    {t("inventory.chemical.suppliers.supplierStatus", { defaultValue: "Trạng thái" })}
+                                </div>
                                 <div className="mt-1">
                                     <Badge variant={displaySup.supplierStatus === "Active" ? "default" : displaySup.supplierStatus === "Inactive" ? "secondary" : "destructive"}>
-                                        {displaySup.supplierStatus || "-"}
+                                        {displaySup.supplierStatus ? t(`inventory.chemical.suppliers.statusLabels.${displaySup.supplierStatus}`, { defaultValue: displaySup.supplierStatus }) : "-"}
                                     </Badge>
                                 </div>
                             </div>
 
                             <div>
-                                <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">Điểm đánh giá</div>
+                                <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
+                                    {t("inventory.chemical.suppliers.evalScore", { defaultValue: "Điểm đánh giá" })}
+                                </div>
                                 <div className="text-sm font-medium mt-1">{displaySup.supplierEvaluationScore ?? "-"} / 100</div>
                             </div>
 
                             <div>
-                                <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">Mã số thuế</div>
+                                <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
+                                    {t("inventory.chemical.suppliers.supplierTaxCode", { defaultValue: "Mã số thuế" })}
+                                </div>
                                 <div className="text-sm font-medium mt-1">{displaySup.supplierTaxCode || "-"}</div>
                             </div>
 
                             <div className="col-span-2">
-                                <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">Chứng chỉ</div>
+                                <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
+                                    {t("inventory.chemical.suppliers.isoCertifications", { defaultValue: "Chứng chỉ" })}
+                                </div>
                                 <div className="mt-1 flex flex-wrap gap-1">
                                     {displaySup.supplierIsoCertifications?.length ? (
                                         displaySup.supplierIsoCertifications.map((c, i) => (
@@ -97,12 +107,12 @@ export function SupplierDetailPanel({ supplier, onClose }: Props) {
                         {/* Contact Detail */}
                         <div className="space-y-2.5">
                             <div className="flex items-center justify-between border-b border-border pb-1.5">
-                                <h3 className="text-sm font-semibold">Thông tin Liên hệ</h3>
+                                <h3 className="text-sm font-semibold">{t("inventory.chemical.suppliers.contactInfo", { defaultValue: "Thông tin Liên hệ" })}</h3>
                             </div>
                             <div className="bg-muted/30 p-3 rounded-md border border-border space-y-2">
                                 <div className="flex items-start gap-2">
                                     <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                                    <span className="text-sm">{displaySup.supplierAddress || "Chưa cập nhật địa chỉ"}</span>
+                                    <span className="text-sm">{displaySup.supplierAddress || t("inventory.chemical.suppliers.noAddress", { defaultValue: "Chưa cập nhật địa chỉ" })}</span>
                                 </div>
                                 <div className="flex flex-col gap-2 mt-2 pt-2 border-t border-border">
                                     {contact ? (
@@ -120,7 +130,7 @@ export function SupplierDetailPanel({ supplier, onClose }: Props) {
                                             )}
                                         </>
                                     ) : (
-                                        <span className="text-sm italic text-muted-foreground">Chưa có người liên hệ</span>
+                                        <span className="text-sm italic text-muted-foreground">{t("inventory.chemical.suppliers.noContact", { defaultValue: "Chưa có người liên hệ" })}</span>
                                     )}
                                 </div>
                             </div>
@@ -132,7 +142,7 @@ export function SupplierDetailPanel({ supplier, onClose }: Props) {
                                 <div className="flex items-center justify-between border-b border-border pb-1.5">
                                     <h3 className="text-sm font-semibold flex items-center gap-1.5">
                                         <Package className="h-4 w-4 text-primary" />
-                                        Danh mục Hàng cung cấp
+                                        {t("inventory.chemical.suppliers.suppliedSkus", { defaultValue: "Danh mục Hàng cung cấp" })}
                                     </h3>
                                     <Badge variant="secondary" className="rounded-full">
                                         {suppliedSkus.length}
@@ -144,15 +154,16 @@ export function SupplierDetailPanel({ supplier, onClose }: Props) {
                                             <div className="font-medium text-foreground mb-1">{supSku.chemicalSku?.chemicalName || supSku.chemicalSkuId}</div>
                                             <div className="text-xs text-muted-foreground mb-2 flex items-center gap-2">
                                                 <span>
-                                                    Mã HC: <span className="font-mono text-primary">{supSku.chemicalSkuId}</span>
+                                                    {t("inventory.chemical.skus.chemicalId", { defaultValue: "Mã HC" })}: <span className="font-mono text-primary">{supSku.chemicalSkuId}</span>
                                                 </span>
                                             </div>
                                             <div className="flex justify-between text-muted-foreground text-xs mt-1 bg-muted/30 p-1.5 rounded">
                                                 <span>
-                                                    Mã Catalog: <strong className="text-foreground">{supSku.catalogNumber}</strong>
+                                                    {t("inventory.chemical.suppliers.catalogNumber", { defaultValue: "Mã Catalog" })}:{" "}
+                                                    <strong className="text-foreground">{supSku.catalogNumber}</strong>
                                                 </span>
                                                 <span>
-                                                    Hãng: <strong className="text-foreground">{supSku.brandManufacturer}</strong>
+                                                    {t("inventory.chemical.skus.mfgShort", { defaultValue: "Hãng" })}: <strong className="text-foreground">{supSku.brandManufacturer}</strong>
                                                 </span>
                                             </div>
                                         </div>

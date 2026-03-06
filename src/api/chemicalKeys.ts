@@ -53,4 +53,19 @@ export const chemicalKeys = {
         detail: (id: string) => [...chemicalKeys.transactions.all(), "detail", id] as const,
         full: (id: string) => [...chemicalKeys.transactions.all(), "full", id] as const,
     },
+
+    // Audit Blocks (Phiếu kiểm kê)
+    auditBlocks: {
+        all: () => [...chemicalKeys.all, "auditBlocks"] as const,
+        list: (input?: unknown) => [...chemicalKeys.auditBlocks.all(), "list", stableKey(input)] as const,
+        detail: (id: string) => [...chemicalKeys.auditBlocks.all(), "detail", id] as const,
+        full: (id: string) => [...chemicalKeys.auditBlocks.all(), "full", id] as const,
+    },
+
+    // Audit Details (Chi tiết kiểm kê)
+    auditDetails: {
+        all: () => [...chemicalKeys.all, "auditDetails"] as const,
+        list: (input?: unknown) => [...chemicalKeys.auditDetails.all(), "list", stableKey(input)] as const,
+        detail: (id: string) => [...chemicalKeys.auditDetails.all(), "detail", id] as const,
+    },
 };
