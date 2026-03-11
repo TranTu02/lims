@@ -1,7 +1,7 @@
 // src/components/reception/ReceiptsTable.tsx
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AlertCircle, Filter, X, Check, Truck, Clock } from "lucide-react";
+import { AlertCircle, Filter, X, Check, Truck, Clock, FlaskConical } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,8 +12,26 @@ import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@
 import { RowActionIcons } from "@/components/common/RowActionIcons";
 
 import { useReceiptsFilter } from "@/api/receipts";
-import type { ReceiptListItem, ReceiptStatus } from "@/types/receipt";
+import type { ReceiptListItem, ReceiptStatus, ReceiptSample, ReceiptAnalysis } from "@/types/receipt";
 import { useDebouncedValue } from "@/components/library/hooks/useDebouncedValue";
+
+/** Extract samples array from receipt (available in processing endpoint) */
+function getReceiptSamples(receipt: ReceiptListItem): ReceiptSample[] {
+    const raw = (receipt as Record<string, unknown>).samples;
+    if (Array.isArray(raw)) return raw as ReceiptSample[];
+    return [];
+}
+
+/** Count analyses stats for a single sample */
+function countAnalysesStats(sample: ReceiptSample): { distributed: number; completed: number; total: number } {
+    const analyses: ReceiptAnalysis[] = (sample.analyses ?? []).filter((a) => a?.analysisId);
+    const total = analyses.length;
+    // distributed = analyses that have been handed over (have technicianId or status is not Pending)
+    const distributed = analyses.filter((a) => a.technicianId || (a.analysisStatus && a.analysisStatus !== "Pending")).length;
+    // completed = analyses with status Approved/DataEntered or have result
+    const completed = analyses.filter((a) => a.analysisStatus === "Approved" || a.analysisStatus === "DataEntered" || a.analysisResult != null).length;
+    return { distributed, completed, total };
+}
 
 export type TabKey = "incoming-requests" | "processing" | "return-results";
 
@@ -378,11 +396,25 @@ export function ReceiptsTable({ items, activeTab, selectedRowKey, onSelectRow, o
 
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{String(t("reception.sampleReception.table.processing.deadline"))}</th>
 
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                            {activeTab === "processing" ? String(t("reception.sampleReception.table.processing.notes")) : String(t("reception.sampleReception.table.returnResults.contact"))}
-                        </th>
-
-                        <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">{String(t("reception.sampleReception.table.processing.actions"))}</th>
+                        {activeTab === "processing" ? (
+                            <>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider" style={{ minWidth: 200 }}>
+                                    {String(t("lab.samples.sampleId", { defaultValue: "Mẫu thử" }))}
+                                </th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                    {String(t("lab.analyses.progress", { defaultValue: "Tiến độ PT" }))}
+                                </th>
+                            </>
+                        ) : (
+                            <>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                    {String(t("reception.sampleReception.table.returnResults.contact"))}
+                                </th>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                    {String(t("reception.sampleReception.table.processing.actions"))}
+                                </th>
+                            </>
+                        )}
                     </tr>
                 </thead>
 
@@ -399,6 +431,172 @@ export function ReceiptsTable({ items, activeTab, selectedRowKey, onSelectRow, o
                         const rowKey = receipt.receiptId;
                         const isSelected = selectedRowKey === rowKey;
 
+                        // ── Processing tab: render multi-row per receipt ─────
+                        if (activeTab === "processing") {
+                            const samples = getReceiptSamples(receipt);
+                            const rowCount = Math.max(samples.length, 1);
+
+                            return (
+                                <React.Fragment key={receipt.receiptId}>
+                                    {samples.length > 0 ? (
+                                        samples.map((sample, sIdx) => {
+                                            const stats = countAnalysesStats(sample);
+                                            const isFirstRow = sIdx === 0;
+                                            return (
+                                                <tr
+                                                    key={`${receipt.receiptId}-${sample.sampleId}`}
+                                                    className={`hover:bg-accent/30 transition-colors ${isSelected ? "bg-accent/20" : ""} ${sIdx > 0 ? "border-t border-border/30" : ""}`}
+                                                    onClick={() => onSelectRow(rowKey, receipt.receiptId)}
+                                                >
+                                                    {isFirstRow && (
+                                                        <>
+                                                            <td className="px-4 py-4 align-top" rowSpan={rowCount}>
+                                                                <div className="space-y-1">
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            onView(receipt.receiptId);
+                                                                        }}
+                                                                        className="font-semibold text-primary hover:text-primary/80 hover:underline"
+                                                                        disabled={openingReceiptId === receipt.receiptId}
+                                                                    >
+                                                                        {receipt.receiptCode ?? dash}
+                                                                    </button>
+                                                                    <div className="text-sm text-foreground">{receipt.client?.clientName ?? dash}</div>
+                                                                    <div className="text-xs text-muted-foreground">
+                                                                        {parseIsoDateOnly(receipt.receiptDate, dash)} {receipt.createdBy?.identityName ? `- ${receipt.createdBy.identityName}` : ""}
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+
+                                                            <td className="px-4 py-4 align-top" rowSpan={rowCount}>
+                                                                {getReceiptStatusBadge(receipt.receiptStatus, t)}
+                                                            </td>
+
+                                                            <td className="px-4 py-4 align-top" rowSpan={rowCount}>
+                                                                <div className="space-y-2">
+                                                                    <div className="flex items-center gap-2 text-sm">
+                                                                        <Clock className="h-3 w-3 text-muted-foreground" />
+                                                                        <span className="font-medium text-foreground">{parseIsoDateOnly(receipt.receiptDeadline, dash)}</span>
+                                                                    </div>
+                                                                    {typeof daysLeft === "number" ? (
+                                                                        daysLeft < 0 ? (
+                                                                            <Badge variant="destructive" className="flex items-center gap-1 w-fit">
+                                                                                <AlertCircle className="h-3 w-3" />
+                                                                                {String(t("reception.sampleReception.deadline.overdue"))}
+                                                                            </Badge>
+                                                                        ) : daysLeft <= 2 ? (
+                                                                            <Badge variant="secondary" className="w-fit">
+                                                                                {String(t("reception.sampleReception.deadline.daysLeft", { count: daysLeft }))}
+                                                                            </Badge>
+                                                                        ) : (
+                                                                            <Badge variant="outline" className="text-muted-foreground w-fit">
+                                                                                {String(t("reception.sampleReception.deadline.daysLeft", { count: daysLeft }))}
+                                                                            </Badge>
+                                                                        )
+                                                                    ) : (
+                                                                        <Badge variant="outline" className="text-muted-foreground w-fit">
+                                                                            {dash}
+                                                                        </Badge>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                        </>
+                                                    )}
+
+                                                    {/* ── Sample column (single line) ── */}
+                                                    <td className="px-4 py-3" style={{ minWidth: 200 }}>
+                                                        <span className="text-sm">
+                                                            <span className="font-semibold text-foreground">{sample.sampleId}</span>{" "}
+                                                            <span className="text-muted-foreground">{(sample as any).sampleName || sample.sampleTypeName || ""}</span>
+                                                        </span>
+                                                    </td>
+
+                                                    {/* ── Analyses progress column: completed / distributed / total ── */}
+                                                    <td className="px-4 py-3">
+                                                        <div className="space-y-1">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <FlaskConical className="h-3 w-3 text-muted-foreground" />
+                                                                <span className="text-sm font-medium tabular-nums">
+                                                                    <span className="text-success">{stats.completed}</span>
+                                                                    <span className="text-muted-foreground mx-0.5">/</span>
+                                                                    <span className="text-primary">{stats.distributed}</span>
+                                                                    <span className="text-muted-foreground mx-0.5">/</span>
+                                                                    <span className="text-foreground">{stats.total}</span>
+                                                                </span>
+                                                            </div>
+                                                            {stats.total > 0 && (
+                                                                <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                                                                    <div
+                                                                        className="h-full rounded-full transition-all bg-primary"
+                                                                        style={{ width: `${Math.round((stats.completed / stats.total) * 100)}%` }}
+                                                                    />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    ) : (
+                                        /* No samples – single row */
+                                        <tr className={`hover:bg-accent/30 transition-colors ${isSelected ? "bg-accent/20" : ""}`} onClick={() => onSelectRow(rowKey, receipt.receiptId)}>
+                                            <td className="px-4 py-4">
+                                                <div className="space-y-1">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            onView(receipt.receiptId);
+                                                        }}
+                                                        className="font-semibold text-primary hover:text-primary/80 hover:underline"
+                                                        disabled={openingReceiptId === receipt.receiptId}
+                                                    >
+                                                        {receipt.receiptCode ?? dash}
+                                                    </button>
+                                                    <div className="text-sm text-foreground">{receipt.client?.clientName ?? dash}</div>
+                                                    <div className="text-xs text-muted-foreground">
+                                                        {parseIsoDateOnly(receipt.receiptDate, dash)} {receipt.createdBy?.identityName ? `- ${receipt.createdBy.identityName}` : ""}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-4">{getReceiptStatusBadge(receipt.receiptStatus, t)}</td>
+                                            <td className="px-4 py-4">
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center gap-2 text-sm">
+                                                        <Clock className="h-3 w-3 text-muted-foreground" />
+                                                        <span className="font-medium text-foreground">{parseIsoDateOnly(receipt.receiptDeadline, dash)}</span>
+                                                    </div>
+                                                    {typeof daysLeft === "number" ? (
+                                                        daysLeft < 0 ? (
+                                                            <Badge variant="destructive" className="flex items-center gap-1 w-fit">
+                                                                <AlertCircle className="h-3 w-3" />
+                                                                {String(t("reception.sampleReception.deadline.overdue"))}
+                                                            </Badge>
+                                                        ) : daysLeft <= 2 ? (
+                                                            <Badge variant="secondary" className="w-fit">
+                                                                {String(t("reception.sampleReception.deadline.daysLeft", { count: daysLeft }))}
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge variant="outline" className="text-muted-foreground w-fit">
+                                                                {String(t("reception.sampleReception.deadline.daysLeft", { count: daysLeft }))}
+                                                            </Badge>
+                                                        )
+                                                    ) : (
+                                                        <Badge variant="outline" className="text-muted-foreground w-fit">
+                                                            {dash}
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-muted-foreground">-</td>
+                                            <td className="px-4 py-3 text-sm text-muted-foreground">-</td>
+                                        </tr>
+                                    )}
+                                </React.Fragment>
+                            );
+                        }
+
+                        // ── Other tabs: Original single-row layout ──────────────────
                         return (
                             <tr key={receipt.receiptId} className={`hover:bg-accent/30 transition-colors ${isSelected ? "bg-accent/20" : ""}`} onClick={() => onSelectRow(rowKey, receipt.receiptId)}>
                                 <td className="px-4 py-4">
@@ -413,9 +611,7 @@ export function ReceiptsTable({ items, activeTab, selectedRowKey, onSelectRow, o
                                         >
                                             {receipt.receiptCode ?? dash}
                                         </button>
-
                                         <div className="text-sm text-foreground">{receipt.client?.clientName ?? dash}</div>
-
                                         <div className="text-xs text-muted-foreground">
                                             {parseIsoDateOnly(receipt.receiptDate, dash)} {receipt.createdBy?.identityName ? `- ${receipt.createdBy.identityName}` : ""}
                                         </div>
@@ -423,9 +619,7 @@ export function ReceiptsTable({ items, activeTab, selectedRowKey, onSelectRow, o
                                 </td>
 
                                 <td className="px-4 py-4">
-                                    {activeTab === "processing" ? (
-                                        getReceiptStatusBadge(receipt.receiptStatus, t)
-                                    ) : trackingNo ? (
+                                    {trackingNo ? (
                                         <div className="flex items-center gap-2 text-sm text-foreground">
                                             <Truck className="h-3 w-3 text-muted-foreground" />
                                             <span className="font-medium">{trackingNo}</span>
@@ -441,7 +635,6 @@ export function ReceiptsTable({ items, activeTab, selectedRowKey, onSelectRow, o
                                             <Clock className="h-3 w-3 text-muted-foreground" />
                                             <span className="font-medium text-foreground">{parseIsoDateOnly(receipt.receiptDeadline, dash)}</span>
                                         </div>
-
                                         {typeof daysLeft === "number" ? (
                                             daysLeft < 0 ? (
                                                 <Badge variant="destructive" className="flex items-center gap-1 w-fit">
@@ -450,19 +643,11 @@ export function ReceiptsTable({ items, activeTab, selectedRowKey, onSelectRow, o
                                                 </Badge>
                                             ) : daysLeft <= 2 ? (
                                                 <Badge variant="secondary" className="w-fit">
-                                                    {String(
-                                                        t("reception.sampleReception.deadline.daysLeft", {
-                                                            count: daysLeft,
-                                                        }),
-                                                    )}
+                                                    {String(t("reception.sampleReception.deadline.daysLeft", { count: daysLeft }))}
                                                 </Badge>
                                             ) : (
                                                 <Badge variant="outline" className="text-muted-foreground w-fit">
-                                                    {String(
-                                                        t("reception.sampleReception.deadline.daysLeft", {
-                                                            count: daysLeft,
-                                                        }),
-                                                    )}
+                                                    {String(t("reception.sampleReception.deadline.daysLeft", { count: daysLeft }))}
                                                 </Badge>
                                             )
                                         ) : (
@@ -474,19 +659,15 @@ export function ReceiptsTable({ items, activeTab, selectedRowKey, onSelectRow, o
                                 </td>
 
                                 <td className="px-4 py-4 text-sm">
-                                    {activeTab === "processing" ? (
-                                        <span className="text-muted-foreground">{dash}</span>
-                                    ) : (
-                                        <div className="space-y-1">
-                                            <div className="text-foreground">{clientAddress ?? dash}</div>
-                                            <div className="text-muted-foreground">
-                                                {String(t("reception.sampleReception.contact.phoneLabel"))} {clientPhone ?? dash}
-                                            </div>
-                                            <div className="text-muted-foreground">
-                                                {String(t("reception.sampleReception.contact.emailLabel"))} {clientEmail ?? dash}
-                                            </div>
+                                    <div className="space-y-1">
+                                        <div className="text-foreground">{clientAddress ?? dash}</div>
+                                        <div className="text-muted-foreground">
+                                            {String(t("reception.sampleReception.contact.phoneLabel"))} {clientPhone ?? dash}
                                         </div>
-                                    )}
+                                        <div className="text-muted-foreground">
+                                            {String(t("reception.sampleReception.contact.emailLabel"))} {clientEmail ?? dash}
+                                        </div>
+                                    </div>
                                 </td>
 
                                 <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
@@ -503,7 +684,7 @@ export function ReceiptsTable({ items, activeTab, selectedRowKey, onSelectRow, o
 
                     {items.length === 0 ? (
                         <tr>
-                            <td colSpan={5} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                            <td colSpan={activeTab === "processing" ? 5 : 5} className="px-4 py-10 text-center text-sm text-muted-foreground">
                                 {String(t("common.noData"))}
                             </td>
                         </tr>

@@ -18,27 +18,76 @@ Authorization: Bearer {authToken}
 {
     "token": "SS_7fdde030-eba3-44cd-b1c7-b6f24a4e36e2",
     "identity": "Nguyễn Mai Quỳnh",
-    "roles": [
-        "ROLE_SUPER_ADMIN",
-        "ROLE_DOC_CONTROLLER",
-        "ROLE_DIRECTOR",
-        "ROLE_TECH_MANAGER",
-        "ROLE_QA_MANAGER",
-        "ROLE_SECTION_HEAD",
-        "ROLE_VALIDATOR",
-        "ROLE_SENIOR_ANALYST",
-        "ROLE_TECHNICIAN",
-        "ROLE_RECEPTIONIST",
-        "ROLE_SAMPLE_CUSTODIAN",
-        "ROLE_EQUIPMENT_MGR",
-        "ROLE_INVENTORY_MGR",
-        "ROLE_SALES_MANAGER",
-        "ROLE_SALES_EXEC",
-        "ROLE_CS",
-        "ROLE_ACCOUNTANT",
-        "ROLE_REPORT_OFFICER"
+    "roles": ["..."]
+}
+```
+
+## 1.1 Common Filter Options API
+
+To support dynamic frontend dropdowns with count distribution, all Lab Entities (Analyses, Samples, Receipts) support a POST request to retrieve available filter options for a specified column, accounting for the current `otherFilters` scope.
+
+**Endpoint**: `POST /v2/[analyses|samples|receipts]/get/options`
+
+**Request Body Example**:
+
+```json
+{
+    "filterFrom": "analysisStatus",
+    "textFilter": "Ready", // Optional: Search within options
+    "otherFilters": [
+        // Optional: Context filters
+        {
+            "filterFrom": "sampleId",
+            "filterValues": ["S26c0801"]
+        }
     ]
 }
+```
+
+```json
+{
+    "success": true,
+    "data": [
+        {
+            "filterValue": "Ready",
+            "count": 15
+        },
+        {
+            "filterValue": "Testing",
+            "count": 3
+        }
+    ]
+}
+```
+
+## 1.2 Bulk Operations API
+
+All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates within a single transaction.
+
+### 1.2.1 Create Bulk
+
+**Endpoint**: `POST /v2/[analyses|samples|receipts]/create/bulk`
+
+**Request Body**: `Array` of data objects.
+
+```json
+[
+  { "sampleId": "S1", "parameterId": "P1", ... },
+  { "sampleId": "S1", "parameterId": "P2", ... }
+]
+```
+
+### 1.2.2 Update Bulk
+
+**Endpoint**: `POST /v2/[analyses|samples|receipts]/update/bulk`
+
+**Request Body**: `Array` of data objects containing the Primary Key (`analysisId`, `sampleId`, or `receiptId`).
+
+```json
+[
+    { "analysisId": "ANA1", "analysisStatus": "Testing" },
+    { "analysisId": "ANA2", "analysisStatus": "Testing" }
+]
 ```
 
 ---
@@ -732,7 +781,36 @@ Authorization: Bearer {authToken}
 
 **Response Structure**: `200 OK` - Returns the newly created Sample object.
 
-### 4.5 Update Sample
+### 4.5 Create Full Sample (Atomic)
+
+**Endpoint**: `POST /v2/samples/create/full`
+
+**Description**: Creates a Sample along with its Analyses in a single transaction. It automatically inherits Matrix data when `matrixId` is provided.
+
+**Request Body Example**:
+
+```json
+{
+    "receiptId": "REC26d1309",
+    "sampleTypeId": "ST0032",
+    "sampleVolume": "500ml",
+    "samplePreservation": "Toang",
+    "sampleClientInfo": "Sample Info for Client",
+    "analyses": [
+        {
+            "matrixId": "MX001"
+        },
+        {
+            "matrixId": "MX002",
+            "analysisStatus": "Processing"
+        }
+    ]
+}
+```
+
+**Response Structure**: `200 OK` - Returns the complete Sample object with nested `analyses`.
+
+### 4.6 Update Sample
 
 **Endpoint**: `POST /v2/samples/update`
 
@@ -747,7 +825,7 @@ Authorization: Bearer {authToken}
 
 **Response Structure**: `200 OK` - Returns the updated Sample object.
 
-### 4.6 Delete Sample
+### 4.7 Delete Sample
 
 **Endpoint**: `POST /v2/samples/delete`
 

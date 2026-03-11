@@ -1,9 +1,9 @@
-import { TesterAssignment } from "@/components/handover/TesterAssignment";
+import { TechnicianAssignmentManagement } from "@/components/assignment/TechnicianAssignmentManagement";
 
 export function AssignmentPage() {
     return (
         <div className="h-full">
-            <TesterAssignment />
+            <TechnicianAssignmentManagement />
         </div>
     );
 }

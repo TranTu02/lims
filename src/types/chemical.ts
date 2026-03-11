@@ -183,7 +183,7 @@ export interface RecalcChemicalPayload {
 
 export interface CreateTransactionBlockFullPayload {
     chemicalTransactionBlock: Partial<ChemicalTransactionBlock>;
-    chemicalTransactions: Partial<ChemicalTransaction>[];
+    chemicalTransactionBlockDetails: Partial<ChemicalTransactionBlockDetail>[];
 }
 
 // --- NEW API Payloads ---
@@ -203,8 +203,8 @@ export interface EstimateDetail {
     chemicalSkuId: string;
     chemicalName: string;
     chemicalCASNumber?: string | null;
-    consumedQty: number;
-    chemicalTransactionUnit: string;
+    changeQty: number;
+    unit: string;
     parameterName?: string | null;
 }
 
@@ -212,8 +212,8 @@ export interface EstimateSummary {
     chemicalSkuId: string;
     chemicalName: string;
     chemicalCASNumber?: string | null;
-    totalQty: number;
-    chemicalTransactionUnit: string;
+    totalChangeQty: number;
+    unit: string;
     analysisIds: string[];
 }
 
@@ -243,11 +243,8 @@ export interface AllocateTransactionDetail {
 export interface AllocatePickingItem {
     chemicalInventoryId: string;
     chemicalSkuId: string;
-    chemicalName: string;
-    storageBinLocation?: string | null;
-    analysisIds: string[];
-    totalPickQty: number;
-    chemicalTransactionUnit: string;
+    analysisIds: (string | null)[];
+    totalChangeQty: number;
 }
 
 export interface AllocateStockResponse {

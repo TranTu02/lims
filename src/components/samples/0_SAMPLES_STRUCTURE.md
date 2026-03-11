@@ -73,6 +73,7 @@ src/components/samples/
 
 - Hiển thị thông tin mẫu: sampleId, sampleTypeName, sampleStatus, sampleVolume, physicalState...
 - Hiển thị danh sách phép thử (analyses)
+- Thêm phép thử mới trực tiếp vào mẫu qua ô tìm kiếm (Matrix SearchDropdown), gọi api `analysesCreate`
 - Liên kết tới phiếu nhận (receiptId)
 
 **Data Source:** `useSampleFull()` hook

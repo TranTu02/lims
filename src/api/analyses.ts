@@ -3,7 +3,18 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
 import api, { type ApiResponse } from "@/api/client";
-import type { AnalysisDetail, AnalysisListItem, AnalysesCreateBody, AnalysesDeleteBody, AnalysesDeleteResult, AnalysesGetListBody, AnalysesUpdateBody, ListMeta } from "@/types/analysis";
+import type {
+    AnalysisDetail,
+    AnalysisListItem,
+    AnalysesCreateBody,
+    AnalysesCreateBulkBody,
+    AnalysesDeleteBody,
+    AnalysesDeleteResult,
+    AnalysesGetListBody,
+    AnalysesUpdateBody,
+    AnalysesBulkUpdateBody,
+    ListMeta,
+} from "@/types/analysis";
 
 type ListResult<T> = {
     data: T;
@@ -82,6 +93,16 @@ export type AnalysesUpdateInput = {
     query?: Record<string, unknown>;
 };
 
+export type AnalysesBulkUpdateInput = {
+    body: AnalysesBulkUpdateBody;
+    query?: Record<string, unknown>;
+};
+
+export type AnalysesCreateBulkInput = {
+    body: AnalysesCreateBulkBody;
+    query?: Record<string, unknown>;
+};
+
 export type AnalysesDeleteInput = {
     body: AnalysesDeleteBody;
     query?: Record<string, unknown>;
@@ -137,6 +158,36 @@ export async function analysesUpdate(input: AnalysesUpdateInput): Promise<ApiRes
         body: input.body,
         query: input.query,
     });
+}
+
+export async function analysesUpdateBulk(input: AnalysesBulkUpdateInput): Promise<ApiResponse<void>> {
+    return api.post<void, AnalysesBulkUpdateBody>("/v2/analyses/update/bulk", {
+        body: input.body,
+        query: input.query,
+    });
+}
+
+export async function analysesCreateBulk(input: AnalysesCreateBulkInput): Promise<ApiResponse<AnalysisDetail[]>> {
+    return api.post<AnalysisDetail[], AnalysesCreateBulkBody>("/v2/analyses/create/bulk", {
+        body: input.body,
+        query: input.query,
+    });
+}
+
+export type HandoverPdfInput = {
+    analyses: string[];
+    html: string;
+    handoverBy?: string;
+    receivedBy?: string;
+    filename?: string;
+};
+
+export async function analysesGenerateHandoverPdf(input: HandoverPdfInput): Promise<Blob> {
+    const response = await api.postRaw<Blob, HandoverPdfInput>("/v2/analyses/generate/handover-pdf", {
+        body: input,
+        responseType: "blob",
+    });
+    return response;
 }
 
 function coerceDeleteResult(data: unknown): AnalysesDeleteResult | null {
@@ -297,5 +348,53 @@ export function useDeleteAnalysis() {
         },
 
         onError: () => toast.error(t("common.toast.failed")),
+    });
+}
+
+export function useGenerateHandoverPdf() {
+    return useMutation({
+        mutationFn: (input: HandoverPdfInput) => analysesGenerateHandoverPdf(input),
+        onError: (error) => {
+            console.error("Failed to generate PDF:", error);
+            toast.error("Không thể xuất file PDF. Vui lòng thử lại.");
+        },
+    });
+}
+
+export function useAnalysesUpdateBulk() {
+    const qc = useQueryClient();
+    const { t } = useTranslation();
+
+    return useMutation({
+        mutationFn: async (input: AnalysesBulkUpdateInput) => assertSuccess(await analysesUpdateBulk(input)),
+
+        onSuccess: async () => {
+            await qc.invalidateQueries({ queryKey: analysesKeys.all, exact: false });
+            toast.success(t("common.toast.success"));
+        },
+
+        onError: (err: unknown) => {
+            console.error("Bulk update failed:", err);
+            toast.error(t("common.toast.failed"));
+        },
+    });
+}
+
+export function useAnalysesCreateBulk() {
+    const qc = useQueryClient();
+    const { t } = useTranslation();
+
+    return useMutation({
+        mutationFn: async (input: AnalysesCreateBulkInput) => assertSuccess(await analysesCreateBulk(input)),
+
+        onSuccess: async () => {
+            await qc.invalidateQueries({ queryKey: analysesKeys.all, exact: false });
+            toast.success(t("common.toast.success"));
+        },
+
+        onError: (err: unknown) => {
+            console.error("Bulk create failed:", err);
+            toast.error(t("common.toast.failed"));
+        },
     });
 }

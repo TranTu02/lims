@@ -20,6 +20,7 @@ export type IdentityListItem = {
     roles: IdentityRoles;
     identityStatus: IdentityStatus;
     createdAt: string;
+    identityGroupId?: string | null;
 
     createdBy?: IdentityActor;
     createdById?: string | null;
@@ -44,6 +45,8 @@ export type IdentitiesListQuery = {
     sortDirection?: "ASC" | "DESC";
     search?: string | null;
     entityType?: string | null;
+    identityRoles?: string[];
+    identityStatus?: string[];
 };
 
 export type IdentityCreateBody = {
@@ -144,8 +147,7 @@ function isRawListResponse(x: unknown): x is RawListResponse {
 }
 
 function isApiMeta(x: unknown): x is ApiMeta {
-    if (!isObject(x)) return false;
-    return typeof x.page === "number" && typeof x.itemsPerPage === "number" && typeof x.totalPages === "number";
+    return isObject(x);
 }
 
 function sanitizeRoles(x: unknown): IdentityRoles {
@@ -310,16 +312,16 @@ export async function identitiesDelete(input: { body: { identityId: string } }):
     return api.post<{ identityId: string; deletedAt?: string }, { identityId: string }>("/v2/identities/delete", { body: input.body });
 }
 
-export async function identitiesAddRole(input: { body: { identityId: string; roleCode: string } }): Promise<ApiResponse<any>> {
-    return api.post("/v2/identities/update/add-role", { body: input.body });
+export async function identitiesAddRole(input: { body: { identityId: string; roleCode: string } }): Promise<ApiResponse<unknown>> {
+    return api.post<unknown, { identityId: string; roleCode: string }>("/v2/identities/update/add-role", { body: input.body });
 }
 
-export async function identitiesRemoveRole(input: { body: { identityId: string; roleCode: string } }): Promise<ApiResponse<any>> {
-    return api.post("/v2/identities/update/remove-role", { body: input.body });
+export async function identitiesRemoveRole(input: { body: { identityId: string; roleCode: string } }): Promise<ApiResponse<unknown>> {
+    return api.post<unknown, { identityId: string; roleCode: string }>("/v2/identities/update/remove-role", { body: input.body });
 }
 
-export async function identitiesUpdatePolicy(input: { body: { identityId: string; policyCode: string; status: string } }): Promise<ApiResponse<any>> {
-    return api.post("/v2/identities/update/update-policy", { body: input.body });
+export async function identitiesUpdatePolicy(input: { body: { identityId: string; policyCode: string; status: string } }): Promise<ApiResponse<unknown>> {
+    return api.post<unknown, { identityId: string; policyCode: string; status: string }>("/v2/identities/update/update-policy", { body: input.body });
 }
 
 export async function identitiesFilter(input: { body: IdentitiesFilterBody }): Promise<ApiResponse<IdentityListItem[]>> {
@@ -373,6 +375,24 @@ export const identitiesKeys = {
 
     filter: (input: { body: IdentitiesFilterBody }) => [...identitiesKeys.all, "filter", stableKey(input)] as const,
 };
+
+export function useIdentitiesList(input: { query: IdentitiesListQuery }, opts?: { enabled?: boolean }) {
+    return useQuery({
+        queryKey: identitiesKeys.list(input.query),
+        enabled: opts?.enabled ?? true,
+        placeholderData: keepPreviousData,
+        retry: false,
+        queryFn: async () => {
+            const res = await identitiesGetList({ query: input.query });
+
+            if (!res.success) {
+                return { data: [] as IdentityListItem[], meta: res.meta ?? null };
+            }
+
+            return { data: res.data as IdentityListItem[], meta: res.meta ?? null };
+        },
+    });
+}
 
 export function useIdentitiesAll(input: { query: IdentitiesListQuery }, opts?: { enabled?: boolean }) {
     return useQuery({

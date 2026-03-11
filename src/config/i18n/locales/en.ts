@@ -1640,6 +1640,33 @@ export default {
             modifiedBy: "Modified by",
         },
     },
+    assignment: {
+        title: "Technician Assignment",
+        description: "Assign Technicians to perform analyses",
+        button: "Assign Technician",
+        assignedTechnician: "Assigned Technician",
+        assignedGroup: "Assigned Group",
+        relatedTechnicians: "Related Technicians",
+        modal: {
+            title: "Technician Assignment",
+            description: "Select a Technician or Group to perform for {{count}} selected analyses.",
+            tabs: {
+                technician: "Individual",
+                group: "Group-based",
+            },
+            selectPlaceholder: "Select Technician...",
+            selectGroupPlaceholder: "Select Group...",
+            searchPlaceholder: "Search...",
+            groupInCharge: "Lead",
+            groupMembers: "Members",
+            empty: "No results found",
+            confirm: "Confirm",
+            cancel: "Cancel",
+        },
+        success: "Technician assigned successfully",
+        error: "Failed to assign. Please try again.",
+        notSelected: "Please select a technician",
+    },
     handover: {
         title: "Sample Handover",
         description: "Scan tester and sample codes to perform handover",
@@ -1833,5 +1860,21 @@ export default {
                 invalid: "Invalid username or password.",
             },
         },
+    },
+    sampleRequest: {
+        institute: {
+            name: "INSTITUTE OF NATURAL PRODUCTS RESEARCH AND DEVELOPMENT",
+            address: "Add: 12 Phung Khoang 2, Dai Mo, Hanoi",
+            tel: "Tel: 024 355 35 355",
+            email: "Email: cskh@irdop.org",
+        },
+        title: "INTERNAL SAMPLE HANDOVER RECORD",
+    },
+    testReport: {
+        institute: {
+            organizationName: "INSTITUTE OF NATURAL PRODUCTS RESEARCH AND DEVELOPMENT",
+            departmentName: "ANALYSIS AND TESTING DEPARTMENT",
+        },
+        title: "TEST REPORT",
     },
 };

@@ -1637,6 +1637,33 @@ export default {
             modifiedBy: "Cập nhật bởi",
         },
     },
+    assignment: {
+        title: "Phân công Kỹ thuật viên",
+        description: "Phân công Kỹ thuật viên thực hiện các chỉ tiêu phân tích",
+        button: "Phân công KTV",
+        assignedTechnician: "KTV phụ trách",
+        assignedGroup: "Nhóm phụ trách",
+        relatedTechnicians: "KTV liên quan",
+        modal: {
+            title: "Phân công Kỹ thuật viên",
+            description: "Chọn Kỹ thuật viên hoặc Nhóm để thực hiện cho {{count}} phép thử đã chọn.",
+            tabs: {
+                technician: "Cá nhân",
+                group: "Theo nhóm",
+            },
+            selectPlaceholder: "Chọn Kỹ thuật viên...",
+            selectGroupPlaceholder: "Chọn Nhóm kỹ thuật...",
+            searchPlaceholder: "Tìm kiếm...",
+            groupInCharge: "Trưởng nhóm",
+            groupMembers: "Thành viên",
+            empty: "Không tìm thấy kết quả",
+            confirm: "Xác nhận",
+            cancel: "Hủy bỏ",
+        },
+        success: "Đã phân công Kỹ thuật viên thành công",
+        error: "Không thể phân công. Vui lòng thử lại.",
+        notSelected: "Vui lòng chọn một Kỹ thuật viên",
+    },
     handover: {
         title: "Bàn giao mẫu - phép thử",
         description: "Quét mã kiểm nghiệm viên và mã mẫu để thực hiện bàn giao",
@@ -1832,4 +1859,20 @@ export default {
             },
         },
     },
+    sampleRequest: {
+        institute: {
+            name: "VIỆN NGHIÊN CỨU VÀ PHÁT TRIỂN SẢN PHẨM THIÊN NHIÊN",
+            address: "Add: 12 Phùng Khoang 2, P. Đại Mỗ, TP. Hà Nội",
+            tel: "Tel: 024 355 35 355",
+            email: "Email: cskh@irdop.org",
+        },
+        title: "BIÊN BẢN BÀN GIAO MẪU THỬ NỘI BỘ",
+    },
+    testReport: {
+        institute: {
+            organizationName: "VIỆN NGHIÊN CỨU VÀ PHÁT TRIỂN SẢN PHẨM THIÊN NHIÊN",
+            departmentName: "PHÒNG PHÂN TÍCH - KIỂM NGHIỆM",
+        },
+        title: "BIÊN BẢN THỬ NGHIỆM"
+    }
 };

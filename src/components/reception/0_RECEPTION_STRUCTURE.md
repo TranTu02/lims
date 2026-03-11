@@ -192,6 +192,11 @@ Bảng analyses với các cột:
 | Kết quả | analysisResult | ✅ (Input) |
 | Xóa | — | ✅ (Button, chỉ khi edit) |
 
+**Thêm Phép thử (khi edit):**
+
+- Có ô tìm kiếm (Matrix SearchDropdown) để chọn từ thư viện (dùng `useDebouncedValue` + `libraryApi`).
+- Tự động điền LOD, LOQ, Protocol Code từ Matrix.
+
 **Section 5: File đính kèm**
 
 - Upload/quản lý files liên quan đến mẫu

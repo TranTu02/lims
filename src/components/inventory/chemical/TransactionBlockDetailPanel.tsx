@@ -8,6 +8,7 @@ import { useChemicalTransactionBlockFull, useApproveTransactionBlock } from "@/a
 type Props = {
     block: ChemicalTransactionBlock | null;
     onClose: () => void;
+    hideApprove?: boolean;
 };
 
 // Status badge cho block
@@ -105,7 +106,7 @@ function LineItemCard({ item, idField }: { item: ChemicalTransactionBlockDetail 
     );
 }
 
-export function TransactionBlockDetailPanel({ block, onClose }: Props) {
+export function TransactionBlockDetailPanel({ block, onClose, hideApprove }: Props) {
     const { t } = useTranslation();
     const fullBlockQuery = useChemicalTransactionBlockFull(block?.chemicalTransactionBlockId || "", {
         enabled: !!block?.chemicalTransactionBlockId,
@@ -146,7 +147,7 @@ export function TransactionBlockDetailPanel({ block, onClose }: Props) {
                     <p className="text-xs text-muted-foreground mt-0.5">{displayBlock.chemicalTransactionBlockId}</p>
                 </div>
                 <div className="flex items-center gap-1">
-                    {!isApproved && displayBlock.chemicalTransactionBlockStatus !== "REJECTED" && (
+                    {!hideApprove && !isApproved && displayBlock.chemicalTransactionBlockStatus !== "REJECTED" && (
                         <Button
                             variant="default"
                             size="sm"

@@ -368,15 +368,7 @@ export function SampleUpsertModal({ open, mode, sampleId, onClose }: Props) {
                       <SelectContent className="z-[150]">
                         {SAMPLE_STATUS_OPTIONS.map((s) => (
                           <SelectItem key={s} value={s}>
-                            {s === "Received"
-                              ? t("lab.samples.status.Received")
-                              : s === "Analyzing"
-                              ? t("lab.samples.status.Analyzing")
-                              : s === "Stored"
-                              ? t("lab.samples.status.Stored")
-                              : s === "Disposed"
-                              ? t("lab.samples.status.Disposed")
-                              : s}
+                            {t(`lab.samples.status.${s}`, { defaultValue: s })}
                           </SelectItem>
                         ))}
                       </SelectContent>

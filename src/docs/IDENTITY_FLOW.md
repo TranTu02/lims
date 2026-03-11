@@ -10,9 +10,10 @@ Tài liệu này mô tả chi tiết quy trình xác thực (Authentication), ph
 
 ```
 BLACK/IDENTITY/
-├── 1_identityEntities.js       # Base class IdentityEntity + Identity entity
+├── 1_identityEntities.js       # Base class IdentityEntity + Identity + IdentityGroup entities
 ├── 2_identities.js              # Business logic (create, update, role management)
-├── 8_identity_api_handler.js    # API routes handler
+├── 8_identity_api_handler.js    # Identity API routes handler
+├── 8_identity_group_api_handler.js # Identity Group API routes handler
 └── TEST_IDENTITY.js             # Comprehensive test suite
 ```
 
@@ -21,20 +22,20 @@ BLACK/IDENTITY/
 **Bảng**: `identity.identities`  
 **Primary Key**: `identityId` (text)
 
-| Field                | Type   | Description                                            |
-| -------------------- | ------ | ------------------------------------------------------ |
-| `identityId`         | text   | ID người dùng (Custom: `USR + YYMMDD + Suffix`)        |
-| `identityName`       | text   | Tên đầy đủ                                             |
-| `identityEmail`      | text   | Email (unique)                                         |
-| `identityPhone`      | text   | Số điện thoại                                          |
-| `identityNID`        | text   | Số CMND/CCCD                                           |
-| `identityAddress`    | text   | Địa chỉ                                                |
-| `password`           | text   | Mật khẩu đã hash (bcrypt)                              |
-| `identityStatus`     | text   | `active`, `inactive`, `banned`                         |
-| `identityRoles`      | text[] | Danh sách role codes                                   |
-| `identityPolicies`   | jsonb  | Override policies `{ "POL_CODE": "ALLOW/DENY/LIMIT" }` |
-| `identityPermission` | jsonb  | Resolved permissions (table → column → bitmask)        |
-| `alias`              | text   | Tên hiển thị ngắn gọn                                  |
+| Field              | Type   | Description                                            |
+| ------------------ | ------ | ------------------------------------------------------ |
+| `identityId`       | text   | ID người dùng (Custom: `USR + YYMMDD + Suffix`)        |
+| `identityName`     | text   | Tên đầy đủ                                             |
+| `email`            | text   | Email (unique)                                         |
+| `identityPhone`    | text   | Số điện thoại                                          |
+| `identityNID`      | text   | Số CMND/CCCD                                           |
+| `identityAddress`  | text   | Địa chỉ                                                |
+| `password`         | text   | Mật khẩu đã hash (bcrypt)                              |
+| `identityStatus`   | text   | `active`, `inactive`, `banned`                         |
+| `roles`            | text[] | Danh sách role codes                                   |
+| `identityPolicies` | jsonb  | Override policies `{ "POL_CODE": "ALLOW/DENY/LIMIT" }` |
+| `permissions`      | jsonb  | Resolved permissions (table → column → bitmask)        |
+| `alias`            | text   | Tên hiển thị ngắn gọn                                  |
 
 ---
 
@@ -53,7 +54,7 @@ BLACK/IDENTITY/
 
     ```sql
     SELECT * FROM identity.identities
-    WHERE "identityEmail" = $1 AND "deletedAt" IS NULL
+    WHERE "email" = $1 AND "deletedAt" IS NULL
     ```
 
     - Nếu không tìm thấy → Error `401 Unauthorized`
@@ -111,7 +112,7 @@ Mỗi request API đều gọi hàm này để xác định "Ai đang gọi API?
     - Query: `SELECT * FROM identity.identities WHERE "identityId" = $1`
 
 4. **Permission Resolution**:
-    - **Step 1**: Lấy `identityRoles` (array of role codes)
+    - **Step 1**: Lấy `roles` (array of role codes)
     - **Step 2**: Resolve Policies từ Roles → `RESOLVE_POLICIES(roles)`
     - **Step 3**: Resolve Permissions từ Policies → `RESOLVE_PERMISSIONS(roles)`
     - **Step 4**: Merge với `identityPolicies` override (nếu có)
@@ -148,7 +149,7 @@ Mỗi request API đều gọi hàm này để xác định "Ai đang gọi API?
 5. Hash password: `bcrypt.hash(password, 12)`
 6. Default values:
     - `identityStatus`: `inactive` (cần kích hoạt)
-    - `identityRoles`: `["ROLE_TECHNICIAN"]` (default)
+    - `roles`: `["ROLE_TECHNICIAN"]` (default)
 7. Insert vào DB + Sync Valkey cache
 
 ### B. Admin-Created User
@@ -182,7 +183,7 @@ Mỗi request API đều gọi hàm này để xác định "Ai đang gọi API?
 **Luồng xử lý**:
 
 1. Kiểm tra role code hợp lệ (tồn tại trong `CONSTANTS.ROLES`)
-2. Thêm vào `identityRoles` array (nếu chưa có)
+2. Thêm vào `roles` array (nếu chưa có)
 3. **Auto-resolve policies**: Lấy policies từ role definition → Set `ALLOW`
 4. Update DB + Cache
 
@@ -190,7 +191,7 @@ Mỗi request API đều gọi hàm này để xác định "Ai đang gọi API?
 
 ```javascript
 await identity.addRole("ROLE_TECHNICIAN");
-// → identityRoles: ["ROLE_TECHNICIAN"]
+// → roles: ["ROLE_TECHNICIAN"]
 // → identityPolicies: { "POL_TEST_EXECUTE": "ALLOW", ... }
 ```
 
@@ -200,7 +201,7 @@ await identity.addRole("ROLE_TECHNICIAN");
 
 **Luồng xử lý**:
 
-1. Xóa khỏi `identityRoles` array
+1. Xóa khỏi `roles` array
 2. **Set policies to DENY**: Các policies liên quan → `DENY`
 3. Update DB + Cache
 
@@ -238,7 +239,7 @@ await identity.addRole("ROLE_TECHNICIAN");
 1. **Lấy quyền hiện tại**:
 
     ```javascript
-    const permission = this.identityPermission[sourceTable];
+    const permission = this.permissions[sourceTable];
     if (!permission) throw new cError(403, "Forbidden");
     ```
 

@@ -1,257 +1,446 @@
-import { useState } from "react";
-import { FileText, Edit, Send, FileQuestion, Search } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Pagination } from "@/components/ui/pagination";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { Search, Loader2, FastForward, FlaskConical, PenLine, FileText, Beaker } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Pagination } from "@/components/ui/pagination";
+import { useDebounce } from "@/hooks/useDebounce";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAnalysesList, useAnalysesUpdateBulk } from "@/api/analyses";
+import type { AnalysisListItem } from "@/types/analysis";
+import { TechnicianAssignmentModal } from "@/components/assignment/TechnicianAssignmentModal";
+import { TechnicianBulkEntryModal } from "@/components/technician/TechnicianBulkEntryModal";
+import { TestProtocolEditor } from "@/components/technician/TestProtocolEditor";
+import { TechnicianChemicalRequestsTab } from "@/components/technician/TechnicianChemicalRequestsTab";
+import { TechnicianChemicalAllocationModal } from "@/components/technician/TechnicianChemicalAllocationModal";
 
-import type { Analysis } from "@/types/lab";
-import { mockAnalyses, mockSamples } from "@/types/mockdata";
+function getStatusVariant(status: string) {
+    if (status === "Pending") return "warning";
+    if (status === "Ready") return "success";
+    if (status === "Testing") return "default";
+    if (status === "ReTest") return "destructive";
+    if (status === "DataEntered" || status === "TechReview") return "secondary";
+    return "outline";
+}
 
-// Derived Task type for UI
-type Task = Analysis & {
-    analysisId: string; // Ensure optional in base is required here if needed, or derived
-    sampleCode: string;
-    receivedDate: string;
-    protocol: string;
-    unit: string;
-    assignedTo: string;
-    resultValue: string;
-    notes: string;
-    status: "pending" | "in-progress" | "waiting-approval" | "redo";
-};
-
-// Map mock analyses to tasks
-const mapAnalysisToTask = (analysis: Analysis): Task => {
-    const sample = mockSamples.find((s) => s.sampleId === analysis.sampleId);
-
-    // Map status
-    let status: Task["status"] = "pending";
-    if (analysis.analysisStatus === "Testing") status = "in-progress";
-    if (analysis.analysisStatus === "Review") status = "waiting-approval";
-    if (analysis.analysisStatus === "Rejected") status = "redo";
-
-    return {
-        ...analysis,
-        analysisId: analysis.analysisId || "N/A",
-        sampleCode: sample?.sampleClientInfo || sample?.sampleId || "Unknown",
-        receivedDate: sample?.createdAt?.split("T")[0] || "N/A",
-        protocol: analysis.protocolCode || "N/A",
-        unit: analysis.analysisUnit || "mg/kg",
-        assignedTo: "Nguyen Van A", // Mock
-        resultValue: analysis.analysisResult || "",
-        notes: "",
-        status,
-    };
-};
-
-const allTasks = mockAnalyses.map(mapAnalysisToTask);
-const mockTasks = allTasks.filter((t) => t.status === "pending" || t.status === "in-progress");
-const mockWaitingApprovalTasks = allTasks.filter((t) => t.status === "waiting-approval");
-const mockRedoTasks = allTasks.filter((t) => t.status === "redo");
+function getStatusText(status: string) {
+    if (status === "Pending") return "Chờ xử lý"; // these should probably be handled with t() inside the component instead of here. We can leave it or pass t to it.
+    if (status === "Ready") return "Sẵn sàng";
+    if (status === "Testing") return "Đang thử nghiệm";
+    if (status === "DataEntered") return "Đã nhập KQ";
+    if (status === "TechReview") return "Chờ soát xét";
+    if (status === "ReTest") return "Cần làm lại";
+    return status;
+}
 
 export function TechnicianWorkspace() {
+    const { user } = useAuth();
     const { t } = useTranslation();
-    const [tasks, setTasks] = useState<Task[]>(mockTasks);
-    const [activeTab, setActiveTab] = useState("todo");
-    const [searchTerm, setSearchTerm] = useState("");
 
-    const handleResultChange = (taskId: string, value: string) => {
-        setTasks((prev) => prev.map((task) => (task.analysisId === taskId ? { ...task, resultValue: value } : task)));
-    };
+    // Check if user is a manager of any group. For now, checking roles.
+    const isManager = user?.roles?.admin || user?.roles?.superAdmin;
 
-    const handleNotesChange = (taskId: string, value: string) => {
-        setTasks((prev) => prev.map((task) => (task.analysisId === taskId ? { ...task, notes: value } : task)));
-    };
+    const [activeTab, setActiveTab] = useState("pending"); // pending, testing, retest
+    const [page, setPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(50);
+    const [search, setSearch] = useState("");
+    const debouncedSearch = useDebounce(search, 300);
 
-    const TaskTable = ({ tasks, showResult = false }: { tasks: Task[]; showResult?: boolean }) => (
-        <div className="overflow-x-auto">
-            <table className="w-full">
-                <thead className="bg-muted/50 border-b border-border">
-                    <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t("technician.workspace.table.sampleCode")}</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t("technician.workspace.table.parameterName")}</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t("technician.workspace.table.receivedDate")}</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t("technician.workspace.table.protocol")}</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t("technician.workspace.table.result")}</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t("technician.workspace.table.unit")}</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t("technician.workspace.table.assignedTo")}</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t("technician.workspace.table.status")}</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{t("technician.workspace.table.note")}</th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase">{t("technician.workspace.table.actions")}</th>
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                    {tasks.map((task) => (
-                        <tr key={task.analysisId} className="hover:bg-accent/40 bg-card">
-                            <td className="px-4 py-3 font-medium text-foreground text-sm">{task.sampleCode}</td>
-                            <td className="px-4 py-3 text-foreground text-sm">{task.parameterName}</td>
-                            <td className="px-4 py-3 text-muted-foreground text-sm">{task.receivedDate}</td>
-                            <td className="px-4 py-3 text-muted-foreground text-sm">{task.protocol}</td>
-                            <td className="px-4 py-3">
-                                {showResult ? (
-                                    <span className="text-foreground font-medium text-sm">{task.resultValue || "--"}</span>
-                                ) : (
-                                    <Input
-                                        type="text"
-                                        value={task.resultValue}
-                                        onChange={(e) => handleResultChange(task.analysisId, e.target.value)}
-                                        placeholder={t("technician.workspace.table.enterResult")}
-                                        className="w-24 h-8 text-sm"
-                                    />
-                                )}
-                            </td>
-                            <td className="px-4 py-3 text-muted-foreground text-sm">{task.unit}</td>
-                            <td className="px-4 py-3 text-muted-foreground text-sm">{task.assignedTo}</td>
-                            <td className="px-4 py-3">
-                                {task.status === "pending" ? (
-                                    <Badge variant="outline" className="text-xs">
-                                        {t("technician.workspace.status.pending")}
-                                    </Badge>
-                                ) : task.status === "in-progress" ? (
-                                    <Badge variant="default" className="bg-primary text-primary-foreground text-xs">
-                                        {t("technician.workspace.status.inProgress")}
-                                    </Badge>
-                                ) : task.status === "waiting-approval" ? (
-                                    <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs">
-                                        {t("technician.workspace.status.waitingApproval")}
-                                    </Badge>
-                                ) : (
-                                    <Badge variant="destructive" className="text-xs">
-                                        {t("technician.workspace.status.redo")}
-                                    </Badge>
-                                )}
-                            </td>
-                            <td className="px-4 py-3 max-w-xs">
-                                {showResult ? (
-                                    <span className="text-sm text-muted-foreground line-clamp-2">{task.notes || "-"}</span>
-                                ) : (
-                                    <Textarea
-                                        value={task.notes}
-                                        onChange={(e) => handleNotesChange(task.analysisId, e.target.value)}
-                                        placeholder={t("technician.workspace.table.enterNote")}
-                                        className="w-full min-w-[150px] h-8 text-sm resize-none"
-                                        rows={1}
-                                    />
-                                )}
-                            </td>
-                            <td className="px-4 py-3">
-                                <div className="flex items-center justify-center gap-1">
-                                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="Xem chi tiết">
-                                        <FileText className="h-4 w-4" />
-                                    </Button>
-                                    {!showResult && (
-                                        <>
-                                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" title="Chỉnh sửa">
-                                                <Edit className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                className="h-8 w-8 p-0 text-success hover:text-success hover:bg-success/10"
-                                                title="Gửi yêu cầu duyệt"
-                                                disabled={!task.resultValue}
-                                            >
-                                                <Send className="h-4 w-4" />
-                                            </Button>
-                                        </>
-                                    )}
-                                    {task.status === "redo" && (
-                                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-warning hover:text-warning hover:bg-warning/10" title="Gửi yêu cầu">
-                                            <FileQuestion className="h-4 w-4" />
-                                        </Button>
-                                    )}
-                                </div>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </div>
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [showAssignmentModal, setShowAssignmentModal] = useState(false);
+    const [showBulkEntryModal, setShowBulkEntryModal] = useState(false);
+    const [showChemicalModal, setShowChemicalModal] = useState(false);
+    const [selectedBulkAnalyses, setSelectedBulkAnalyses] = useState<AnalysisListItem[]>([]);
+    const [selectedAnalysesForProtocol, setSelectedAnalysesForProtocol] = useState<AnalysisListItem[]>([]);
+    const [showProtocolEditor, setShowProtocolEditor] = useState(false);
+
+    // Filter bases on tab
+    const statusFilter = useMemo(() => {
+        if (activeTab === "pending") return ["Pending", "Ready"];
+        if (activeTab === "testing") return ["Testing"];
+        if (activeTab === "retest") return ["ReTest"];
+        return ["Testing"]; // fallback
+    }, [activeTab]);
+
+    const {
+        data: analysesRes,
+        isLoading: isAnalysesLoading,
+        refetch,
+    } = useAnalysesList({
+        query: {
+            analysisStatus: statusFilter as unknown as "Pending", // send as array
+            sortColumn: "createdAt",
+            sortDirection: "DESC",
+            search: debouncedSearch || undefined,
+            itemsPerPage,
+            page,
+        },
+    });
+
+    const analysesList = useMemo(() => analysesRes?.data ?? [], [analysesRes?.data]);
+    const meta = analysesRes?.meta;
+
+    const { mutate: bulkUpdate, isPending: isUpdating } = useAnalysesUpdateBulk();
+
+    // Reset selection when tab changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(() => {
+        setPage(1);
+        setSelectedIds([]);
+        setSearch("");
+    }, [activeTab]);
+
+    // Drag-to-select state and logic
+    const [isSelecting, setIsSelecting] = useState(false);
+    const [selectionMode, setSelectionMode] = useState<"select" | "deselect">("select");
+    const [dragStartId, setDragStartId] = useState<string | null>(null);
+    const [selectionBox, setSelectionBox] = useState<{ startX: number; startY: number; endX: number; endY: number; active: boolean } | null>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    const updateSelectionRange = useCallback(
+        (startId: string, endId: string, mode: "select" | "deselect") => {
+            const startIndex = analysesList.findIndex((a: AnalysisListItem) => a.analysisId === startId);
+            const endIndex = analysesList.findIndex((a: AnalysisListItem) => a.analysisId === endId);
+            if (startIndex === -1 || endIndex === -1) return;
+
+            const start = Math.min(startIndex, endIndex);
+            const end = Math.max(startIndex, endIndex);
+            const rangeIds = analysesList.slice(start, end + 1).map((a: AnalysisListItem) => a.analysisId);
+
+            if (mode === "select") {
+                setSelectedIds((prev) => Array.from(new Set([...prev, ...rangeIds])));
+            } else {
+                setSelectedIds((prev) => prev.filter((x) => !rangeIds.includes(x)));
+            }
+        },
+        [analysesList],
     );
 
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (!isSelecting) return;
+
+            setSelectionBox((prev) => {
+                if (!prev) return null;
+                return { ...prev, endX: e.clientX, endY: e.clientY };
+            });
+
+            const element = document.elementFromPoint(e.clientX, e.clientY);
+            const row = element?.closest("tr");
+            const id = row?.getAttribute("data-analysis-id");
+            if (id && dragStartId) {
+                updateSelectionRange(dragStartId, id, selectionMode);
+            }
+        };
+
+        const handleMouseUp = () => {
+            setIsSelecting(false);
+            setSelectionBox(null);
+            setDragStartId(null);
+        };
+
+        if (isSelecting) {
+            window.addEventListener("mousemove", handleMouseMove);
+            window.addEventListener("mouseup", handleMouseUp);
+        }
+        return () => {
+            window.removeEventListener("mousemove", handleMouseMove);
+            window.removeEventListener("mouseup", handleMouseUp);
+        };
+    }, [isSelecting, selectionMode, dragStartId, updateSelectionRange]);
+
+    const handleSelectAll = (checked: boolean) => {
+        if (checked) {
+            setSelectedIds(analysesList.map((a: AnalysisListItem) => a.analysisId));
+        } else {
+            setSelectedIds([]);
+        }
+    };
+
+    const handleSelectOne = (checked: boolean, id: string) => {
+        if (checked) {
+            setSelectedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+        } else {
+            setSelectedIds((prev) => prev.filter((x) => x !== id));
+        }
+    };
+
+    const handleMouseDownRow = (id: string, e: React.MouseEvent) => {
+        if (e.button !== 0) return;
+        setIsSelecting(true);
+        setDragStartId(id);
+        setSelectionBox({
+            startX: e.clientX,
+            startY: e.clientY,
+            endX: e.clientX,
+            endY: e.clientY,
+            active: true,
+        });
+
+        const willSelect = !selectedIds.includes(id);
+        setSelectionMode(willSelect ? "select" : "deselect");
+        handleSelectOne(willSelect, id);
+    };
+
+    // Actions
+    const handleReceiveSamples = () => {
+        if (!selectedIds.length) return;
+
+        const payload = selectedIds.map((id) => ({
+            analysisId: id,
+            analysisStatus: "Testing" as const,
+        }));
+
+        bulkUpdate(
+            { body: payload },
+            {
+                onSuccess: () => {
+                    setSelectedIds([]);
+                    refetch();
+                },
+            },
+        );
+    };
+
+    const handleOpenBulkEntry = () => {
+        const analysesToEnter = analysesList.filter((a: AnalysisListItem) => selectedIds.includes(a.analysisId));
+        setSelectedBulkAnalyses(analysesToEnter);
+        setShowBulkEntryModal(true);
+    };
+
+    const handleOpenProtocolEditor = (singleItem?: AnalysisListItem) => {
+        if (singleItem) {
+            setSelectedAnalysesForProtocol([singleItem]);
+        } else {
+            const selected = analysesList.filter((a: AnalysisListItem) => selectedIds.includes(a.analysisId));
+            setSelectedAnalysesForProtocol(selected);
+        }
+        setShowProtocolEditor(true);
+    };
+
     return (
-        <div className="p-6 space-y-6 bg-background min-h-full">
-            {/* Header */}
-            <div className="bg-card rounded-lg border border-border p-6">
-                <h1 className="text-2xl font-semibold text-foreground">{t("technician.workspace.title")}</h1>
-                <p className="text-muted-foreground mt-1">{t("technician.workspace.ktv")}: Nguyễn Văn A</p>
-                <div className="flex gap-4 mt-4 overflow-x-auto pb-2 sm:pb-0">
-                    <div className="flex items-center gap-2 whitespace-nowrap">
-                        <div className="text-sm text-muted-foreground">{t("technician.workspace.totalTasks")}:</div>
-                        <Badge variant="outline" className="text-base">
-                            {tasks.length + mockWaitingApprovalTasks.length + mockRedoTasks.length}
-                        </Badge>
-                    </div>
-                    <div className="flex items-center gap-2 whitespace-nowrap">
-                        <div className="text-sm text-muted-foreground">{t("technician.workspace.todo")}:</div>
-                        <Badge variant="outline" className="text-base bg-warning hover:bg-warning/90">
-                            {tasks.length}
-                        </Badge>
-                    </div>
-                    <div className="flex items-center gap-2 whitespace-nowrap">
-                        <div className="text-sm text-muted-foreground">{t("technician.workspace.waiting")}:</div>
-                        <Badge variant="outline" className="text-base bg-warning/10 text-warning border-warning/20">
-                            {mockWaitingApprovalTasks.length}
-                        </Badge>
-                    </div>
-                    <div className="flex items-center gap-2 whitespace-nowrap">
-                        <div className="text-sm text-muted-foreground">{t("technician.workspace.redo")}:</div>
-                        <Badge variant="destructive" className="text-base">
-                            {mockRedoTasks.length}
-                        </Badge>
-                    </div>
+        <div className="flex h-full flex-col gap-4 p-6 bg-background space-y-4">
+            <div className="bg-card rounded-lg border border-border p-6 flex flex-col items-start gap-4 shadow-sm">
+                <div>
+                    <h1 className="text-2xl font-semibold tracking-tight">{t("technician.workspace.title", { defaultValue: "Không gian làm việc (KTV)" })}</h1>
+                    <p className="text-muted-foreground text-sm flex items-center gap-2 mt-1">
+                        {t("technician.workspace.greeting", { defaultValue: "Xin chào," })} <span className="font-semibold text-foreground">{user?.identityName || t("technician.workspace.technician", { defaultValue: "Kỹ thuật viên" })}</span>. {t("technician.workspace.subtitle", { defaultValue: "Quản lý công việc phân công tại đây." })}
+                    </p>
+                </div>
+
+                <div className="flex w-full flex-wrap items-center gap-2 border bg-muted/30 p-2 rounded-md">
+                    <span className="text-sm font-medium mr-2">{t("common.actions", { defaultValue: "Hành động:" })}</span>
+                    <Button size="sm" variant="secondary" disabled={selectedIds.length === 0 || activeTab !== "pending" || isUpdating} onClick={handleReceiveSamples}>
+                        <FlaskConical className="w-4 h-4 mr-2" />
+                        {t("technician.workspace.receiveSamples", { defaultValue: "Nhận chỉ tiêu" })} ({activeTab === "pending" ? selectedIds.length : 0})
+                    </Button>
+
+                    <Button size="sm" variant="default" disabled={selectedIds.length === 0 || activeTab !== "testing"} onClick={handleOpenBulkEntry}>
+                        <PenLine className="w-4 h-4 mr-2" />
+                        {t("technician.workspace.bulkEntry", { defaultValue: "Nhập kết quả lô" })} ({activeTab === "testing" ? selectedIds.length : 0})
+                    </Button>
+
+                    <Button size="sm" variant="outline" disabled={selectedIds.length === 0 || activeTab !== "testing"} onClick={() => setShowChemicalModal(true)}>
+                        <Beaker className="w-4 h-4 mr-2" />
+                        {t("technician.workspace.suggestChemicals", { defaultValue: "Gợi ý hóa chất FEFO" })}                    </Button>
+
+                    <Button size="sm" variant="outline" disabled={selectedIds.length === 0 || activeTab !== "testing"} onClick={() => handleOpenProtocolEditor()}>
+                        <FileText className="w-4 h-4 mr-2" />
+                        {t("technician.workspace.createProtocolBulk", { defaultValue: "Lập biên bản" })} ({activeTab === "testing" ? selectedIds.length : 0})
+                    </Button>
+
+                    {isManager && (
+                        <Button size="sm" variant="outline" className="ml-auto" disabled={selectedIds.length === 0} onClick={() => setShowAssignmentModal(true)}>
+                            <FastForward className="w-4 h-4 mr-2" />
+                            {t("technician.workspace.handover", { defaultValue: "Bàn giao việc" })}
+                        </Button>
+                    )}
                 </div>
             </div>
 
-            {/* Tabs */}
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                    <TabsList>
-                        <TabsTrigger value="todo">
-                            {t("technician.workspace.todo")} ({tasks.length})
-                        </TabsTrigger>
-                        <TabsTrigger value="waiting">
-                            {t("technician.workspace.waiting")} ({mockWaitingApprovalTasks.length})
-                        </TabsTrigger>
-                        <TabsTrigger value="redo">
-                            {t("technician.workspace.redo")} ({mockRedoTasks.length})
-                        </TabsTrigger>
+                    <TabsList className="grid w-full grid-cols-4 md:w-[550px]">
+                        <TabsTrigger value="pending">{t("technician.workspace.tabs.pending", { defaultValue: "Chờ nhận" })}</TabsTrigger>
+                        <TabsTrigger value="testing">{t("technician.workspace.tabs.testing", { defaultValue: "Đang thử nghiệm" })}</TabsTrigger>
+                        <TabsTrigger value="retest">{t("technician.workspace.tabs.retest", { defaultValue: "Cần làm lại" })}</TabsTrigger>
+                        <TabsTrigger value="chemical-requests">{t("technician.workspace.tabs.chemicalRequests", { defaultValue: "Yêu cầu xuất hóa chất" })}</TabsTrigger>
                     </TabsList>
 
-                    {/* Search and Filter */}
-                    <div className="flex items-center gap-2 w-full md:w-auto">
-                        <div className="relative w-full md:w-80">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input placeholder={t("technician.workspace.searchPlaceholder")} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
-                        </div>
+                    <div className="relative w-full md:w-80">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                            placeholder={activeTab === "chemical-requests" 
+                                ? t("inventory.chemical.transactionBlocks.searchPlaceholder", { defaultValue: "Tìm mã phiếu, tham chiếu..." }) 
+                                : t("technician.workspace.searchPlaceholder", { defaultValue: "Tìm mã mẫu, tên chỉ tiêu..." })} 
+                            value={search} 
+                            onChange={(e) => setSearch(e.target.value)} 
+                            className="pl-10 shadow-sm" 
+                        />
                     </div>
                 </div>
 
-                <TabsContent value="todo" className="mt-0">
-                    <div className="bg-card rounded-lg border border-border overflow-hidden">
-                        <TaskTable tasks={tasks} />
-                        <Pagination totalPages={1} currentPage={1} onPageChange={() => {}} />
-                    </div>
-                </TabsContent>
+                {activeTab === "chemical-requests" ? (
+                    <TechnicianChemicalRequestsTab search={debouncedSearch} />
+                ) : (
+                    <>
+                        <div ref={containerRef} className="border-border/50 bg-card z-10 flex flex-1 flex-col overflow-hidden rounded-lg border shadow-sm relative">
+                            <div className="flex-1 overflow-auto">
+                                <Table>
+                                    <TableHeader className="bg-muted/50 sticky top-0 z-10 shadow-sm">
+                                        <TableRow>
+                                            <TableHead className="w-12 text-center">
+                                                <Checkbox checked={analysesList.length > 0 && selectedIds.length === analysesList.length} onCheckedChange={handleSelectAll} aria-label="Select all" />
+                                            </TableHead>
+                                            <TableHead className="w-16 text-center">{t("common.stt", { defaultValue: "STT" })}</TableHead>
+                                            <TableHead className="min-w-[120px]">{t("technician.workspace.sampleCode", { defaultValue: "Mã mẫu" })}</TableHead>
+                                            <TableHead className="min-w-[150px]">{t("technician.workspace.parameter", { defaultValue: "Chỉ tiêu" })}</TableHead>
+                                            <TableHead className="min-w-[150px]">{t("technician.workspace.assignee", { defaultValue: "Người phụ trách" })}</TableHead>
+                                            <TableHead className="min-w-[150px]">{t("technician.workspace.assignedGroup", { defaultValue: "Nhóm thực hiện" })}</TableHead>
+                                            <TableHead className="w-[120px] text-center">{t("technician.workspace.statusCol", { defaultValue: "Trạng thái" })}</TableHead>
+                                            <TableHead className="w-[80px] text-center">{t("common.actions", { defaultValue: "Hành động" })}</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {isAnalysesLoading ? (
+                                            <TableRow>
+                                                <TableCell colSpan={8} className="h-40 text-center">
+                                                    <Loader2 className="text-primary mx-auto h-8 w-8 animate-spin" />
+                                                </TableCell>
+                                            </TableRow>
+                                        ) : analysesList.length === 0 ? (
+                                            <TableRow>
+                                                <TableCell colSpan={8} className="text-muted-foreground h-40 text-center">
+                                                    {t("common.noData", { defaultValue: "Không có dữ liệu" })}
+                                                </TableCell>
+                                            </TableRow>
+                                        ) : (
+                                            analysesList.map((baseItem: AnalysisListItem, index: number) => {
+                                                const item = baseItem as AnalysisListItem & {
+                                                    technician?: { identityName?: string };
+                                                    sample?: { sampleCode?: string };
+                                                    technicianGroupName?: string;
+                                                };
+                                                const assignedKTV = item.technician?.identityName ?? "-";
+                                                const assignedGroup = item.technicianGroupName ?? "-";
 
-                <TabsContent value="waiting" className="mt-0">
-                    <div className="bg-card rounded-lg border border-border overflow-hidden">
-                        <TaskTable tasks={mockWaitingApprovalTasks} showResult={true} />
-                        <Pagination totalPages={1} currentPage={1} onPageChange={() => {}} />
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="redo" className="mt-0">
-                    <div className="bg-card rounded-lg border border-border overflow-hidden">
-                        <TaskTable tasks={mockRedoTasks} />
-                        <Pagination totalPages={1} currentPage={1} onPageChange={() => {}} />
-                    </div>
-                </TabsContent>
+                                                return (
+                                                    <TableRow
+                                                        key={item.analysisId}
+                                                        data-analysis-id={item.analysisId}
+                                                        onMouseDown={(e) => handleMouseDownRow(item.analysisId, e)}
+                                                        className={`select-none cursor-pointer transition-colors ${selectedIds.includes(item.analysisId) ? "bg-primary/5" : ""}`}
+                                                    >
+                                                        <TableCell className="text-center">
+                                                            <Checkbox className="pointer-events-none" checked={selectedIds.includes(item.analysisId)} />
+                                                        </TableCell>
+                                                        <TableCell className="text-center">{(page - 1) * itemsPerPage + index + 1}</TableCell>
+                                                        <TableCell className="font-medium text-primary">{item.sample?.sampleCode || item.sampleId}</TableCell>
+                                                        <TableCell className="font-semibold">{item.parameterName || "-"}</TableCell>
+                                                        <TableCell>{assignedKTV}</TableCell>
+                                                        <TableCell>{assignedGroup}</TableCell>
+                                                        <TableCell className="text-center">
+                                                            <Badge variant={getStatusVariant(item.analysisStatus)} className="font-medium whitespace-nowrap">
+                                                                {t(`technician.workspace.statusMap.${item.analysisStatus}`, { defaultValue: getStatusText(item.analysisStatus) })}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
+                                                                onClick={() => handleOpenProtocolEditor(item)}
+                                                                title={t("technician.workspace.createProtocol", { defaultValue: "Lập biên bản thử nghiệm" })}
+                                                            >
+                                                                <FileText className="h-4 w-4" />
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </div>
+                        {meta && (
+                            <Pagination currentPage={page} totalPages={meta.totalPages} itemsPerPage={itemsPerPage} totalItems={meta.total} onPageChange={setPage} onItemsPerPageChange={setItemsPerPage} />
+                        )}
+                    </>
+                )}
             </Tabs>
+
+            {selectionBox?.active && (
+                <div
+                    className="bg-primary/20 border-primary fixed z-50 pointer-events-none border rounded-[2px]"
+                    style={{
+                        left: Math.min(selectionBox.startX, selectionBox.endX),
+                        top: Math.min(selectionBox.startY, selectionBox.endY),
+                        width: Math.abs(selectionBox.startX - selectionBox.endX),
+                        height: Math.abs(selectionBox.startY - selectionBox.endY),
+                    }}
+                />
+            )}
+
+            {showAssignmentModal && (
+                <TechnicianAssignmentModal
+                    open={showAssignmentModal}
+                    onOpenChange={setShowAssignmentModal}
+                    selectedAnalysisIds={selectedIds}
+                    onSuccess={() => {
+                        setShowAssignmentModal(false);
+                        setSelectedIds([]);
+                        refetch();
+                    }}
+                />
+            )}
+
+            {showBulkEntryModal && (
+                <TechnicianBulkEntryModal
+                    open={showBulkEntryModal}
+                    onOpenChange={setShowBulkEntryModal}
+                    selectedAnalyses={selectedBulkAnalyses}
+                    onSuccess={() => {
+                        setShowBulkEntryModal(false);
+                        setSelectedIds([]);
+                        refetch();
+                    }}
+                />
+            )}
+
+            {showChemicalModal && (
+                <TechnicianChemicalAllocationModal
+                    open={showChemicalModal}
+                    onOpenChange={setShowChemicalModal}
+                    selectedAnalyses={analysesList.filter((a: AnalysisListItem) => selectedIds.includes(a.analysisId))}
+                    onSuccess={() => {
+                        setSelectedIds([]);
+                        refetch();
+                    }}
+                />
+            )}
+
+            {showProtocolEditor && (
+                <TestProtocolEditor
+                    open={showProtocolEditor}
+                    onOpenChange={(o) => {
+                        if (!o) {
+                            setShowProtocolEditor(false);
+                            setSelectedAnalysesForProtocol([]);
+                        }
+                    }}
+                    analyses={selectedAnalysesForProtocol}
+                    onSuccess={() => {
+                        setShowProtocolEditor(false);
+                        setSelectedAnalysesForProtocol([]);
+                        refetch();
+                    }}
+                />
+            )}
         </div>
     );
 }

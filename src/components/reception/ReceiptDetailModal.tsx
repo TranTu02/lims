@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { X, Edit, Save, Upload, FileText, Printer, FileCheck, Mail, ChevronLeft, ChevronRight, ImageOff, Camera, Search } from "lucide-react";
+import { createPortal } from "react-dom";
+
+import { X, Edit, Save, Upload, FileText, Printer, FileCheck, Mail, ChevronLeft, ChevronRight, ImageOff, Camera, Search, Building2, Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -13,11 +15,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 import { receiptsUpdate, receiptsGetFull } from "@/api/receipts";
 import { receiptsKeys } from "@/api/receiptsKeys";
+import { samplesGetFull } from "@/api/samples";
 import { fileApi, buildFileUploadFormData } from "@/api/files";
 
 import type { ReceiptDetail, ReceiptSample, ReceiptAnalysis, ReceiptsUpdateBody, ReceiptStatus } from "@/types/receipt";
 
 import { SampleDetailModal } from "./SampleDetailModal";
+import { SamplePrintLabelModal, type SampleLabelItem } from "./SamplePrintLabelModal";
+import { AddSampleModal } from "./AddSampleModal";
 
 interface ReceiptDetailModalProps {
     receipt: ReceiptDetail;
@@ -155,6 +160,7 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
     }, [receipt]);
 
     const [showEmailModal, setShowEmailModal] = useState(false);
+    const [showPrintLabelModal, setShowPrintLabelModal] = useState(false);
 
     // ── Image viewer state ──────────────────────────────────────────────────
     type LoadedImage = { fileId: string; url: string };
@@ -450,6 +456,8 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
     const [openSampleModal, setOpenSampleModal] = useState(false);
     const [selectedSample, setSelectedSample] = useState<ReceiptSample | null>(null);
     const [focusAnalysisId, setFocusAnalysisId] = useState<string | null>(null);
+    const [sampleFetching, setSampleFetching] = useState(false);
+    const [showAddSampleModal, setShowAddSampleModal] = useState(false);
 
     useEffect(() => {
         setOpenSampleModal(false);
@@ -457,11 +465,30 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
         setFocusAnalysisId(null);
     }, [receipt.receiptId]);
 
-    const openSampleByLabId = useCallback((sample: ReceiptSample, analysisId: string | null) => {
-        setSelectedSample(sample);
-        setFocusAnalysisId(analysisId);
-        setOpenSampleModal(true);
-    }, []);
+    const openSampleByLabId = useCallback(
+        async (sample: ReceiptSample, analysisId: string | null) => {
+            setFocusAnalysisId(analysisId);
+            setOpenSampleModal(true);
+            setSelectedSample(sample); // Quick show
+
+            setSampleFetching(true);
+            try {
+                const res = await samplesGetFull({ sampleId: sample.sampleId });
+                const fullData = res.data ?? res;
+                if (fullData) {
+                    const s = fullData as any as ReceiptSample;
+                    setSelectedSample(s);
+                    // Also notify parent if needed
+                    onSampleClick?.(s);
+                }
+            } catch (e) {
+                console.error("Failed to fetch full sample info:", e);
+            } finally {
+                setSampleFetching(false);
+            }
+        },
+        [onSampleClick],
+    );
 
     const closeSampleModal = useCallback(() => {
         setOpenSampleModal(false);
@@ -484,7 +511,13 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
     const samplesTableJSX = useMemo(
         () => (
             <div>
-                <h3 className="font-semibold text-foreground mb-4">{String(t("reception.createReceipt.samplesList"))}</h3>
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-foreground">{String(t("reception.createReceipt.samplesList"))}</h3>
+                    <Button variant="outline" size="sm" onClick={() => setShowAddSampleModal(true)} className="gap-1.5">
+                        <Plus className="h-3.5 w-3.5" />
+                        {String(t("reception.addSample.addButton", { defaultValue: "Thêm mẫu" }))}
+                    </Button>
+                </div>
 
                 <div className="bg-background border border-border rounded-lg overflow-hidden">
                     <div className="overflow-x-auto">
@@ -528,7 +561,7 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                                                                     </button>
                                                                 </td>
                                                                 <td className="px-4 py-3 align-top border-r bg-primary/5" rowSpan={analyses.length}>
-                                                                    <div className="text-sm text-foreground">{sample.sampleClientInfo ?? "-"}</div>
+                                                                    <div className="text-sm text-foreground">{sample.sampleName || sample.sampleClientInfo || sample.sampleTypeName || "-"}</div>
                                                                 </td>
                                                                 <td className="px-4 py-3 align-top border-r bg-primary/5" rowSpan={analyses.length}>
                                                                     <Badge variant="outline" className="text-xs">
@@ -605,11 +638,12 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
         [samples, t, openSampleByLabId, onSampleClick, getAnalysesForSample],
     );
 
-    return (
+    return createPortal(
         <>
-            <div className="fixed inset-0 bg-foreground/50 z-50" onClick={onClose} />
+            {/* Premium Backdrop with improved blur */}
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-[70] transition-all duration-300" onClick={onClose} aria-hidden="true" />
 
-            <div className="fixed inset-4 bg-background rounded-lg shadow-xl z-50 flex flex-col">
+            <div className="fixed inset-4 bg-background rounded-lg shadow-2xl z-[70] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                     <div>
                         <h2 className="text-lg font-semibold text-foreground">
@@ -623,7 +657,7 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <Button size="sm" onClick={() => console.log("Print label")} variant="outline" className="flex items-center gap-1.5 text-xs">
+                        <Button size="sm" onClick={() => setShowPrintLabelModal(true)} variant="outline" className="flex items-center gap-1.5 text-xs">
                             <Printer className="h-3.5 w-3.5" />
                             {String(t("reception.receiptDetail.printLabel"))}
                         </Button>
@@ -682,6 +716,48 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                                 </div>
 
                                 <div>
+                                    <Label className="text-sm text-muted-foreground">{String(t("crm.clients.clientId"))}</Label>
+                                    {isEditing ? (
+                                        <Input
+                                            value={editedReceipt.client?.clientId ?? ""}
+                                            onChange={(e) =>
+                                                setEditedReceipt((p: ReceiptDetail) => ({
+                                                    ...p,
+                                                    client: {
+                                                        ...(p.client ?? { clientName: "" }),
+                                                        clientId: e.target.value,
+                                                    },
+                                                }))
+                                            }
+                                            className="mt-1 bg-background h-8"
+                                        />
+                                    ) : (
+                                        <div className="mt-1 font-medium text-foreground">{editedReceipt.client?.clientId ?? "-"}</div>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <Label className="text-sm text-muted-foreground">{String(t("crm.clients.legalId", { defaultValue: "Mã định danh (Số ĐKKD)" }))}</Label>
+                                    {isEditing ? (
+                                        <Input
+                                            value={editedReceipt.client?.legalId ?? ""}
+                                            onChange={(e) =>
+                                                setEditedReceipt((p: ReceiptDetail) => ({
+                                                    ...p,
+                                                    client: {
+                                                        ...(p.client ?? { clientId: "", clientName: "" }),
+                                                        legalId: e.target.value,
+                                                    },
+                                                }))
+                                            }
+                                            className="mt-1 bg-background h-8"
+                                        />
+                                    ) : (
+                                        <div className="mt-1 font-medium text-foreground">{editedReceipt.client?.legalId ?? "-"}</div>
+                                    )}
+                                </div>
+
+                                <div>
                                     <Label className="text-sm text-muted-foreground">{String(t("crm.clients.clientName"))}</Label>
                                     {isEditing ? (
                                         <Input
@@ -690,7 +766,7 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                                                 setEditedReceipt((p: ReceiptDetail) => ({
                                                     ...p,
                                                     client: {
-                                                        ...(p.client ?? { clientId: "" }),
+                                                        ...(p.client ?? { clientId: "", clientName: "" }),
                                                         clientName: e.target.value,
                                                     },
                                                 }))
@@ -709,21 +785,159 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
 
                                 <div>
                                     <Label className="text-sm text-muted-foreground">{String(t("crm.clients.clientAddress"))}</Label>
-                                    <div className="mt-1 text-foreground">{editedReceipt.client?.clientAddress ?? "-"}</div>
+                                    {isEditing ? (
+                                        <Input
+                                            value={editedReceipt.client?.clientAddress ?? ""}
+                                            onChange={(e) =>
+                                                setEditedReceipt((p: ReceiptDetail) => ({
+                                                    ...p,
+                                                    client: {
+                                                        ...(p.client ?? { clientId: "", clientName: "" }),
+                                                        clientAddress: e.target.value,
+                                                    },
+                                                }))
+                                            }
+                                            className="mt-1 bg-background h-8"
+                                        />
+                                    ) : (
+                                        <div className="mt-1 text-foreground">{editedReceipt.client?.clientAddress ?? "-"}</div>
+                                    )}
                                 </div>
 
                                 <div>
                                     <Label className="text-sm text-muted-foreground">{String(t("reception.createReceipt.contactInfo", { defaultValue: "Thông tin liên hệ" }))}</Label>
-                                    <div className="mt-1 text-foreground">
-                                        {editedReceipt.client?.clientPhone ? `${editedReceipt.client.clientPhone} - ` : ""}
-                                        {editedReceipt.client?.clientEmail ?? "-"}
-                                    </div>
+                                    {isEditing ? (
+                                        <div className="flex flex-col gap-2 mt-1">
+                                            <Input
+                                                placeholder="Email"
+                                                value={editedReceipt.client?.clientEmail ?? ""}
+                                                onChange={(e) =>
+                                                    setEditedReceipt((p: ReceiptDetail) => ({
+                                                        ...p,
+                                                        client: {
+                                                            ...(p.client ?? { clientId: "", clientName: "" }),
+                                                            clientEmail: e.target.value,
+                                                        },
+                                                    }))
+                                                }
+                                                className="bg-background h-8"
+                                            />
+                                            <Input
+                                                placeholder="Phone"
+                                                value={editedReceipt.client?.clientPhone ?? ""}
+                                                onChange={(e) =>
+                                                    setEditedReceipt((p: ReceiptDetail) => ({
+                                                        ...p,
+                                                        client: {
+                                                            ...(p.client ?? { clientId: "", clientName: "" }),
+                                                            clientPhone: e.target.value,
+                                                        },
+                                                    }))
+                                                }
+                                                className="bg-background h-8"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="mt-1 text-foreground">
+                                            {editedReceipt.client?.clientPhone ? `${editedReceipt.client.clientPhone} - ` : ""}
+                                            {editedReceipt.client?.clientEmail ?? "-"}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div>
                                     <Label className="text-sm text-muted-foreground">{String(t("reception.receipts.contactPerson", { defaultValue: "Người liên hệ" }))}</Label>
                                     <div className="mt-1 text-foreground">
                                         {editedReceipt.contactPerson?.contactName ? `${editedReceipt.contactPerson.contactName} - ${editedReceipt.contactPerson.contactPhone ?? ""}` : "-"}
+                                    </div>
+                                </div>
+
+                                <div className="md:col-span-3 border-t border-border pt-4 mt-2">
+                                    <h3 className="text-sm font-semibold text-primary mb-4 flex items-center gap-2">
+                                        <Building2 className="h-4 w-4" />
+                                        {String(t("reception.createReceipt.invoiceInfo", { defaultValue: "Thông tin xuất hóa đơn" }))}
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                        <div>
+                                            <Label className="text-sm text-muted-foreground">{String(t("crm.clients.invoice.taxCode"))}</Label>
+                                            {isEditing ? (
+                                                <Input
+                                                    value={editedReceipt.client?.invoiceInfo?.taxCode ?? ""}
+                                                    onChange={(e) =>
+                                                        setEditedReceipt((p: ReceiptDetail) => ({
+                                                            ...p,
+                                                            client: {
+                                                                ...(p.client ?? { clientId: "", clientName: "" }),
+                                                                invoiceInfo: { ...(p.client?.invoiceInfo ?? {}), taxCode: e.target.value },
+                                                            },
+                                                        }))
+                                                    }
+                                                    className="mt-1 bg-background h-8"
+                                                />
+                                            ) : (
+                                                <div className="mt-1 text-foreground font-medium">{editedReceipt.client?.invoiceInfo?.taxCode ?? "-"}</div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <Label className="text-sm text-muted-foreground">{String(t("crm.clients.invoice.taxName"))}</Label>
+                                            {isEditing ? (
+                                                <Input
+                                                    value={editedReceipt.client?.invoiceInfo?.taxName ?? ""}
+                                                    onChange={(e) =>
+                                                        setEditedReceipt((p: ReceiptDetail) => ({
+                                                            ...p,
+                                                            client: {
+                                                                ...(p.client ?? { clientId: "", clientName: "" }),
+                                                                invoiceInfo: { ...(p.client?.invoiceInfo ?? {}), taxName: e.target.value },
+                                                            },
+                                                        }))
+                                                    }
+                                                    className="mt-1 bg-background h-8"
+                                                />
+                                            ) : (
+                                                <div className="mt-1 text-foreground">{editedReceipt.client?.invoiceInfo?.taxName ?? "-"}</div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <Label className="text-sm text-muted-foreground">{String(t("crm.clients.invoice.taxEmail"))}</Label>
+                                            {isEditing ? (
+                                                <Input
+                                                    value={editedReceipt.client?.invoiceInfo?.taxEmail ?? ""}
+                                                    onChange={(e) =>
+                                                        setEditedReceipt((p: ReceiptDetail) => ({
+                                                            ...p,
+                                                            client: {
+                                                                ...(p.client ?? { clientId: "", clientName: "" }),
+                                                                invoiceInfo: { ...(p.client?.invoiceInfo ?? {}), taxEmail: e.target.value },
+                                                            },
+                                                        }))
+                                                    }
+                                                    className="mt-1 bg-background h-8"
+                                                />
+                                            ) : (
+                                                <div className="mt-1 text-foreground">{editedReceipt.client?.invoiceInfo?.taxEmail ?? "-"}</div>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <Label className="text-sm text-muted-foreground">{String(t("crm.clients.invoice.taxAddress"))}</Label>
+                                            {isEditing ? (
+                                                <Input
+                                                    value={editedReceipt.client?.invoiceInfo?.taxAddress ?? ""}
+                                                    onChange={(e) =>
+                                                        setEditedReceipt((p: ReceiptDetail) => ({
+                                                            ...p,
+                                                            client: {
+                                                                ...(p.client ?? { clientId: "", clientName: "" }),
+                                                                invoiceInfo: { ...(p.client?.invoiceInfo ?? {}), taxAddress: e.target.value },
+                                                            },
+                                                        }))
+                                                    }
+                                                    className="mt-1 bg-background h-8"
+                                                />
+                                            ) : (
+                                                <div className="mt-1 text-foreground">{editedReceipt.client?.invoiceInfo?.taxAddress ?? "-"}</div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -993,7 +1207,27 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
             </div>
 
             {openSampleModal && selectedSample && (
-                <SampleDetailModal sample={selectedSample} receipt={editedReceipt} focusAnalysisId={focusAnalysisId} onClose={closeSampleModal} onSave={handleSaveSample} />
+                <div className="relative">
+                    <SampleDetailModal sample={selectedSample} receipt={editedReceipt} focusAnalysisId={focusAnalysisId} onClose={closeSampleModal} onSave={handleSaveSample} />
+                    {sampleFetching && (
+                        <div className="fixed top-4 right-12 z-[100] flex items-center gap-2 bg-background/80 px-3 py-1.5 rounded-full border border-primary/20 shadow-lg text-xs font-medium animate-in fade-in slide-in-from-top-2">
+                            <div className="h-3 w-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                            <span>{String(t("common.loading", { defaultValue: "Đang tải chi tiết..." }))}</span>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {showAddSampleModal && (
+                <AddSampleModal
+                    receipt={editedReceipt}
+                    onClose={() => setShowAddSampleModal(false)}
+                    onCreated={(updatedReceipt) => {
+                        setEditedReceipt(updatedReceipt);
+                        onUpdated?.(updatedReceipt);
+                        setShowAddSampleModal(false);
+                    }}
+                />
             )}
 
             {showEmailModal && (
@@ -1116,6 +1350,18 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                     </div>
                 </>
             )}
-        </>
+
+            {showPrintLabelModal &&
+                (() => {
+                    const labelItems: SampleLabelItem[] = (receipt.samples ?? []).map((s) => ({
+                        sampleId: s.sampleId,
+                        sampleTypeName: s.sampleTypeName ?? null,
+                        productType: s.productType ?? null,
+                        sampleClientInfo: s.sampleClientInfo ?? null,
+                    }));
+                    return <SamplePrintLabelModal items={labelItems} receiptCode={receipt.receiptCode} onClose={() => setShowPrintLabelModal(false)} />;
+                })()}
+        </>,
+        document.body,
     );
 }

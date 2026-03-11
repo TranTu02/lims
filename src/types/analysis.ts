@@ -23,6 +23,9 @@ export type AnalysisListItem = {
     analysisResult?: string | number | null;
     analysisCompletedAt?: string | null;
     technician?: unknown | null;
+    technicians?: IdentitySnapshot[] | null;
+    technicianGroupId?: string | null;
+    technicianGroupName?: string | null;
     createdBy?: unknown;
 };
 
@@ -47,6 +50,13 @@ export type AnalysisDetail = {
     retestReason?: string | null;
 
     technician: IdentitySnapshot | null;
+    technicians?: IdentitySnapshot[] | null;
+    technicianGroupId?: string | null;
+    technicianGroupName?: string | null;
+
+    analysisLocation?: string | null;
+    protocolCode?: string | null;
+    rawData?: Record<string, unknown> | null;
 
     createdAt: IsoDateString;
     createdBy: IdentitySnapshot;
@@ -86,6 +96,8 @@ export type AnalysesCreateBody = {
 
     technicianId?: string | null;
     technicianIds?: string[] | null;
+    technicianGroupId?: string | null;
+    technicianGroupName?: string | null;
     equipmentId?: string | null;
 
     analysisStartedAt?: IsoDateString | null;
@@ -122,6 +134,8 @@ export type AnalysesUpdateBody = {
 
     technicianId?: string | null;
     technicianIds?: string[] | null;
+    technicianGroupId?: string | null;
+    technicianGroupName?: string | null;
     equipmentId?: string | null;
 
     analysisStartedAt?: IsoDateString | null;
@@ -143,6 +157,16 @@ export type AnalysesUpdateBody = {
     analysisNotes?: string | null;
     createdAt?: IsoDateString;
 };
+
+export type AnalysesCreateBulkBody = Array<Partial<AnalysesCreateBody> & { sampleId: string; parameterId: string }>;
+
+export type AnalysesBulkUpdateBody = Array<{
+    analysisId: string;
+    technicianId?: string | null;
+    technicianIds?: string[] | null;
+    analysisStatus?: AnalysisStatusDb;
+    [key: string]: unknown;
+}>;
 
 export type AnalysesDeleteBody = {
     analysisId: string;

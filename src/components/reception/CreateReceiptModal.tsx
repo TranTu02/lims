@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+
 import { X, Plus, Copy, Trash2, Building2, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -34,6 +36,9 @@ type BasicFormState = {
 
     clientId: string;
     clientName: string;
+    clientEmail: string;
+    clientAddress: string;
+    legalId: string;
 
     taxAddress: string;
     taxCode: string;
@@ -81,6 +86,14 @@ type FullFormState = {
 
     clientId: string;
     clientName: string;
+    clientEmail: string;
+    clientAddress: string;
+    legalId: string;
+
+    taxAddress: string;
+    taxCode: string;
+    taxName: string;
+    taxEmail: string;
 
     notes: string;
 
@@ -197,6 +210,9 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
 
         clientId: String(initialIncomingRequest?.client?.clientId || initialIncomingRequest?.clientId || ""),
         clientName: String(initialIncomingRequest?.client?.clientName || initialIncomingRequest?.senderInfo?.name || ""),
+        clientEmail: String(initialIncomingRequest?.client?.clientEmail || initialIncomingRequest?.senderInfo?.email || ""),
+        clientAddress: String(initialIncomingRequest?.client?.clientAddress || ""),
+        legalId: String(initialIncomingRequest?.client?.legalId || ""),
 
         taxAddress: initialIncomingRequest?.client?.invoiceInfo?.taxAddress || "",
         taxCode: initialIncomingRequest?.client?.invoiceInfo?.taxCode || "",
@@ -218,6 +234,15 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                 receiptDate: today,
                 clientId: String(initialIncomingRequest.client?.clientId || initialIncomingRequest.clientId || ""),
                 clientName: String(initialIncomingRequest.client?.clientName || initialIncomingRequest.senderInfo?.name || ""),
+                clientEmail: String(initialIncomingRequest.client?.clientEmail || initialIncomingRequest.senderInfo?.email || ""),
+                clientAddress: String(initialIncomingRequest.client?.clientAddress || ""),
+                legalId: String(initialIncomingRequest.client?.legalId || ""),
+
+                taxAddress: initialIncomingRequest.client?.invoiceInfo?.taxAddress || "",
+                taxCode: initialIncomingRequest.client?.invoiceInfo?.taxCode || "",
+                taxName: initialIncomingRequest.client?.invoiceInfo?.taxName || "",
+                taxEmail: initialIncomingRequest.client?.invoiceInfo?.taxEmail || "",
+
                 notes: initialIncomingRequest.requestContent || "",
                 samples:
                     rawSamples.length > 0
@@ -276,6 +301,14 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
 
             clientId: "",
             clientName: "",
+            clientEmail: "",
+            clientAddress: "",
+            legalId: "",
+
+            taxAddress: "",
+            taxCode: "",
+            taxName: "",
+            taxEmail: "",
 
             notes: "",
 
@@ -639,6 +672,9 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
         client: {
             clientId: basic.clientId.trim() || null,
             clientName: basic.clientName.trim() || null,
+            clientEmail: basic.clientEmail.trim() || null,
+            clientAddress: basic.clientAddress.trim() || null,
+            legalId: basic.legalId.trim() || null,
             invoiceInfo: {
                 taxAddress: basic.taxAddress.trim() || null,
                 taxCode: basic.taxCode.trim() || null,
@@ -669,6 +705,15 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
         client: {
             clientId: full.clientId.trim() || null,
             clientName: full.clientName.trim() || null,
+            clientEmail: full.clientEmail.trim() || null,
+            clientAddress: full.clientAddress.trim() || null,
+            legalId: full.legalId.trim() || null,
+            invoiceInfo: {
+                taxAddress: full.taxAddress.trim() || null,
+                taxCode: full.taxCode.trim() || null,
+                taxName: full.taxName.trim() || null,
+                taxEmail: full.taxEmail.trim() || null,
+            },
         },
 
         receiptDate: full.receiptDate ? new Date(full.receiptDate).toISOString() : null,
@@ -780,11 +825,11 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
         );
     };
 
-    return (
+    return createPortal(
         <>
-            <div className="fixed inset-0 bg-black/50 z-50" onClick={onClose} />
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-[80] transition-all duration-300" onClick={onClose} />
 
-            <div className="fixed inset-4 bg-background rounded-lg shadow-xl z-50 flex flex-col">
+            <div className="fixed inset-4 bg-background rounded-lg shadow-2xl z-[80] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                     <div>
                         <h2 className="text-lg font-semibold text-foreground">
@@ -852,6 +897,36 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                                                     onChange={(e) => setBasic({ ...basic, clientName: e.target.value })}
                                                     className="mt-1 h-8 text-sm bg-background border border-border"
                                                     placeholder={t("crm.clients.placeholders.clientName")}
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <Label className="text-xs text-muted-foreground">{t("crm.clients.clientEmail")}</Label>
+                                                <Input
+                                                    value={basic.clientEmail}
+                                                    onChange={(e) => setBasic({ ...basic, clientEmail: e.target.value })}
+                                                    className="mt-1 h-8 text-sm bg-background border border-border"
+                                                    placeholder={t("crm.clients.placeholders.email", { defaultValue: "Email" })}
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <Label className="text-xs text-muted-foreground">{t("crm.clients.clientAddress")}</Label>
+                                                <Input
+                                                    value={basic.clientAddress}
+                                                    onChange={(e) => setBasic({ ...basic, clientAddress: e.target.value })}
+                                                    className="mt-1 h-8 text-sm bg-background border border-border"
+                                                    placeholder={t("crm.clients.placeholders.address", { defaultValue: "Address" })}
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <Label className="text-xs text-muted-foreground">{t("crm.clients.legalId")}</Label>
+                                                <Input
+                                                    value={basic.legalId}
+                                                    onChange={(e) => setBasic({ ...basic, legalId: e.target.value })}
+                                                    className="mt-1 h-8 text-sm bg-background border border-border"
+                                                    placeholder={t("crm.clients.placeholders.legalId", { defaultValue: "Legal ID" })}
                                                 />
                                             </div>
                                         </div>
@@ -1089,6 +1164,83 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                                                     onChange={(e) => setFull({ ...full, clientName: e.target.value })}
                                                     className="mt-1 h-8 text-sm bg-background border border-border"
                                                     placeholder={t("crm.clients.placeholders.clientName")}
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <Label className="text-xs text-muted-foreground">{t("crm.clients.clientEmail")}</Label>
+                                                <Input
+                                                    value={full.clientEmail}
+                                                    onChange={(e) => setFull({ ...full, clientEmail: e.target.value })}
+                                                    className="mt-1 h-8 text-sm bg-background border border-border"
+                                                    placeholder={t("crm.clients.placeholders.email", { defaultValue: "Email" })}
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <Label className="text-xs text-muted-foreground">{t("crm.clients.clientAddress")}</Label>
+                                                <Input
+                                                    value={full.clientAddress}
+                                                    onChange={(e) => setFull({ ...full, clientAddress: e.target.value })}
+                                                    className="mt-1 h-8 text-sm bg-background border border-border"
+                                                    placeholder={t("crm.clients.placeholders.address", { defaultValue: "Address" })}
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <Label className="text-xs text-muted-foreground">{t("crm.clients.legalId")}</Label>
+                                                <Input
+                                                    value={full.legalId}
+                                                    onChange={(e) => setFull({ ...full, legalId: e.target.value })}
+                                                    className="mt-1 h-8 text-sm bg-background border border-border"
+                                                    placeholder={t("crm.clients.placeholders.legalId", { defaultValue: "Legal ID" })}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-muted/30 border border-border rounded-lg p-4">
+                                        <h3 className="text-sm font-semibold text-foreground mb-3">{t("reception.createReceipt.invoiceInfo")}</h3>
+
+                                        <div className="space-y-3 text-sm">
+                                            <div>
+                                                <Label className="text-xs text-muted-foreground">{t("crm.clients.invoice.taxCode")}</Label>
+                                                <Input
+                                                    value={full.taxCode}
+                                                    onChange={(e) => setFull({ ...full, taxCode: e.target.value })}
+                                                    className="mt-1 h-8 text-sm bg-background border border-border"
+                                                    placeholder={t("crm.clients.sections.invoice.taxCodePlaceholder")}
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <Label className="text-xs text-muted-foreground">{t("crm.clients.invoice.taxName")}</Label>
+                                                <Input
+                                                    value={full.taxName}
+                                                    onChange={(e) => setFull({ ...full, taxName: e.target.value })}
+                                                    className="mt-1 h-8 text-sm bg-background border border-border"
+                                                    placeholder={t("crm.clients.sections.invoice.taxNamePlaceholder")}
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <Label className="text-xs text-muted-foreground">{t("crm.clients.invoice.taxEmail")}</Label>
+                                                <Input
+                                                    value={full.taxEmail}
+                                                    onChange={(e) => setFull({ ...full, taxEmail: e.target.value })}
+                                                    className="mt-1 h-8 text-sm bg-background border border-border"
+                                                    placeholder={t("crm.clients.sections.invoice.taxEmailPlaceholder")}
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <Label className="text-xs text-muted-foreground">{t("crm.clients.invoice.taxAddress")}</Label>
+                                                <Textarea
+                                                    value={full.taxAddress}
+                                                    onChange={(e) => setFull({ ...full, taxAddress: e.target.value })}
+                                                    className="mt-1 text-sm bg-background border border-border"
+                                                    rows={3}
+                                                    placeholder={t("crm.clients.sections.invoice.taxAddressPlaceholder")}
                                                 />
                                             </div>
                                         </div>
@@ -1553,6 +1705,7 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                     </Button>
                 </div>
             </div>
-        </>
+        </>,
+        document.body,
     );
 }

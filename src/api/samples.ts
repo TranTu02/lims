@@ -3,16 +3,18 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
 import api, { type ApiResponse } from "@/api/client";
-import type { SampleDetail, SampleListItem, SamplesCreateBody, SamplesUpdateBody } from "@/types/sample";
+import type { SampleDetail, SampleListItem, SamplesCreateBody, SamplesUpdateBody, SamplesBulkUpdateBody } from "@/types/sample";
 
 export type SamplesGetListQuery = {
     page?: number;
     itemsPerPage?: number;
+    sortColumn?: string | null;
+    sortDirection?: "ASC" | "DESC" | string;
+    search?: string | null;
 
     receiptId?: string;
-    sampleStatus?: string;
-
-    search?: string | null;
+    sampleStatus?: string | string[];
+    sampleStorageLoc?: string | string[];
 
     [key: string]: unknown;
 };
@@ -30,9 +32,15 @@ const noCacheHeaders = {
 
 export async function samplesGetList(input: SamplesGetListInput = {}): Promise<ApiResponse<SampleListItem[]>> {
     const { query, sort } = input;
+    const finalQuery: Record<string, unknown> = { ...(query ?? {}) };
+
+    if (sort) {
+        if (sort.column) finalQuery.sortColumn = sort.column;
+        if (sort.direction) finalQuery.sortDirection = sort.direction;
+    }
 
     return api.get<SampleListItem[]>("/v2/samples/get/list", {
-        query: { ...(query ?? {}), ...(sort ? { sort } : {}) },
+        query: finalQuery,
         headers: noCacheHeaders,
     });
 }
@@ -48,8 +56,15 @@ export async function samplesGetFull(input: SamplesGetFullInput): Promise<ApiRes
 
 export async function samplesGetProcessing(input: SamplesGetListInput = {}): Promise<ApiResponse<SampleListItem[]>> {
     const { query, sort } = input;
+    const finalQuery: Record<string, unknown> = { ...(query ?? {}) };
+
+    if (sort) {
+        if (sort.column) finalQuery.sortColumn = sort.column;
+        if (sort.direction) finalQuery.sortDirection = sort.direction;
+    }
+
     return api.get<SampleListItem[]>("/v2/samples/get/processing", {
-        query: { ...(query ?? {}), ...(sort ? { sort } : {}) },
+        query: finalQuery,
         headers: noCacheHeaders,
     });
 }
@@ -60,8 +75,25 @@ export async function samplesCreate(body: SamplesCreateBody): Promise<ApiRespons
     });
 }
 
+export async function samplesCreateFull(body: any): Promise<ApiResponse<SampleDetail>> {
+    return api.post<SampleDetail, any>("/v2/samples/create/full", {
+        body,
+    });
+}
+
 export async function samplesUpdate(body: SamplesUpdateBody): Promise<ApiResponse<SampleDetail>> {
     return api.post<SampleDetail, SamplesUpdateBody>("/v2/samples/update", {
+        body,
+    });
+}
+
+export type SamplesBulkUpdateResult = {
+    updatedCount: number;
+    [key: string]: unknown;
+};
+
+export async function samplesBulkUpdate(body: SamplesBulkUpdateBody): Promise<ApiResponse<SamplesBulkUpdateResult>> {
+    return api.post<SamplesBulkUpdateResult, SamplesBulkUpdateBody>("/v2/samples/bulk-update", {
         body,
     });
 }
@@ -99,14 +131,19 @@ function assertSuccessWithMeta<T>(res: ApiResponse<T>): ListResult<T> {
     const rawAny = res as unknown as Record<string, unknown>;
     const meta = (res.meta ?? rawAny.pagination ?? null) as ApiMeta | null;
 
-    const normalizedMeta =
-        meta && typeof meta === "object"
-            ? {
-                  ...meta,
-                  page: typeof meta.page === "string" ? parseInt(meta.page as unknown as string, 10) : meta.page,
-                  total: typeof meta.total === "number" ? meta.total : typeof meta.totalItems === "number" ? meta.totalItems : 0,
-              }
-            : null;
+    if (!meta) return { data: res.data as T, meta: null };
+
+    const total = typeof meta.total === "number" ? meta.total : typeof meta.totalItems === "number" ? meta.totalItems : 0;
+    const itemsPerPage = typeof meta.itemsPerPage === "number" ? meta.itemsPerPage : 10;
+    const totalPages = typeof meta.totalPages === "number" ? meta.totalPages : Math.ceil(total / itemsPerPage);
+
+    const normalizedMeta: ApiMeta = {
+        ...meta,
+        page: typeof meta.page === "string" ? parseInt(meta.page as unknown as string, 10) : meta.page || 1,
+        total,
+        totalPages,
+        itemsPerPage,
+    };
 
     return { data: res.data as T, meta: normalizedMeta };
 }
@@ -307,6 +344,24 @@ export function useUpdateSample() {
         },
 
         onError: () => toast.error(t("reception.samples.updateError")),
+    });
+}
+
+export function useBulkUpdateSamples() {
+    const qc = useQueryClient();
+    const { t } = useTranslation();
+
+    return useMutation({
+        mutationFn: async (body: SamplesBulkUpdateBody) => assertSuccess(await samplesBulkUpdate(body)),
+
+        onSuccess: async () => {
+            await invalidateSamplesLists(qc);
+            toast.success(String(t("inventory.samples.bulkUpdateSuccess", { defaultValue: "Cập nhật hàng loạt thành công!" })));
+        },
+
+        onError: (err: any) => {
+            toast.error(err?.message || String(t("inventory.samples.bulkUpdateError", { defaultValue: "Cập nhật hàng loạt thất bại!" })));
+        },
     });
 }
 

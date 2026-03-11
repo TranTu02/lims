@@ -9,7 +9,7 @@ export type IdentitySnapshot = {
 
 type ExtensibleString<T extends string> = T | (string & Record<never, never>);
 
-export const SAMPLE_STATUS_VALUES = ["Received", "Analyzing", "Stored", "Disposed"] as const;
+export const SAMPLE_STATUS_VALUES = ["Received", "InPrep", "Distributed", "Retained", "Disposed", "Returned"] as const;
 export type SampleStatus = ExtensibleString<(typeof SAMPLE_STATUS_VALUES)[number]>;
 
 export const ANALYSIS_STATUS_VALUES = ["Assigned", "Testing", "Completed"] as const;
@@ -153,6 +153,15 @@ export type SamplesUpdateBody = {
     sampleStorageLoc?: string | null;
 
     [key: string]: unknown;
+};
+
+export type SamplesBulkUpdateBody = {
+    sampleIds: string[];
+    updateData: {
+        sampleStatus?: SampleStatus | null;
+        sampleStorageLoc?: string | null;
+        [key: string]: unknown;
+    };
 };
 
 export type StandardListQuery = {

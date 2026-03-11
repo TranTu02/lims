@@ -281,6 +281,7 @@ export type ReceiptsCreateFullBody = {
     client?: {
         clientId?: string | null;
         clientName?: string | null;
+        invoiceInfo?: ClientInvoiceInfo | null;
         [key: string]: unknown;
     } | null;
 

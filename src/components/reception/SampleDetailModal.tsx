@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
-import { X, Edit, Save, Plus, Trash2, Upload, FileText, Download } from "lucide-react";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
+
+import { X, Edit, Save, Plus, Trash2, Upload, FileText, Download, Search, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
@@ -8,6 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { DraggableInfoTable } from "@/components/common/DraggableInfoTable";
+
+import { libraryApi, type Matrix } from "@/api/library";
+import { useDebouncedValue } from "@/components/library/hooks/useDebouncedValue";
 
 import type { ReceiptDetail, ReceiptSample, ReceiptAnalysis } from "@/types/receipt";
 
@@ -96,30 +101,81 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
         setSampleAnalyses((prev) => prev.map((a, i) => (i === index ? { ...a, [field]: value } : a)));
     };
 
-    const handleAddAnalysis = () => {
-        const newAnalysis: ReceiptAnalysis = {
-            analysisId: `new-${Date.now()}`,
-            sampleId: editedSample.sampleId,
-            analysisStatus: "Pending",
-            parameterName: "",
-            protocolCode: "",
-            analysisUnit: "",
-            analysisResult: null,
-            createdAt: new Date().toISOString(),
-        };
+    // Matrix search states
+    const [matrixSearch, setMatrixSearch] = useState("");
+    const debouncedSearch = useDebouncedValue(matrixSearch, 500);
+    const [matrixResults, setMatrixResults] = useState<Matrix[]>([]);
+    const [matrixLoading, setMatrixLoading] = useState(false);
+    const [showMatrixDropdown, setShowMatrixDropdown] = useState(false);
 
-        setSampleAnalyses((prev) => [...prev, newAnalysis]);
-    };
+    useEffect(() => {
+        if (!debouncedSearch) {
+            setMatrixResults([]);
+            setMatrixLoading(false);
+            return;
+        }
+
+        let cancelled = false;
+        async function fetchMatrices() {
+            try {
+                setMatrixLoading(true);
+                const res = await libraryApi.matrices.list({
+                    query: { search: debouncedSearch },
+                });
+                if (!cancelled) {
+                    setMatrixResults((res.data as any) ?? res);
+                }
+            } catch (err) {
+                // ignore
+            } finally {
+                if (!cancelled) setMatrixLoading(false);
+            }
+        }
+        void fetchMatrices();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [debouncedSearch]);
+
+    const addMatrixToAnalyses = useCallback(
+        (matrix: Matrix) => {
+            setSampleAnalyses((prev) => {
+                const exists = prev.some((a) => a.matrixId === matrix.matrixId);
+                if (exists) return prev;
+
+                const newAnalysis: ReceiptAnalysis = {
+                    analysisId: `new-${Date.now()}`,
+                    sampleId: editedSample.sampleId,
+                    analysisStatus: "Pending",
+                    matrixId: matrix.matrixId,
+                    parameterId: matrix.parameterId,
+                    parameterName: matrix.parameterName ?? "",
+                    protocolCode: matrix.protocolCode ?? "",
+                    analysisUnit: "",
+                    analysisResult: null,
+                    createdAt: new Date().toISOString(),
+                    analysisMethodLOD: matrix.LOD ?? "",
+                    analysisMethodLOQ: matrix.LOQ ?? "",
+                };
+
+                return [...prev, newAnalysis];
+            });
+            setMatrixSearch("");
+            setShowMatrixDropdown(false);
+        },
+        [editedSample.sampleId],
+    );
 
     const handleDeleteAnalysis = (index: number) => {
         setSampleAnalyses((prev) => prev.filter((_, i) => i !== index));
     };
 
-    return (
+    return createPortal(
         <>
-            <div className="fixed inset-0 bg-foreground/50 z-50" onClick={onClose} />
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-[80] transition-all duration-300" onClick={onClose} />
 
-            <div className="fixed inset-4 bg-background rounded-lg shadow-xl z-50 flex flex-col">
+            <div className="fixed inset-4 bg-background rounded-lg shadow-2xl z-[80] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                     <div>
                         <h2 className="text-lg font-semibold text-foreground">{String(t("reception.sampleDetail.title", { code: sample.sampleId }))}</h2>
@@ -478,11 +534,58 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
                             </table>
 
                             {isEditing && (
-                                <div className="p-2 border-t border-border bg-muted/30">
-                                    <Button variant="outline" size="sm" className="w-full text-xs flex items-center justify-center gap-1 bg-background hover:bg-muted" onClick={handleAddAnalysis}>
-                                        <Plus className="h-3 w-3" />
-                                        {String(t("reception.sampleDetail.addAnalysis"))}
-                                    </Button>
+                                <div className="p-4 border-t border-border bg-muted/30">
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                                        <Input
+                                            value={matrixSearch}
+                                            onChange={(e) => {
+                                                setMatrixSearch(e.target.value);
+                                                setShowMatrixDropdown(true);
+                                            }}
+                                            onFocus={() => setShowMatrixDropdown(true)}
+                                            placeholder={String(t("reception.addSample.searchMatrix", { defaultValue: "Tìm thêm chỉ tiêu (tên, phương pháp, mã matrix)..." }))}
+                                            className="pl-9 text-sm h-8"
+                                        />
+
+                                        {showMatrixDropdown && (matrixLoading || matrixResults.length > 0) && (
+                                            <div className="absolute left-0 right-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-xl z-20 max-h-56 overflow-y-auto">
+                                                {matrixLoading ? (
+                                                    <div className="flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground">
+                                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                        {String(t("common.loading", { defaultValue: "Đang tải..." }))}
+                                                    </div>
+                                                ) : (
+                                                    matrixResults.map((m) => {
+                                                        const alreadyAdded = sampleAnalyses.some((a) => a.matrixId === m.matrixId);
+                                                        return (
+                                                            <button
+                                                                key={m.matrixId}
+                                                                type="button"
+                                                                className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center justify-between ${alreadyAdded ? "bg-primary/5 text-muted-foreground cursor-not-allowed" : "hover:bg-accent/50 text-foreground"}`}
+                                                                onClick={() => !alreadyAdded && addMatrixToAnalyses(m)}
+                                                                disabled={alreadyAdded}
+                                                            >
+                                                                <div className="min-w-0 flex-1">
+                                                                    <div className="font-medium truncate">{m.parameterName ?? m.parameterId}</div>
+                                                                    <div className="text-xs opacity-80">
+                                                                        {m.protocolCode ?? ""} · {m.sampleTypeName ?? ""} · <span className="font-mono opacity-70">{m.matrixId}</span>
+                                                                    </div>
+                                                                </div>
+                                                                {alreadyAdded ? (
+                                                                    <Badge variant="secondary" className="text-[10px] ml-2">
+                                                                        Đã thêm
+                                                                    </Badge>
+                                                                ) : (
+                                                                    <Plus className="h-3.5 w-3.5 text-primary ml-2 shrink-0" />
+                                                                )}
+                                                            </button>
+                                                        );
+                                                    })
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -556,6 +659,7 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
                     </div>
                 </div>
             </div>
-        </>
+        </>,
+        document.body,
     );
 }

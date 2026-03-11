@@ -42,6 +42,7 @@ export interface RequestParams<TBody = unknown, TQuery = Record<string, unknown>
     body?: TBody;
     params?: Record<string, unknown>;
     query?: TQuery;
+    responseType?: "arraybuffer" | "blob" | "document" | "json" | "text" | "stream";
 }
 
 const BASE_URL = (import.meta.env.VITE_BACKEND_URL as string | undefined) || "http://localhost:3000";
@@ -206,19 +207,19 @@ const api = {
         }
     },
 
-    getRaw: async <T, TQuery = Record<string, unknown>>(url: string, { headers, params, query }: RequestParams<never, TQuery> = {}): Promise<T> => {
+    getRaw: async <T, TQuery = Record<string, unknown>>(url: string, { headers, params, query, responseType }: RequestParams<never, TQuery> = {}): Promise<T> => {
         try {
             const finalParams: Record<string, unknown> = { ...(params ?? {}), ...(query ?? {}) };
-            const response = await axiosInstance.get<T>(url, { headers, params: finalParams });
+            const response = await axiosInstance.get<T>(url, { headers, params: finalParams, responseType });
             return response.data;
         } catch (error: unknown) {
             throw toError(error);
         }
     },
 
-    postRaw: async <T, TBody = unknown, TQuery = Record<string, unknown>>(url: string, { headers, body, query }: RequestParams<TBody, TQuery> = {}): Promise<T> => {
+    postRaw: async <T, TBody = unknown, TQuery = Record<string, unknown>>(url: string, { headers, body, query, responseType }: RequestParams<TBody, TQuery> = {}): Promise<T> => {
         try {
-            const response = await axiosInstance.post<T>(url, body, { headers, params: query });
+            const response = await axiosInstance.post<T>(url, body, { headers, params: query, responseType });
             return response.data;
         } catch (error: unknown) {
             throw toError(error);

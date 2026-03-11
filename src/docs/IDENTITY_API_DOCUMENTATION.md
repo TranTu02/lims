@@ -19,9 +19,16 @@
     - [ADD ROLE](#add-role)
     - [REMOVE ROLE](#remove-role)
     - [UPDATE POLICY](#update-policy)
-3. [Data Models](#data-models)
-4. [Permission System](#permission-system)
-5. [Error Codes](#error-codes)
+3. [Identity Group Endpoints](#identity-group-endpoints)
+    - [GET LIST](#group-get-list)
+    - [GET DETAIL/FULL](#group-get-detail)
+    - [CREATE](#group-create)
+    - [UPDATE](#group-update)
+    - [SYNC](#group-sync)
+    - [DELETE](#group-delete)
+4. [Data Models](#data-models)
+5. [Permission System](#permission-system)
+6. [Error Codes](#error-codes)
 
 ---
 
@@ -79,16 +86,16 @@ Authorization: Bearer SS_01382de7-4967-4dda-bcfe-9318a41170ec
         {
             "identityId": "IDx3ea18",
             "identityName": "Nguyễn Mai Quỳnh",
-            "identityEmail": "admin@lims.com",
+            "email": "admin@lims.com",
             "identityPhone": "",
             "identityStatus": "active",
-            "identityRoles": ["ROLE_SUPER_ADMIN", "ROLE_DIRECTOR", "ROLE_TECH_MANAGER"],
+            "roles": ["ROLE_SUPER_ADMIN", "ROLE_DIRECTOR", "ROLE_TECH_MANAGER"],
             "identityPolicies": {
                 "POL_QA_AUDIT": "ALLOW",
                 "POL_LIB_MANAGE": "ALLOW",
                 "POL_SYS_CONFIG": "ALLOW"
             },
-            "identityPermission": {
+            "permissions": {
                 "crm.orders": {
                     "orderId": 7,
                     "clientId": 7,
@@ -143,17 +150,17 @@ Authorization: Bearer SS_01382de7-4967-4dda-bcfe-9318a41170ec
 {
     "identityId": "IDx95d60",
     "identityName": "Nguyễn Hữu Nghị",
-    "identityEmail": "nghinguyen.irdop@gmail.com",
+    "email": "nghinguyen.irdop@gmail.com",
     "identityPhone": "",
     "identityStatus": "active",
-    "identityRoles": ["ROLE_SALES_EXEC", "ROLE_CS"],
+    "roles": ["ROLE_SALES_EXEC", "ROLE_CS"],
     "identityPolicies": {
         "POL_QUOTE_CREATE": "ALLOW",
         "POL_CLIENT_MANAGE": "ALLOW",
         "POL_ORDER_PROCESS": "ALLOW",
         "POL_CRM_VIEW_BASIC": "ALLOW"
     },
-    "identityPermission": {
+    "permissions": {
         "crm.orders": {
             "client": 3,
             "orderId": 1,
@@ -186,10 +193,10 @@ Tạo người dùng mới. **Chỉ Admin hoặc SuperAdmin** được phép.
 | Field            | Type     | Required | Description                                |
 | ---------------- | -------- | -------- | ------------------------------------------ |
 | `identityName`   | string   | Yes      | Tên đầy đủ                                 |
-| `identityEmail`  | string   | Yes      | Email (unique)                             |
+| `email`          | string   | Yes      | Email (unique)                             |
 | `password`       | string   | Yes      | Mật khẩu (sẽ được hash)                    |
 | `identityPhone`  | string   | No       | Số điện thoại                              |
-| `identityRoles`  | string[] | No       | Danh sách role codes                       |
+| `roles`          | string[] | No       | Danh sách role codes                       |
 | `identityStatus` | string   | No       | `active`, `inactive` (default: `inactive`) |
 
 **Example Request**:
@@ -197,10 +204,10 @@ Tạo người dùng mới. **Chỉ Admin hoặc SuperAdmin** được phép.
 ```json
 {
     "identityName": "Nguyễn Văn A",
-    "identityEmail": "nguyenvana@example.com",
+    "email": "nguyenvana@example.com",
     "password": "SecurePassword123!",
     "identityPhone": "0123456789",
-    "identityRoles": ["ROLE_TECHNICIAN"],
+    "roles": ["ROLE_TECHNICIAN"],
     "identityStatus": "active"
 }
 ```
@@ -211,15 +218,15 @@ Tạo người dùng mới. **Chỉ Admin hoặc SuperAdmin** được phép.
 {
     "identityId": "USR260214001",
     "identityName": "Nguyễn Văn A",
-    "identityEmail": "nguyenvana@example.com",
+    "email": "nguyenvana@example.com",
     "identityPhone": "0123456789",
     "identityStatus": "active",
-    "identityRoles": ["ROLE_TECHNICIAN"],
+    "roles": ["ROLE_TECHNICIAN"],
     "identityPolicies": {
         "POL_TEST_EXECUTE": "ALLOW",
         "POL_SAMPLE_VIEW_BASIC": "ALLOW"
     },
-    "identityPermission": {
+    "permissions": {
         "lab.analysis": {
             "resultValue": 3,
             "resultUnit": 3,
@@ -257,11 +264,11 @@ Cập nhật thông tin người dùng.
 | ---------------------- | -------- | -------- | --------------------------------- |
 | `identityId` hoặc `id` | string   | Yes      | ID người dùng cần update          |
 | `identityName`         | string   | No       | Tên mới                           |
-| `identityEmail`        | string   | No       | Email mới                         |
+| `email`                | string   | No       | Email mới                         |
 | `password`             | string   | No       | Mật khẩu mới (sẽ được hash)       |
 | `identityPhone`        | string   | No       | Số điện thoại mới                 |
 | `identityStatus`       | string   | No       | Trạng thái mới                    |
-| `identityRoles`        | string[] | No       | Roles mới (auto-resolve policies) |
+| `roles`                | string[] | No       | Roles mới (auto-resolve policies) |
 
 **Example Request**:
 
@@ -347,7 +354,7 @@ Thêm role cho người dùng.
 ```json
 {
     "identityId": "USR260214001",
-    "identityRoles": ["ROLE_TECHNICIAN", "ROLE_VALIDATOR"],
+    "roles": ["ROLE_TECHNICIAN", "ROLE_VALIDATOR"],
     "identityPolicies": {
         "POL_TEST_EXECUTE": "ALLOW",
         "POL_TEST_REVIEW": "ALLOW",
@@ -386,7 +393,7 @@ Xóa role khỏi người dùng.
 ```json
 {
     "identityId": "USR260214001",
-    "identityRoles": ["ROLE_TECHNICIAN"],
+    "roles": ["ROLE_TECHNICIAN"],
     "identityPolicies": {
         "POL_TEST_EXECUTE": "ALLOW",
         "POL_TEST_REVIEW": "DENY",
@@ -435,7 +442,7 @@ Cập nhật policy cụ thể cho người dùng.
         "POL_TEST_EXECUTE": "ALLOW",
         "POL_SAMPLE_VIEW_BASIC": "LIMIT"
     },
-    "identityPermission": {
+    "permissions": {
         "lab.sample": {
             "sampleId": 0.5,
             "sampleName": 0.5,
@@ -452,29 +459,113 @@ Cập nhật policy cụ thể cho người dùng.
 
 ---
 
+---
+
+## Identity Group Endpoints
+
+Quản lý các nhóm người dùng theo vị trí, phòng ban (VD: Nhóm KTV, Nhóm Sales).
+
+### GROUP: GET LIST
+
+**Endpoint**: `GET /v2/identity-groups/get/list`
+
+| Parameter | Type   | Description               |
+| --------- | ------ | ------------------------- |
+| `page`    | int    | Trang hiện tại            |
+| `search`  | string | Tìm kiếm theo ID/Tên nhóm |
+
+---
+
+### GROUP: GET DETAIL/FULL
+
+**Endpoint**:
+
+- `GET /v2/identity-groups/get/detail?id=...` (Thông tin cơ bản)
+- `GET /v2/identity-groups/get/full?id=...` (Thông tin kèm chi tiết thành viên)
+
+---
+
+### GROUP: CREATE
+
+**Endpoint**: `POST /v2/identity-groups/create`
+
+**Request Body**:
+
+```json
+{
+    "identityGroupId": "GRP_KTV_MICRO",
+    "identityGroupName": "Nhóm KTV Vi sinh",
+    "identityGroupMainRole": "ROLE_TECHNICIAN",
+    "identityGroupAlias": "KTV Vi sinh",
+    "identityGroupInChargeId": "USR260301001",
+    "identityGroupDescription": "Nhóm thực hiện các chỉ tiêu vi sinh"
+}
+```
+
+---
+
+### GROUP: UPDATE
+
+**Endpoint**: `POST /v2/identity-groups/update`
+
+**Request Body**:
+
+- `id` hoặc `identityGroupId`: Bắt buộc.
+- `syncMembers`: (boolean) Nếu `true`, sẽ đẩy cấu hình Role/Alias xuống cho tất cả thành viên.
+
+---
+
+### GROUP: SYNC
+
+**Endpoint**: `POST /v2/identity-groups/sync/:id`
+
+**Mô tả**: Quét lại toàn bộ User trong hệ thống để cập nhật danh sách `identityIds` cho nhóm (Dựa trên tình trạng Roles và Active status thực tế).
+
+---
+
+### GROUP: DELETE
+
+**Endpoint**: `POST /v2/identity-groups/delete`
+
+---
+
 ## Data Models
 
 ### Identity Object
 
-| Field                | Type      | Description                                       |
-| -------------------- | --------- | ------------------------------------------------- |
-| `identityId`         | string    | ID người dùng (PK)                                |
-| `identityName`       | string    | Tên đầy đủ                                        |
-| `identityEmail`      | string    | Email (unique)                                    |
-| `identityPhone`      | string    | Số điện thoại                                     |
-| `identityNID`        | string    | Số CMND/CCCD                                      |
-| `identityAddress`    | string    | Địa chỉ                                           |
-| `password`           | string    | Mật khẩu (hash) - **Không trả về trong response** |
-| `identityStatus`     | string    | `active`, `inactive`, `banned`                    |
-| `identityRoles`      | string[]  | Danh sách role codes                              |
-| `identityPolicies`   | object    | Override policies                                 |
-| `identityPermission` | object    | Resolved permissions                              |
-| `alias`              | string    | Tên hiển thị ngắn                                 |
-| `createdAt`          | timestamp | Thời điểm tạo                                     |
-| `createdById`        | string    | ID người tạo                                      |
-| `modifiedAt`         | timestamp | Thời điểm cập nhật                                |
-| `modifiedById`       | string    | ID người cập nhật                                 |
-| `deletedAt`          | timestamp | Thời điểm xóa (NULL nếu chưa xóa)                 |
+| Field              | Type      | Description                                       |
+| ------------------ | --------- | ------------------------------------------------- |
+| `identityId`       | string    | ID người dùng (PK)                                |
+| `identityName`     | string    | Tên đầy đủ                                        |
+| `email`            | string    | Email (unique)                                    |
+| `identityPhone`    | string    | Số điện thoại                                     |
+| `identityNID`      | string    | Số CMND/CCCD                                      |
+| `identityAddress`  | string    | Địa chỉ                                           |
+| `password`         | string    | Mật khẩu (hash) - **Không trả về trong response** |
+| `identityStatus`   | string    | `active`, `inactive`, `banned`                    |
+| `roles`            | string[]  | Danh sách role codes                              |
+| `identityPolicies` | object    | Override policies                                 |
+| `permissions`      | object    | Resolved permissions                              |
+| `alias`            | string    | Tên hiển thị ngắn                                 |
+| `createdAt`        | timestamp | Thời điểm tạo                                     |
+| `createdById`      | string    | ID người tạo                                      |
+| `modifiedAt`       | timestamp | Thời điểm cập nhật                                |
+| `modifiedById`     | string    | ID người cập nhật                                 |
+| `deletedAt`        | timestamp | Thời điểm xóa (NULL nếu chưa xóa)                 |
+
+### IdentityGroup Object
+
+| Field                      | Type      | Description                                            |
+| -------------------------- | --------- | ------------------------------------------------------ |
+| `identityGroupId`          | string    | ID nhóm (PK)                                           |
+| `identityGroupName`        | string    | Tên nhóm hiển thị                                      |
+| `identityGroupMainRole`    | string    | Role chính mặc định của nhóm                           |
+| `identityGroupAlias`       | string    | Bí danh đại diện (kế thừa cho member)                  |
+| `identityGroupInChargeId`  | string    | ID người phụ trách nhóm (FK identities)                |
+| `identityIds`              | string[]  | Danh sách ID các thành viên hợp lệ (Auto-sync)         |
+| `identityGroupDescription` | string    | Mô tả nhóm                                             |
+| `createdAt`                | timestamp | Thời điểm tạo                                          |
+| `members`                  | object[]  | (Chỉ khi gọi `full`) Chi tiết thông tin các thành viên |
 
 ### Permission Object Structure
 
@@ -580,7 +671,7 @@ Roles → Policies → Permissions
     - Khi set policy = `LIMIT` → Permissions → Decimal
 
 3. **Search**:
-    - Tìm kiếm theo `identityId`, `identityName`, `identityEmail`
+    - Tìm kiếm theo `identityId`, `identityName`, `email`
     - Sử dụng `ILIKE` (case-insensitive)
 
 4. **Pagination**:

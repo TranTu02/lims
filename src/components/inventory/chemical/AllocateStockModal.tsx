@@ -196,8 +196,8 @@ export function AllocateStockModal({ onClose }: Props) {
                                                         {sum.chemicalCASNumber && <div className="text-[10px] text-muted-foreground font-normal">CAS: {sum.chemicalCASNumber}</div>}
                                                     </td>
                                                     <td className="px-3 py-2 text-right font-bold text-primary">
-                                                        {sum.totalQty}
-                                                        <span className="font-normal text-muted-foreground ml-1 text-xs">{sum.chemicalTransactionUnit}</span>
+                                                        {Math.abs(sum.totalChangeQty)}
+                                                        <span className="font-normal text-muted-foreground ml-1 text-xs">{sum.unit}</span>
                                                     </td>
                                                 </tr>
                                             ))}
@@ -253,19 +253,24 @@ export function AllocateStockModal({ onClose }: Props) {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-border relative">
-                                            {allocateData.pickingList.map((pick: any, idx: number) => (
+                                            {allocateData.pickingList.map((pick: any, idx: number) => {
+                                                const relatedDetail = allocateData.transactionDetails.find(tx => tx.chemicalSkuId === pick.chemicalSkuId);
+                                                const chemName = relatedDetail?.chemicalName || pick.chemicalSkuId;
+                                                const unit = relatedDetail?.chemicalTransactionBlockDetailUnit || "-";
+                                                
+                                                return (
                                                 <tr key={idx} className="hover:bg-muted/30">
                                                     <td className="px-3 py-2">
                                                         <div className="font-mono text-xs font-semibold text-primary">{pick.chemicalInventoryId}</div>
-                                                        <div className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-[200px]">{pick.chemicalName}</div>
+                                                        <div className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-[200px]">{chemName}</div>
                                                     </td>
-                                                    <td className="px-3 py-2 font-medium text-xs">{pick.storageBinLocation || "-"}</td>
+                                                    <td className="px-3 py-2 font-medium text-xs">{"-"}</td>
                                                     <td className="px-3 py-2 text-right font-bold">
-                                                        {pick.totalPickQty}
-                                                        <span className="font-normal text-muted-foreground ml-1 text-xs">{pick.chemicalTransactionUnit}</span>
+                                                        {Math.abs(pick.totalChangeQty)}
+                                                        <span className="font-normal text-muted-foreground ml-1 text-xs">{unit}</span>
                                                     </td>
                                                 </tr>
-                                            ))}
+                                            )})}
                                         </tbody>
                                     </table>
                                 </div>

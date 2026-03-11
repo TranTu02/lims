@@ -12,7 +12,7 @@ interface PaginationProps {
     onItemsPerPageChange?: (itemsPerPage: number) => void;
 }
 
-const ITEMS_PER_PAGE_OPTIONS = [10, 20, 50, 100] as const;
+const ITEMS_PER_PAGE_OPTIONS = [50, 100, 200, 500] as const;
 
 export function Pagination({ currentPage, totalPages = 1, itemsPerPage = 10, totalItems = 0, onPageChange, onItemsPerPageChange }: PaginationProps) {
     const { t } = useTranslation();

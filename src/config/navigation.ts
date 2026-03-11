@@ -42,6 +42,10 @@ export const MAIN_NAV: NavItem[] = [
         title: "sidebar.inventory",
         href: "/inventory",
         icon: Package,
+        children: [
+            { title: "inventory.overview", href: "/inventory" },
+            { title: "sidebar.storedSamples", href: "/stored-samples" },
+        ],
     },
     {
         title: "sidebar.chemicalInventory", // Key for i18n
