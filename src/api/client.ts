@@ -6,7 +6,7 @@ import { toast } from "sonner";
 export type ApiPagination = {
     page: number;
     itemsPerPage: number;
-    totalItems: number;
+    total: number;
     totalPages: number;
 };
 
@@ -14,7 +14,6 @@ export type ApiMeta = {
     page?: number;
     itemsPerPage?: number;
     total?: number;
-    totalItems?: number;
     totalPages?: number;
     pagination?: ApiPagination;
     [key: string]: unknown;
@@ -24,6 +23,7 @@ export type ApiMeta = {
 export type ApiError = {
     code: string;
     message: string;
+    details?: unknown;
     traceId?: string;
     [key: string]: unknown;
 };
@@ -131,11 +131,11 @@ axiosInstance.interceptors.response.use(
         } else if (status === 403) {
             toast.error("Forbidden: You do not have permission.");
         } else if (typeof status === "number" && status >= 500) {
-            const maybeApi = data as { error?: { message?: string } } | null;
+            const maybeApi = data as ApiResponse<never> | null;
             if (maybeApi?.error?.message) toast.error(maybeApi.error.message);
             else toast.error("Server Error: Something went wrong.");
         } else {
-            const maybeApi = data as { error?: { message?: string } } | null;
+            const maybeApi = data as ApiResponse<never> | null;
             if (maybeApi?.error?.message) toast.error(maybeApi.error.message);
             else toast.error("An unexpected error occurred.");
         }

@@ -6,7 +6,7 @@ export type IdentitySnapshot = {
     alias?: string | null;
 };
 
-export type AnalysisStatusDb = "Pending" | "Testing" | "DataEntered" | "TechReview" | "Approved" | "ReTest" | "Cancelled";
+export type AnalysisStatusDb = "Pending" | "Testing" | "DataEntered" | "TechReview" | "Approved" | "ReTest" | "Complained" | "Cancelled";
 
 export type AnalysisResultStatusDb = "Pass" | "Fail" | "NotEvaluated";
 
@@ -26,7 +26,14 @@ export type AnalysisListItem = {
     technicians?: IdentitySnapshot[] | null;
     technicianGroupId?: string | null;
     technicianGroupName?: string | null;
+    involvedIds?: string[] | null;
+    analysisMarks?: string[] | null;
+    analysisPriority?: number | null;
+    protocolCode?: string | null;
     createdBy?: unknown;
+
+    analysisDocumentId?: string | null;
+    analysisDocument?: Record<string, unknown> | null;
 };
 
 export type AnalysisDetail = {
@@ -36,6 +43,10 @@ export type AnalysisDetail = {
     matrixId: string | null;
     parameterId: string | null;
     parameterName: string | null;
+    
+    sampleTypeId?: string | null;
+    sampleTypeName?: string | null;
+    equipmentId?: string | null;
 
     analysisStatus: AnalysisStatusDb;
 
@@ -43,7 +54,15 @@ export type AnalysisDetail = {
     analysisResultStatus: AnalysisResultStatusDb | null;
 
     analysisCompletedAt: IsoDateString | null;
+    analysisStartedAt?: IsoDateString | null;
     analysisDeadline?: IsoDateString | null;
+    analysisUncertainty?: string | null;
+    analysisMethodLOD?: string | null;
+    analysisMethodLOQ?: string | null;
+    analysisUnit?: string | null;
+    analysisNotes?: string | null;
+    handoverInfo?: unknown[] | null;
+    analysisReportDisplay?: Record<string, unknown> | null;
     rawInputData?: Record<string, unknown> | null;
     resultHistory?: Record<string, unknown>[] | null;
     consumablesUsed?: Record<string, unknown>[] | null;
@@ -57,9 +76,15 @@ export type AnalysisDetail = {
     analysisLocation?: string | null;
     protocolCode?: string | null;
     rawData?: Record<string, unknown> | null;
+    involvedIds?: string[] | null;
+    analysisMarks?: string[] | null;
+    analysisPriority?: number | null;
 
     createdAt: IsoDateString;
     createdBy: IdentitySnapshot;
+    
+    analysisDocumentId?: string | null;
+    analysisDocument?: Record<string, unknown> | null;
 };
 
 export type AnalysesGetListBody = {
@@ -76,6 +101,10 @@ export type AnalysesGetListBody = {
 
     search?: string | null;
     filters?: Record<string, unknown>;
+    analysisMarks?: string[];
+    analysisPriority?: number;
+    sortColumn?: string;
+    sortDirection?: "ASC" | "DESC";
 
     [key: string]: unknown;
 };

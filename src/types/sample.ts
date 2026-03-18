@@ -27,6 +27,8 @@ export type SampleListItem = {
     sampleStatus?: SampleStatus | null;
 
     sampleVolume?: string | null;
+    sampleMarks?: string[] | null;
+    samplePriority?: number | null;
     createdAt?: IsoDateString | null;
 };
 
@@ -122,6 +124,9 @@ export type SampleDetail = {
     parentSampleId?: string | null;
     custodyLog?: unknown[] | null;
     retentionServiceFee?: number | string | null;
+
+    sampleMarks?: string[] | null;
+    samplePriority?: number | null;
 
     createdAt?: IsoDateString | null;
 

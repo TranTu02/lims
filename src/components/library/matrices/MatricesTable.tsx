@@ -238,11 +238,11 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
                         </CommandList>
                     </Command>
 
-                    <div className="p-3 border-t border-border flex items-center justify-end gap-2">
-                        <Button variant="outline" type="button" onClick={clear} disabled={props.activeCount === 0}>
+                    <div className="p-3 border-t border-border flex flex-col gap-2">
+                        <Button variant="outline" type="button" className="w-full" onClick={clear} disabled={props.activeCount === 0}>
                             {String(t("common.clear"))}
                         </Button>
-                        <Button type="button" onClick={apply}>
+                        <Button type="button" className="w-full" onClick={apply}>
                             {String(t("common.apply"))}
                         </Button>
                     </div>

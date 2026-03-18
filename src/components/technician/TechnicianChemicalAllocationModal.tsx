@@ -164,8 +164,8 @@ export function TechnicianChemicalAllocationModal({
                                             <TableHeader>
                                                 <TableRow>
                                                     <TableHead>{t("technician.workspace.chemSku", { defaultValue: "Tên hóa chất (SKU)" })}</TableHead>
-                                                    <TableHead className="text-center">{t("technician.workspace.sampleCount", { defaultValue: "Số lượng mẫu" })}</TableHead>
-                                                    <TableHead className="text-right">{t("technician.workspace.totalNorm", { defaultValue: "Tổng định mức" })}</TableHead>
+                                                    <TableHead className="">{t("technician.workspace.sampleCount", { defaultValue: "Số lượng mẫu" })}</TableHead>
+                                                    <TableHead className="">{t("technician.workspace.totalNorm", { defaultValue: "Tổng định mức" })}</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -175,10 +175,10 @@ export function TechnicianChemicalAllocationModal({
                                                             <div className="font-medium text-primary">{item.chemicalName}</div>
                                                             <div className="text-xs text-muted-foreground">{item.chemicalSkuId}</div>
                                                         </TableCell>
-                                                        <TableCell className="text-center">
+                                                        <TableCell className="">
                                                             <Badge variant="outline">{item.analysisIds.length}</Badge>
                                                         </TableCell>
-                                                        <TableCell className="text-right font-bold">
+                                                        <TableCell className=" font-bold">
                                                             {Math.abs(item.totalChangeQty)} {item.unit}
                                                         </TableCell>
                                                     </TableRow>
@@ -196,7 +196,7 @@ export function TechnicianChemicalAllocationModal({
                                                     <TableRow>
                                                         <TableHead>{t("technician.workspace.parameter", { defaultValue: "Chỉ tiêu" })}</TableHead>
                                                         <TableHead>{t("inventory.chemical.transactions.chemical", { defaultValue: "Hóa chất" })}</TableHead>
-                                                        <TableHead className="text-right">{t("technician.workspace.norm", { defaultValue: "Định mức" })}</TableHead>
+                                                        <TableHead className="">{t("technician.workspace.norm", { defaultValue: "Định mức" })}</TableHead>
                                                     </TableRow>
                                                 </TableHeader>
                                                 <TableBody>
@@ -210,7 +210,7 @@ export function TechnicianChemicalAllocationModal({
                                                                 <div className="text-sm">{detail.chemicalName}</div>
                                                                 <div className="text-xs text-muted-foreground">{detail.chemicalSkuId}</div>
                                                             </TableCell>
-                                                            <TableCell className="text-right whitespace-nowrap">
+                                                            <TableCell className=" whitespace-nowrap">
                                                                 {Math.abs(detail.changeQty)} {detail.unit}
                                                             </TableCell>
                                                         </TableRow>
@@ -246,7 +246,7 @@ export function TechnicianChemicalAllocationModal({
                                                 <TableRow>
                                                     <TableHead>{t("inventory.chemical.transactions.bottleId", { defaultValue: "Chai/Lọ (Inventory ID)" })}</TableHead>
                                                     <TableHead>{t("inventory.chemical.transactions.chemical", { defaultValue: "Hóa chất" })}</TableHead>
-                                                    <TableHead className="text-right">{t("inventory.chemical.transactions.exportQty", { defaultValue: "Lượng xuất" })}</TableHead>
+                                                    <TableHead className="">{t("inventory.chemical.transactions.exportQty", { defaultValue: "Lượng xuất" })}</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -257,7 +257,7 @@ export function TechnicianChemicalAllocationModal({
                                                             <div className="font-medium">{tx.chemicalName}</div>
                                                             <div className="text-xs text-muted-foreground">{tx.chemicalSkuId}</div>
                                                         </TableCell>
-                                                        <TableCell className="text-right font-bold text-red-600">
+                                                        <TableCell className=" font-bold text-red-600">
                                                             {tx.changeQty}
                                                         </TableCell>
                                                     </TableRow>
@@ -276,7 +276,7 @@ export function TechnicianChemicalAllocationModal({
                                                 <TableRow>
                                                     <TableHead>{t("technician.workspace.bottleToPick", { defaultValue: "Mã chai cần lấy" })}</TableHead>
                                                     <TableHead>{t("technician.workspace.chemSku", { defaultValue: "Hóa chất (SKU)" })}</TableHead>
-                                                    <TableHead className="text-right">{t("technician.workspace.qtyToPick", { defaultValue: "Số lượng lấy" })}</TableHead>
+                                                    <TableHead className="">{t("technician.workspace.qtyToPick", { defaultValue: "Số lượng lấy" })}</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -293,7 +293,7 @@ export function TechnicianChemicalAllocationModal({
                                                                 <div className="font-medium">{chemName}</div>
                                                                 <div className="text-xs text-muted-foreground">{pick.chemicalSkuId}</div>
                                                             </TableCell>
-                                                            <TableCell className="text-right">
+                                                            <TableCell className="">
                                                                 <div className="font-bold flex items-center justify-end gap-1 text-primary">
                                                                     <ArrowRight className="w-3 h-3" />
                                                                     {Math.abs(pick.totalChangeQty)}

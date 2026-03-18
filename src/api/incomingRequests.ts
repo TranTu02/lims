@@ -44,7 +44,12 @@ const noCacheHeaders = {
 
 // ── GET List ─────────────────────────────────────────────────────────────────
 export async function incomingRequestsGetList(input: IncomingRequestsGetListInput = {}): Promise<ListResponse<IncomingRequestListItem>> {
-    const finalQuery = { ...(input.query ?? {}), ...(input.sort ?? {}) };
+    const finalQuery: Record<string, unknown> = { ...(input.query ?? {}) };
+
+    if (input.sort) {
+        if (input.sort.column) finalQuery.sortColumn = String(input.sort.column);
+        if (input.sort.direction) finalQuery.sortDirection = String(input.sort.direction);
+    }
 
     const res = await api.getRaw<ListResponse<IncomingRequestListItem>>("/v2/incoming-orders/get/list", { query: finalQuery, headers: noCacheHeaders });
 

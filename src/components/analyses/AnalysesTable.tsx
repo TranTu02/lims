@@ -301,16 +301,17 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
             </CommandList>
           </Command>
 
-          <div className="p-3 border-t border-border flex items-center justify-end gap-2">
+          <div className="p-3 border-t border-border flex flex-col gap-2">
             <Button
               variant="outline"
               type="button"
+              className="w-full"
               onClick={clear}
               disabled={props.activeCount === 0}
             >
               {String(t("common.clear", { defaultValue: "Clear" }))}
             </Button>
-            <Button type="button" onClick={apply}>
+            <Button type="button" className="w-full" onClick={apply}>
               {String(t("common.apply", { defaultValue: "Apply" }))}
             </Button>
           </div>
@@ -329,6 +330,7 @@ function AnalysisStatusBadge({ status }: { status: AnalysisStatusDb }) {
     DataEntered: "bg-secondary text-secondary-foreground",
     Testing: "bg-primary text-primary-foreground",
     ReTest: "bg-warning text-warning-foreground",
+    Complained: "bg-destructive/80 text-destructive-foreground",
     Pending: "bg-muted text-foreground",
     Cancelled: "bg-destructive text-destructive-foreground",
   };

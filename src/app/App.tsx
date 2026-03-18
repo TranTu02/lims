@@ -21,8 +21,8 @@ import { SampleTypesPage } from "@/pages/library/SampleTypesPage";
 import { ParameterGroupsPage } from "@/pages/library/ParameterGroupsPage";
 import { IdentityPage } from "@/pages/IdentityPage";
 import { CRMPage } from "@/pages/crm/CRMPage";
-import { AnalysesPage } from "@/pages/AnalysesPage";
 import { ChemicalInventoryPage } from "@/pages/inventory/chemical/ChemicalInventoryPage";
+
 
 // Protected Route Wrapper
 const ProtectedRoute = () => {
@@ -52,11 +52,10 @@ function App() {
 
                         <Route path="/reception" element={<ReceptionPage />} />
                         <Route path="/technician" element={<TechnicianPage />} />
-                        <Route path="/manager" element={<LabManagerPage />} />
+                        <Route path="/manager/*" element={<LabManagerPage />} />
                         <Route path="/assignment" element={<AssignmentPage />} />
                         <Route path="/handover" element={<HandoverPage />} />
                         <Route path="/stored-samples" element={<StoredSamplesPage />} />
-                        <Route path="/analyses" element={<AnalysesPage />} />
                         <Route path="/crm" element={<CRMPage />} />
 
                         <Route path="/library" element={<LibraryPage />}>

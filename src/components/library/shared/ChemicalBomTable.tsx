@@ -50,12 +50,12 @@ function SkuSearchDropdown({ onSelect, existingIds }: { onSelect: (sku: SkuOptio
                 const res = await chemicalApi.skus.list({
                     query: { page, itemsPerPage: 10, search: search.trim() || undefined },
                 });
-                const raw = res as unknown as { data?: SkuOption[]; meta?: { totalPages: number; total: number; totalItems?: number } };
+                const raw = res as unknown as { data?: SkuOption[]; meta?: { totalPages: number; total: number } };
                 const data = Array.isArray(raw.data) ? raw.data : [];
                 setResults(data);
                 if (raw.meta) {
                     setTotalPages(raw.meta.totalPages || 1);
-                    setTotalItems(raw.meta.totalItems ?? raw.meta.total ?? 0);
+                    setTotalItems(raw.meta.total ?? 0);
                 }
             } catch {
                 setResults([]);

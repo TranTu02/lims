@@ -131,7 +131,7 @@ export function MatricesView() {
     const allItems = useMemo(() => (matricesListQ.data?.data ?? []) as Matrix[], [matricesListQ.data]);
 
     const serverMeta = matricesListQ.data?.meta;
-    const serverTotal = serverMeta?.totalItems ?? serverMeta?.total ?? 0;
+    const serverTotal = serverMeta?.total ?? 0;
     const serverPages = serverMeta?.totalPages ?? 1;
 
     useEffect(() => {

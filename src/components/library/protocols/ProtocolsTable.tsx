@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { Filter, X, Check, Edit } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
@@ -11,6 +10,7 @@ import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@
 import { useProtocolsFilter, type Protocol, type ProtocolsFilterFrom, type ProtocolsFilterOtherFilter } from "@/api/library";
 
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
+import { AccreditationBadges } from "../shared/AccreditationTagInput";
 
 export type ProtocolsExcelFiltersState = {
     protocolCode: string[];
@@ -215,9 +215,7 @@ function AccreditationFilterPopover(props: AccreditationFilterPopoverProps) {
 
     const options = useMemo(
         () => [
-            { value: "VILAS", label: t("library.protocols.protocolAccreditation.vilas") },
-            { value: "TDC", label: t("library.protocols.protocolAccreditation.tdc") },
-            { value: "NONE", label: t("common.noData") },
+            { value: "NONE", label: String(t("common.noData")) },
         ],
         [t],
     );
@@ -286,11 +284,11 @@ function AccreditationFilterPopover(props: AccreditationFilterPopoverProps) {
                         </CommandList>
                     </Command>
 
-                    <div className="p-3 border-t border-border flex items-center justify-end gap-2">
-                        <Button variant="outline" type="button" onClick={clear} disabled={props.activeCount === 0}>
+                    <div className="p-3 border-t border-border flex flex-col gap-2">
+                        <Button variant="outline" type="button" className="w-full" onClick={clear} disabled={props.activeCount === 0}>
                             {String(t("common.clear"))}
                         </Button>
-                        <Button type="button" onClick={apply}>
+                        <Button type="button" className="w-full" onClick={apply}>
                             {String(t("common.apply"))}
                         </Button>
                     </div>
@@ -392,23 +390,7 @@ export function ProtocolsTable(props: Props) {
 
                                 <td className="px-3 py-3 align-top">
                                     <div className="flex flex-wrap gap-1">
-                                        {p.protocolAccreditation?.VILAS ? (
-                                            <Badge variant="secondary" className="text-xs">
-                                                {String(t("library.protocols.protocolAccreditation.vilas"))}
-                                            </Badge>
-                                        ) : null}
-
-                                        {p.protocolAccreditation?.TDC ? (
-                                            <Badge variant="secondary" className="text-xs">
-                                                {String(t("library.protocols.protocolAccreditation.tdc"))}
-                                            </Badge>
-                                        ) : null}
-
-                                        {!p.protocolAccreditation?.VILAS && !p.protocolAccreditation?.TDC ? (
-                                            <Badge variant="outline" className="text-xs">
-                                                -
-                                            </Badge>
-                                        ) : null}
+                                        <AccreditationBadges value={p.protocolAccreditation} className="text-xs" />
                                     </div>
                                 </td>
 

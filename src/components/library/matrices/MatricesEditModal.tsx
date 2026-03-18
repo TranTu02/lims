@@ -26,6 +26,7 @@ import { ChemicalBomTable, type ChemicalBomItem } from "../shared/ChemicalBomTab
 import { ParameterFormModal } from "../parameters/ParameterFormModal";
 import { SampleTypeFormModal } from "../sampleTypes/SampleTypeFormModal";
 import { ProtocolFormModal } from "../protocols/ProtocolFormModal";
+import { AccreditationTagInput } from "../shared/AccreditationTagInput";
 
 import { toFormNumberString } from "./matrixFormat";
 
@@ -46,8 +47,7 @@ type FormState = {
     protocolCode: string;
     protocolSource: string;
 
-    accreditationVILAS: boolean;
-    accreditationTDC: boolean;
+    accreditationKeys: Record<string, boolean>;
 
     sampleTypeId: string;
     sampleTypeName: string;
@@ -73,8 +73,7 @@ function initForm(): FormState {
         protocolId: "",
         protocolCode: "",
         protocolSource: "",
-        accreditationVILAS: false,
-        accreditationTDC: false,
+        accreditationKeys: {},
         sampleTypeId: "",
         sampleTypeName: "",
         technicianGroupId: "",
@@ -252,8 +251,7 @@ export function MatricesEditModal(props: Props) {
             protocolId: m.protocolId,
             protocolCode: m.protocolCode || "",
             protocolSource: m.protocolSource || "",
-            accreditationVILAS: Boolean(m.protocolAccreditation?.VILAS),
-            accreditationTDC: Boolean(m.protocolAccreditation?.TDC),
+            accreditationKeys: (m.protocolAccreditation as Record<string, boolean>) ?? {},
             sampleTypeId: m.sampleTypeId,
             sampleTypeName: m.sampleTypeName || "",
             technicianGroupId: m.technicianGroupId || "",
@@ -329,8 +327,7 @@ export function MatricesEditModal(props: Props) {
             form.LOQ !== baseline.LOQ ||
             form.thresholdLimit !== baseline.thresholdLimit ||
             form.technicianGroupId !== baseline.technicianGroupId ||
-            form.accreditationVILAS !== baseline.accreditationVILAS ||
-            form.accreditationTDC !== baseline.accreditationTDC ||
+            JSON.stringify(form.accreditationKeys) !== JSON.stringify(baseline.accreditationKeys) ||
             JSON.stringify(form.chemicals) !== JSON.stringify(baseline.chemicals)
         );
     }, [form, feeBeforeTaxNum, taxRateNum, matrixId, baseline]);
@@ -393,8 +390,7 @@ export function MatricesEditModal(props: Props) {
                 protocolId: "",
                 protocolCode: "",
                 protocolSource: "",
-                accreditationTDC: false,
-                accreditationVILAS: false,
+                accreditationKeys: {},
             }));
             return;
         }
@@ -405,8 +401,7 @@ export function MatricesEditModal(props: Props) {
                 protocolId: found.protocolId,
                 protocolCode: found.protocolCode || "",
                 protocolSource: found.protocolSource || "",
-                accreditationTDC: Boolean(found.protocolAccreditation?.TDC),
-                accreditationVILAS: Boolean(found.protocolAccreditation?.VILAS),
+                accreditationKeys: (found.protocolAccreditation as Record<string, boolean>) ?? {},
             }));
         } else {
             setCreateProtocolCode(idOrVal);
@@ -440,9 +435,9 @@ export function MatricesEditModal(props: Props) {
         if (form.thresholdLimit !== baseline.thresholdLimit) patch.thresholdLimit = form.thresholdLimit.trim() || null;
         if (form.technicianGroupId !== baseline.technicianGroupId) patch.technicianGroupId = form.technicianGroupId.trim() || null;
 
-        const hasAccChange = form.accreditationVILAS !== baseline.accreditationVILAS || form.accreditationTDC !== baseline.accreditationTDC;
+        const hasAccChange = JSON.stringify(form.accreditationKeys) !== JSON.stringify(baseline.accreditationKeys);
         if (hasAccChange) {
-            patch.protocolAccreditation = form.accreditationVILAS || form.accreditationTDC ? { VILAS: form.accreditationVILAS, TDC: form.accreditationTDC } : undefined;
+            patch.protocolAccreditation = Object.keys(form.accreditationKeys).length > 0 ? form.accreditationKeys : undefined;
         }
 
         const formattedChemicals = form.chemicals.map((c) => ({
@@ -566,30 +561,11 @@ export function MatricesEditModal(props: Props) {
 
                                 <div className="space-y-3 pt-6 border-t border-border mt-6">
                                     <SectionTitle>{String(t("library.matrices.protocolAccreditation"))}</SectionTitle>
-
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <Button
-                                            type="button"
-                                            className="w-full whitespace-normal"
-                                            variant={form.accreditationVILAS ? "secondary" : "outline"}
-                                            aria-pressed={form.accreditationVILAS}
-                                            onClick={() => setForm((s) => ({ ...s, accreditationVILAS: !s.accreditationVILAS }))}
-                                            disabled={updateM.isPending}
-                                        >
-                                            {String(t("library.protocols.protocolAccreditation.vilas", { defaultValue: "VILAS" }))}
-                                        </Button>
-
-                                        <Button
-                                            type="button"
-                                            className="w-full whitespace-normal"
-                                            variant={form.accreditationTDC ? "secondary" : "outline"}
-                                            aria-pressed={form.accreditationTDC}
-                                            onClick={() => setForm((s) => ({ ...s, accreditationTDC: !s.accreditationTDC }))}
-                                            disabled={updateM.isPending}
-                                        >
-                                            {String(t("library.protocols.protocolAccreditation.tdc", { defaultValue: "Cục đẩy" }))}
-                                        </Button>
-                                    </div>
+                                    <AccreditationTagInput
+                                        value={form.accreditationKeys}
+                                        onChange={(v) => setForm((s) => ({ ...s, accreditationKeys: v }))}
+                                        disabled={updateM.isPending}
+                                    />
                                 </div>
                             </div>
 
@@ -821,8 +797,7 @@ export function MatricesEditModal(props: Props) {
                             protocolId: p.protocolId,
                             protocolCode: p.protocolCode || p.protocolId,
                             protocolSource: p.protocolSource || "Unknown",
-                            accreditationTDC: Boolean(p.protocolAccreditation?.TDC),
-                            accreditationVILAS: Boolean(p.protocolAccreditation?.VILAS),
+                            accreditationKeys: (p.protocolAccreditation as Record<string, boolean>) ?? {},
                         }));
                     }}
                 />

@@ -8,6 +8,16 @@ export default {
 
         managerTitle: "Lab Management",
         managerDescription: "Review results & Reports",
+        managerApprovals: "Review & Approve",
+        managerApprovalsDesc: "Review and approve results",
+        managerExceptions: "Exceptions",
+        managerExceptionsDesc: "Urgent, complaints, retest",
+        managerSamples: "Processing Samples",
+        managerSamplesDesc: "Sample progress & handover",
+        managerAnalyses: "Processing Analyses",
+        managerAnalysesDesc: "Assignment & chemicals",
+        managerReports: "Reports",
+        managerReportsDesc: "Statistics & reporting",
 
         assignmentTitle: "Technician Assignment",
         assignmentDescription: "Assign Parameters",
@@ -18,8 +28,6 @@ export default {
         storedSamplesTitle: "Stored Samples",
         storedSamplesDescription: "Sample Storage",
 
-        analysesTitle: "Analyses",
-        analysesDescription: "Analyses Management",
 
         libraryTitle: "Library",
         libraryDescription: "System Library",
@@ -898,6 +906,7 @@ export default {
                 DataEntered: "Data entered",
                 TechReview: "Tech review",
                 ReTest: "Re-test",
+                Complained: "Complained",
                 Cancelled: "Cancelled",
             },
             resultStatus: {
@@ -1872,9 +1881,39 @@ export default {
     },
     testReport: {
         institute: {
-            organizationName: "INSTITUTE OF NATURAL PRODUCTS RESEARCH AND DEVELOPMENT",
-            departmentName: "ANALYSIS AND TESTING DEPARTMENT",
+            organizationName: "Institute for Research and Development of Organic Products",
+            departmentName: "Analysis and Testing Dept.",
         },
-        title: "TEST REPORT",
-    },
+        title: "Certificate of Analysis",
+        ref: "ref.",
+        draft: "DRAFT",
+        date: "Date",
+        customerInfo: "Customer information",
+        sampleInfo: "Sample information",
+        sampleLabels: {
+            name: "name.",
+            lot: "LOT no.",
+            mfg: "mfg.",
+            exp: "exp.",
+            receiptDate: "receipt date.",
+            storageTime: "Storage time",
+            testDate: "test date.",
+            description: "desc."
+        },
+        table: {
+            stt: "No.",
+            test: "Tests",
+            result: "Test result",
+            unit: "Unit",
+            protocol: "Protocol",
+            scope: "Accreditation"
+        },
+        noStorage: "No storage",
+        notesTitle: "Note",
+        notesContent: "KPH: Không phát hiện / Not detected.<br>LOD: Giới hạn phát hiện / Limit of detection.<br>LOQ: Giới hạn định lượng / Limit of quantification.<br>IRDOP: Chỉ tiêu được thực hiện tại IRDOP / Parameters conducted by IRDOP.<br>EX: Chỉ tiêu được thực hiện bởi nhà thầu phụ / Parameters conducted by subcontractors.<br>VS: Chỉ tiêu được công nhận ISO/IEC 17025:2017 / Accredited per ISO/IEC 17025:2017.<br>TĐC: Chỉ tiêu được công nhận đánh giá sự phù hợp theo NĐ 107/2016/NĐ-CP / Accredited per Decree 107/2016/ND-CP.<br>Thông tin mẫu thử nghiệm do khách hàng cung cấp / Sample information provided by the customer.<br>Kết quả chỉ có giá trị với mẫu thử / The results are only valid for the tested sample(s).",
+        signatures: {
+            qaManager: "Quality Assurance Manager",
+            vicePresident: "Vice President"
+        }
+    }
 };

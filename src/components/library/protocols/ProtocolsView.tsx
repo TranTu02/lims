@@ -21,6 +21,7 @@ import { SearchSelectPicker, type PickerItem } from "./SearchSelectPicker";
 import { DocumentUploadModal } from "@/components/document/DocumentUploadModal";
 import { ChemicalBomTable, type ChemicalBomItem } from "../shared/ChemicalBomTable";
 import { ProtocolMatrixManager } from "./ProtocolMatrixManager";
+import { AccreditationTagInput } from "../shared/AccreditationTagInput";
 
 type EditProtocolForm = {
     protocolId?: string;
@@ -28,8 +29,7 @@ type EditProtocolForm = {
     protocolTitle: string;
     protocolSource: string;
     protocolDescription: string;
-    accreditationVilas: boolean;
-    accreditationTdc: boolean;
+    accreditationKeys: Record<string, boolean>;
     parameters: { parameterId: string; parameterName: string }[];
     sampleTypes: { sampleTypeId: string; sampleTypeName: string }[];
     chemicals: ChemicalBomItem[];
@@ -62,11 +62,10 @@ function applyLocalFilters(items: Protocol[], f: ProtocolsExcelFiltersState) {
 
     const hasAccValue = (p: Protocol, selected: string[]) => {
         if (selected.length === 0) return true;
-        const tags: string[] = [];
-        if (p.protocolAccreditation?.VILAS) tags.push("VILAS");
-        if (p.protocolAccreditation?.TDC) tags.push("TDC");
-        if (!p.protocolAccreditation?.VILAS && !p.protocolAccreditation?.TDC) tags.push("NONE");
-        return selected.some((x) => tags.includes(x));
+        const acc = p.protocolAccreditation ?? {};
+        const activeKeys = Object.entries(acc).filter(([, v]) => Boolean(v)).map(([k]) => k);
+        if (activeKeys.length === 0) return selected.includes("NONE");
+        return selected.some((x) => x === "NONE" ? false : activeKeys.some((k) => k.toUpperCase().includes(x.toUpperCase())));
     };
 
     return items.filter((p) => {
@@ -91,8 +90,7 @@ export function ProtocolsView() {
         protocolTitle: "",
         protocolSource: "",
         protocolDescription: "",
-        accreditationVilas: false,
-        accreditationTdc: false,
+        accreditationKeys: {},
         parameters: [],
         sampleTypes: [],
         chemicals: [],
@@ -125,7 +123,7 @@ export function ProtocolsView() {
     }, [protocolsQ.data]);
 
     const serverMeta = protocolsQ.data?.meta;
-    const serverTotal = serverMeta?.total ?? serverMeta?.totalItems ?? 0;
+    const serverTotal = serverMeta?.total ?? 0;
     const serverPages = serverMeta?.totalPages ?? 1;
 
     useEffect(() => setServerTotalPages(serverPages), [serverPages]);
@@ -194,7 +192,7 @@ export function ProtocolsView() {
             chemicalSkuId: c.chemicalSkuId || (c as any).chemicalId || "",
             chemicalName: c.chemicalName || "",
             consumedQty: c.consumedQty || (c as any).amountUsed || "",
-            unit: c.unit || (c as any).measurementUnit || "",
+            unit: c.chemicalBaseUnit || c.unit || (c as any).measurementUnit || "",
         }));
 
         setEditForm({
@@ -203,8 +201,7 @@ export function ProtocolsView() {
             protocolTitle: p.protocolTitle || "",
             protocolSource: p.protocolSource,
             protocolDescription: p.protocolDescription || "",
-            accreditationVilas: !!p.protocolAccreditation?.VILAS,
-            accreditationTdc: !!p.protocolAccreditation?.TDC,
+            accreditationKeys: (p.protocolAccreditation as Record<string, boolean>) ?? {},
             parameters: p.parameters || [],
             sampleTypes: p.sampleTypes || [],
             chemicals: chemBom,
@@ -223,7 +220,6 @@ export function ProtocolsView() {
         const source = String(editForm.protocolSource || "").trim();
         if (!code || !source) return;
 
-        const hasAcc = editForm.accreditationVilas || editForm.accreditationTdc;
 
         // Convert BOM items back to the protocol chemicals format
         const chemicalsPayload = editForm.chemicals.length
@@ -231,7 +227,7 @@ export function ProtocolsView() {
                   chemicalSkuId: c.chemicalSkuId,
                   chemicalName: c.chemicalName,
                   consumedQty: c.consumedQty,
-                  unit: c.unit,
+                  chemicalBaseUnit: c.unit,
               }))
             : undefined;
 
@@ -240,7 +236,7 @@ export function ProtocolsView() {
             protocolTitle: String(editForm.protocolTitle || "").trim() || undefined,
             protocolSource: source,
             protocolDescription: String(editForm.protocolDescription || "").trim() || undefined,
-            protocolAccreditation: hasAcc ? { VILAS: editForm.accreditationVilas || undefined, TDC: editForm.accreditationTdc || undefined } : undefined,
+            protocolAccreditation: Object.keys(editForm.accreditationKeys).length > 0 ? editForm.accreditationKeys : undefined,
             parameters: editForm.parameters.length ? editForm.parameters : undefined,
             sampleTypes: editForm.sampleTypes.length ? editForm.sampleTypes : undefined,
             chemicals: chemicalsPayload,
@@ -379,22 +375,10 @@ export function ProtocolsView() {
                                     <div className="text-sm font-medium text-foreground">
                                         {String(t("library.protocols.create.protocolAccreditation.title", { defaultValue: "Chứng nhận / Công nhận" }))}
                                     </div>
-                                    <div className="flex flex-wrap gap-2">
-                                        <Button
-                                            type="button"
-                                            variant={editForm.accreditationVilas ? "default" : "outline"}
-                                            onClick={() => setEditForm((s) => ({ ...s, accreditationVilas: !s.accreditationVilas }))}
-                                        >
-                                            {String(t("library.protocols.create.protocolAccreditation.vilas", { defaultValue: "VILAS" }))}
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            variant={editForm.accreditationTdc ? "default" : "outline"}
-                                            onClick={() => setEditForm((s) => ({ ...s, accreditationTdc: !s.accreditationTdc }))}
-                                        >
-                                            {String(t("library.protocols.create.protocolAccreditation.tdc", { defaultValue: "TDC" }))}
-                                        </Button>
-                                    </div>
+                                    <AccreditationTagInput
+                                        value={editForm.accreditationKeys}
+                                        onChange={(v) => setEditForm((s) => ({ ...s, accreditationKeys: v }))}
+                                    />
                                 </div>
 
                                 {/* Documents */}

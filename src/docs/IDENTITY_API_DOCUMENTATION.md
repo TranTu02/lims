@@ -82,6 +82,8 @@ Authorization: Bearer SS_01382de7-4967-4dda-bcfe-9318a41170ec
 
 ```json
 {
+    "success": true,
+    "statusCode": 200,
     "data": [
         {
             "identityId": "IDx3ea18",
@@ -89,7 +91,11 @@ Authorization: Bearer SS_01382de7-4967-4dda-bcfe-9318a41170ec
             "email": "admin@lims.com",
             "identityPhone": "",
             "identityStatus": "active",
-            "roles": ["ROLE_SUPER_ADMIN", "ROLE_DIRECTOR", "ROLE_TECH_MANAGER"],
+            "roles": [
+                "ROLE_SUPER_ADMIN",
+                "ROLE_DIRECTOR",
+                "ROLE_TECH_MANAGER"
+            ],
             "identityPolicies": {
                 "POL_QA_AUDIT": "ALLOW",
                 "POL_LIB_MANAGE": "ALLOW",
@@ -117,7 +123,8 @@ Authorization: Bearer SS_01382de7-4967-4dda-bcfe-9318a41170ec
         "itemsPerPage": 2,
         "total": 124,
         "totalPages": 62
-    }
+    },
+    "error": null
 }
 ```
 
@@ -148,33 +155,42 @@ Authorization: Bearer SS_01382de7-4967-4dda-bcfe-9318a41170ec
 
 ```json
 {
-    "identityId": "IDx95d60",
-    "identityName": "Nguyễn Hữu Nghị",
-    "email": "nghinguyen.irdop@gmail.com",
-    "identityPhone": "",
-    "identityStatus": "active",
-    "roles": ["ROLE_SALES_EXEC", "ROLE_CS"],
-    "identityPolicies": {
-        "POL_QUOTE_CREATE": "ALLOW",
-        "POL_CLIENT_MANAGE": "ALLOW",
-        "POL_ORDER_PROCESS": "ALLOW",
-        "POL_CRM_VIEW_BASIC": "ALLOW"
-    },
-    "permissions": {
-        "crm.orders": {
-            "client": 3,
-            "orderId": 1,
-            "totalAmount": 3
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "identityId": "IDx95d60",
+        "identityName": "Nguyễn Hữu Nghị",
+        "email": "nghinguyen.irdop@gmail.com",
+        "identityPhone": "",
+        "identityStatus": "active",
+        "roles": [
+            "ROLE_SALES_EXEC",
+            "ROLE_CS"
+        ],
+        "identityPolicies": {
+            "POL_QUOTE_CREATE": "ALLOW",
+            "POL_CLIENT_MANAGE": "ALLOW",
+            "POL_ORDER_PROCESS": "ALLOW",
+            "POL_CRM_VIEW_BASIC": "ALLOW"
         },
-        "crm.quotes": {
-            "quoteId": 1,
-            "samples": 3,
-            "totalAmount": 3
-        }
+        "permissions": {
+            "crm.orders": {
+                "client": 3,
+                "orderId": 1,
+                "totalAmount": 3
+            },
+            "crm.quotes": {
+                "quoteId": 1,
+                "samples": 3,
+                "totalAmount": 3
+            }
+        },
+        "alias": "",
+        "createdAt": "2026-01-28T08:25:34.931Z",
+        "modifiedAt": "2026-02-14T03:17:50.848Z"
     },
-    "alias": "",
-    "createdAt": "2026-01-28T08:25:34.931Z",
-    "modifiedAt": "2026-02-14T03:17:50.848Z"
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -203,12 +219,20 @@ Tạo người dùng mới. **Chỉ Admin hoặc SuperAdmin** được phép.
 
 ```json
 {
-    "identityName": "Nguyễn Văn A",
-    "email": "nguyenvana@example.com",
-    "password": "SecurePassword123!",
-    "identityPhone": "0123456789",
-    "roles": ["ROLE_TECHNICIAN"],
-    "identityStatus": "active"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "identityName": "Nguyễn Văn A",
+        "email": "nguyenvana@example.com",
+        "password": "SecurePassword123!",
+        "identityPhone": "0123456789",
+        "roles": [
+            "ROLE_TECHNICIAN"
+        ],
+        "identityStatus": "active"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -216,25 +240,33 @@ Tạo người dùng mới. **Chỉ Admin hoặc SuperAdmin** được phép.
 
 ```json
 {
-    "identityId": "USR260214001",
-    "identityName": "Nguyễn Văn A",
-    "email": "nguyenvana@example.com",
-    "identityPhone": "0123456789",
-    "identityStatus": "active",
-    "roles": ["ROLE_TECHNICIAN"],
-    "identityPolicies": {
-        "POL_TEST_EXECUTE": "ALLOW",
-        "POL_SAMPLE_VIEW_BASIC": "ALLOW"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "identityId": "USR260214001",
+        "identityName": "Nguyễn Văn A",
+        "email": "nguyenvana@example.com",
+        "identityPhone": "0123456789",
+        "identityStatus": "active",
+        "roles": [
+            "ROLE_TECHNICIAN"
+        ],
+        "identityPolicies": {
+            "POL_TEST_EXECUTE": "ALLOW",
+            "POL_SAMPLE_VIEW_BASIC": "ALLOW"
+        },
+        "permissions": {
+            "lab.analysis": {
+                "resultValue": 3,
+                "resultUnit": 3,
+                "technicianId": 3
+            }
+        },
+        "createdAt": "2026-02-14T03:20:00.000Z",
+        "createdById": "IDx3ea18"
     },
-    "permissions": {
-        "lab.analysis": {
-            "resultValue": 3,
-            "resultUnit": 3,
-            "technicianId": 3
-        }
-    },
-    "createdAt": "2026-02-14T03:20:00.000Z",
-    "createdById": "IDx3ea18"
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -274,10 +306,16 @@ Cập nhật thông tin người dùng.
 
 ```json
 {
-    "identityId": "USR260214001",
-    "identityName": "Nguyễn Văn A (Updated)",
-    "identityPhone": "0987654321",
-    "identityStatus": "active"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "identityId": "USR260214001",
+        "identityName": "Nguyễn Văn A (Updated)",
+        "identityPhone": "0987654321",
+        "identityStatus": "active"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -285,12 +323,18 @@ Cập nhật thông tin người dùng.
 
 ```json
 {
-    "identityId": "USR260214001",
-    "identityName": "Nguyễn Văn A (Updated)",
-    "identityPhone": "0987654321",
-    "identityStatus": "active",
-    "modifiedAt": "2026-02-14T03:25:00.000Z",
-    "modifiedById": "IDx3ea18"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "identityId": "USR260214001",
+        "identityName": "Nguyễn Văn A (Updated)",
+        "identityPhone": "0987654321",
+        "identityStatus": "active",
+        "modifiedAt": "2026-02-14T03:25:00.000Z",
+        "modifiedById": "IDx3ea18"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -314,7 +358,13 @@ Xóa mềm người dùng (soft delete).
 
 ```json
 {
-    "identityId": "USR260214001"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "identityId": "USR260214001"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -323,8 +373,13 @@ Xóa mềm người dùng (soft delete).
 ```json
 {
     "success": true,
-    "id": "USR260214001",
-    "status": "Deleted"
+    "statusCode": 200,
+    "data": {
+        "id": "USR260214001",
+        "status": "Deleted"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -344,8 +399,14 @@ Thêm role cho người dùng.
 
 ```json
 {
-    "identityId": "USR260214001",
-    "roleCode": "ROLE_VALIDATOR"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "identityId": "USR260214001",
+        "roleCode": "ROLE_VALIDATOR"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -353,14 +414,23 @@ Thêm role cho người dùng.
 
 ```json
 {
-    "identityId": "USR260214001",
-    "roles": ["ROLE_TECHNICIAN", "ROLE_VALIDATOR"],
-    "identityPolicies": {
-        "POL_TEST_EXECUTE": "ALLOW",
-        "POL_TEST_REVIEW": "ALLOW",
-        "POL_TEST_APPROVE": "ALLOW"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "identityId": "USR260214001",
+        "roles": [
+            "ROLE_TECHNICIAN",
+            "ROLE_VALIDATOR"
+        ],
+        "identityPolicies": {
+            "POL_TEST_EXECUTE": "ALLOW",
+            "POL_TEST_REVIEW": "ALLOW",
+            "POL_TEST_APPROVE": "ALLOW"
+        },
+        "modifiedAt": "2026-02-14T03:30:00.000Z"
     },
-    "modifiedAt": "2026-02-14T03:30:00.000Z"
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -383,8 +453,14 @@ Xóa role khỏi người dùng.
 
 ```json
 {
-    "identityId": "USR260214001",
-    "roleCode": "ROLE_VALIDATOR"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "identityId": "USR260214001",
+        "roleCode": "ROLE_VALIDATOR"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -392,14 +468,22 @@ Xóa role khỏi người dùng.
 
 ```json
 {
-    "identityId": "USR260214001",
-    "roles": ["ROLE_TECHNICIAN"],
-    "identityPolicies": {
-        "POL_TEST_EXECUTE": "ALLOW",
-        "POL_TEST_REVIEW": "DENY",
-        "POL_TEST_APPROVE": "DENY"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "identityId": "USR260214001",
+        "roles": [
+            "ROLE_TECHNICIAN"
+        ],
+        "identityPolicies": {
+            "POL_TEST_EXECUTE": "ALLOW",
+            "POL_TEST_REVIEW": "DENY",
+            "POL_TEST_APPROVE": "DENY"
+        },
+        "modifiedAt": "2026-02-14T03:35:00.000Z"
     },
-    "modifiedAt": "2026-02-14T03:35:00.000Z"
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -421,9 +505,15 @@ Cập nhật policy cụ thể cho người dùng.
 
 ```json
 {
-    "identityId": "USR260214001",
-    "policyCode": "POL_SAMPLE_VIEW_BASIC",
-    "status": "LIMIT"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "identityId": "USR260214001",
+        "policyCode": "POL_SAMPLE_VIEW_BASIC",
+        "status": "LIMIT"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -437,19 +527,25 @@ Cập nhật policy cụ thể cho người dùng.
 
 ```json
 {
-    "identityId": "USR260214001",
-    "identityPolicies": {
-        "POL_TEST_EXECUTE": "ALLOW",
-        "POL_SAMPLE_VIEW_BASIC": "LIMIT"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "identityId": "USR260214001",
+        "identityPolicies": {
+            "POL_TEST_EXECUTE": "ALLOW",
+            "POL_SAMPLE_VIEW_BASIC": "LIMIT"
+        },
+        "permissions": {
+            "lab.sample": {
+                "sampleId": 0.5,
+                "sampleName": 0.5,
+                "status": 0.5
+            }
+        },
+        "modifiedAt": "2026-02-14T03:40:00.000Z"
     },
-    "permissions": {
-        "lab.sample": {
-            "sampleId": 0.5,
-            "sampleName": 0.5,
-            "status": 0.5
-        }
-    },
-    "modifiedAt": "2026-02-14T03:40:00.000Z"
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -493,12 +589,18 @@ Quản lý các nhóm người dùng theo vị trí, phòng ban (VD: Nhóm KTV, 
 
 ```json
 {
-    "identityGroupId": "GRP_KTV_MICRO",
-    "identityGroupName": "Nhóm KTV Vi sinh",
-    "identityGroupMainRole": "ROLE_TECHNICIAN",
-    "identityGroupAlias": "KTV Vi sinh",
-    "identityGroupInChargeId": "USR260301001",
-    "identityGroupDescription": "Nhóm thực hiện các chỉ tiêu vi sinh"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "identityGroupId": "GRP_KTV_MICRO",
+        "identityGroupName": "Nhóm KTV Vi sinh",
+        "identityGroupMainRole": "ROLE_TECHNICIAN",
+        "identityGroupAlias": "KTV Vi sinh",
+        "identityGroupInChargeId": "USR260301001",
+        "identityGroupDescription": "Nhóm thực hiện các chỉ tiêu vi sinh"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -581,15 +683,21 @@ Quản lý các nhóm người dùng theo vị trí, phòng ban (VD: Nhóm KTV, 
 
 ```json
 {
-    "crm.orders": {
-        "orderId": 7,
-        "clientId": 7,
-        "totalAmount": 3
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "crm.orders": {
+            "orderId": 7,
+            "clientId": 7,
+            "totalAmount": 3
+        },
+        "lab.sample": {
+            "sampleId": 0.5,
+            "status": 0.5
+        }
     },
-    "lab.sample": {
-        "sampleId": 0.5,
-        "status": 0.5
-    }
+    "pagination": null,
+    "error": null
 }
 ```
 

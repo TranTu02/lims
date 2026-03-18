@@ -44,18 +44,18 @@ function assertSuccessWithMeta<T>(res: ApiResponse<T>): ListResult<T> {
     if (res.statusCode === 404 || !res.data) {
         return { data: [] as unknown as T, meta: null, pagination: null };
     }
-    const pagination: ApiPagination | null =
+    const meta: ApiPagination | null =
         res.pagination ??
         (res.meta?.pagination as ApiPagination | undefined) ??
-        (res.meta?.totalItems != null
+        (res.meta?.total !== undefined
             ? {
                   page: (res.meta.page as number) ?? 1,
                   itemsPerPage: (res.meta.itemsPerPage as number) ?? 20,
-                  totalItems: res.meta.totalItems as number,
+                  total: res.meta.total as number,
                   totalPages: (res.meta.totalPages as number) ?? 1,
               }
             : null);
-    return { data: res.data as T, meta: res.meta, pagination };
+    return { data: res.data as T, meta: res.meta, pagination: meta };
 }
 
 const noCacheHeaders = { "Cache-Control": "no-cache", Pragma: "no-cache" };

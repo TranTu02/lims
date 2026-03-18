@@ -125,7 +125,7 @@ export function ParametersView() {
     }, [parametersQ.data]);
 
     const serverMeta = parametersQ.data?.meta;
-    const totalItems = serverMeta?.totalItems ?? serverMeta?.total ?? 0;
+    const totalItems = serverMeta?.total ?? 0;
     const totalPages = serverMeta?.totalPages ?? 1;
 
     useEffect(() => setServerTotalPages(totalPages), [totalPages]);

@@ -68,9 +68,14 @@ Cột **Loại** ở tab Files hiển thị badge rút gọn:
 
 Điều này tránh trường hợp MIME type dài như `VND.OPENXMLFORMATS-OFFICEDOCUMENT.WORDPROCESSINGML.DOCUMENT` chiếm hết không gian bảng.
 
-## 7. Thư viện sử dụng
+## 7. Quy chuẩn Icon (Iconography Standard)
+
+- **Xem/Preview tài liệu (Read-only):** Sử dụng `FileText` (Thay thế cho `Eye` cũ để đồng bộ với định dạng văn bản).
+- **Soạn thảo/Khởi tạo biên bản:** Sử dụng `FilePenLine` (Sử dụng biểu tượng trang giấy kèm bút để ám chỉ hành động nhập liệu/sửa đổi).
+
+## 8. Thư viện sử dụng
 
 - **@tanstack/react-query (v5)**: Fetching, mutation, cache invalidation
-- **Lucide-React**: Icon SVG (Search, Upload, FileText, Eye, Download, ...)
+- **Lucide-React**: Icon SVG (Search, Upload, FileText, FilePenLine, Download, ...)
 - **Sonner**: Toast notifications
 - **shadcn/ui**: Tables, Badges, Tabs, Select, Input, Button, Modal

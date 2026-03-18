@@ -8,6 +8,16 @@ export default {
 
         managerTitle: "Quản lý Lab",
         managerDescription: "Duyệt KQ & Báo cáo",
+        managerApprovals: "Kiểm soát & Duyệt KQ",
+        managerApprovalsDesc: "Soát xét, duyệt chốt kết quả",
+        managerExceptions: "Cần xử lý",
+        managerExceptionsDesc: "Mẫu khẩn, khiếu nại, làm lại",
+        managerSamples: "Mẫu đang thực hiện",
+        managerSamplesDesc: "Tiến độ mẫu & bàn giao",
+        managerAnalyses: "Chỉ tiêu đang TH",
+        managerAnalysesDesc: "Phân công & hóa chất",
+        managerReports: "Trích xuất báo cáo",
+        managerReportsDesc: "Thống kê & báo cáo",
 
         assignmentTitle: "Phân công KTV",
         assignmentDescription: "Phân công chỉ tiêu",
@@ -18,8 +28,6 @@ export default {
         storedSamplesTitle: "Mẫu lưu",
         storedSamplesDescription: "Kho mẫu lưu",
 
-        analysesTitle: "Phép thử",
-        analysesDescription: "Quản lý phép thử",
 
         libraryTitle: "Thư viện",
         libraryDescription: "Danh mục hệ thống",
@@ -890,6 +898,7 @@ export default {
                 DataEntered: "Đã nhập dữ liệu",
                 TechReview: "KTV duyệt",
                 ReTest: "Thử nghiệm lại",
+                Complained: "Khiếu nại",
                 Cancelled: "Đã hủy",
             },
             resultStatus: {
@@ -1870,9 +1879,39 @@ export default {
     },
     testReport: {
         institute: {
-            organizationName: "VIỆN NGHIÊN CỨU VÀ PHÁT TRIỂN SẢN PHẨM THIÊN NHIÊN",
-            departmentName: "PHÒNG PHÂN TÍCH - KIỂM NGHIỆM",
+            organizationName: "Viện nghiên cứu và phát triển Sản phẩm thiên nhiên",
+            departmentName: "Phòng Phân tích - Kiểm nghiệm",
         },
-        title: "BIÊN BẢN THỬ NGHIỆM"
+        title: "PHIẾU KẾT QUẢ THỬ NGHIỆM",
+        ref: "Xuất bản",
+        draft: "SƠ BỘ",
+        date: "Ngày",
+        customerInfo: "Nơi / người gửi mẫu",
+        sampleInfo: "Thông tin mẫu thử nghiệm",
+        sampleLabels: {
+            name: "Tên mẫu thử",
+            lot: "Số lô",
+            mfg: "Ngày sản xuất",
+            exp: "Hạn sử dụng",
+            receiptDate: "Ngày tiếp nhận",
+            storageTime: "Thời gian lưu mẫu",
+            testDate: "Ngày thử nghiệm",
+            description: "Mô tả"
+        },
+        table: {
+            stt: "STT",
+            test: "Phép thử",
+            result: "Kết quả",
+            unit: "Đơn vị",
+            protocol: "Phương pháp",
+            scope: "Công nhận"
+        },
+        noStorage: "Không có mẫu lưu",
+        notesTitle: "Ghi chú",
+        notesContent: "KPH: Không phát hiện / Not detected.<br>LOD: Giới hạn phát hiện / Limit of detection.<br>LOQ: Giới hạn định lượng / Limit of quantification.<br>IRDOP: Chỉ tiêu được thực hiện tại IRDOP / Parameters conducted by IRDOP.<br>EX: Chỉ tiêu được thực hiện bởi nhà thầu phụ / Parameters conducted by subcontractors.<br>VS: Chỉ tiêu được công nhận ISO/IEC 17025:2017 / Accredited per ISO/IEC 17025:2017.<br>TĐC: Chỉ tiêu được công nhận đánh giá sự phù hợp theo NĐ 107/2016/NĐ-CP / Accredited per Decree 107/2016/ND-CP.<br>Thông tin mẫu thử nghiệm do khách hàng cung cấp / Sample information provided by the customer.<br>Kết quả chỉ có giá trị với mẫu thử / The results are only valid for the tested sample(s).",
+        signatures: {
+            qaManager: "TRƯỞNG PHÒNG KIỂM NGHIỆM<br>PHÒNG ĐẢM BẢO CHẤT LƯỢNG",
+            vicePresident: "KT.VIỆN TRƯỞNG<br>PHÓ VIỆN TRƯỞNG"
+        }
     }
 };

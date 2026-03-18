@@ -15,6 +15,7 @@ export type SamplesGetListQuery = {
     receiptId?: string;
     sampleStatus?: string | string[];
     sampleStorageLoc?: string | string[];
+    sampleMarks?: string[];
 
     [key: string]: unknown;
 };
@@ -102,7 +103,6 @@ export type ApiMeta = {
     page: number;
     itemsPerPage: number;
 
-    totalItems?: number;
     total?: number;
 
     totalPages: number;
@@ -133,7 +133,7 @@ function assertSuccessWithMeta<T>(res: ApiResponse<T>): ListResult<T> {
 
     if (!meta) return { data: res.data as T, meta: null };
 
-    const total = typeof meta.total === "number" ? meta.total : typeof meta.totalItems === "number" ? meta.totalItems : 0;
+    const total = typeof meta.total === "number" ? meta.total : (meta as any).totalItems ?? 0;
     const itemsPerPage = typeof meta.itemsPerPage === "number" ? meta.itemsPerPage : 10;
     const totalPages = typeof meta.totalPages === "number" ? meta.totalPages : Math.ceil(total / itemsPerPage);
 
@@ -245,7 +245,20 @@ export function useSampleFull(input: SamplesGetFullInput, opts?: { enabled?: boo
         queryKey: samplesKeys.full(input),
         enabled: (opts?.enabled ?? true) && Boolean(input.sampleId),
         retry: false,
-        queryFn: async () => assertSuccess(await samplesGetFull(input)),
+        queryFn: async () => {
+            const raw = await api.getRaw<unknown>("/v2/samples/get/full", {
+                query: input,
+                headers: noCacheHeaders,
+            });
+            if (raw && typeof raw === "object") {
+                if ("success" in raw && "data" in raw) {
+                    if ((raw as any).success === false) throw new Error((raw as any).error?.message || "Unknown error");
+                    return (raw as any).data as SampleDetail;
+                }
+                return raw as SampleDetail;
+            }
+            throw new Error("Invalid response format");
+        },
     });
 }
 

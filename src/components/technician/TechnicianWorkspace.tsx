@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, Loader2, FastForward, FlaskConical, PenLine, FileText, Beaker } from "lucide-react";
+import { Search, Loader2, FastForward, FlaskConical, PenLine, Beaker, FilePenLine } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -10,19 +10,21 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Pagination } from "@/components/ui/pagination";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAnalysesList, useAnalysesUpdateBulk } from "@/api/analyses";
+import { useAnalysesProcessing, useAnalysesUpdateBulk } from "@/api/analyses";
 import type { AnalysisListItem } from "@/types/analysis";
 import { TechnicianAssignmentModal } from "@/components/assignment/TechnicianAssignmentModal";
 import { TechnicianBulkEntryModal } from "@/components/technician/TechnicianBulkEntryModal";
 import { TestProtocolEditor } from "@/components/technician/TestProtocolEditor";
 import { TechnicianChemicalRequestsTab } from "@/components/technician/TechnicianChemicalRequestsTab";
 import { TechnicianChemicalAllocationModal } from "@/components/technician/TechnicianChemicalAllocationModal";
+import { DocumentPreviewButton } from "@/components/document/DocumentPreviewButton";
 
 function getStatusVariant(status: string) {
     if (status === "Pending") return "warning";
     if (status === "Ready") return "success";
     if (status === "Testing") return "default";
     if (status === "ReTest") return "destructive";
+    if (status === "Complained") return "destructive";
     if (status === "DataEntered" || status === "TechReview") return "secondary";
     return "outline";
 }
@@ -34,6 +36,7 @@ function getStatusText(status: string) {
     if (status === "DataEntered") return "Đã nhập KQ";
     if (status === "TechReview") return "Chờ soát xét";
     if (status === "ReTest") return "Cần làm lại";
+    if (status === "Complained") return "Khiếu nại";
     return status;
 }
 
@@ -70,7 +73,7 @@ export function TechnicianWorkspace() {
         data: analysesRes,
         isLoading: isAnalysesLoading,
         refetch,
-    } = useAnalysesList({
+    } = useAnalysesProcessing({
         query: {
             analysisStatus: statusFilter as unknown as "Pending", // send as array
             sortColumn: "createdAt",
@@ -239,18 +242,19 @@ export function TechnicianWorkspace() {
                         {t("technician.workspace.receiveSamples", { defaultValue: "Nhận chỉ tiêu" })} ({activeTab === "pending" ? selectedIds.length : 0})
                     </Button>
 
-                    <Button size="sm" variant="default" disabled={selectedIds.length === 0 || activeTab !== "testing"} onClick={handleOpenBulkEntry}>
+                    <Button size="sm" variant="default" disabled={selectedIds.length === 0 || (activeTab !== "testing" && activeTab !== "retest")} onClick={handleOpenBulkEntry}>
                         <PenLine className="w-4 h-4 mr-2" />
-                        {t("technician.workspace.bulkEntry", { defaultValue: "Nhập kết quả lô" })} ({activeTab === "testing" ? selectedIds.length : 0})
+                        {t("technician.workspace.bulkEntry", { defaultValue: "Nhập kết quả lô" })} ({(activeTab === "testing" || activeTab === "retest") ? selectedIds.length : 0})
                     </Button>
 
-                    <Button size="sm" variant="outline" disabled={selectedIds.length === 0 || activeTab !== "testing"} onClick={() => setShowChemicalModal(true)}>
+                    <Button size="sm" variant="outline" disabled={selectedIds.length === 0 || (activeTab !== "testing" && activeTab !== "retest")} onClick={() => setShowChemicalModal(true)}>
                         <Beaker className="w-4 h-4 mr-2" />
-                        {t("technician.workspace.suggestChemicals", { defaultValue: "Gợi ý hóa chất FEFO" })}                    </Button>
+                        {t("technician.workspace.suggestChemicals", { defaultValue: "Gợi ý hóa chất FEFO" })}
+                    </Button>
 
-                    <Button size="sm" variant="outline" disabled={selectedIds.length === 0 || activeTab !== "testing"} onClick={() => handleOpenProtocolEditor()}>
-                        <FileText className="w-4 h-4 mr-2" />
-                        {t("technician.workspace.createProtocolBulk", { defaultValue: "Lập biên bản" })} ({activeTab === "testing" ? selectedIds.length : 0})
+                    <Button size="sm" variant="outline" disabled={selectedIds.length === 0 || (activeTab !== "testing" && activeTab !== "retest")} onClick={() => handleOpenProtocolEditor()}>
+                        <FilePenLine className="w-4 h-4 mr-2" />
+                        {t("technician.workspace.createProtocolBulk", { defaultValue: "Lập biên bản" })} ({(activeTab === "testing" || activeTab === "retest") ? selectedIds.length : 0})
                     </Button>
 
                     {isManager && (
@@ -293,28 +297,31 @@ export function TechnicianWorkspace() {
                                 <Table>
                                     <TableHeader className="bg-muted/50 sticky top-0 z-10 shadow-sm">
                                         <TableRow>
-                                            <TableHead className="w-12 text-center">
+                                            <TableHead className="w-12 ">
                                                 <Checkbox checked={analysesList.length > 0 && selectedIds.length === analysesList.length} onCheckedChange={handleSelectAll} aria-label="Select all" />
                                             </TableHead>
-                                            <TableHead className="w-16 text-center">{t("common.stt", { defaultValue: "STT" })}</TableHead>
+                                            <TableHead className="w-16 ">{t("common.stt", { defaultValue: "STT" })}</TableHead>
                                             <TableHead className="min-w-[120px]">{t("technician.workspace.sampleCode", { defaultValue: "Mã mẫu" })}</TableHead>
                                             <TableHead className="min-w-[150px]">{t("technician.workspace.parameter", { defaultValue: "Chỉ tiêu" })}</TableHead>
+                                            <TableHead className="min-w-[120px]">{t("technician.workspace.protocolCodeCol", { defaultValue: "Phương pháp" })}</TableHead>
+                                            <TableHead className="min-w-[100px] ">{t("technician.workspace.result", { defaultValue: "Kết quả" })}</TableHead>
+                                            <TableHead className="w-[80px] ">{t("technician.workspace.unit", { defaultValue: "Đơn vị" })}</TableHead>
                                             <TableHead className="min-w-[150px]">{t("technician.workspace.assignee", { defaultValue: "Người phụ trách" })}</TableHead>
                                             <TableHead className="min-w-[150px]">{t("technician.workspace.assignedGroup", { defaultValue: "Nhóm thực hiện" })}</TableHead>
-                                            <TableHead className="w-[120px] text-center">{t("technician.workspace.statusCol", { defaultValue: "Trạng thái" })}</TableHead>
-                                            <TableHead className="w-[80px] text-center">{t("common.actions", { defaultValue: "Hành động" })}</TableHead>
+                                            <TableHead className="w-[120px] ">{t("technician.workspace.statusCol", { defaultValue: "Trạng thái" })}</TableHead>
+                                            <TableHead className="w-[80px] ">{t("common.actions", { defaultValue: "Hành động" })}</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {isAnalysesLoading ? (
                                             <TableRow>
-                                                <TableCell colSpan={8} className="h-40 text-center">
+                                                <TableCell colSpan={11} className="h-40 text-center">
                                                     <Loader2 className="text-primary mx-auto h-8 w-8 animate-spin" />
                                                 </TableCell>
                                             </TableRow>
                                         ) : analysesList.length === 0 ? (
                                             <TableRow>
-                                                <TableCell colSpan={8} className="text-muted-foreground h-40 text-center">
+                                                <TableCell colSpan={11} className="text-muted-foreground h-40 text-center">
                                                     {t("common.noData", { defaultValue: "Không có dữ liệu" })}
                                                 </TableCell>
                                             </TableRow>
@@ -324,6 +331,8 @@ export function TechnicianWorkspace() {
                                                     technician?: { identityName?: string };
                                                     sample?: { sampleCode?: string };
                                                     technicianGroupName?: string;
+                                                    protocolCode?: string;
+                                                    analysisUnit?: string;
                                                 };
                                                 const assignedKTV = item.technician?.identityName ?? "-";
                                                 const assignedGroup = item.technicianGroupName ?? "-";
@@ -335,29 +344,37 @@ export function TechnicianWorkspace() {
                                                         onMouseDown={(e) => handleMouseDownRow(item.analysisId, e)}
                                                         className={`select-none cursor-pointer transition-colors ${selectedIds.includes(item.analysisId) ? "bg-primary/5" : ""}`}
                                                     >
-                                                        <TableCell className="text-center">
+                                                        <TableCell className="">
                                                             <Checkbox className="pointer-events-none" checked={selectedIds.includes(item.analysisId)} />
                                                         </TableCell>
-                                                        <TableCell className="text-center">{(page - 1) * itemsPerPage + index + 1}</TableCell>
+                                                        <TableCell className="">{(page - 1) * itemsPerPage + index + 1}</TableCell>
                                                         <TableCell className="font-medium text-primary">{item.sample?.sampleCode || item.sampleId}</TableCell>
                                                         <TableCell className="font-semibold">{item.parameterName || "-"}</TableCell>
+                                                        <TableCell className="text-muted-foreground italic text-xs">{item.protocolCode || "-"}</TableCell>
+                                                        <TableCell className=" font-mono font-medium text-blue-600">{item.analysisResult ?? "-"}</TableCell>
+                                                        <TableCell className=" text-muted-foreground text-xs">{item.analysisUnit || "-"}</TableCell>
                                                         <TableCell>{assignedKTV}</TableCell>
                                                         <TableCell>{assignedGroup}</TableCell>
-                                                        <TableCell className="text-center">
+                                                        <TableCell className="">
                                                             <Badge variant={getStatusVariant(item.analysisStatus)} className="font-medium whitespace-nowrap">
                                                                 {t(`technician.workspace.statusMap.${item.analysisStatus}`, { defaultValue: getStatusText(item.analysisStatus) })}
                                                             </Badge>
                                                         </TableCell>
-                                                        <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
-                                                                onClick={() => handleOpenProtocolEditor(item)}
-                                                                title={t("technician.workspace.createProtocol", { defaultValue: "Lập biên bản thử nghiệm" })}
-                                                            >
-                                                                <FileText className="h-4 w-4" />
-                                                            </Button>
+                                                        <TableCell className="" onClick={(e) => e.stopPropagation()}>
+                                                            <div className="flex items-center gap-1">
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
+                                                                    onClick={() => handleOpenProtocolEditor(item)}
+                                                                    title={t("technician.workspace.createProtocol", { defaultValue: "Lập biên bản thử nghiệm" })}
+                                                                >
+                                                                    <FilePenLine className="h-4 w-4" />
+                                                                </Button>
+                                                                {item.analysisDocumentId && (
+                                                                    <DocumentPreviewButton documentId={item.analysisDocumentId} className="h-8 w-8 text-blue-600 hover:bg-blue-600/10" variant="ghost" />
+                                                                )}
+                                                            </div>
                                                         </TableCell>
                                                     </TableRow>
                                                 );

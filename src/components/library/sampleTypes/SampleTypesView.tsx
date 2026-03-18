@@ -66,7 +66,7 @@ export function SampleTypesView() {
     }, [allQ.data]);
 
     const serverMeta = allQ.data?.meta;
-    const totalItems = serverMeta?.totalItems ?? serverMeta?.total ?? 0;
+    const totalItems = serverMeta?.total ?? 0;
     const totalPages = serverMeta?.totalPages ?? 1;
 
     useEffect(() => setServerTotalPages(totalPages), [totalPages]);

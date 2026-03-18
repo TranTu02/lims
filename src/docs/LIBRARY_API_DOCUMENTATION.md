@@ -59,6 +59,8 @@ Authorization: Bearer {authToken}
 
 ```json
 {
+    "success": true,
+    "statusCode": 200,
     "data": [
         {
             "parameterId": "PM000001",
@@ -82,9 +84,10 @@ Authorization: Bearer {authToken}
     "pagination": {
         "page": 1,
         "itemsPerPage": 1,
-        "totalItems": 478,
+        "total": 478,
         "totalPages": 478
-    }
+    },
+    "error": null
 }
 ```
 
@@ -96,14 +99,20 @@ Authorization: Bearer {authToken}
 
 ```json
 {
-    "parameterId": "PM000001",
-    "parameterName": "Enterococcus faecalis",
-    "displayStyle": {
-        "eng": "*Enterococcus faecalis*",
-        "default": "*Enterococcus faecalis*"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "parameterId": "PM000001",
+        "parameterName": "Enterococcus faecalis",
+        "displayStyle": {
+            "eng": "*Enterococcus faecalis*",
+            "default": "*Enterococcus faecalis*"
+        },
+        "createdAt": "2026-01-31T02:16:35.747Z",
+        "parameterStatus": "Active"
     },
-    "createdAt": "2026-01-31T02:16:35.747Z",
-    "parameterStatus": "Active"
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -115,208 +124,214 @@ Authorization: Bearer {authToken}
 
 ```json
 {
-    "parameterId": "PM000001",
-    "parameterName": "Enterococcus faecalis",
-    "displayStyle": {
-        "eng": "*Enterococcus faecalis*",
-        "default": "*Enterococcus faecalis*"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "parameterId": "PM000001",
+        "parameterName": "Enterococcus faecalis",
+        "displayStyle": {
+            "eng": "*Enterococcus faecalis*",
+            "default": "*Enterococcus faecalis*"
+        },
+        "createdAt": "2026-01-31T02:16:35.747Z",
+        "parameterStatus": "Active",
+        "matrices": [
+            {
+                "matrixId": "MAT000001",
+                "parameterId": "PM000001",
+                "protocolId": "PRO-0001",
+                "sampleTypeId": "ST0001",
+                "protocolCode": "TCVN 6189-2:1996",
+                "protocolSource": null,
+                "protocolAccreditation": null,
+                "parameterName": "Enterococcus faecalis",
+                "sampleTypeName": "Nước sản xuất.",
+                "feeBeforeTax": null,
+                "taxRate": null,
+                "feeAfterTax": "1200000",
+                "LOD": "0.349",
+                "LOQ": "0.804",
+                "thresholdLimit": null,
+                "turnaroundTime": null,
+                "technicianGroupId": null,
+                "createdAt": "2026-01-31T02:16:35.747Z",
+                "createdById": null,
+                "modifiedAt": null,
+                "modifiedById": null,
+                "deletedAt": null
+            },
+            {
+                "matrixId": "MAT000002",
+                "parameterId": "PM000001",
+                "protocolId": "PRO-0001",
+                "sampleTypeId": "ST0002",
+                "protocolCode": "TCVN 6189-2:1996",
+                "protocolSource": null,
+                "protocolAccreditation": null,
+                "parameterName": "Enterococcus faecalis",
+                "sampleTypeName": "Nước sinh hoạt",
+                "feeBeforeTax": null,
+                "taxRate": null,
+                "feeAfterTax": "500000",
+                "LOD": "0.303",
+                "LOQ": "1.874",
+                "thresholdLimit": null,
+                "turnaroundTime": null,
+                "technicianGroupId": null,
+                "createdAt": "2026-01-31T02:16:35.747Z",
+                "createdById": null,
+                "modifiedAt": null,
+                "modifiedById": null,
+                "deletedAt": null
+            },
+            {
+                "matrixId": "MAT000003",
+                "parameterId": "PM000001",
+                "protocolId": "PRO-0001",
+                "sampleTypeId": "ST0003",
+                "protocolCode": "TCVN 6189-2:1996",
+                "protocolSource": null,
+                "protocolAccreditation": null,
+                "parameterName": "Enterococcus faecalis",
+                "sampleTypeName": "Nước uống",
+                "feeBeforeTax": null,
+                "taxRate": null,
+                "feeAfterTax": "50000",
+                "LOD": "0.331",
+                "LOQ": "1.175",
+                "thresholdLimit": null,
+                "turnaroundTime": null,
+                "technicianGroupId": null,
+                "createdAt": "2026-01-31T02:16:35.747Z",
+                "createdById": null,
+                "modifiedAt": null,
+                "modifiedById": null,
+                "deletedAt": null
+            },
+            {
+                "matrixId": "MAT000004",
+                "parameterId": "PM000001",
+                "protocolId": "PRO-0002",
+                "sampleTypeId": "ST0004",
+                "protocolCode": "Pro 6202 ML (TCVN 6189-2:2009 (ISO 7899-2:2000))",
+                "protocolSource": null,
+                "protocolAccreditation": null,
+                "parameterName": "Enterococcus faecalis",
+                "sampleTypeName": "Sản phẩm sữa bổ sung vi chất dinh dưỡng",
+                "feeBeforeTax": null,
+                "taxRate": null,
+                "feeAfterTax": "1200000",
+                "LOD": "0.193",
+                "LOQ": "1.660",
+                "thresholdLimit": null,
+                "turnaroundTime": null,
+                "technicianGroupId": null,
+                "createdAt": "2026-01-31T02:16:35.747Z",
+                "createdById": null,
+                "modifiedAt": null,
+                "modifiedById": null,
+                "deletedAt": null
+            },
+            {
+                "matrixId": "MAT000005",
+                "parameterId": "PM000001",
+                "protocolId": "PRO-0002",
+                "sampleTypeId": "ST0005",
+                "protocolCode": "Pro 6202 ML (TCVN 6189-2:2009 (ISO 7899-2:2000))",
+                "protocolSource": null,
+                "protocolAccreditation": null,
+                "parameterName": "Enterococcus faecalis",
+                "sampleTypeName": "Thức ăn chăn nuôi",
+                "feeBeforeTax": null,
+                "taxRate": null,
+                "feeAfterTax": "50000",
+                "LOD": "0.300",
+                "LOQ": "0.660",
+                "thresholdLimit": null,
+                "turnaroundTime": null,
+                "technicianGroupId": null,
+                "createdAt": "2026-01-31T02:16:35.747Z",
+                "createdById": null,
+                "modifiedAt": null,
+                "modifiedById": null,
+                "deletedAt": null
+            },
+            {
+                "matrixId": "MAT000006",
+                "parameterId": "PM000001",
+                "protocolId": "PRO-0002",
+                "sampleTypeId": "ST0006",
+                "protocolCode": "Pro 6202 ML (TCVN 6189-2:2009 (ISO 7899-2:2000))",
+                "protocolSource": null,
+                "protocolAccreditation": null,
+                "parameterName": "Enterococcus faecalis",
+                "sampleTypeName": "Thực phẩm",
+                "feeBeforeTax": null,
+                "taxRate": null,
+                "feeAfterTax": "1200000",
+                "LOD": "0.483",
+                "LOQ": "0.717",
+                "thresholdLimit": null,
+                "turnaroundTime": null,
+                "technicianGroupId": null,
+                "createdAt": "2026-01-31T02:16:35.747Z",
+                "createdById": null,
+                "modifiedAt": null,
+                "modifiedById": null,
+                "deletedAt": null
+            },
+            {
+                "matrixId": "MAT000007",
+                "parameterId": "PM000001",
+                "protocolId": "PRO-0002",
+                "sampleTypeId": "ST0007",
+                "protocolCode": "Pro 6202 ML (TCVN 6189-2:2009 (ISO 7899-2:2000))",
+                "protocolSource": null,
+                "protocolAccreditation": null,
+                "parameterName": "Enterococcus faecalis",
+                "sampleTypeName": "Thực phẩm bảo vệ sức khỏe",
+                "feeBeforeTax": null,
+                "taxRate": null,
+                "feeAfterTax": "250000",
+                "LOD": "0.284",
+                "LOQ": "1.644",
+                "thresholdLimit": null,
+                "turnaroundTime": null,
+                "technicianGroupId": null,
+                "createdAt": "2026-01-31T02:16:35.747Z",
+                "createdById": null,
+                "modifiedAt": null,
+                "modifiedById": null,
+                "deletedAt": null
+            },
+            {
+                "matrixId": "MAT000008",
+                "parameterId": "PM000001",
+                "protocolId": "PRO-0002",
+                "sampleTypeId": "ST0008",
+                "protocolCode": "Pro 6202 ML (TCVN 6189-2:2009 (ISO 7899-2:2000))",
+                "protocolSource": null,
+                "protocolAccreditation": null,
+                "parameterName": "Enterococcus faecalis",
+                "sampleTypeName": "Thực phẩm chức năng",
+                "feeBeforeTax": null,
+                "taxRate": null,
+                "feeAfterTax": "1200000",
+                "LOD": "0.197",
+                "LOQ": "1.206",
+                "thresholdLimit": null,
+                "turnaroundTime": null,
+                "technicianGroupId": null,
+                "createdAt": "2026-01-31T02:16:35.747Z",
+                "createdById": null,
+                "modifiedAt": null,
+                "modifiedById": null,
+                "deletedAt": null
+            }
+        ]
     },
-    "createdAt": "2026-01-31T02:16:35.747Z",
-    "parameterStatus": "Active",
-    "matrices": [
-        {
-            "matrixId": "MAT000001",
-            "parameterId": "PM000001",
-            "protocolId": "PRO-0001",
-            "sampleTypeId": "ST0001",
-            "protocolCode": "TCVN 6189-2:1996",
-            "protocolSource": null,
-            "protocolAccreditation": null,
-            "parameterName": "Enterococcus faecalis",
-            "sampleTypeName": "Nước sản xuất.",
-            "feeBeforeTax": null,
-            "taxRate": null,
-            "feeAfterTax": "1200000",
-            "LOD": "0.349",
-            "LOQ": "0.804",
-            "thresholdLimit": null,
-            "turnaroundTime": null,
-            "technicianGroupId": null,
-            "createdAt": "2026-01-31T02:16:35.747Z",
-            "createdById": null,
-            "modifiedAt": null,
-            "modifiedById": null,
-            "deletedAt": null
-        },
-        {
-            "matrixId": "MAT000002",
-            "parameterId": "PM000001",
-            "protocolId": "PRO-0001",
-            "sampleTypeId": "ST0002",
-            "protocolCode": "TCVN 6189-2:1996",
-            "protocolSource": null,
-            "protocolAccreditation": null,
-            "parameterName": "Enterococcus faecalis",
-            "sampleTypeName": "Nước sinh hoạt",
-            "feeBeforeTax": null,
-            "taxRate": null,
-            "feeAfterTax": "500000",
-            "LOD": "0.303",
-            "LOQ": "1.874",
-            "thresholdLimit": null,
-            "turnaroundTime": null,
-            "technicianGroupId": null,
-            "createdAt": "2026-01-31T02:16:35.747Z",
-            "createdById": null,
-            "modifiedAt": null,
-            "modifiedById": null,
-            "deletedAt": null
-        },
-        {
-            "matrixId": "MAT000003",
-            "parameterId": "PM000001",
-            "protocolId": "PRO-0001",
-            "sampleTypeId": "ST0003",
-            "protocolCode": "TCVN 6189-2:1996",
-            "protocolSource": null,
-            "protocolAccreditation": null,
-            "parameterName": "Enterococcus faecalis",
-            "sampleTypeName": "Nước uống",
-            "feeBeforeTax": null,
-            "taxRate": null,
-            "feeAfterTax": "50000",
-            "LOD": "0.331",
-            "LOQ": "1.175",
-            "thresholdLimit": null,
-            "turnaroundTime": null,
-            "technicianGroupId": null,
-            "createdAt": "2026-01-31T02:16:35.747Z",
-            "createdById": null,
-            "modifiedAt": null,
-            "modifiedById": null,
-            "deletedAt": null
-        },
-        {
-            "matrixId": "MAT000004",
-            "parameterId": "PM000001",
-            "protocolId": "PRO-0002",
-            "sampleTypeId": "ST0004",
-            "protocolCode": "Pro 6202 ML (TCVN 6189-2:2009 (ISO 7899-2:2000))",
-            "protocolSource": null,
-            "protocolAccreditation": null,
-            "parameterName": "Enterococcus faecalis",
-            "sampleTypeName": "Sản phẩm sữa bổ sung vi chất dinh dưỡng",
-            "feeBeforeTax": null,
-            "taxRate": null,
-            "feeAfterTax": "1200000",
-            "LOD": "0.193",
-            "LOQ": "1.660",
-            "thresholdLimit": null,
-            "turnaroundTime": null,
-            "technicianGroupId": null,
-            "createdAt": "2026-01-31T02:16:35.747Z",
-            "createdById": null,
-            "modifiedAt": null,
-            "modifiedById": null,
-            "deletedAt": null
-        },
-        {
-            "matrixId": "MAT000005",
-            "parameterId": "PM000001",
-            "protocolId": "PRO-0002",
-            "sampleTypeId": "ST0005",
-            "protocolCode": "Pro 6202 ML (TCVN 6189-2:2009 (ISO 7899-2:2000))",
-            "protocolSource": null,
-            "protocolAccreditation": null,
-            "parameterName": "Enterococcus faecalis",
-            "sampleTypeName": "Thức ăn chăn nuôi",
-            "feeBeforeTax": null,
-            "taxRate": null,
-            "feeAfterTax": "50000",
-            "LOD": "0.300",
-            "LOQ": "0.660",
-            "thresholdLimit": null,
-            "turnaroundTime": null,
-            "technicianGroupId": null,
-            "createdAt": "2026-01-31T02:16:35.747Z",
-            "createdById": null,
-            "modifiedAt": null,
-            "modifiedById": null,
-            "deletedAt": null
-        },
-        {
-            "matrixId": "MAT000006",
-            "parameterId": "PM000001",
-            "protocolId": "PRO-0002",
-            "sampleTypeId": "ST0006",
-            "protocolCode": "Pro 6202 ML (TCVN 6189-2:2009 (ISO 7899-2:2000))",
-            "protocolSource": null,
-            "protocolAccreditation": null,
-            "parameterName": "Enterococcus faecalis",
-            "sampleTypeName": "Thực phẩm",
-            "feeBeforeTax": null,
-            "taxRate": null,
-            "feeAfterTax": "1200000",
-            "LOD": "0.483",
-            "LOQ": "0.717",
-            "thresholdLimit": null,
-            "turnaroundTime": null,
-            "technicianGroupId": null,
-            "createdAt": "2026-01-31T02:16:35.747Z",
-            "createdById": null,
-            "modifiedAt": null,
-            "modifiedById": null,
-            "deletedAt": null
-        },
-        {
-            "matrixId": "MAT000007",
-            "parameterId": "PM000001",
-            "protocolId": "PRO-0002",
-            "sampleTypeId": "ST0007",
-            "protocolCode": "Pro 6202 ML (TCVN 6189-2:2009 (ISO 7899-2:2000))",
-            "protocolSource": null,
-            "protocolAccreditation": null,
-            "parameterName": "Enterococcus faecalis",
-            "sampleTypeName": "Thực phẩm bảo vệ sức khỏe",
-            "feeBeforeTax": null,
-            "taxRate": null,
-            "feeAfterTax": "250000",
-            "LOD": "0.284",
-            "LOQ": "1.644",
-            "thresholdLimit": null,
-            "turnaroundTime": null,
-            "technicianGroupId": null,
-            "createdAt": "2026-01-31T02:16:35.747Z",
-            "createdById": null,
-            "modifiedAt": null,
-            "modifiedById": null,
-            "deletedAt": null
-        },
-        {
-            "matrixId": "MAT000008",
-            "parameterId": "PM000001",
-            "protocolId": "PRO-0002",
-            "sampleTypeId": "ST0008",
-            "protocolCode": "Pro 6202 ML (TCVN 6189-2:2009 (ISO 7899-2:2000))",
-            "protocolSource": null,
-            "protocolAccreditation": null,
-            "parameterName": "Enterococcus faecalis",
-            "sampleTypeName": "Thực phẩm chức năng",
-            "feeBeforeTax": null,
-            "taxRate": null,
-            "feeAfterTax": "1200000",
-            "LOD": "0.197",
-            "LOQ": "1.206",
-            "thresholdLimit": null,
-            "turnaroundTime": null,
-            "technicianGroupId": null,
-            "createdAt": "2026-01-31T02:16:35.747Z",
-            "createdById": null,
-            "modifiedAt": null,
-            "modifiedById": null,
-            "deletedAt": null
-        }
-    ]
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -328,11 +343,17 @@ Authorization: Bearer {authToken}
 
 ```json
 {
-    "parameterName": "Enterococcus faecalis",
-    "displayStyle": {
-        "eng": "*Enterococcus faecalis*",
-        "default": "*Enterococcus faecalis*"
-    }
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "parameterName": "Enterococcus faecalis",
+        "displayStyle": {
+            "eng": "*Enterococcus faecalis*",
+            "default": "*Enterococcus faecalis*"
+        }
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -346,8 +367,14 @@ Authorization: Bearer {authToken}
 
 ```json
 {
-    "parameterId": "PM000001",
-    "parameterName": "Enterococcus faecalis (updated)"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "parameterId": "PM000001",
+        "parameterName": "Enterococcus faecalis (updated)"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -361,7 +388,13 @@ Authorization: Bearer {authToken}
 
 ```json
 {
-    "parameterId": "PM000001"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "parameterId": "PM000001"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -375,7 +408,7 @@ Authorization: Bearer {authToken}
         "id": "PM000001",
         "status": "Deleted"
     },
-    "meta": null,
+    "pagination": null,
     "error": null
 }
 ```
@@ -392,6 +425,8 @@ Authorization: Bearer {authToken}
 
 ```json
 {
+    "success": true,
+    "statusCode": 200,
     "data": [
         {
             "protocolId": "PRO-0001",
@@ -399,7 +434,7 @@ Authorization: Bearer {authToken}
             "protocolSource": "IRDOP",
             "protocolAccreditation": {
                 "TDC": true,
-                "VILAS": false
+                "VILAS997": false
             },
             "createdAt": "2026-01-31T02:16:35.747Z"
         }
@@ -407,9 +442,10 @@ Authorization: Bearer {authToken}
     "pagination": {
         "page": 1,
         "itemsPerPage": 1,
-        "totalItems": 452,
+        "total": 452,
         "totalPages": 452
-    }
+    },
+    "error": null
 }
 ```
 
@@ -421,14 +457,20 @@ Authorization: Bearer {authToken}
 
 ```json
 {
-    "protocolId": "PRO-0001",
-    "protocolCode": "TCVN 6189-2:1996",
-    "protocolSource": "IRDOP",
-    "protocolAccreditation": {
-        "TDC": true,
-        "VILAS": false
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "protocolId": "PRO-0001",
+        "protocolCode": "TCVN 6189-2:1996",
+        "protocolSource": "IRDOP",
+        "protocolAccreditation": {
+            "TDC": true,
+            "VILAS997": false
+        },
+        "createdAt": "2026-01-31T02:16:35.747Z"
     },
-    "createdAt": "2026-01-31T02:16:35.747Z"
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -440,160 +482,166 @@ Authorization: Bearer {authToken}
 
 ```json
 {
-    "protocolId": "PRO-0001",
-    "protocolCode": "TCVN 6189-2:1996",
-    "protocolSource": "IRDOP",
-    "protocolAccreditation": {
-        "TDC": true,
-        "VILAS": false
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "protocolId": "PRO-0001",
+        "protocolCode": "TCVN 6189-2:1996",
+        "protocolSource": "IRDOP",
+        "protocolAccreditation": {
+            "TDC": true,
+            "VILAS997": false
+        },
+        "createdAt": "2026-01-31T02:16:35.747Z",
+        "matrices": [
+            {
+                "matrixId": "MAT000001",
+                "parameterId": "PM000001",
+                "protocolId": "PRO-0001",
+                "sampleTypeId": "ST0001",
+                "protocolCode": "TCVN 6189-2:1996",
+                "protocolSource": null,
+                "protocolAccreditation": null,
+                "parameterName": "Enterococcus faecalis",
+                "sampleTypeName": "Nước sản xuất.",
+                "feeBeforeTax": null,
+                "taxRate": null,
+                "feeAfterTax": "1200000",
+                "LOD": "0.349",
+                "LOQ": "0.804",
+                "thresholdLimit": null,
+                "turnaroundTime": null,
+                "technicianGroupId": null,
+                "createdAt": "2026-01-31T02:16:35.747Z",
+                "createdById": null,
+                "modifiedAt": null,
+                "modifiedById": null,
+                "deletedAt": null
+            },
+            {
+                "matrixId": "MAT000002",
+                "parameterId": "PM000001",
+                "protocolId": "PRO-0001",
+                "sampleTypeId": "ST0002",
+                "protocolCode": "TCVN 6189-2:1996",
+                "protocolSource": null,
+                "protocolAccreditation": null,
+                "parameterName": "Enterococcus faecalis",
+                "sampleTypeName": "Nước sinh hoạt",
+                "feeBeforeTax": null,
+                "taxRate": null,
+                "feeAfterTax": "500000",
+                "LOD": "0.303",
+                "LOQ": "1.874",
+                "thresholdLimit": null,
+                "turnaroundTime": null,
+                "technicianGroupId": null,
+                "createdAt": "2026-01-31T02:16:35.747Z",
+                "createdById": null,
+                "modifiedAt": null,
+                "modifiedById": null,
+                "deletedAt": null
+            },
+            {
+                "matrixId": "MAT000003",
+                "parameterId": "PM000001",
+                "protocolId": "PRO-0001",
+                "sampleTypeId": "ST0003",
+                "protocolCode": "TCVN 6189-2:1996",
+                "protocolSource": null,
+                "protocolAccreditation": null,
+                "parameterName": "Enterococcus faecalis",
+                "sampleTypeName": "Nước uống",
+                "feeBeforeTax": null,
+                "taxRate": null,
+                "feeAfterTax": "50000",
+                "LOD": "0.331",
+                "LOQ": "1.175",
+                "thresholdLimit": null,
+                "turnaroundTime": null,
+                "technicianGroupId": null,
+                "createdAt": "2026-01-31T02:16:35.747Z",
+                "createdById": null,
+                "modifiedAt": null,
+                "modifiedById": null,
+                "deletedAt": null
+            },
+            {
+                "matrixId": "MAT000949",
+                "parameterId": "PM000224",
+                "protocolId": "PRO-0001",
+                "sampleTypeId": "ST0001",
+                "protocolCode": "TCVN 6189-2:1996",
+                "protocolSource": null,
+                "protocolAccreditation": null,
+                "parameterName": "Tổng số vi khuẩn khử sulfit (kỵ khí)",
+                "sampleTypeName": "Nước sản xuất.",
+                "feeBeforeTax": null,
+                "taxRate": null,
+                "feeAfterTax": "500000",
+                "LOD": "0.446",
+                "LOQ": "1.599",
+                "thresholdLimit": null,
+                "turnaroundTime": null,
+                "technicianGroupId": null,
+                "createdAt": "2026-01-31T02:16:35.747Z",
+                "createdById": null,
+                "modifiedAt": null,
+                "modifiedById": null,
+                "deletedAt": null
+            },
+            {
+                "matrixId": "MAT000950",
+                "parameterId": "PM000224",
+                "protocolId": "PRO-0001",
+                "sampleTypeId": "ST0002",
+                "protocolCode": "TCVN 6189-2:1996",
+                "protocolSource": null,
+                "protocolAccreditation": null,
+                "parameterName": "Tổng số vi khuẩn khử sulfit (kỵ khí)",
+                "sampleTypeName": "Nước sinh hoạt",
+                "feeBeforeTax": null,
+                "taxRate": null,
+                "feeAfterTax": "100000",
+                "LOD": "0.410",
+                "LOQ": "0.896",
+                "thresholdLimit": null,
+                "turnaroundTime": null,
+                "technicianGroupId": null,
+                "createdAt": "2026-01-31T02:16:35.747Z",
+                "createdById": null,
+                "modifiedAt": null,
+                "modifiedById": null,
+                "deletedAt": null
+            },
+            {
+                "matrixId": "MAT000951",
+                "parameterId": "PM000224",
+                "protocolId": "PRO-0001",
+                "sampleTypeId": "ST0003",
+                "protocolCode": "TCVN 6189-2:1996",
+                "protocolSource": null,
+                "protocolAccreditation": null,
+                "parameterName": "Tổng số vi khuẩn khử sulfit (kỵ khí)",
+                "sampleTypeName": "Nước uống",
+                "feeBeforeTax": null,
+                "taxRate": null,
+                "feeAfterTax": "100000",
+                "LOD": "0.158",
+                "LOQ": "1.409",
+                "thresholdLimit": null,
+                "turnaroundTime": null,
+                "technicianGroupId": null,
+                "createdAt": "2026-01-31T02:16:35.747Z",
+                "createdById": null,
+                "modifiedAt": null,
+                "modifiedById": null,
+                "deletedAt": null
+            }
+        ]
     },
-    "createdAt": "2026-01-31T02:16:35.747Z",
-    "matrices": [
-        {
-            "matrixId": "MAT000001",
-            "parameterId": "PM000001",
-            "protocolId": "PRO-0001",
-            "sampleTypeId": "ST0001",
-            "protocolCode": "TCVN 6189-2:1996",
-            "protocolSource": null,
-            "protocolAccreditation": null,
-            "parameterName": "Enterococcus faecalis",
-            "sampleTypeName": "Nước sản xuất.",
-            "feeBeforeTax": null,
-            "taxRate": null,
-            "feeAfterTax": "1200000",
-            "LOD": "0.349",
-            "LOQ": "0.804",
-            "thresholdLimit": null,
-            "turnaroundTime": null,
-            "technicianGroupId": null,
-            "createdAt": "2026-01-31T02:16:35.747Z",
-            "createdById": null,
-            "modifiedAt": null,
-            "modifiedById": null,
-            "deletedAt": null
-        },
-        {
-            "matrixId": "MAT000002",
-            "parameterId": "PM000001",
-            "protocolId": "PRO-0001",
-            "sampleTypeId": "ST0002",
-            "protocolCode": "TCVN 6189-2:1996",
-            "protocolSource": null,
-            "protocolAccreditation": null,
-            "parameterName": "Enterococcus faecalis",
-            "sampleTypeName": "Nước sinh hoạt",
-            "feeBeforeTax": null,
-            "taxRate": null,
-            "feeAfterTax": "500000",
-            "LOD": "0.303",
-            "LOQ": "1.874",
-            "thresholdLimit": null,
-            "turnaroundTime": null,
-            "technicianGroupId": null,
-            "createdAt": "2026-01-31T02:16:35.747Z",
-            "createdById": null,
-            "modifiedAt": null,
-            "modifiedById": null,
-            "deletedAt": null
-        },
-        {
-            "matrixId": "MAT000003",
-            "parameterId": "PM000001",
-            "protocolId": "PRO-0001",
-            "sampleTypeId": "ST0003",
-            "protocolCode": "TCVN 6189-2:1996",
-            "protocolSource": null,
-            "protocolAccreditation": null,
-            "parameterName": "Enterococcus faecalis",
-            "sampleTypeName": "Nước uống",
-            "feeBeforeTax": null,
-            "taxRate": null,
-            "feeAfterTax": "50000",
-            "LOD": "0.331",
-            "LOQ": "1.175",
-            "thresholdLimit": null,
-            "turnaroundTime": null,
-            "technicianGroupId": null,
-            "createdAt": "2026-01-31T02:16:35.747Z",
-            "createdById": null,
-            "modifiedAt": null,
-            "modifiedById": null,
-            "deletedAt": null
-        },
-        {
-            "matrixId": "MAT000949",
-            "parameterId": "PM000224",
-            "protocolId": "PRO-0001",
-            "sampleTypeId": "ST0001",
-            "protocolCode": "TCVN 6189-2:1996",
-            "protocolSource": null,
-            "protocolAccreditation": null,
-            "parameterName": "Tổng số vi khuẩn khử sulfit (kỵ khí)",
-            "sampleTypeName": "Nước sản xuất.",
-            "feeBeforeTax": null,
-            "taxRate": null,
-            "feeAfterTax": "500000",
-            "LOD": "0.446",
-            "LOQ": "1.599",
-            "thresholdLimit": null,
-            "turnaroundTime": null,
-            "technicianGroupId": null,
-            "createdAt": "2026-01-31T02:16:35.747Z",
-            "createdById": null,
-            "modifiedAt": null,
-            "modifiedById": null,
-            "deletedAt": null
-        },
-        {
-            "matrixId": "MAT000950",
-            "parameterId": "PM000224",
-            "protocolId": "PRO-0001",
-            "sampleTypeId": "ST0002",
-            "protocolCode": "TCVN 6189-2:1996",
-            "protocolSource": null,
-            "protocolAccreditation": null,
-            "parameterName": "Tổng số vi khuẩn khử sulfit (kỵ khí)",
-            "sampleTypeName": "Nước sinh hoạt",
-            "feeBeforeTax": null,
-            "taxRate": null,
-            "feeAfterTax": "100000",
-            "LOD": "0.410",
-            "LOQ": "0.896",
-            "thresholdLimit": null,
-            "turnaroundTime": null,
-            "technicianGroupId": null,
-            "createdAt": "2026-01-31T02:16:35.747Z",
-            "createdById": null,
-            "modifiedAt": null,
-            "modifiedById": null,
-            "deletedAt": null
-        },
-        {
-            "matrixId": "MAT000951",
-            "parameterId": "PM000224",
-            "protocolId": "PRO-0001",
-            "sampleTypeId": "ST0003",
-            "protocolCode": "TCVN 6189-2:1996",
-            "protocolSource": null,
-            "protocolAccreditation": null,
-            "parameterName": "Tổng số vi khuẩn khử sulfit (kỵ khí)",
-            "sampleTypeName": "Nước uống",
-            "feeBeforeTax": null,
-            "taxRate": null,
-            "feeAfterTax": "100000",
-            "LOD": "0.158",
-            "LOQ": "1.409",
-            "thresholdLimit": null,
-            "turnaroundTime": null,
-            "technicianGroupId": null,
-            "createdAt": "2026-01-31T02:16:35.747Z",
-            "createdById": null,
-            "modifiedAt": null,
-            "modifiedById": null,
-            "deletedAt": null
-        }
-    ]
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -605,8 +653,14 @@ Authorization: Bearer {authToken}
 
 ```json
 {
-    "protocolCode": "TCVN 6189-2:1996",
-    "protocolSource": "IRDOP"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "protocolCode": "TCVN 6189-2:1996",
+        "protocolSource": "IRDOP"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -620,8 +674,14 @@ Authorization: Bearer {authToken}
 
 ```json
 {
-    "protocolId": "PRO-0001",
-    "protocolSource": "Updated Source"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "protocolId": "PRO-0001",
+        "protocolSource": "Updated Source"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -635,7 +695,13 @@ Authorization: Bearer {authToken}
 
 ```json
 {
-    "protocolId": "PRO-0001"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "protocolId": "PRO-0001"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -649,7 +715,7 @@ Authorization: Bearer {authToken}
         "id": "PRO-0001",
         "status": "Deleted"
     },
-    "meta": null,
+    "pagination": null,
     "error": null
 }
 ```
@@ -666,6 +732,8 @@ Authorization: Bearer {authToken}
 
 ```json
 {
+    "success": true,
+    "statusCode": 200,
     "data": [
         {
             "matrixId": "MAT000001",
@@ -695,9 +763,10 @@ Authorization: Bearer {authToken}
     "pagination": {
         "page": 1,
         "itemsPerPage": 1,
-        "totalItems": 1936,
+        "total": 1936,
         "totalPages": 1936
-    }
+    },
+    "error": null
 }
 ```
 
@@ -709,28 +778,34 @@ Authorization: Bearer {authToken}
 
 ```json
 {
-    "matrixId": "MAT000001",
-    "parameterId": "PM000001",
-    "protocolId": "PRO-0001",
-    "sampleTypeId": "ST0001",
-    "protocolCode": "TCVN 6189-2:1996",
-    "protocolSource": null,
-    "protocolAccreditation": null,
-    "parameterName": "Enterococcus faecalis",
-    "sampleTypeName": "Nước sản xuất.",
-    "feeBeforeTax": null,
-    "taxRate": null,
-    "feeAfterTax": "1200000",
-    "LOD": "0.349",
-    "LOQ": "0.804",
-    "thresholdLimit": null,
-    "turnaroundTime": null,
-    "technicianGroupId": null,
-    "createdAt": "2026-01-31T02:16:35.747Z",
-    "createdById": null,
-    "modifiedAt": null,
-    "modifiedById": null,
-    "deletedAt": null
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "matrixId": "MAT000001",
+        "parameterId": "PM000001",
+        "protocolId": "PRO-0001",
+        "sampleTypeId": "ST0001",
+        "protocolCode": "TCVN 6189-2:1996",
+        "protocolSource": null,
+        "protocolAccreditation": null,
+        "parameterName": "Enterococcus faecalis",
+        "sampleTypeName": "Nước sản xuất.",
+        "feeBeforeTax": null,
+        "taxRate": null,
+        "feeAfterTax": "1200000",
+        "LOD": "0.349",
+        "LOQ": "0.804",
+        "thresholdLimit": null,
+        "turnaroundTime": null,
+        "technicianGroupId": null,
+        "createdAt": "2026-01-31T02:16:35.747Z",
+        "createdById": null,
+        "modifiedAt": null,
+        "modifiedById": null,
+        "deletedAt": null
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -742,58 +817,64 @@ Authorization: Bearer {authToken}
 
 ```json
 {
-    "matrixId": "MAT000001",
-    "parameterId": "PM000001",
-    "protocolId": "PRO-0001",
-    "sampleTypeId": "ST0001",
-    "protocolCode": "TCVN 6189-2:1996",
-    "protocolSource": null,
-    "protocolAccreditation": null,
-    "parameterName": "Enterococcus faecalis",
-    "sampleTypeName": "Nước sản xuất.",
-    "feeBeforeTax": null,
-    "taxRate": null,
-    "feeAfterTax": "1200000",
-    "LOD": "0.349",
-    "LOQ": "0.804",
-    "thresholdLimit": null,
-    "turnaroundTime": null,
-    "technicianGroupId": null,
-    "createdAt": "2026-01-31T02:16:35.747Z",
-    "createdById": null,
-    "modifiedAt": null,
-    "modifiedById": null,
-    "deletedAt": null,
-    "protocol": {
-        "protocolId": "PRO-0001",
-        "protocolCode": "TCVN 6189-2:1996",
-        "protocolSource": "IRDOP",
-        "protocolAccreditation": {
-            "TDC": true,
-            "VILAS": false
-        },
-        "createdAt": "2026-01-31T02:16:35.747Z"
-    },
-    "parameter": {
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "matrixId": "MAT000001",
         "parameterId": "PM000001",
-        "parameterName": "Enterococcus faecalis",
-        "displayStyle": {
-            "eng": "*Enterococcus faecalis*",
-            "default": "*Enterococcus faecalis*"
-        },
-        "createdAt": "2026-01-31T02:16:35.747Z",
-        "parameterStatus": "Active"
-    },
-    "sampleType": {
+        "protocolId": "PRO-0001",
         "sampleTypeId": "ST0001",
+        "protocolCode": "TCVN 6189-2:1996",
+        "protocolSource": null,
+        "protocolAccreditation": null,
+        "parameterName": "Enterococcus faecalis",
         "sampleTypeName": "Nước sản xuất.",
-        "displayTypeStyle": {
-            "en": "Nước sản xuất.",
-            "vi": "Nước sản xuất."
+        "feeBeforeTax": null,
+        "taxRate": null,
+        "feeAfterTax": "1200000",
+        "LOD": "0.349",
+        "LOQ": "0.804",
+        "thresholdLimit": null,
+        "turnaroundTime": null,
+        "technicianGroupId": null,
+        "createdAt": "2026-01-31T02:16:35.747Z",
+        "createdById": null,
+        "modifiedAt": null,
+        "modifiedById": null,
+        "deletedAt": null,
+        "protocol": {
+            "protocolId": "PRO-0001",
+            "protocolCode": "TCVN 6189-2:1996",
+            "protocolSource": "IRDOP",
+            "protocolAccreditation": {
+                "TDC": true,
+                "VILAS997": false
+            },
+            "createdAt": "2026-01-31T02:16:35.747Z"
         },
-        "createdAt": "2026-01-31T02:16:35.747Z"
+        "parameter": {
+            "parameterId": "PM000001",
+            "parameterName": "Enterococcus faecalis",
+            "displayStyle": {
+                "eng": "*Enterococcus faecalis*",
+                "default": "*Enterococcus faecalis*"
+            },
+            "createdAt": "2026-01-31T02:16:35.747Z",
+            "parameterStatus": "Active"
+        },
+        "sampleType": {
+            "sampleTypeId": "ST0001",
+            "sampleTypeName": "Nước sản xuất.",
+            "displayTypeStyle": {
+                "en": "Nước sản xuất.",
+                "vi": "Nước sản xuất."
+            },
+            "createdAt": "2026-01-31T02:16:35.747Z"
+        },
+        "parameterGroup": null
     },
-    "parameterGroup": null
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -805,10 +886,16 @@ Authorization: Bearer {authToken}
 
 ```json
 {
-    "parameterId": "PM000001",
-    "protocolId": "PRO-0001",
-    "sampleTypeId": "ST0001",
-    "feeAfterTax": "1200000"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "parameterId": "PM000001",
+        "protocolId": "PRO-0001",
+        "sampleTypeId": "ST0001",
+        "feeAfterTax": "1200000"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -822,9 +909,15 @@ Authorization: Bearer {authToken}
 
 ```json
 {
-    "matrixId": "MAT000001",
-    "LOD": "0.5",
-    "LOQ": "1.0"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "matrixId": "MAT000001",
+        "LOD": "0.5",
+        "LOQ": "1.0"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -838,7 +931,13 @@ Authorization: Bearer {authToken}
 
 ```json
 {
-    "matrixId": "MAT000001"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "matrixId": "MAT000001"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -852,7 +951,7 @@ Authorization: Bearer {authToken}
         "id": "MAT000001",
         "status": "Deleted"
     },
-    "meta": null,
+    "pagination": null,
     "error": null
 }
 ```
@@ -869,6 +968,8 @@ Authorization: Bearer {authToken}
 
 ```json
 {
+    "success": true,
+    "statusCode": 200,
     "data": [
         {
             "sampleTypeId": "ST0001",
@@ -883,9 +984,10 @@ Authorization: Bearer {authToken}
     "pagination": {
         "page": 1,
         "itemsPerPage": 1,
-        "totalItems": 140,
+        "total": 140,
         "totalPages": 140
-    }
+    },
+    "error": null
 }
 ```
 
@@ -897,13 +999,19 @@ Authorization: Bearer {authToken}
 
 ```json
 {
-    "sampleTypeId": "ST0001",
-    "sampleTypeName": "Nước sản xuất.",
-    "displayTypeStyle": {
-        "en": "Nước sản xuất.",
-        "vi": "Nước sản xuất."
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "sampleTypeId": "ST0001",
+        "sampleTypeName": "Nước sản xuất.",
+        "displayTypeStyle": {
+            "en": "Nước sản xuất.",
+            "vi": "Nước sản xuất."
+        },
+        "createdAt": "2026-01-31T02:16:35.747Z"
     },
-    "createdAt": "2026-01-31T02:16:35.747Z"
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -925,11 +1033,17 @@ None
 
 ```json
 {
-    "sampleTypeName": "Nước sản xuất.",
-    "displayTypeStyle": {
-        "en": "Nước sản xuất.",
-        "vi": "Nước sản xuất."
-    }
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "sampleTypeName": "Nước sản xuất.",
+        "displayTypeStyle": {
+            "en": "Nước sản xuất.",
+            "vi": "Nước sản xuất."
+        }
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -943,8 +1057,14 @@ None
 
 ```json
 {
-    "sampleTypeId": "ST0001",
-    "sampleTypeName": "Nước sản xuất (Updated)"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "sampleTypeId": "ST0001",
+        "sampleTypeName": "Nước sản xuất (Updated)"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -958,7 +1078,13 @@ None
 
 ```json
 {
-    "sampleTypeId": "ST0001"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "sampleTypeId": "ST0001"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -972,7 +1098,7 @@ None
         "id": "ST0001",
         "status": "Deleted"
     },
-    "meta": null,
+    "pagination": null,
     "error": null
 }
 ```

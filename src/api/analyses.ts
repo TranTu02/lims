@@ -44,9 +44,7 @@ function assertSuccessWithMeta<T>(res: ApiResponse<T>): ListResult<T> {
                   total:
                       typeof (meta as { total?: unknown }).total === "number"
                           ? (meta as { total: number }).total
-                          : typeof (meta as { totalItems?: unknown }).totalItems === "number"
-                            ? (meta as unknown as { totalItems: number }).totalItems
-                            : 0,
+                          : (meta as any).totalItems ?? 0,
               } as ListMeta)
             : null;
 
@@ -131,6 +129,14 @@ export async function analysesGetDetail(input: AnalysesGetDetailInput): Promise<
     });
 }
 
+export type AnalysesGetFullInput = { analysisId: string };
+export async function analysesGetFull(input: AnalysesGetFullInput): Promise<ApiResponse<AnalysisDetail>> {
+    return api.get<AnalysisDetail>("/v2/analyses/get/full", {
+        query: { analysisId: input.analysisId },
+        headers: noCacheHeaders,
+    });
+}
+
 export async function analysesGetProcessing(input: AnalysesGetListInput = {}): Promise<ApiResponse<AnalysisListItem[]>> {
     const res = await api.get<AnalysisListItem[]>("/v2/analyses/get/processing", {
         query: input.query,
@@ -188,6 +194,25 @@ export async function analysesGenerateHandoverPdf(input: HandoverPdfInput): Prom
         responseType: "blob",
     });
     return response;
+}
+
+export type LabReportPdfInput = {
+    analyses: string[];
+    html: string;
+    filename?: string;
+};
+
+export type LabReportPdfResponse = {
+    success: boolean;
+    documentId: string;
+    fileId: string;
+    message?: string;
+};
+
+export async function analysesGenerateLabReport(input: LabReportPdfInput): Promise<ApiResponse<LabReportPdfResponse>> {
+    return api.post<LabReportPdfResponse, LabReportPdfInput>("/v2/analyses/generate/lab-report", {
+        body: input,
+    });
 }
 
 function coerceDeleteResult(data: unknown): AnalysesDeleteResult | null {
@@ -279,6 +304,28 @@ export function useAnalysisDetail(input: AnalysesGetDetailInput, opts?: { enable
     });
 }
 
+export function useAnalysisFull(input: AnalysesGetFullInput, opts?: { enabled?: boolean }) {
+    return useQuery({
+        queryKey: [...analysesKeys.details(), "full", input.analysisId],
+        enabled: (opts?.enabled ?? true) && Boolean(input.analysisId),
+        retry: false,
+        queryFn: async () => {
+            const raw = await api.getRaw<unknown>("/v2/analyses/get/full", {
+                query: { analysisId: input.analysisId },
+                headers: noCacheHeaders,
+            });
+            if (raw && typeof raw === "object") {
+                if ("success" in raw && "data" in raw) {
+                    if ((raw as any).success === false) throw new Error((raw as any).error?.message || "Unknown error");
+                    return (raw as any).data as AnalysisDetail;
+                }
+                return raw as AnalysisDetail;
+            }
+            throw new Error("Invalid response format");
+        },
+    });
+}
+
 export function useAnalysesProcessing(input?: AnalysesGetListInput, opts?: { enabled?: boolean }) {
     return useQuery({
         queryKey: [...analysesKeys.lists(), "processing", stableKey(input ?? {})],
@@ -357,6 +404,23 @@ export function useGenerateHandoverPdf() {
         onError: (error) => {
             console.error("Failed to generate PDF:", error);
             toast.error("Không thể xuất file PDF. Vui lòng thử lại.");
+        },
+    });
+}
+
+export function useAnalysesGenerateLabReport() {
+    return useMutation({
+        mutationFn: async (input: LabReportPdfInput) => {
+            const res = await analysesGenerateLabReport(input);
+            if ((res as any).success === false) {
+                throw new Error((res as any).error?.message || "Failed to generate lab report");
+            }
+            // Return 'res' directly since backend doesn't wrap the response in a 'data' field
+            return res as unknown as LabReportPdfResponse;
+        },
+        onError: (error) => {
+            console.error("Failed to generate lab report:", error);
+            toast.error("Không thể xuất báo cáo. Vui lòng thử lại.");
         },
     });
 }

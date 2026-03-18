@@ -9,6 +9,7 @@ import type { Protocol } from "@/api/library";
 import { useProtocolDetail } from "@/api/library";
 import { documentApi } from "@/api/documents";
 import { DocumentPreviewModal, type PreviewType } from "@/components/document/DocumentPreviewModal";
+import { AccreditationBadges } from "../shared/AccreditationTagInput";
 
 type Props = {
     protocol: Protocol;
@@ -140,12 +141,8 @@ export function ProtocolDetailModal(props: Props) {
 
                             <div>
                                 <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{String(t("library.protocols.protocolAccreditation.title"))}</div>
-                                <div className="mt-1 flex flex-wrap gap-2">
-                                    {displayProtocol.protocolAccreditation?.VILAS ? <Badge variant="secondary">{String(t("library.protocols.protocolAccreditation.vilas"))}</Badge> : null}
-
-                                    {displayProtocol.protocolAccreditation?.TDC ? <Badge variant="secondary">{String(t("library.protocols.protocolAccreditation.tdc"))}</Badge> : null}
-
-                                    {!displayProtocol.protocolAccreditation?.VILAS && !displayProtocol.protocolAccreditation?.TDC ? <Badge variant="outline">{String(t("common.noData"))}</Badge> : null}
+                                <div className="mt-1">
+                                    <AccreditationBadges value={displayProtocol.protocolAccreditation} />
                                 </div>
                             </div>
                         </div>

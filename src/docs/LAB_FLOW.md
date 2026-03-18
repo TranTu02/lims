@@ -138,7 +138,19 @@
 
     ---
 
+    ### C. Tạo Lab Report Document (`generateLabReport`)
+    
+    1.  **Xác thực & Kiểm tra quyền**: Kiểm tra quyền `WRITE` đối với `lab.analyses`.
+    2.  **Tạo PDF**: Gọi script Playwright để dựng template PDF từ nội dung `html` truyền vào.
+    3.  **Tải lên Storage**: Lưu file vào bộ nhớ MinIO/AWS thông qua `File.upload` (lưu kèm `commonKeys` là danh sách các `analysisId` để tiện truy xuất).
+    4.  **Khởi tạo Document**: Tạo đối tượng Document (`document.documents`) link tới `fileId` tương ứng. Gắn metadata `refType = 'LabReport'` và `jsonContent = { analysisIds }`.
+    5.  **Cập nhật dữ liệu hàng loạt (`Bulk Update`)**: 
+        - Sử dụng Transaction để update đồng thời giá trị `analysisDocumentId` của tất cả các `analysisId` được chỉ định trỏ tới ID Document mới tạo.
+
+    ---
+
     ## 4. Quy trình Tạo mới, Cập nhật & Xóa (`Create, Update & Delete Operations`)
+
 
     ### A. Quy trình Tạo mới (`Create Flow`)
 
@@ -243,6 +255,20 @@
 
     - **Bảo mật**: Chỉ cho phép lọc trên các cột đã được định nghĩa trong `filterConfig.allowedColumns`.
 
+    ### Hỗ trợ Truy vấn Tùy chọn Lọc Động (`Dynamic Filter Options - getFilterOptions`)
+
+    Để UI hiển thị các Dropdown (chọn lọc) một cách thông minh, hệ thống cung cấp logic tập trung thông qua `getFilterOptions`:
+
+    - **Mục tiêu**: Lấy danh sách các giá trị phân biệt (distinct / group by) của một cột cụ thể (như `analysisStatus`), kèm theo số lượng (Count) của mỗi giá trị, dựa trên phạm vi tập dữ liệu đã bị giới hạn bởi `otherFilters`.
+    - **Endpoint API**: `POST /v2/[module]/get/options`
+    - **Logic chạy**:
+        1. Bóc tách `filterFrom` (cột muốn nhóm, vd `analysisStatus`).
+        2. Validate xem cột đó có nằm trong `allowedColumns` không.
+        3. Ghép các điều kiện lọc tĩnh từ `otherFilters` vào mệnh đề `WHERE` an toàn.
+        4. (Tùy chọn) Chèn thêm `%textFilter%` qua cú pháp `ILIKE` nếu User gõ phím tìm kiếm ngay trong Dropdown.
+        5. Lệnh thực thi: `SELECT "filterFrom" AS "filterValue", COUNT(*) FROM... GROUP BY...`.
+    - **Kết quả trả về**: UI có thể bind thẳng API này vào component Filter dạng List/Dropdown để đếm ngược số Item trước khi User chọn (vd: `Ready (15)`, `Pending (3)`).
+
     ---
 
     ## 6. Sơ đồ Luồng: CRUD Mẫu với Quyền Số Thập Phân
@@ -324,3 +350,32 @@
     3.  **Chuyển đổi thành Phiếu nhận mẫu (`Convert to Receipt`)**:
         - Sau khi được duyệt, thông tin từ `IncomingRequest` sẽ được dùng để tạo `Receipt` trong module Lab.
         - Cột `receiptId` trong `IncomingRequest` sẽ được cập nhật để liên kết ngược lại.
+
+    ---
+
+    ## 8. Quản lý Báo cáo Kết quả (`Report Management`)
+
+    **File nguồn**: `BLACK/LAB/2_Report.js` và `BLACK/LAB/2_Receipt.js`
+
+    ### A. Tạo và Export Báo cáo PDF (`Export Report Flow`)
+
+    Phương thức xử lý nằm trên đối tượng **Receipt**: `Receipt.exportReport()`
+
+    1. **Tiếp nhận cấu trúc HTML**:
+       Hệ thống nhận `headerHtml` và `contentHtml` tùy biến nguyên bản (không tác động/sửa đổi Font, màu chữ) từ trình soạn thảo trên UI.
+    2. **Render PDF qua Playwright**:
+       - Khởi tạo khung mẫu table `report-table-container` nhằm giữ nguyên layout: `<head>` với biến headerHtml và `<tbody>` với contentHtml. 
+       - PDF sẽ tự kéo Header nhắc lại (repeat) trên mỗi trang.
+       - Tự động sinh `documentId` (`DOC-...`) và `reportId` (`RPT-...`), set vào Margin lề trái của Footer template qua JS Evaluate.
+    3. **Upload Storage & Cấp ID (`Upload && Map Document`)**:
+       - Đẩy kết quả pdfBuffer lên DB (`File.upload`).
+       - Generate 1 Record vào `document.documents` nhằm truy vết lưu trữ. Gắn `refType = 'AnalysisReport'`.
+    4. **Generate Report Record**:
+       - INSERT vào `lab.reports` với trạng thái Initial. Kể từ đây, UI Quản lý Báo Cáo có thể render record này ở dạng Danh sách.
+
+    ### B. Xem Chi Tiết Báo Cáo (`Get Full Report`)
+
+    Thông qua REST API `GET /v2/reports/get/full?reportId={id}`, hệ thống làm thao tác:
+    - Tìm chi tiết thông tin Report.
+    - JOIN ngược vào CSDL bảng `document.documents` (thông qua `jsonContent->>'reportId' = reportId`).
+    - MAP file url cho UI từ `document.files` để Front-End có url xem trước/tải về ngay trên giao diện list/detail.

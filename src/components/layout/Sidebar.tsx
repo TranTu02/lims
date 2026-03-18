@@ -3,7 +3,6 @@ import type { ComponentType } from "react";
 import {
     Inbox,
     TestTube2,
-    Activity,
     Users,
     ArrowRightLeft,
     Archive,
@@ -18,6 +17,7 @@ import {
     Languages,
     Sun,
     Moon,
+    Microscope,
     Monitor,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -88,11 +88,43 @@ export function Sidebar({ activeTab, onTabChange, sidebarOpen = true }: SidebarP
                 descriptionKey: "nav.technicianDescription",
             },
             {
-                type: "item",
+                type: "group",
                 id: "manager",
-                icon: Activity,
+                icon: Microscope,
                 titleKey: "nav.managerTitle",
                 descriptionKey: "nav.managerDescription",
+                subItems: [
+                    {
+                        id: "manager-approvals",
+                        titleKey: "nav.managerApprovals",
+                        descriptionKey: "nav.managerApprovalsDesc",
+                        to: "/manager/approvals",
+                    },
+                    {
+                        id: "manager-exceptions",
+                        titleKey: "nav.managerExceptions",
+                        descriptionKey: "nav.managerExceptionsDesc",
+                        to: "/manager/exceptions",
+                    },
+                    {
+                        id: "manager-samples",
+                        titleKey: "nav.managerSamples",
+                        descriptionKey: "nav.managerSamplesDesc",
+                        to: "/manager/samples",
+                    },
+                    {
+                        id: "manager-analyses",
+                        titleKey: "nav.managerAnalyses",
+                        descriptionKey: "nav.managerAnalysesDesc",
+                        to: "/manager/analyses",
+                    },
+                    {
+                        id: "manager-reports",
+                        titleKey: "nav.managerReports",
+                        descriptionKey: "nav.managerReportsDesc",
+                        to: "/manager/reports",
+                    },
+                ],
             },
             {
                 type: "item",
@@ -115,13 +147,7 @@ export function Sidebar({ activeTab, onTabChange, sidebarOpen = true }: SidebarP
                 titleKey: "nav.storedSamplesTitle",
                 descriptionKey: "nav.storedSamplesDescription",
             },
-            {
-                type: "item",
-                id: "analyses",
-                icon: TestTube2,
-                titleKey: "nav.analysesTitle",
-                descriptionKey: "nav.analysesDescription",
-            },
+
             {
                 type: "group",
                 id: "libraries",

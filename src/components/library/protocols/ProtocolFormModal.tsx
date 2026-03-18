@@ -46,7 +46,7 @@ export function ProtocolFormModal({ onClose, protocolId, initialData, onSuccess 
                         chemicalSkuId: c.chemicalSkuId || c.chemicalId || "",
                         chemicalName: c.chemicalName || "",
                         consumedQty: c.consumedQty || c.amountUsed || "",
-                        unit: c.unit || c.measurementUnit || "",
+                        unit: c.chemicalBaseUnit || c.unit || c.measurementUnit || "",
                     })),
                 );
             }
@@ -66,7 +66,7 @@ export function ProtocolFormModal({ onClose, protocolId, initialData, onSuccess 
                       chemicalSkuId: c.chemicalSkuId || "",
                       chemicalName: c.chemicalName || "",
                       consumedQty: c.consumedQty || "",
-                      unit: c.unit || "",
+                      chemicalBaseUnit: c.unit || "",
                   }))
                 : [];
 

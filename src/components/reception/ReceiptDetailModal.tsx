@@ -19,6 +19,7 @@ import { samplesGetFull } from "@/api/samples";
 import { fileApi, buildFileUploadFormData } from "@/api/files";
 
 import type { ReceiptDetail, ReceiptSample, ReceiptAnalysis, ReceiptsUpdateBody, ReceiptStatus } from "@/types/receipt";
+import { ResultCertificateModal } from "./ResultCertificateModal";
 
 import { SampleDetailModal } from "./SampleDetailModal";
 import { SamplePrintLabelModal, type SampleLabelItem } from "./SamplePrintLabelModal";
@@ -161,6 +162,7 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
 
     const [showEmailModal, setShowEmailModal] = useState(false);
     const [showPrintLabelModal, setShowPrintLabelModal] = useState(false);
+    const [showResultCertificateModal, setShowResultCertificateModal] = useState(false);
 
     // ── Image viewer state ──────────────────────────────────────────────────
     type LoadedImage = { fileId: string; url: string };
@@ -667,6 +669,11 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                             {String(t("reception.receiptDetail.exportHandover"))}
                         </Button>
 
+                        <Button size="sm" onClick={() => setShowResultCertificateModal(true)} variant="outline" className="flex items-center gap-1.5 text-xs">
+                            <FileText className="h-3.5 w-3.5" />
+                            {String(t("reception.receiptDetail.resultCertificate", { defaultValue: "Phiếu kết quả" }))}
+                        </Button>
+
                         {!isEditing ? (
                             <Button size="sm" onClick={() => setIsEditing(true)} className="flex items-center gap-1.5 text-xs">
                                 <Edit className="h-3.5 w-3.5" />
@@ -1012,13 +1019,6 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                                 </div>
 
                                 <div>
-                                    <Label className="text-sm text-muted-foreground">{String(t("reception.receipts.invoiceInfo", { defaultValue: "Thông tin xuất hóa đơn" }))}</Label>
-                                    <div className="mt-1 text-foreground">
-                                        {editedReceipt.client?.invoiceInfo?.taxName ? `${editedReceipt.client.invoiceInfo.taxName} (MST: ${editedReceipt.client.invoiceInfo.taxCode || "-"})` : "-"}
-                                    </div>
-                                </div>
-
-                                <div>
                                     <Label className="text-sm text-muted-foreground">{String(t("reception.receipts.conditionCheck", { defaultValue: "Tình trạng mẫu khi nhận" }))}</Label>
                                     <div className="mt-1 text-foreground">
                                         {editedReceipt.conditionCheck ? `Niêm phong: ${editedReceipt.conditionCheck.seal || "-"} / Nhiệt độ: ${editedReceipt.conditionCheck.temp || "-"}` : "-"}
@@ -1232,135 +1232,125 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
 
             {showEmailModal && (
                 <>
-                    <div className="fixed inset-0 bg-foreground/50 z-[60]" onClick={() => setShowEmailModal(false)} />
-
-                    <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-3xl mx-auto bg-background rounded-lg shadow-xl z-[60] flex flex-col max-h-[90vh]">
-                        <div className="flex items-center justify-between p-6 border-b border-border">
+                    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[80]" onClick={() => setShowEmailModal(false)} />
+                    <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-2xl mx-auto bg-background rounded-xl shadow-2xl z-[80] flex flex-col max-h-[90vh] border border-border animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between p-5 border-b border-border">
                             <div>
-                                <h2 className="text-xl font-semibold text-foreground">{String(t("reception.receiptDetail.sendMailTitle"))}</h2>
-                                <p className="text-sm text-muted-foreground mt-1">{String(t("reception.receiptDetail.sendMailDesc"))}</p>
+                                <h2 className="text-lg font-semibold text-foreground">{String(t("reception.receiptDetail.sendMailTitle", { defaultValue: "Gửi thông tin biên nhận" }))}</h2>
+                                <p className="text-xs text-muted-foreground mt-0.5">{String(t("reception.receiptDetail.sendMailDesc", { defaultValue: "Gửi email thông báo cho khách hàng về biên nhận này." }))}</p>
                             </div>
-                            <Button variant="ghost" size="sm" onClick={() => setShowEmailModal(false)} className="h-10 w-10 p-0">
-                                <X className="h-5 w-5" />
-                            </Button>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto p-6">
-                            <div className="space-y-4">
-                                <div>
-                                    <Label className="text-sm text-muted-foreground">{String(t("reception.receiptDetail.email.from"))}</Label>
-                                    <Input value={emailForm.from} onChange={(e) => handleEmailChange("from", e.target.value)} className="mt-1 bg-background" />
-                                </div>
-
-                                <div>
-                                    <Label className="text-sm text-muted-foreground">{String(t("reception.receiptDetail.email.to"))}</Label>
-                                    <Input value={emailForm.to} onChange={(e) => handleEmailChange("to", e.target.value)} className="mt-1 bg-background" />
-                                </div>
-
-                                <div>
-                                    <Label className="text-sm text-muted-foreground">{String(t("reception.receiptDetail.email.subject"))}</Label>
-                                    <Input value={emailForm.subject} onChange={(e) => handleEmailChange("subject", e.target.value)} className="mt-1 bg-background" />
-                                </div>
-
-                                <div>
-                                    <Label className="text-sm text-muted-foreground">{String(t("reception.receiptDetail.email.content"))}</Label>
-                                    <Textarea value={emailForm.content} onChange={(e) => handleEmailChange("content", e.target.value)} className="mt-1 bg-background" rows={10} />
-                                </div>
-
-                                <div>
-                                    <Label className="text-sm text-muted-foreground">{String(t("reception.receiptDetail.email.attachments"))}</Label>
-                                    <div className="mt-1 flex items-center gap-2 flex-wrap">
-                                        {emailForm.attachments.map((attachment: string, index: number) => (
-                                            <div key={index} className="flex items-center gap-2 bg-muted px-3 py-1 rounded-md">
-                                                <FileCheck className="h-4 w-4 text-muted-foreground" />
-                                                <span className="text-sm text-foreground">{attachment}</span>
-                                            </div>
-                                        ))}
-                                        <Button size="sm" variant="outline" className="flex items-center gap-2">
-                                            <Upload className="h-4 w-4" />
-                                            {String(t("reception.receiptDetail.uploadFile"))}
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center justify-end gap-2 p-6 border-t border-border">
-                            <Button variant="outline" onClick={() => setShowEmailModal(false)}>
-                                {String(t("common.cancel"))}
-                            </Button>
-                            <Button onClick={handleSendEmail} className="flex items-center gap-2">
-                                <Mail className="h-4 w-4" />
-                                {String(t("reception.receiptDetail.sendMailTitle"))}
-                            </Button>
-                        </div>
-                    </div>
-                </>
-            )}
-
-            {/* Manage Images Modal */}
-            {manageModalOpen && (
-                <>
-                    <div className="fixed inset-0 bg-foreground/50 z-[70]" onClick={() => setManageModalOpen(false)} />
-                    <div className="fixed top-1/2 left-1/2 w-full max-w-4xl -translate-x-1/2 -translate-y-1/2 bg-background rounded-lg shadow-xl z-[70] flex flex-col max-h-[90vh]">
-                        <div className="flex items-center justify-between p-4 border-b border-border">
-                            <div>
-                                <h2 className="text-lg font-semibold text-foreground">Quản lý Ảnh Biên nhận</h2>
-                                <p className="text-sm text-muted-foreground mt-0.5">Chọn những ảnh thực tế hiển thị cho biên nhận này.</p>
-                            </div>
-                            <Button variant="ghost" size="sm" onClick={() => setManageModalOpen(false)}>
+                            <Button variant="ghost" size="icon" onClick={() => setShowEmailModal(false)}>
                                 <X className="h-4 w-4" />
                             </Button>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-4 flex flex-wrap gap-4 bg-muted/10">
-                            {manageImages.map((img) => {
-                                const selected = manageSelectedIds.includes(img.fileId);
-                                return (
-                                    <div
-                                        key={img.fileId}
-                                        onClick={() => setManageSelectedIds((prev) => (prev.includes(img.fileId) ? prev.filter((id) => id !== img.fileId) : [...prev, img.fileId]))}
-                                        className={`relative w-40 h-40 rounded-lg overflow-hidden border-4 cursor-pointer transition-all ${
-                                            selected ? "border-primary shadow-md" : "border-transparent opacity-70 hover:opacity-100"
-                                        }`}
-                                    >
-                                        <img src={img.url} className="w-full h-full object-cover" alt="preview" />
-                                        {selected && (
-                                            <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-1 shadow-sm">
-                                                <Save className="h-4 w-4" />
-                                            </div>
-                                        )}
+                        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label className="text-xs text-muted-foreground uppercase">{String(t("reception.receiptDetail.email.from", { defaultValue: "Người gửi" }))}</Label>
+                                        <Input value={emailForm.from} onChange={(e) => handleEmailChange("from", e.target.value)} className="h-9 text-sm" />
                                     </div>
-                                );
-                            })}
-                            {manageImages.length === 0 && <div className="w-full h-40 flex items-center justify-center text-muted-foreground text-sm opacity-50">Không có ảnh nào được hiển thị</div>}
+                                    <div className="space-y-2">
+                                        <Label className="text-xs text-muted-foreground uppercase">{String(t("reception.receiptDetail.email.to", { defaultValue: "Người nhận" }))}</Label>
+                                        <Input value={emailForm.to} onChange={(e) => handleEmailChange("to", e.target.value)} className="h-9 text-sm" />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-xs text-muted-foreground uppercase">{String(t("reception.receiptDetail.email.subject", { defaultValue: "Tiêu đề" }))}</Label>
+                                    <Input value={emailForm.subject} onChange={(e) => handleEmailChange("subject", e.target.value)} className="h-9 text-sm" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-xs text-muted-foreground uppercase">{String(t("reception.receiptDetail.email.content", { defaultValue: "Nội dung" }))}</Label>
+                                    <Textarea value={emailForm.content} onChange={(e) => handleEmailChange("content", e.target.value)} className="min-h-[250px] text-sm resize-none" />
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="flex items-center justify-between p-4 border-t border-border">
-                            <div className="text-sm text-muted-foreground pb-2">Đã chọn {manageSelectedIds.length} ảnh</div>
+                        <div className="p-4 border-t border-border flex justify-end gap-3 bg-muted/20">
+                            <Button variant="ghost" onClick={() => setShowEmailModal(false)}>{String(t("common.cancel"))}</Button>
+                            <Button className="gap-2" onClick={handleSendEmail}>
+                                <Mail className="h-4 w-4" />
+                                {String(t("common.send", { defaultValue: "Gửi Email" }))}
+                            </Button>
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {manageModalOpen && (
+                <>
+                    <div className="fixed inset-0 bg-black/60 z-[90]" onClick={() => setManageModalOpen(false)} />
+                    <div className="fixed inset-y-10 inset-x-4 md:inset-x-auto md:right-10 md:w-[600px] bg-background rounded-xl shadow-2xl z-[90] flex flex-col border border-border animate-in slide-in-from-right duration-300">
+                        <div className="flex items-center justify-between p-4 border-b">
+                            <h3 className="font-semibold text-lg flex items-center gap-2">
+                                <Edit className="h-5 w-5 text-primary" />
+                                {String(t("reception.receiptDetail.manageImages", { defaultValue: "Quản lý hình ảnh" }))}
+                            </h3>
+                            <Button variant="ghost" size="icon" onClick={() => setManageModalOpen(false)}>
+                                <X className="h-5 w-5" />
+                            </Button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 bg-muted/10">
+                            <div className="grid grid-cols-3 gap-3">
+                                {manageImages.map((img) => (
+                                    <div
+                                        key={img.fileId}
+                                        className={`relative aspect-square rounded-lg border-2 overflow-hidden bg-background group cursor-pointer transition-all ${
+                                            manageSelectedIds.includes(img.fileId) ? "border-primary shadow-md" : "border-border opacity-70 hover:opacity-100"
+                                        }`}
+                                        onClick={() => {
+                                            setManageSelectedIds(prev => prev.includes(img.fileId) ? prev.filter(id => id !== img.fileId) : [...prev, img.fileId])
+                                        }}
+                                    >
+                                        <img src={img.url} className="w-full h-full object-cover" alt="" />
+                                        <div className={`absolute top-2 right-2 h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors ${manageSelectedIds.includes(img.fileId) ? "bg-primary border-primary shadow-sm" : "bg-black/20 border-white/50"}`}>
+                                            {manageSelectedIds.includes(img.fileId) && <FileCheck className="h-3 w-3 text-white" />}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            {manageImages.length === 0 && (
+                                <div className="h-40 flex flex-col items-center justify-center text-muted-foreground opacity-50">
+                                    <ImageOff className="h-10 w-10 mb-2" />
+                                    <p className="text-sm">Không có ảnh nào</p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="p-4 border-t bg-background flex justify-between items-center">
+                            <div className="text-sm text-muted-foreground font-medium">
+                                {String(t("common.selected", { defaultValue: "Đã chọn" }))}: <span className="text-primary">{manageSelectedIds.length}</span> / {manageImages.length}
+                            </div>
                             <div className="flex gap-2">
-                                <Button variant="outline" onClick={() => setManageModalOpen(false)}>
-                                    Hủy
-                                </Button>
-                                <Button onClick={handleConfirmManage} disabled={isUploading}>
-                                    Cập nhật Biên nhận
-                                </Button>
+                                <Button variant="ghost" size="sm" onClick={() => setManageModalOpen(false)}>{String(t("common.cancel"))}</Button>
+                                <Button size="sm" onClick={handleConfirmManage} className="px-6">{String(t("common.save"))}</Button>
                             </div>
                         </div>
                     </div>
                 </>
             )}
 
-            {showPrintLabelModal &&
-                (() => {
-                    const labelItems: SampleLabelItem[] = (receipt.samples ?? []).map((s) => ({
+            {showPrintLabelModal && (
+                <SamplePrintLabelModal
+                    items={editedReceipt.samples?.map(s => ({
                         sampleId: s.sampleId,
+                        sampleName: s.sampleName,
                         sampleTypeName: s.sampleTypeName ?? null,
                         productType: s.productType ?? null,
-                        sampleClientInfo: s.sampleClientInfo ?? null,
-                    }));
-                    return <SamplePrintLabelModal items={labelItems} receiptCode={receipt.receiptCode} onClose={() => setShowPrintLabelModal(false)} />;
-                })()}
+                        sampleClientInfo: s.sampleClientInfo ?? null
+                    })) || []}
+                    receiptCode={receipt.receiptCode}
+                    onClose={() => setShowPrintLabelModal(false)}
+                />
+            )}
+
+            {showResultCertificateModal && (
+                <ResultCertificateModal
+                    open={showResultCertificateModal}
+                    onOpenChange={setShowResultCertificateModal}
+                    receipt={editedReceipt}
+                />
+            )}
         </>,
         document.body,
     );

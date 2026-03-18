@@ -58,7 +58,7 @@ function assertSuccessWithMeta<T>(res: ApiResponse<T>): ListResult<T> {
             ? {
                   ...meta,
                   page: typeof meta.page === "string" ? parseInt(meta.page, 10) : meta.page,
-                  total: typeof meta.total === "number" ? meta.total : typeof meta.totalItems === "number" ? meta.totalItems : 0,
+                  total: typeof meta.total === "number" ? meta.total : (meta as any).totalItems ?? 0,
               }
             : null;
 
@@ -110,11 +110,8 @@ export type IdentityExpanded = {
     alias?: string;
 };
 
-export type ProtocolAccreditation = {
-    VILAS?: boolean;
-    TDC?: boolean;
-    [k: string]: unknown;
-};
+/** Phạm vi công nhận: key là tên chứng nhận (e.g. "VILAS997", "TDC"), value là boolean */
+export type ProtocolAccreditation = Record<string, boolean>;
 
 export type Matrix = {
     matrixId: string;
@@ -165,6 +162,8 @@ export type ProtocolChemical = {
     chemicalSkuId: string;
     chemicalName: string;
     consumedQty?: string;
+    chemicalBaseUnit?: string;
+    /** @deprecated Use chemicalBaseUnit */
     unit?: string;
 };
 
@@ -172,6 +171,8 @@ export type MatrixChemical = {
     chemicalSkuId: string;
     chemicalName: string;
     consumedQty?: string;
+    chemicalBaseUnit?: string;
+    /** @deprecated Use chemicalBaseUnit */
     unit?: string;
 };
 

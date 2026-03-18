@@ -6,11 +6,14 @@ import { Layout } from "./Layout";
 type TabKey =
     | "reception"
     | "technician"
-    | "manager"
+    | "manager-approvals"
+    | "manager-exceptions"
+    | "manager-samples"
+    | "manager-analyses"
+    | "manager-reports"
     | "assignment"
     | "handover"
     | "stored-samples"
-    | "analyses"
     | "document"
     | "inventory"
     | "chemical-inventory"
@@ -33,15 +36,19 @@ function getTabFromPath(pathname: string): TabKey {
         return "library-parameters";
     }
 
-    if (pathname.startsWith("/analyses")) return "analyses";
+    if (pathname.startsWith("/manager")) {
+        if (pathname.startsWith("/manager/exceptions")) return "manager-exceptions";
+        if (pathname.startsWith("/manager/samples")) return "manager-samples";
+        if (pathname.startsWith("/manager/analyses")) return "manager-analyses";
+        if (pathname.startsWith("/manager/reports")) return "manager-reports";
+        return "manager-approvals";
+    }
 
     switch (pathname) {
         case "/reception":
             return "reception";
         case "/technician":
             return "technician";
-        case "/manager":
-            return "manager";
         case "/assignment":
             return "assignment";
         case "/handover":
@@ -75,6 +82,16 @@ function getRouteFromTab(tab: TabKey): string {
             return "/library/sample-types";
         case "library-parameter-groups":
             return "/library/parameter-groups";
+        case "manager-approvals":
+            return "/manager/approvals";
+        case "manager-exceptions":
+            return "/manager/exceptions";
+        case "manager-samples":
+            return "/manager/samples";
+        case "manager-analyses":
+            return "/manager/analyses";
+        case "manager-reports":
+            return "/manager/reports";
         default:
             return `/${tab}`;
     }
@@ -97,9 +114,25 @@ export function RouterLayout() {
                 title: t("nav.technicianTitle"),
                 description: t("nav.technicianDescription"),
             },
-            manager: {
-                title: t("nav.managerTitle"),
-                description: t("nav.managerDescription"),
+            "manager-approvals": {
+                title: t("nav.managerApprovals"),
+                description: t("nav.managerApprovalsDesc"),
+            },
+            "manager-exceptions": {
+                title: t("nav.managerExceptions"),
+                description: t("nav.managerExceptionsDesc"),
+            },
+            "manager-samples": {
+                title: t("nav.managerSamples"),
+                description: t("nav.managerSamplesDesc"),
+            },
+            "manager-analyses": {
+                title: t("nav.managerAnalyses"),
+                description: t("nav.managerAnalysesDesc"),
+            },
+            "manager-reports": {
+                title: t("nav.managerReports"),
+                description: t("nav.managerReportsDesc"),
             },
             assignment: {
                 title: t("nav.assignmentTitle"),
@@ -113,10 +146,7 @@ export function RouterLayout() {
                 title: t("nav.storedSamplesTitle"),
                 description: t("nav.storedSamplesDescription"),
             },
-            analyses: {
-                title: t("nav.analysesTitle"),
-                description: t("nav.analysesDescription"),
-            },
+
             "library-parameters": {
                 title: t("nav.parameterTitle"),
                 description: t("nav.parameterDescription"),

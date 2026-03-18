@@ -1,9 +1,7 @@
 import type { BaseEntity } from "./common";
 
-export type ProtocolAccreditation = {
-    VILAS?: boolean;
-    TDC?: boolean;
-};
+/** Phạm vi công nhận: key là tên chứng nhận (e.g. "VILAS997", "TDC"), value là boolean */
+export type ProtocolAccreditation = Record<string, boolean>;
 
 export interface Matrix extends BaseEntity {
     matrixId: string;
@@ -40,12 +38,18 @@ export type ProtocolSampleType = {
 };
 
 export type ProtocolChemical = {
-    chemicalId: string;
+    chemicalId?: string;
+    chemicalSkuId?: string;
     chemicalName: string;
     chemicalCAS?: string;
     chemicalFormula?: string;
     amountUsed?: string;
+    consumedQty?: string;
+    chemicalBaseUnit?: string;
+    /** @deprecated Use chemicalBaseUnit */
     measurementUnit?: string;
+    /** @deprecated Use chemicalBaseUnit */
+    unit?: string;
 };
 
 export interface Protocol extends BaseEntity {

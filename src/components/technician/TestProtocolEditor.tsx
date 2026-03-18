@@ -5,8 +5,9 @@ import { Save, Printer, PlusCircle, Loader2, Beaker, FileText, Upload } from "lu
 import { toast } from "sonner";
 import * as mammoth from "mammoth";
 
-import { useAnalysisDetail, useAnalysesUpdateBulk } from "@/api/analyses";
+import { useAnalysisDetail, useAnalysesUpdateBulk, useAnalysesGenerateLabReport } from "@/api/analyses";
 import { useMatrixFull, useProtocolDetail } from "@/api/library";
+import { documentApi } from "@/api/documents";
 
 import type { AnalysisListItem } from "@/types/analysis";
 
@@ -31,8 +32,13 @@ const CONTENT_STYLE = `
     color: #000;
   }
   table { width: 100% !important; border-collapse: collapse; margin-bottom: 12px; }
-  th, td { border: 1px solid black !important; padding: 6px !important; vertical-align: top; }
-  th { font-weight: bold; text-align: center; }
+  th, td { border: 1px solid black !important; padding: 6px !important; vertical-align: top; text-align: left !important; font-weight: normal !important; }
+  
+  /* Alignment helpers mapped from docx */
+  .text-center { text-align: center !important; }
+  .text-right { text-align: right !important; }
+  .text-justify { text-align: justify !important; }
+  
   @media print {
     body { margin: 0 !important; box-shadow: none !important; width: 100% !important; padding: 0 !important; }
     @page { size: A4 portrait !important; margin: 1cm !important; }
@@ -101,12 +107,15 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
     const { data: protocolDetail, isLoading: isLoadingProtocol } = useProtocolDetail({ params: { protocolId: directProtocolId || "" } });
     // Mutators
     const { mutate: updateBulk, isPending: isUpdating } = useAnalysesUpdateBulk();
+    const { mutate: generateLabReport, isPending: isGenerating } = useAnalysesGenerateLabReport();
+    const [isExported, setIsExported] = useState(false);
 
     // Chemical states: Aggregate from all selected analyses
     const availableChemicals = useMemo(() => {
         const aggregated = new Map<string, any>();
         analyses.forEach(a => {
-            const list = (a as any).consumablesUsed || [];
+            const rawList = (a as any).consumablesUsed;
+            const list = Array.isArray(rawList) ? rawList : (typeof rawList === 'string' ? (JSON.parse(rawList) || []) : []);
             list.forEach((c: any) => {
                 if (c.chemicalSkuId) {
                     // We might need to handle duplicates if the same SKU is in multiple analyses,
@@ -126,17 +135,16 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
     // Mammoth docx upload
     const docxInputRef = useRef<HTMLInputElement>(null);
     const [isDocxLoading, setIsDocxLoading] = useState(false);
+    const [showProtocolDocsModal, setShowProtocolDocsModal] = useState(false);
+    const [isSysDocLoading, setIsSysDocLoading] = useState(false);
 
-    // bbCodeRef to keep ID stable across protocol changes
-    const bbCodeRef = useRef<string>(`BB_${Math.random().toString(36).substring(2, 10).toUpperCase()}`);
+
 
     // Build header HTML (reused for both initial template and docx wrap)
-    const buildHeaderInnerHtml = useCallback(
-        (bbCode: string) => {
-            const orgName = t("testReport.institute.organizationName", { defaultValue: "VIỆN NGHIÊN CỨU VÀ PHÁT TRIỂN SẢN PHẨM THIÊN NHIÊN" });
+    const buildHeaderInnerHtml = useCallback(() => {
+        const orgName = t("testReport.institute.organizationName", { defaultValue: "VIỆN NGHIÊN CỨU VÀ PHÁT TRIỂN SẢN PHẨM THIÊN NHIÊN" });
             const reportTitle = t("testReport.title", { defaultValue: "BIÊN BẢN THỬ NGHIỆM" });
             const protocolName = protocolDetail?.protocolTitle || protocolDetail?.protocolCode || selectedProtocolCode || (primaryAnalysis as AnalysisListItem & { protocolCode?: string })?.protocolCode || "-";
-            const today = new Date().toLocaleDateString("vi-VN");
 
             return `
         <table style="width:100%; border-collapse:collapse; border:none; font-family:'Times New Roman',Times,serif;">
@@ -153,27 +161,25 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
                       <div style="font-size:15px; font-weight:700; text-transform:uppercase; margin-top:3px;">${reportTitle}</div>
                       <div style="font-size:11px; font-weight:600; font-style:italic; margin-top:2px;">${protocolName}</div>
                     </td>
-                    <td style="border:none !important; width:110px; text-align:right; vertical-align:top; padding:0; font-size:9px; color:#444; white-space:nowrap;">
-                      <div style="font-weight:700;">MÃ BIÊN BẢN</div>
-                      <div>${bbCode}</div>
-                      <div style="margin-top:4px;">${today}</div>
-                    </td>
+                    <td style="border:none !important; width:80px; padding:0;"></td>
                   </tr>
                 </table>
                 <div style="border-top:1.5px solid #374151; margin-top:8px;"></div>
-            `;
+              </th>
+            </tr>
+          </thead>
+        </table>`;
         },
         [t, protocolDetail, selectedProtocolCode, primaryAnalysis],
     );
 
-    const buildHeaderHtml = useCallback(
-        (bbCode: string) => {
+    const buildHeaderHtml = useCallback(() => {
             return `
         <table style="width:100%; border-collapse:collapse; border:none; font-family:'Times New Roman',Times,serif;">
           <thead>
             <tr>
               <th id="report-dynamic-header" style="border:none !important; padding-bottom:10px;">
-                ${buildHeaderInnerHtml(bbCode)}
+                ${buildHeaderInnerHtml()}
               </th>
             </tr>
           </thead>
@@ -193,7 +199,7 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
                 if (dom) {
                     const el = dom.get("report-dynamic-header");
                     if (el) {
-                        dom.setHTML(el, buildHeaderInnerHtml(bbCodeRef.current));
+                        dom.setHTML(el, buildHeaderInnerHtml());
                     }
                 }
             } catch (e) {
@@ -211,41 +217,112 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
         async (e: React.ChangeEvent<HTMLInputElement>) => {
             const file = e.target.files?.[0];
             if (!file) return;
-            if (!file.name.endsWith(".docx")) {
+            if (!file.name.toLowerCase().endsWith(".docx")) {
                 toast.error(t("technician.workspace.invalidDocx", { defaultValue: "Chỉ hỗ trợ file .docx" }));
                 return;
             }
             setIsDocxLoading(true);
             try {
                 const arrayBuffer = await file.arrayBuffer();
-                const result = await mammoth.convertToHtml({ arrayBuffer });
-
-                if (result.messages?.length > 0) console.warn("Mammoth warnings:", result.messages);
-
-                bbCodeRef.current = `BB_${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
-                const header = buildHeaderHtml(bbCodeRef.current);
-                const wrappedHtml = `${header}\n${result.value}\n${HEADER_FOOTER}`;
-
-                if (editorRef.current) {
-                    editorRef.current.setContent(wrappedHtml);
-                    toast.success(t("technician.workspace.docxImported", { defaultValue: "Đã tải file Word vào biên bản" }));
-                }
+                await processDocxArrayBuffer(arrayBuffer);
             } catch (err) {
-                console.error("Mammoth error:", err);
+                console.error("File upload error:", err);
                 toast.error(t("technician.workspace.docxError", { defaultValue: "Lỗi khi đọc file Word" }));
             } finally {
                 setIsDocxLoading(false);
                 if (docxInputRef.current) docxInputRef.current.value = "";
             }
         },
-        [t, buildHeaderHtml, HEADER_FOOTER],
+        [t],
     );
+
+    const processDocxArrayBuffer = async (arrayBuffer: ArrayBuffer) => {
+        try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const transformParagraph = (paragraph: any) => {
+                if (paragraph.alignment === "center" && !paragraph.styleId) {
+                    return { ...paragraph, styleId: "AlignmentCenter", styleName: "Alignment Center" };
+                }
+                if (paragraph.alignment === "right" && !paragraph.styleId) {
+                    return { ...paragraph, styleId: "AlignmentRight", styleName: "Alignment Right" };
+                }
+                if (paragraph.alignment === "justify" && !paragraph.styleId) {
+                    return { ...paragraph, styleId: "AlignmentJustify", styleName: "Alignment Justify" };
+                }
+                return paragraph;
+            };
+
+            const options = {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                transformDocument: (mammoth as any).transforms.paragraph(transformParagraph),
+                styleMap: [
+                    "p[style-name='Alignment Center'] => p.text-center:fresh",
+                    "p[style-name='Alignment Right'] => p.text-right:fresh",
+                    "p[style-name='Alignment Justify'] => p.text-justify:fresh",
+                    // Also attempt generic preservation if possible
+                ]
+            };
+
+            const result = await mammoth.convertToHtml({ arrayBuffer }, options);
+            if (result.messages?.length > 0) console.warn("Mammoth warnings:", result.messages);
+
+            const header = buildHeaderHtml();
+            const wrappedHtml = `${header}\n${result.value}\n${HEADER_FOOTER}`;
+
+            if (editorRef.current) {
+                editorRef.current.setContent(wrappedHtml);
+                toast.success(t("technician.workspace.docxImported", { defaultValue: "Đã tải nội dung Word vào biên bản" }));
+            }
+        } catch (err) {
+            console.error("Mammoth convert error:", err);
+            toast.error(t("technician.workspace.docxError", { defaultValue: "Lỗi khi chuyển đổi file Word" }));
+            throw err;
+        }
+    };
+
+    const handleSelectProtocolDoc = async (documentId: string, filename: string) => {
+        setIsSysDocLoading(true);
+        const loadingToastId = toast.loading(
+            t("technician.workspace.sysDocLoading", { defaultValue: `Đang tải tài liệu "${filename}"...` })
+        );
+        try {
+            // Step 1: Get presigned URL from backend
+            const res = await documentApi.url(documentId);
+            const urlData = (res as any).data ?? res;
+            const presignedUrl = urlData?.url;
+            if (!presignedUrl) throw new Error("No URL returned from server.");
+
+            // Step 2: Fetch file as ArrayBuffer using native fetch (NO auth headers)
+            // Presigned S3 URLs embed signing info in query params — adding extra
+            // Authorization headers will cause a SignatureDoesNotMatch 403 error.
+            const fetchRes = await fetch(presignedUrl, { method: "GET" });
+            if (!fetchRes.ok) {
+                throw new Error(`S3 fetch failed: ${fetchRes.status} ${fetchRes.statusText}`);
+            }
+            const arrayBuffer = await fetchRes.arrayBuffer();
+
+            // Step 3: Convert & load into editor
+            await processDocxArrayBuffer(arrayBuffer);
+            toast.dismiss(loadingToastId);
+            toast.success(
+                t("technician.workspace.sysDocLoaded", { defaultValue: `Đã tải biểu mẫu "${filename}" vào biên bản` })
+            );
+            setShowProtocolDocsModal(false);
+        } catch (e) {
+            console.error("Failed to load protocol document", e);
+            toast.dismiss(loadingToastId);
+            toast.error(t("technician.workspace.sysDocLoadFail", { defaultValue: "Tải biểu mẫu hệ thống thất bại" }));
+        } finally {
+            setIsSysDocLoading(false);
+        }
+    };
 
     useEffect(() => {
         if (open && analyses.length > 0) {
             const initialQty: Record<string, string> = {};
             analyses.forEach(a => {
-                const list = (a as any).consumablesUsed || [];
+                const rawList = (a as any).consumablesUsed;
+                const list = Array.isArray(rawList) ? rawList : (typeof rawList === 'string' ? (JSON.parse(rawList) || []) : []);
                 list.forEach((c: any) => {
                     if (c.chemicalSkuId) {
                         const key = `${a.analysisId}_${c.chemicalSkuId}`;
@@ -260,7 +337,7 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
 
     // Reset protocol selection when analyses change
     useEffect(() => {
-        setSelectedProtocolCode("");
+        setSelectedProtocolCode(prev => prev ? "" : prev);
     }, [analyses.map((a) => a.analysisId).join(",")]);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -290,9 +367,22 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
             </tr></tbody></table><br/>`);
     };
 
+    const finalizeHtmlForExport = (html: string) => {
+        // Enforce consistent styles during PDF generation/Print that match editor's CSS
+        // Include full CONTENT_STYLE so backend renderer displays exactly what the user sees
+        const stylePrefix = `
+<style>
+${CONTENT_STYLE}
+</style>
+`;
+        if (html.includes(stylePrefix.trim())) return `<div class="report-content-wrapper">${html}</div>`; // already present
+        return `<!DOCTYPE html><html><head><meta charset="UTF-8">${stylePrefix}</head><body>${html}</body></html>`;
+    };
+
     const handleSave = () => {
         if (analyses.length === 0) return;
         const htmlContent = editorRef.current?.getContent() || "";
+        const payloadHtml = finalizeHtmlForExport(htmlContent);
 
         // Dispatch updates for all analyses. 
         // Note: Currently we save the same HTML to the primary analysis or all? 
@@ -307,14 +397,13 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
                     changeQty: -Math.abs(Number(quantities[c.uniqueKey] || 0)),
                 }));
             
-            const isPrimary = a.analysisId === (primaryAnalysis?.analysisId || analyses[0].analysisId);
             const existingRaw = (a as any).rawData || {};
 
             return {
                 analysisId: a.analysisId,
                 consumablesUsed: myChems,
                 // Save HTML only to the primary one or all? Let's save to all if they are part of one report.
-                rawData: { ...existingRaw, protocolReportHtml: htmlContent },
+                rawData: { ...existingRaw, protocolReportHtml: payloadHtml },
             };
         });
 
@@ -334,6 +423,64 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
         if (editorRef.current) editorRef.current.execCommand("mcePrint");
     };
 
+    const handleExport = () => {
+        if (analyses.length === 0) return;
+        const htmlContent = editorRef.current?.getContent() || "";
+        const payloadHtml = finalizeHtmlForExport(htmlContent);
+
+        generateLabReport({
+            analyses: analyses.map(a => a.analysisId),
+            html: payloadHtml,
+        }, {
+            onSuccess: async (data: any) => {
+                console.log("Export API success:", data);
+                toast.success(t("technician.workspace.exportSuccess", { defaultValue: "Đã xuất báo cáo và tạo tài liệu thành công." }));
+                setIsExported(true);
+
+                // Automatically update the already-opened window with the real URL
+                const docId = data.documentId || data.data?.documentId;
+                
+                if (docId) {
+                    try {
+                        const urlRes = await documentApi.url(docId);
+                        const urlData = (urlRes as any).data ?? urlRes;
+                        const finalUrl = urlData?.url || urlData;
+                        
+                        if (typeof finalUrl === 'string' && finalUrl.startsWith('http')) {
+                            // Try to open window
+                            const newWin = window.open(finalUrl, '_blank');
+                            
+                            // If window.open was blocked by the browser
+                            if (!newWin || newWin.closed || typeof newWin.closed === 'undefined') {
+                                toast.info(
+                                    <div className="flex flex-col gap-2 p-1">
+                                        <p className="text-sm font-medium">{t("technician.workspace.popupBlocked", { defaultValue: "Tab mới đã bị chặn." })}</p>
+                                        <Button size="sm" variant="outline" className="h-8" onClick={() => window.open(finalUrl, '_blank')}>
+                                            {t("common.open", { defaultValue: "Mở tài liệu" })}
+                                        </Button>
+                                    </div>,
+                                    { duration: 6000, position: 'bottom-right' }
+                                );
+                            }
+                        } else {
+                            console.error("Invalid URL format:", finalUrl);
+                            toast.error(t("common.error.invalidUrl", { defaultValue: "Không lấy được liên kết tài liệu." }));
+                        }
+                    } catch (e) {
+                        console.error("Failed to fetch document URL after export:", e);
+                        toast.error(t("common.error.urlFetchFailed", { defaultValue: "Lỗi khi lấy liên kết xem tài liệu." }));
+                    }
+                }
+                
+                // Also trigger onSuccess so that parent component refetches (updating document icons)
+                onSuccess?.();
+            },
+            onError: (error) => {
+                console.error("Export API error:", error);
+            }
+        });
+    };
+
     // Stable initialHtml computed once per open/primary-analysis change
     const stableInitialHtml = useRef<string>("");
     const lastKey = useRef<string>("");
@@ -343,11 +490,9 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
         lastKey.current = currentKey;
         const savedHtmlNow = (analysisDetail?.rawData as Record<string, unknown>)?.protocolReportHtml as string;
         if (!savedHtmlNow) {
-            const bbCode = `BB_${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
             const orgName = t("testReport.institute.organizationName", { defaultValue: "VIỆN NGHIÊN CỨU VÀ PHÁT TRIỂN SẢN PHẨM THIÊN NHIÊN" });
             const reportTitle = t("testReport.title", { defaultValue: "BIÊN BẢN THỬ NGHIỆM" });
             const protocolName = protocolDetail?.protocolTitle || protocolDetail?.protocolCode || selectedProtocolCode || (primaryAnalysis as AnalysisListItem & { protocolCode?: string })?.protocolCode || "-";
-            const today = new Date().toLocaleDateString("vi-VN");
             stableInitialHtml.current = `
         <table style="width:100%; border-collapse:collapse; border:none; font-family:'Times New Roman',Times,serif;">
           <thead>
@@ -363,11 +508,7 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
                       <div style="font-size:15px; font-weight:700; text-transform:uppercase; margin-top:3px;">${reportTitle}</div>
                       <div style="font-size:11px; font-weight:600; font-style:italic; margin-top:2px;">${protocolName}</div>
                     </td>
-                    <td style="border:none !important; width:110px; text-align:right; vertical-align:top; padding:0; font-size:9px; color:#444; white-space:nowrap;">
-                      <div style="font-weight:700;">MÃ BIÊN BẢN</div>
-                      <div>${bbCode}</div>
-                      <div style="margin-top:4px;">${today}</div>
-                    </td>
+                    <td style="border:none !important; width:80px; padding:0;"></td>
                   </tr>
                 </table>
                 <div style="border-top:1.5px solid #374151; margin-top:8px;"></div>
@@ -431,7 +572,11 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
                             )}
                         </div>
                         <div className="flex items-center gap-2 pr-6">
-                            <Button variant="outline" size="sm" onClick={handlePrint} className="h-8 px-3">
+                            <Button variant="outline" size="sm" onClick={handleExport} disabled={isGenerating} className="h-8 px-3 border-blue-200 text-blue-700 hover:bg-blue-50">
+                                {isGenerating ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <FileText className="w-4 h-4 mr-1.5" />}
+                                {t("technician.workspace.exportProtocol", { defaultValue: "Xuất PDF" })}
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={handlePrint} disabled={!isExported} className="h-8 px-3">
                                 <Printer className="w-4 h-4 mr-1.5" />
                                 {t("technician.workspace.printProtocol", { defaultValue: "In Biên bản" })}
                             </Button>
@@ -516,8 +661,8 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
                                                             <tr>
                                                                 <th className="text-left px-3 py-2 font-semibold text-xs">Mã SKU</th>
                                                                 <th className="text-left px-3 py-2 font-semibold text-xs">Tên hóa chất</th>
-                                                                <th className="w-24 text-right px-3 py-2 font-semibold text-xs">Số lượng</th>
-                                                                <th className="w-16 text-center px-1 py-2 font-semibold text-xs">Đơn vị</th>
+                                                                <th className="w-24  px-3 py-2 font-semibold text-xs">Số lượng</th>
+                                                                <th className="w-16  px-1 py-2 font-semibold text-xs">Đơn vị</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody className="divide-y">
@@ -537,7 +682,7 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
                                                                             onChange={(e) => handleQtyChange(c.uniqueKey, e.target.value)}
                                                                         />
                                                                     </td>
-                                                                    <td className="px-2 py-2 text-center text-muted-foreground text-xs whitespace-nowrap">{c.chemicalBaseUnit || c.unit || "-"}</td>
+                                                                    <td className="px-2 py-2  text-muted-foreground text-xs whitespace-nowrap">{c.chemicalBaseUnit || c.unit || "-"}</td>
                                                                 </tr>
                                                             ))}
                                                         </tbody>
@@ -590,7 +735,7 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
                                                                     <td className="px-2 py-1.5 text-muted-foreground whitespace-nowrap">
                                                                         {(a as AnalysisListItem & { protocolCode?: string }).protocolCode || "-"}
                                                                     </td>
-                                                                    <td className="px-2 py-1.5 text-muted-foreground whitespace-nowrap text-center">
+                                                                    <td className="px-2 py-1.5 text-muted-foreground whitespace-nowrap ">
                                                                         {(a as AnalysisListItem & { analysisUnit?: string }).analysisUnit || "-"}
                                                                     </td>
                                                                 </tr>
@@ -617,9 +762,23 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
                                             </p>
                                         </div>
 
-                                        {/* Upload .docx */}
+                                        {/* Upload .docx from PC or System */}
                                         <div className="flex flex-col gap-2">
                                             <input ref={docxInputRef} type="file" accept=".docx" className="hidden" onChange={handleDocxUpload} />
+                                            <Button
+                                                variant="outline"
+                                                className="w-full flex justify-between shadow-sm"
+                                                onClick={() => setShowProtocolDocsModal(true)}
+                                            >
+                                                <FileText className="w-4 h-4" />
+                                                {t("technician.workspace.selectSysDoc", { defaultValue: "Chọn biểu mẫu từ Hệ thống" })}
+                                            </Button>
+
+                                            <div className="relative py-2">
+                                                <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
+                                                <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">{t("common.or", { defaultValue: "Hoặc" })}</span></div>
+                                            </div>
+
                                             <Button
                                                 variant="default"
                                                 className="w-full flex justify-between shadow-sm"
@@ -682,6 +841,55 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
                     }
                 }}
             />
+            {/* Protocol Docs Selection Modal */}
+            <Dialog open={showProtocolDocsModal} onOpenChange={setShowProtocolDocsModal}>
+                <DialogContent className="sm:max-w-[600px]">
+                    <DialogTitle className="text-lg font-semibold">{t("technician.workspace.sysProtocolDocs", { defaultValue: "Biểu mẫu Phương pháp" })}</DialogTitle>
+                    <div className="text-sm text-muted-foreground -mt-1 mb-2">
+                        {t("technician.workspace.sysProtocolDocsHint", { defaultValue: "Danh sách các file đính kèm thuộc phương pháp thử nghiệm. Chọn biểu mẫu để nạp vào trình soạn thảo." })}
+                    </div>
+                    {isLoadingProtocol && (
+                        <div className="py-8 flex justify-center">
+                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        </div>
+                    )}
+                    {!isLoadingProtocol && (!protocolDetail?.documents?.length && !protocolDetail?.protocolDocumentIds?.length) ? (
+                        <div className="text-center py-8 text-muted-foreground bg-muted/20 border border-border rounded-lg border-dashed text-sm">
+                            {t("technician.workspace.noSysDocs", { defaultValue: "Phương pháp này chưa có biểu mẫu đính kèm nào." })}
+                        </div>
+                    ) : null}
+                    {!isLoadingProtocol && (protocolDetail?.documents?.length || protocolDetail?.protocolDocumentIds?.length) ? (
+                        <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+                            {(() => {
+                                const list = protocolDetail?.documents?.length ? protocolDetail.documents : protocolDetail?.protocolDocumentIds?.map((id: string) => ({ documentId: id })) || [];
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                return list.map((doc: any, i: number) => {
+                                    const title = doc.jsonContent?.documentTitle || doc.documentTitle || doc.file?.fileName || doc.documentId;
+                                    return (
+                                        <div key={doc.documentId || i} className="p-3 border rounded-lg flex items-center justify-between transition-colors hover:bg-muted/40 bg-card">
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <FileText className="w-4 h-4 shrink-0 text-blue-600" />
+                                                <div className="truncate text-sm font-medium">{title}</div>
+                                            </div>
+                                            <Button 
+                                                variant="default"
+                                                size="sm" 
+                                                disabled={isSysDocLoading}
+                                                onClick={() => handleSelectProtocolDoc(doc.documentId, title)}
+                                                className="shrink-0 h-8"
+                                            >
+                                                {isSysDocLoading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : null}
+                                                {t("common.select", { defaultValue: "Chọn" })}
+                                            </Button>
+                                        </div>
+                                    );
+                                });
+                            })()}
+                        </div>
+                    ) : null}
+                </DialogContent>
+            </Dialog>
         </>
     );
 }
+

@@ -13,20 +13,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { receiptsCreate, receiptsCreateFull } from "@/api/receipts";
 import { clientsGetList, clientsGetDetail } from "@/api/crm/clients";
-import { samplesGetList, samplesGetFull } from "@/api/samples";
 import { ordersGetFull } from "@/api/crm/orders";
 import { useIncomingRequestConvert } from "@/api/incomingRequests";
 
 import type { ReceiptDetail, ReceiptsCreateBody, ReceiptsCreateFullBody, ReceiptPriority, ReceiptDeliveryMethod, SampleInfoItem, ReceiptStatus } from "@/types/receipt";
 
 import type { ClientDetail, ClientListItem } from "@/types/crm/client";
-import type { SampleDetail, SampleInfoValue, SampleListItem } from "@/types/sample";
+import type { SampleInfoValue } from "@/types/sample";
 import type { IncomingRequestListItem } from "@/types/incomingRequest";
 
 type Mode = "basic" | "full";
 
 type BasicFormState = {
-    receiptCode: string;
+    orderId: string;
     receiptDate: string;
     receiptDeadline: string;
 
@@ -82,6 +81,7 @@ type FormSample = {
 };
 
 type FullFormState = {
+    orderId: string;
     receiptDate: string;
 
     clientId: string;
@@ -129,63 +129,9 @@ function extractArrayField<T>(res: unknown): T[] {
     return [];
 }
 
-function sampleInfoValueToRows(v: SampleInfoValue | null | undefined): FormSampleInfoRow[] {
-    if (!v) return [{ id: nowId("new-sinfo"), label: "", value: "" }];
 
-    if (Array.isArray(v)) {
-        if (v.length === 0) return [{ id: nowId("new-sinfo"), label: "", value: "" }];
-        return v.map((item, idx) => ({
-            id: nowId("new-sinfo"),
-            label: String(idx),
-            value: toStr(item),
-        }));
-    }
 
-    if (typeof v === "object") {
-        const entries = Object.entries(v as Record<string, unknown>);
-        if (entries.length === 0) return [{ id: nowId("new-sinfo"), label: "", value: "" }];
-        return entries.map(([k, val]) => ({
-            id: nowId("new-sinfo"),
-            label: k,
-            value: toStr(val),
-        }));
-    }
 
-    return [{ id: nowId("new-sinfo"), label: "value", value: toStr(v) }];
-}
-
-function mapSampleDetailToFormSample(s: SampleDetail): FormSample {
-    return {
-        id: nowId("new-sample"),
-        sampleName: (s.sampleClientInfo ?? "").trim(),
-        sampleTypeId: s.sampleTypeId ?? "",
-        sampleTypeName: s.sampleTypeName ?? "",
-
-        sampleVolume: s.sampleVolume ?? "",
-        samplePreservation: s.samplePreservation ?? "",
-
-        sampleInfo: sampleInfoValueToRows(s.sampleInfo),
-
-        analyses:
-            (s.analyses ?? []).length > 0
-                ? s.analyses.map((a) => ({
-                      id: nowId("new-analysis"),
-                      matrixId: a.matrixId ?? "",
-                      parameterName: a.parameterName ?? "",
-                      protocolCode: a.protocolCode ?? "",
-                      feeAfterTax: 0,
-                  }))
-                : [
-                      {
-                          id: nowId("new-analysis"),
-                          matrixId: "",
-                          parameterName: "",
-                          protocolCode: "",
-                          feeAfterTax: 0,
-                      },
-                  ],
-    };
-}
 
 export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest }: Props) {
     const { t } = useTranslation();
@@ -200,7 +146,7 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
     const DEFAULT_RECEIPT_STATUS: ReceiptStatus = "Draft";
 
     const [basic, setBasic] = useState<BasicFormState>(() => ({
-        receiptCode: "",
+        orderId: String(initialIncomingRequest?.orderId || ""),
         receiptDate: today,
         receiptDeadline: "",
 
@@ -231,6 +177,7 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
             const rawSamples = (initialIncomingRequest.samples as any[]) || [];
 
             return {
+                orderId: String(initialIncomingRequest.orderId || ""),
                 receiptDate: today,
                 clientId: String(initialIncomingRequest.client?.clientId || initialIncomingRequest.clientId || ""),
                 clientName: String(initialIncomingRequest.client?.clientName || initialIncomingRequest.senderInfo?.name || ""),
@@ -297,6 +244,7 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
         }
 
         return {
+            orderId: "",
             receiptDate: today,
 
             clientId: "",
@@ -492,6 +440,7 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
 
             setFull((prev) => ({
                 ...prev,
+                orderId: order.orderId || "",
                 clientId: order.clientId || "",
                 clientName: order.client?.clientName || "",
                 samples: newSamples.length > 0 ? newSamples : prev.samples,
@@ -500,6 +449,7 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
             if (order.clientId) {
                 setBasic((prev) => ({
                     ...prev,
+                    orderId: order.orderId || "",
                     clientId: order.clientId,
                     clientName: order.client?.clientName || "",
                 }));
@@ -510,90 +460,6 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
             toast.error("Lỗi khi tải thông tin đơn hàng", { description: getErrorMessage(e, t("common.tryAgain")) });
         } finally {
             setFetchingOrder(false);
-        }
-    };
-
-    const [sampleQByIndex, setSampleQByIndex] = useState<Record<number, string>>({});
-    const [sampleSuggestByIndex, setSampleSuggestByIndex] = useState<Record<number, SampleListItem[]>>({});
-    const [sampleSuggestOpenByIndex, setSampleSuggestOpenByIndex] = useState<Record<number, boolean>>({});
-    const [sampleSuggestLoadingByIndex, setSampleSuggestLoadingByIndex] = useState<Record<number, boolean>>({});
-
-    const sampleFetchSeqByIndex = useRef<Record<number, number>>({});
-
-    const fetchSampleSuggest = (idx: number, qRaw: string) => {
-        const q = qRaw.trim();
-        if (!q) {
-            setSampleSuggestByIndex((p) => ({ ...p, [idx]: [] }));
-            setSampleSuggestLoadingByIndex((p) => ({ ...p, [idx]: false }));
-            return;
-        }
-
-        const nextSeq = (sampleFetchSeqByIndex.current[idx] ?? 0) + 1;
-        sampleFetchSeqByIndex.current[idx] = nextSeq;
-
-        setSampleSuggestLoadingByIndex((p) => ({ ...p, [idx]: true }));
-
-        window.setTimeout(() => {
-            void (async () => {
-                try {
-                    const res = await samplesGetList({
-                        query: { search: q, page: 1, itemsPerPage: 8 },
-                    });
-                    const curSeq = sampleFetchSeqByIndex.current[idx] ?? 0;
-                    if (curSeq !== nextSeq) return;
-
-                    if (!res.success) {
-                        toast.error(t("common.requestFailed"), {
-                            description: res.error?.message ?? t("common.tryAgain"),
-                        });
-                        return;
-                    }
-
-                    setSampleSuggestByIndex((p) => ({ ...p, [idx]: res.data ?? [] }));
-                } catch (e) {
-                    const curSeq = sampleFetchSeqByIndex.current[idx] ?? 0;
-                    if (curSeq !== nextSeq) return;
-
-                    toast.error(t("common.requestFailed"), {
-                        description: getErrorMessage(e, t("common.tryAgain")),
-                    });
-                } finally {
-                    const curSeq = sampleFetchSeqByIndex.current[idx] ?? 0;
-                    if (curSeq === nextSeq) {
-                        setSampleSuggestLoadingByIndex((p) => ({ ...p, [idx]: false }));
-                    }
-                }
-            })();
-        }, 250);
-    };
-
-    const handlePickSample = async (sampleIndex: number, sampleId: string) => {
-        setSampleSuggestOpenByIndex((p) => ({ ...p, [sampleIndex]: false }));
-        setSampleQByIndex((p) => ({ ...p, [sampleIndex]: sampleId }));
-
-        try {
-            const res = await samplesGetFull({ sampleId });
-            if (!res.success || !res.data) {
-                toast.error(t("common.requestFailed"), {
-                    description: res.error?.message ?? t("common.tryAgain"),
-                });
-                return;
-            }
-
-            const mapped = mapSampleDetailToFormSample(res.data);
-
-            setFull((prev) => {
-                const next = [...prev.samples];
-                if (!next[sampleIndex]) return prev;
-                next[sampleIndex] = mapped;
-                return { ...prev, samples: next };
-            });
-
-            toast.success(t("common.success"));
-        } catch (e) {
-            toast.error(t("common.requestFailed"), {
-                description: getErrorMessage(e, t("common.tryAgain")),
-            });
         }
     };
 
@@ -667,7 +533,7 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
 
     const buildBasicBody = (): ReceiptsCreateBody => ({
         receiptStatus: DEFAULT_RECEIPT_STATUS,
-        receiptCode: basic.receiptCode.trim() || null,
+        orderId: basic.orderId.trim() || null,
 
         client: {
             clientId: basic.clientId.trim() || null,
@@ -702,6 +568,7 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
 
     const buildFullBody = (): ReceiptsCreateFullBody => ({
         receiptStatus: DEFAULT_RECEIPT_STATUS,
+        orderId: full.orderId.trim() || null,
         client: {
             clientId: full.clientId.trim() || null,
             clientName: full.clientName.trim() || null,
@@ -746,6 +613,14 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
 
     const handleSubmit = async () => {
         if (submitting) return;
+
+        // Validation orderId
+        const currentOrderId = (mode === "basic" ? basic.orderId : full.orderId).trim();
+        if (!currentOrderId) {
+            toast.error(t("crm.orders.form.placeholders.orderId"));
+            return;
+        }
+
         setSubmitting(true);
 
         try {
@@ -1058,12 +933,12 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
 
                                         <div className="space-y-3 text-sm">
                                             <div>
-                                                <Label className="text-xs text-muted-foreground">{t("lab.receipts.receiptCode")}</Label>
+                                                <Label className="text-xs text-muted-foreground">{t("crm.orders.columns.orderId")} <span className="text-destructive">*</span></Label>
                                                 <Input
-                                                    value={basic.receiptCode}
-                                                    onChange={(e) => setBasic({ ...basic, receiptCode: e.target.value })}
+                                                    value={basic.orderId}
+                                                    onChange={(e) => setBasic({ ...basic, orderId: e.target.value })}
                                                     className="mt-1 h-8 text-sm bg-background border border-border"
-                                                    placeholder={t("lab.receipts.receiptCodePlaceholder")}
+                                                    placeholder={t("crm.orders.form.placeholders.orderId")}
                                                 />
                                             </div>
 
@@ -1251,6 +1126,16 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
 
                                         <div className="space-y-3 text-sm">
                                             <div>
+                                                <Label className="text-xs text-muted-foreground">{t("crm.orders.columns.orderId")} <span className="text-destructive">*</span></Label>
+                                                <Input
+                                                    value={full.orderId}
+                                                    onChange={(e) => setFull({ ...full, orderId: e.target.value })}
+                                                    className="mt-1 h-8 text-sm bg-background border border-border"
+                                                    placeholder={t("crm.orders.form.placeholders.orderId")}
+                                                />
+                                            </div>
+
+                                            <div>
                                                 <Label className="text-xs text-muted-foreground">{t("lab.receipts.receiptDate")}</Label>
                                                 <Input
                                                     type="date"
@@ -1283,67 +1168,7 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                                         <div className="space-y-3">
                                             {full.samples.map((sample, sampleIndex) => (
                                                 <div key={sample.id} className="bg-muted/30 rounded-lg p-4 border-2 border-border/50">
-                                                    <div className="mb-3">
-                                                        <Label className="text-xs text-muted-foreground">{t("lab.receipts.receiptId")}</Label>
-                                                        <div className="relative mt-1">
-                                                            <Input
-                                                                value={sampleQByIndex[sampleIndex] ?? ""}
-                                                                onChange={(e) => {
-                                                                    const v = e.target.value;
-                                                                    setSampleQByIndex((p) => ({
-                                                                        ...p,
-                                                                        [sampleIndex]: v,
-                                                                    }));
-                                                                    setSampleSuggestOpenByIndex((p) => ({
-                                                                        ...p,
-                                                                        [sampleIndex]: true,
-                                                                    }));
-                                                                    fetchSampleSuggest(sampleIndex, v);
-                                                                }}
-                                                                onFocus={() =>
-                                                                    setSampleSuggestOpenByIndex((p) => ({
-                                                                        ...p,
-                                                                        [sampleIndex]: true,
-                                                                    }))
-                                                                }
-                                                                onKeyDown={(e) => {
-                                                                    if (e.key === "Escape") {
-                                                                        setSampleSuggestOpenByIndex((p) => ({
-                                                                            ...p,
-                                                                            [sampleIndex]: false,
-                                                                        }));
-                                                                    }
-                                                                }}
-                                                                className="h-8 text-sm bg-background border border-border"
-                                                                placeholder={t("lab.receipts.receiptIdPlaceholder")}
-                                                                disabled={submitting}
-                                                            />
 
-                                                            {sampleSuggestOpenByIndex[sampleIndex] &&
-                                                                ((sampleSuggestLoadingByIndex[sampleIndex] ?? false) || (sampleSuggestByIndex[sampleIndex]?.length ?? 0) > 0) && (
-                                                                    <div className="absolute z-50 mt-1 w-full bg-background border border-border rounded-md shadow-lg overflow-hidden">
-                                                                        {sampleSuggestLoadingByIndex[sampleIndex] && (
-                                                                            <div className="px-2 py-2 text-xs text-muted-foreground">{t("common.loading")}</div>
-                                                                        )}
-
-                                                                        {!sampleSuggestLoadingByIndex[sampleIndex] &&
-                                                                            (sampleSuggestByIndex[sampleIndex] ?? []).map((it) => (
-                                                                                <button
-                                                                                    key={it.sampleId}
-                                                                                    type="button"
-                                                                                    className="w-full text-left px-2 py-2 hover:bg-muted/30"
-                                                                                    onMouseDown={(ev) => ev.preventDefault()}
-                                                                                    onClick={() => void handlePickSample(sampleIndex, it.sampleId)}
-                                                                                    disabled={submitting}
-                                                                                >
-                                                                                    <div className="text-sm font-medium">{it.sampleTypeName ?? "-"}</div>
-                                                                                    <div className="text-xs text-muted-foreground">{it.sampleId}</div>
-                                                                                </button>
-                                                                            ))}
-                                                                    </div>
-                                                                )}
-                                                        </div>
-                                                    </div>
 
                                                     <div className="flex items-start justify-between mb-3">
                                                         <div className="flex-1">

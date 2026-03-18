@@ -70,7 +70,7 @@ export function TechnicianChemicalRequestsTab({ search }: Props) {
                     <Table>
                         <TableHeader className="bg-muted/50 sticky top-0 z-10 shadow-sm">
                             <TableRow>
-                                <TableHead className="w-16 text-center">{t("common.stt", { defaultValue: "STT" })}</TableHead>
+                                <TableHead className="w-16 ">{t("common.stt", { defaultValue: "STT" })}</TableHead>
                                 <TableHead className="min-w-[150px]">{t("inventory.chemical.transactionBlocks.table.id", { defaultValue: "Mã Phiếu" })}</TableHead>
                                 <TableHead className="min-w-[150px]">{t("technician.workspace.statusCol", { defaultValue: "Trạng thái" })}</TableHead>
                                 <TableHead className="min-w-[150px]">{t("common.createdAt", { defaultValue: "Ngày tạo" })}</TableHead>
@@ -82,7 +82,7 @@ export function TechnicianChemicalRequestsTab({ search }: Props) {
                             {isLoading ? (
                                 Array.from({ length: 5 }).map((_, i) => (
                                     <TableRow key={i}>
-                                        <TableCell className="text-center"><Skeleton className="h-4 w-4 mx-auto" /></TableCell>
+                                        <TableCell className=""><Skeleton className="h-4 w-4 mx-auto" /></TableCell>
                                         <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                                         <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                                         <TableCell><Skeleton className="h-4 w-24" /></TableCell>
@@ -103,7 +103,7 @@ export function TechnicianChemicalRequestsTab({ search }: Props) {
                                         className={`cursor-pointer transition-colors ${activeBlock?.chemicalTransactionBlockId === block.chemicalTransactionBlockId ? "bg-muted shadow-inner" : ""}`}
                                         onClick={() => setActiveBlock(block)}
                                     >
-                                        <TableCell className="text-center">{(page - 1) * itemsPerPage + index + 1}</TableCell>
+                                        <TableCell className="">{(page - 1) * itemsPerPage + index + 1}</TableCell>
                                         <TableCell className="whitespace-nowrap font-mono text-xs font-medium text-primary">
                                             {block.chemicalTransactionBlockId ?? "-"}
                                         </TableCell>
@@ -130,7 +130,7 @@ export function TechnicianChemicalRequestsTab({ search }: Props) {
                         currentPage={page}
                         totalPages={result.pagination.totalPages}
                         itemsPerPage={itemsPerPage}
-                        totalItems={result.pagination.totalItems}
+                        totalItems={result.pagination.total}
                         onPageChange={setPage}
                         onItemsPerPageChange={setItemsPerPage}
                     />

@@ -149,6 +149,7 @@ export type ReceiptAnalysis = {
     handoverInfo?: unknown[] | null;
     analysisReportDisplay?: Record<string, unknown> | null;
     analysisLocation?: string | null;
+    protocolAccreditation?: any | null;
 
     qaReview?: AnalysisQaReview | null;
     rawData?: AnalysisRawData | null;
@@ -205,6 +206,9 @@ export type ReceiptSample = {
     createdBy?: Pick<IdentitySnapshot, "identityId" | "identityName" | "alias"> | null;
 
     analyses?: ReceiptAnalysis[] | null;
+    reportIds?: string[] | null;
+    reports?: any[] | null;
+    sampleNote?: string | null;
 
     [key: string]: unknown;
 };

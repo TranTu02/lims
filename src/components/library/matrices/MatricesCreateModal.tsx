@@ -26,6 +26,7 @@ import { ExternalLink } from "lucide-react";
 import { ParameterFormModal } from "../parameters/ParameterFormModal";
 import { SampleTypeFormModal } from "../sampleTypes/SampleTypeFormModal";
 import { ProtocolFormModal } from "../protocols/ProtocolFormModal";
+import { AccreditationTagInput } from "../shared/AccreditationTagInput";
 
 type Props = {
     open: boolean;
@@ -43,8 +44,7 @@ type FormState = {
     protocolCode: string;
     protocolSource: string;
 
-    accreditationVILAS: boolean;
-    accreditationTDC: boolean;
+    accreditationKeys: Record<string, boolean>;
 
     sampleTypeId: string;
     sampleTypeName: string;
@@ -72,8 +72,7 @@ function initForm(props?: Props): FormState {
         protocolCode: props?.lockedProtocol?.code || "",
         protocolSource: props?.lockedProtocol?.source || "",
 
-        accreditationVILAS: false,
-        accreditationTDC: false,
+        accreditationKeys: {},
 
         sampleTypeId: props?.lockedSampleType?.id || "",
         sampleTypeName: props?.lockedSampleType?.name || "",
@@ -335,8 +334,7 @@ export function MatricesCreateModal(props: Props) {
                 protocolId: "",
                 protocolCode: "",
                 protocolSource: "",
-                accreditationTDC: false,
-                accreditationVILAS: false,
+                accreditationKeys: {},
             }));
             return;
         }
@@ -348,8 +346,7 @@ export function MatricesCreateModal(props: Props) {
                 protocolId: idOrVal,
                 protocolCode: found.protocolCode ?? "",
                 protocolSource: found.protocolSource ?? "",
-                accreditationTDC: Boolean(found.protocolAccreditation?.TDC),
-                accreditationVILAS: Boolean(found.protocolAccreditation?.VILAS),
+                accreditationKeys: (found.protocolAccreditation as Record<string, boolean>) ?? {},
             }));
         } else {
             setCreateProtocolCode(idOrVal);
@@ -401,7 +398,7 @@ export function MatricesCreateModal(props: Props) {
 
             technicianGroupId: form.technicianGroupId.trim() || undefined,
 
-            protocolAccreditation: form.accreditationVILAS || form.accreditationTDC ? { VILAS: form.accreditationVILAS, TDC: form.accreditationTDC } : undefined,
+            protocolAccreditation: Object.keys(form.accreditationKeys).length > 0 ? form.accreditationKeys : undefined,
             chemicals: form.chemicals.map((c) => ({
                 chemicalSkuId: c.chemicalSkuId || "",
                 chemicalName: c.chemicalName,
@@ -482,28 +479,11 @@ export function MatricesCreateModal(props: Props) {
 
                         <div className="space-y-3 pt-6 border-t border-border mt-6">
                             <SectionTitle>{String(t("library.matrices.protocolAccreditation", { defaultValue: "Phạm vi công nhận" }))}</SectionTitle>
-                            <div className="grid grid-cols-2 gap-2">
-                                <Button
-                                    type="button"
-                                    className="w-full whitespace-normal"
-                                    variant={form.accreditationVILAS ? "secondary" : "outline"}
-                                    aria-pressed={form.accreditationVILAS}
-                                    onClick={() => setForm((s) => ({ ...s, accreditationVILAS: !s.accreditationVILAS }))}
-                                    disabled={createM.isPending}
-                                >
-                                    {String(t("library.protocols.protocolAccreditation.vilas", { defaultValue: "VILAS" }))}
-                                </Button>
-                                <Button
-                                    type="button"
-                                    className="w-full whitespace-normal"
-                                    variant={form.accreditationTDC ? "secondary" : "outline"}
-                                    aria-pressed={form.accreditationTDC}
-                                    onClick={() => setForm((s) => ({ ...s, accreditationTDC: !s.accreditationTDC }))}
-                                    disabled={createM.isPending}
-                                >
-                                    {String(t("library.protocols.protocolAccreditation.tdc", { defaultValue: "Chỉ định TĐC" }))}
-                                </Button>
-                            </div>
+                            <AccreditationTagInput
+                                value={form.accreditationKeys}
+                                onChange={(v) => setForm((s) => ({ ...s, accreditationKeys: v }))}
+                                disabled={createM.isPending}
+                            />
                         </div>
                     </div>
 
@@ -742,8 +722,7 @@ export function MatricesCreateModal(props: Props) {
                             protocolId: p.protocolId,
                             protocolCode: p.protocolCode || p.protocolId,
                             protocolSource: p.protocolSource || "Unknown",
-                            accreditationTDC: Boolean(p.protocolAccreditation?.TDC),
-                            accreditationVILAS: Boolean(p.protocolAccreditation?.VILAS),
+                            accreditationKeys: (p.protocolAccreditation as Record<string, boolean>) ?? {},
                         }));
                     }}
                 />

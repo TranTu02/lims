@@ -55,6 +55,7 @@ const STATUS_OPTIONS: AnalysisStatusDb[] = [
   "TechReview",
   "Approved",
   "ReTest",
+  "Complained",
   "Cancelled",
 ];
 

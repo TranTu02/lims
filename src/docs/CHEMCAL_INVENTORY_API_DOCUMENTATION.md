@@ -60,6 +60,8 @@ Authorization: Bearer {authToken}
 
 ```json
 {
+    "success": true,
+    "statusCode": 200,
     "data": [
         {
             "chemicalSkuId": "SKU-CHEM-001",
@@ -79,9 +81,10 @@ Authorization: Bearer {authToken}
     "pagination": {
         "page": 1,
         "itemsPerPage": 1,
-        "totalItems": 50,
+        "total": 50,
         "totalPages": 50
-    }
+    },
+    "error": null
 }
 ```
 
@@ -93,14 +96,20 @@ Authorization: Bearer {authToken}
 
 ```json
 {
-    "chemicalSkuId": "SKU-CHEM-001",
-    "chemicalName": "Hydrochloric Acid 94%",
-    "chemicalCASNumber": "4801-90-8",
-    "chemicalBaseUnit": "g",
-    "chemicalTotalAvailableQty": 2248,
-    "chemicalReorderLevel": 430,
-    "chemicalHazardClass": "Toxic",
-    "createdAt": "2026-03-03T07:15:29.334Z"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "chemicalSkuId": "SKU-CHEM-001",
+        "chemicalName": "Hydrochloric Acid 94%",
+        "chemicalCASNumber": "4801-90-8",
+        "chemicalBaseUnit": "g",
+        "chemicalTotalAvailableQty": 2248,
+        "chemicalReorderLevel": 430,
+        "chemicalHazardClass": "Toxic",
+        "createdAt": "2026-03-03T07:15:29.334Z"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -112,72 +121,80 @@ Authorization: Bearer {authToken}
 
 ```json
 {
-    "chemicalSkuId": "SKU-CHEM-001",
-    "chemicalName": "Hydrochloric Acid 94%",
-    "chemicalCASNumber": "4801-90-8",
-    "chemicalBaseUnit": "g",
-    "chemicalTotalAvailableQty": "2248",
-    "chemicalReorderLevel": "430",
-    "chemicalHazardClass": "Toxic",
-    "createdAt": "2026-03-03T07:15:29.334Z",
-    "items": [
-        {
-            "chemicalInventoryId": "BTL-2603-0105",
-            "chemicalSkuId": "SKU-CHEM-001",
-            "chemicalName": "Hydrochloric Acid 94%",
-            "chemicalCASNumber": "4801-90-8",
-            "chemicalSupplierId": "SUP-007",
-            "lotNumber": "LOT-61855",
-            "manufacturerName": "Fisher",
-            "manufacturerCountry": "Germany",
-            "inventoryCOADocumentIds": null,
-            "currentAvailableQty": "1153",
-            "mfgDate": "2023-11-15T00:00:00.000Z",
-            "expDate": "2028-09-23T00:00:00.000Z",
-            "openedDate": "2024-02-24T00:00:00.000Z",
-            "openedExpDate": "2028-04-25T00:00:00.000Z",
-            "chemicalInventoryStatus": "New",
-            "storageBinLocation": "Tủ hóa chất B - Tầng 5",
-            "createdAt": "2026-03-03T07:15:29.334Z",
-            "createdById": null,
-            "modifiedAt": null,
-            "modifiedById": null,
-            "deletedAt": null
-        }
-    ],
-    "suppliers": [
-        {
-            "chemicalSku_chemicalSupplierId": "SKU-CHEM-001_SUP-007",
-            "chemicalSkuId": "SKU-CHEM-001",
-            "chemicalSupplierId": "SUP-007",
-            "catalogNumber": "8.46396.1036",
-            "brandManufacturer": "Scharlau",
-            "packagingSize": "4000",
-            "leadTimeDays": 43,
-            "createdAt": "2026-03-03T07:15:29.334Z",
-            "createdById": null,
-            "modifiedAt": null,
-            "modifiedById": null,
-            "deletedAt": null,
-            "chemicalSupplier": {
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "chemicalSkuId": "SKU-CHEM-001",
+        "chemicalName": "Hydrochloric Acid 94%",
+        "chemicalCASNumber": "4801-90-8",
+        "chemicalBaseUnit": "g",
+        "chemicalTotalAvailableQty": "2248",
+        "chemicalReorderLevel": "430",
+        "chemicalHazardClass": "Toxic",
+        "createdAt": "2026-03-03T07:15:29.334Z",
+        "items": [
+            {
+                "chemicalInventoryId": "BTL-2603-0105",
+                "chemicalSkuId": "SKU-CHEM-001",
+                "chemicalName": "Hydrochloric Acid 94%",
+                "chemicalCASNumber": "4801-90-8",
                 "chemicalSupplierId": "SUP-007",
-                "supplierName": "Công ty Hóa chất 7",
-                "supplierAddress": "24 Khu công nghiệp, Việt Nam",
-                "supplierStatus": "Inactive",
-                "supplierEvaluationScore": 79,
+                "lotNumber": "LOT-61855",
+                "manufacturerName": "Fisher",
+                "manufacturerCountry": "Germany",
+                "inventoryCOADocumentIds": null,
+                "currentAvailableQty": "1153",
+                "mfgDate": "2023-11-15T00:00:00.000Z",
+                "expDate": "2028-09-23T00:00:00.000Z",
+                "openedDate": "2024-02-24T00:00:00.000Z",
+                "openedExpDate": "2028-04-25T00:00:00.000Z",
+                "chemicalInventoryStatus": "New",
+                "storageBinLocation": "Tủ hóa chất B - Tầng 5",
                 "createdAt": "2026-03-03T07:15:29.334Z",
-                "supplierIsoCertifications": ["ISO 9001:2015"],
-                "supplierTaxCode": "0102930749",
-                "supplierContactPerson": [
-                    {
-                        "contactName": "Mr. Supplier 7",
-                        "contactEmail": "contact@supp7.com",
-                        "contactPhone": "0900912419"
-                    }
-                ]
+                "createdById": null,
+                "modifiedAt": null,
+                "modifiedById": null,
+                "deletedAt": null
             }
-        }
-    ]
+        ],
+        "suppliers": [
+            {
+                "chemicalSku_chemicalSupplierId": "SKU-CHEM-001_SUP-007",
+                "chemicalSkuId": "SKU-CHEM-001",
+                "chemicalSupplierId": "SUP-007",
+                "catalogNumber": "8.46396.1036",
+                "brandManufacturer": "Scharlau",
+                "packagingSize": "4000",
+                "leadTimeDays": 43,
+                "createdAt": "2026-03-03T07:15:29.334Z",
+                "createdById": null,
+                "modifiedAt": null,
+                "modifiedById": null,
+                "deletedAt": null,
+                "chemicalSupplier": {
+                    "chemicalSupplierId": "SUP-007",
+                    "supplierName": "Công ty Hóa chất 7",
+                    "supplierAddress": "24 Khu công nghiệp, Việt Nam",
+                    "supplierStatus": "Inactive",
+                    "supplierEvaluationScore": 79,
+                    "createdAt": "2026-03-03T07:15:29.334Z",
+                    "supplierIsoCertifications": [
+                        "ISO 9001:2015"
+                    ],
+                    "supplierTaxCode": "0102930749",
+                    "supplierContactPerson": [
+                        {
+                            "contactName": "Mr. Supplier 7",
+                            "contactEmail": "contact@supp7.com",
+                            "contactPhone": "0900912419"
+                        }
+                    ]
+                }
+            }
+        ]
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -201,6 +218,8 @@ Quản lý thông tin nhà cung cấp hóa chất.
 
 ```json
 {
+    "success": true,
+    "statusCode": 200,
     "data": [
         {
             "chemicalSupplierId": "SUP-001",
@@ -216,7 +235,10 @@ Quản lý thông tin nhà cung cấp hóa chất.
             ],
             "supplierStatus": "Active",
             "supplierEvaluationScore": "70",
-            "supplierIsoCertifications": ["ISO 9001:2015", "ISO 17034"],
+            "supplierIsoCertifications": [
+                "ISO 9001:2015",
+                "ISO 17034"
+            ],
             "createdAt": "2026-03-03T07:15:29.334Z",
             "createdById": null,
             "modifiedAt": null,
@@ -227,9 +249,10 @@ Quản lý thông tin nhà cung cấp hóa chất.
     "pagination": {
         "page": 1,
         "itemsPerPage": 1,
-        "totalItems": 10,
+        "total": 10,
         "totalPages": 10
-    }
+    },
+    "error": null
 }
 ```
 
@@ -247,43 +270,52 @@ Quản lý thông tin nhà cung cấp hóa chất.
 
 ```json
 {
-    "chemicalSupplierId": "SUP-001",
-    "supplierName": "Công ty Hóa chất 1",
-    "supplierAddress": "89 Khu công nghiệp, Việt Nam",
-    "supplierStatus": "Active",
-    "supplierEvaluationScore": 70,
-    "createdAt": "2026-03-03T07:15:29.334Z",
-    "supplierIsoCertifications": ["ISO 9001:2015", "ISO 17034"],
-    "supplierTaxCode": "0102478652",
-    "supplierContactPerson": [
-        {
-            "contactName": "Mr. Supplier 1",
-            "contactEmail": "contact@supp1.com",
-            "contactPhone": "0900697071"
-        }
-    ],
-    "suppliedSkus": [
-        {
-            "chemicalSku_chemicalSupplierId": "SKU-CHEM-002_SUP-001",
-            "chemicalSkuId": "SKU-CHEM-002",
-            "chemicalSupplierId": "SUP-001",
-            "catalogNumber": "2.47963.8562",
-            "brandManufacturer": "Sigma Aldrich",
-            "packagingSize": "4000",
-            "leadTimeDays": 21,
-            "createdAt": "2026-03-03T07:15:29.334Z",
-            "chemicalSku": {
-                "chemicalSkuId": "SKU-CHEM-002",
-                "chemicalName": "Methanol 53%",
-                "chemicalCASNumber": "3578-49-7",
-                "chemicalBaseUnit": "bottle",
-                "chemicalTotalAvailableQty": 6594,
-                "chemicalReorderLevel": 470,
-                "chemicalHazardClass": "Irritant",
-                "createdAt": "2026-03-03T07:15:29.334Z"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "chemicalSupplierId": "SUP-001",
+        "supplierName": "Công ty Hóa chất 1",
+        "supplierAddress": "89 Khu công nghiệp, Việt Nam",
+        "supplierStatus": "Active",
+        "supplierEvaluationScore": 70,
+        "createdAt": "2026-03-03T07:15:29.334Z",
+        "supplierIsoCertifications": [
+            "ISO 9001:2015",
+            "ISO 17034"
+        ],
+        "supplierTaxCode": "0102478652",
+        "supplierContactPerson": [
+            {
+                "contactName": "Mr. Supplier 1",
+                "contactEmail": "contact@supp1.com",
+                "contactPhone": "0900697071"
             }
-        }
-    ]
+        ],
+        "suppliedSkus": [
+            {
+                "chemicalSku_chemicalSupplierId": "SKU-CHEM-002_SUP-001",
+                "chemicalSkuId": "SKU-CHEM-002",
+                "chemicalSupplierId": "SUP-001",
+                "catalogNumber": "2.47963.8562",
+                "brandManufacturer": "Sigma Aldrich",
+                "packagingSize": "4000",
+                "leadTimeDays": 21,
+                "createdAt": "2026-03-03T07:15:29.334Z",
+                "chemicalSku": {
+                    "chemicalSkuId": "SKU-CHEM-002",
+                    "chemicalName": "Methanol 53%",
+                    "chemicalCASNumber": "3578-49-7",
+                    "chemicalBaseUnit": "bottle",
+                    "chemicalTotalAvailableQty": 6594,
+                    "chemicalReorderLevel": 470,
+                    "chemicalHazardClass": "Irritant",
+                    "createdAt": "2026-03-03T07:15:29.334Z"
+                }
+            }
+        ]
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -307,6 +339,8 @@ Link nối SKU và Nhà cung cấp tương ứng quy cách lô/kiện.
 
 ```json
 {
+    "success": true,
+    "statusCode": 200,
     "data": [
         {
             "chemicalSku_chemicalSupplierId": "SKU-CHEM-001_SUP-007",
@@ -322,9 +356,10 @@ Link nối SKU và Nhà cung cấp tương ứng quy cách lô/kiện.
     "pagination": {
         "page": 1,
         "itemsPerPage": 1,
-        "totalItems": 74,
+        "total": 74,
         "totalPages": 74
-    }
+    },
+    "error": null
 }
 ```
 
@@ -342,41 +377,49 @@ Link nối SKU và Nhà cung cấp tương ứng quy cách lô/kiện.
 
 ```json
 {
-    "chemicalSku_chemicalSupplierId": "SKU-CHEM-001_SUP-007",
-    "chemicalSkuId": "SKU-CHEM-001",
-    "chemicalSupplierId": "SUP-007",
-    "catalogNumber": "8.46396.1036",
-    "brandManufacturer": "Scharlau",
-    "packagingSize": 4000,
-    "leadTimeDays": 43,
-    "createdAt": "2026-03-03T07:15:29.334Z",
-    "chemicalSku": {
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "chemicalSku_chemicalSupplierId": "SKU-CHEM-001_SUP-007",
         "chemicalSkuId": "SKU-CHEM-001",
-        "chemicalName": "Hydrochloric Acid 94%",
-        "chemicalCASNumber": "4801-90-8",
-        "chemicalBaseUnit": "g",
-        "chemicalTotalAvailableQty": 2248,
-        "chemicalReorderLevel": 430,
-        "chemicalHazardClass": "Toxic",
-        "createdAt": "2026-03-03T07:15:29.334Z"
-    },
-    "chemicalSupplier": {
         "chemicalSupplierId": "SUP-007",
-        "supplierName": "Công ty Hóa chất 7",
-        "supplierAddress": "24 Khu công nghiệp, Việt Nam",
-        "supplierStatus": "Inactive",
-        "supplierEvaluationScore": 79,
+        "catalogNumber": "8.46396.1036",
+        "brandManufacturer": "Scharlau",
+        "packagingSize": 4000,
+        "leadTimeDays": 43,
         "createdAt": "2026-03-03T07:15:29.334Z",
-        "supplierIsoCertifications": ["ISO 9001:2015"],
-        "supplierTaxCode": "0102930749",
-        "supplierContactPerson": [
-            {
-                "contactName": "Mr. Supplier 7",
-                "contactEmail": "contact@supp7.com",
-                "contactPhone": "0900912419"
-            }
-        ]
-    }
+        "chemicalSku": {
+            "chemicalSkuId": "SKU-CHEM-001",
+            "chemicalName": "Hydrochloric Acid 94%",
+            "chemicalCASNumber": "4801-90-8",
+            "chemicalBaseUnit": "g",
+            "chemicalTotalAvailableQty": 2248,
+            "chemicalReorderLevel": 430,
+            "chemicalHazardClass": "Toxic",
+            "createdAt": "2026-03-03T07:15:29.334Z"
+        },
+        "chemicalSupplier": {
+            "chemicalSupplierId": "SUP-007",
+            "supplierName": "Công ty Hóa chất 7",
+            "supplierAddress": "24 Khu công nghiệp, Việt Nam",
+            "supplierStatus": "Inactive",
+            "supplierEvaluationScore": 79,
+            "createdAt": "2026-03-03T07:15:29.334Z",
+            "supplierIsoCertifications": [
+                "ISO 9001:2015"
+            ],
+            "supplierTaxCode": "0102930749",
+            "supplierContactPerson": [
+                {
+                    "contactName": "Mr. Supplier 7",
+                    "contactEmail": "contact@supp7.com",
+                    "contactPhone": "0900912419"
+                }
+            ]
+        }
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -400,6 +443,8 @@ Link nối SKU và Nhà cung cấp tương ứng quy cách lô/kiện.
 
 ```json
 {
+    "success": true,
+    "statusCode": 200,
     "data": [
         {
             "chemicalInventoryId": "BTL-2603-0001",
@@ -423,9 +468,10 @@ Link nối SKU và Nhà cung cấp tương ứng quy cách lô/kiện.
     "pagination": {
         "page": 1,
         "itemsPerPage": 1,
-        "totalItems": 200,
+        "total": 200,
         "totalPages": 200
-    }
+    },
+    "error": null
 }
 ```
 
@@ -443,49 +489,57 @@ Link nối SKU và Nhà cung cấp tương ứng quy cách lô/kiện.
 
 ```json
 {
-    "chemicalInventoryId": "BTL-2603-0001",
-    "chemicalSkuId": "SKU-CHEM-021",
-    "chemicalName": "Ethanol 58%",
-    "chemicalCASNumber": "8049-22-8",
-    "chemicalSupplierId": "SUP-007",
-    "lotNumber": "LOT-62080",
-    "manufacturerName": "Sigma Aldrich",
-    "manufacturerCountry": "USA",
-    "currentAvailableQty": 1672,
-    "mfgDate": "2023-05-16T00:00:00.000Z",
-    "expDate": "2028-07-25T00:00:00.000Z",
-    "openedDate": "2024-04-08T00:00:00.000Z",
-    "openedExpDate": "2028-05-14T00:00:00.000Z",
-    "chemicalInventoryStatus": "InUse",
-    "storageBinLocation": "Tủ hóa chất A - Tầng 3",
-    "createdAt": "2026-03-03T07:15:29.334Z",
-    "chemicalSku": {
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "chemicalInventoryId": "BTL-2603-0001",
         "chemicalSkuId": "SKU-CHEM-021",
         "chemicalName": "Ethanol 58%",
         "chemicalCASNumber": "8049-22-8",
-        "chemicalBaseUnit": "bottle",
-        "chemicalTotalAvailableQty": "9853",
-        "chemicalReorderLevel": "432",
-        "chemicalHazardClass": "Corrosive",
-        "createdAt": "2026-03-03T07:15:29.334Z"
-    },
-    "chemicalSupplier": {
         "chemicalSupplierId": "SUP-007",
-        "supplierName": "Công ty Hóa chất 7",
-        "supplierAddress": "24 Khu công nghiệp, Việt Nam",
-        "supplierStatus": "Inactive",
-        "supplierEvaluationScore": 79,
+        "lotNumber": "LOT-62080",
+        "manufacturerName": "Sigma Aldrich",
+        "manufacturerCountry": "USA",
+        "currentAvailableQty": 1672,
+        "mfgDate": "2023-05-16T00:00:00.000Z",
+        "expDate": "2028-07-25T00:00:00.000Z",
+        "openedDate": "2024-04-08T00:00:00.000Z",
+        "openedExpDate": "2028-05-14T00:00:00.000Z",
+        "chemicalInventoryStatus": "InUse",
+        "storageBinLocation": "Tủ hóa chất A - Tầng 3",
         "createdAt": "2026-03-03T07:15:29.334Z",
-        "supplierIsoCertifications": ["ISO 9001:2015"],
-        "supplierTaxCode": "0102930749",
-        "supplierContactPerson": [
-            {
-                "contactName": "Mr. Supplier 7",
-                "contactEmail": "contact@supp7.com",
-                "contactPhone": "0900912419"
-            }
-        ]
-    }
+        "chemicalSku": {
+            "chemicalSkuId": "SKU-CHEM-021",
+            "chemicalName": "Ethanol 58%",
+            "chemicalCASNumber": "8049-22-8",
+            "chemicalBaseUnit": "bottle",
+            "chemicalTotalAvailableQty": "9853",
+            "chemicalReorderLevel": "432",
+            "chemicalHazardClass": "Corrosive",
+            "createdAt": "2026-03-03T07:15:29.334Z"
+        },
+        "chemicalSupplier": {
+            "chemicalSupplierId": "SUP-007",
+            "supplierName": "Công ty Hóa chất 7",
+            "supplierAddress": "24 Khu công nghiệp, Việt Nam",
+            "supplierStatus": "Inactive",
+            "supplierEvaluationScore": 79,
+            "createdAt": "2026-03-03T07:15:29.334Z",
+            "supplierIsoCertifications": [
+                "ISO 9001:2015"
+            ],
+            "supplierTaxCode": "0102930749",
+            "supplierContactPerson": [
+                {
+                    "contactName": "Mr. Supplier 7",
+                    "contactEmail": "contact@supp7.com",
+                    "contactPhone": "0900912419"
+                }
+            ]
+        }
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -509,6 +563,8 @@ Phiếu Giao Dịch/Header liên kết tất cả Line Item với nhau khi Nhậ
 
 ```json
 {
+    "success": true,
+    "statusCode": 200,
     "data": [
         {
             "chemicalTransactionBlockId": "TRB_3NA3JLS",
@@ -524,9 +580,10 @@ Phiếu Giao Dịch/Header liên kết tất cả Line Item với nhau khi Nhậ
     "pagination": {
         "page": 1,
         "itemsPerPage": 1,
-        "totalItems": 33,
+        "total": 33,
         "totalPages": 33
-    }
+    },
+    "error": null
 }
 ```
 
@@ -544,30 +601,36 @@ Phiếu Giao Dịch/Header liên kết tất cả Line Item với nhau khi Nhậ
 
 ```json
 {
-    "chemicalTransactionBlockId": "TRB_3NA3JLS",
-    "transactionType": "EXPORT",
-    "referenceDocument": "",
-    "createdAt": "2026-03-03T10:19:22.412Z",
-    "createdById": "USR-DIR-001",
-    "chemicalTransactionBlockStatus": "DRAFT",
-    "transactions": [
-        {
-            "chemicalTransactionId": "TXN_7VX9NT1",
-            "chemicalTransactionBlockId": "TRB_3NA3JLS",
-            "actionType": "SUPPLEMENTAL",
-            "chemicalSkuId": "SKU-CHEM-023",
-            "chemicalName": "Toluene 99%",
-            "casNumber": "8052-14-8",
-            "chemicalInventoryId": "BTL-2603-0050",
-            "changeQty": "-100",
-            "chemicalTransactionUnit": "ml",
-            "analysisId": "",
-            "chemicalTransactionNote": "",
-            "createdAt": "2026-03-03T10:19:22.426Z",
-            "createdById": "USR-DIR-001"
-        }
-    ],
-    "details": []
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "chemicalTransactionBlockId": "TRB_3NA3JLS",
+        "transactionType": "EXPORT",
+        "referenceDocument": "",
+        "createdAt": "2026-03-03T10:19:22.412Z",
+        "createdById": "USR-DIR-001",
+        "chemicalTransactionBlockStatus": "DRAFT",
+        "transactions": [
+            {
+                "chemicalTransactionId": "TXN_7VX9NT1",
+                "chemicalTransactionBlockId": "TRB_3NA3JLS",
+                "actionType": "SUPPLEMENTAL",
+                "chemicalSkuId": "SKU-CHEM-023",
+                "chemicalName": "Toluene 99%",
+                "casNumber": "8052-14-8",
+                "chemicalInventoryId": "BTL-2603-0050",
+                "changeQty": "-100",
+                "chemicalTransactionUnit": "ml",
+                "analysisId": "",
+                "chemicalTransactionNote": "",
+                "createdAt": "2026-03-03T10:19:22.426Z",
+                "createdById": "USR-DIR-001"
+            }
+        ],
+        "details": []
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -581,19 +644,25 @@ Phiếu Giao Dịch/Header liên kết tất cả Line Item với nhau khi Nhậ
 
 ```json
 {
-    "chemicalTransactionBlock": {
-        "transactionType": "EXPORT",
-        "referenceDocument": "REQ-LAB-001"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "chemicalTransactionBlock": {
+            "transactionType": "EXPORT",
+            "referenceDocument": "REQ-LAB-001"
+        },
+        "details": [
+            {
+                "actionType": "INITIAL_ISSUE",
+                "chemicalSkuId": "SKU-CHEM-023",
+                "chemicalInventoryId": "BTL-2603-0050",
+                "changeQty": -100,
+                "chemicalTransactionBlockDetailNote": "Xuất phục vụ thí nghiệm"
+            }
+        ]
     },
-    "details": [
-        {
-            "actionType": "INITIAL_ISSUE",
-            "chemicalSkuId": "SKU-CHEM-023",
-            "chemicalInventoryId": "BTL-2603-0050",
-            "changeQty": -100,
-            "chemicalTransactionBlockDetailNote": "Xuất phục vụ thí nghiệm"
-        }
-    ]
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -615,6 +684,8 @@ Phiếu Giao Dịch/Header liên kết tất cả Line Item với nhau khi Nhậ
 
 ```json
 {
+    "success": true,
+    "statusCode": 200,
     "data": [
         {
             "chemicalTransactionId": "TXN_7VX9NT1",
@@ -637,9 +708,10 @@ Phiếu Giao Dịch/Header liên kết tất cả Line Item với nhau khi Nhậ
     "pagination": {
         "page": 1,
         "itemsPerPage": 1,
-        "totalItems": 94,
+        "total": 94,
         "totalPages": 94
-    }
+    },
+    "error": null
 }
 ```
 
@@ -657,55 +729,61 @@ Phiếu Giao Dịch/Header liên kết tất cả Line Item với nhau khi Nhậ
 
 ```json
 {
-    "chemicalTransactionId": "TXN-TRB-2603-0001-01",
-    "chemicalTransactionBlockId": "TRB-2603-0001",
-    "actionType": "RETURN",
-    "chemicalSkuId": "SKU-CHEM-032",
-    "chemicalName": "Standard Cd 70%",
-    "casNumber": "1745-95-7",
-    "chemicalInventoryId": "BTL-2603-0186",
-    "changeQty": 29.67,
-    "chemicalTransactionUnit": "ml",
-    "parameterName": "Kiểm tra dư lượng thuốc trừ sâu",
-    "analysisId": "ANL-3980",
-    "chemicalTransactionNote": "Hàng mới nhập",
-    "createdAt": "2026-03-03T07:15:29.334Z",
-    "chemicalSku": {
-        "chemicalSkuId": "SKU-CHEM-032",
-        "chemicalName": "Standard Cd 70%",
-        "chemicalCASNumber": "1745-95-7",
-        "chemicalBaseUnit": "ml",
-        "chemicalTotalAvailableQty": "9162",
-        "chemicalReorderLevel": "160",
-        "chemicalHazardClass": "Flammable",
-        "createdAt": "2026-03-03T07:15:29.334Z"
-    },
-    "chemicalTransactionBlock": {
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "chemicalTransactionId": "TXN-TRB-2603-0001-01",
         "chemicalTransactionBlockId": "TRB-2603-0001",
-        "transactionType": "IMPORT",
-        "referenceDocument": "PO/REQ-6364",
-        "createdBy": "EMP-001",
-        "createdAt": "2026-01-10T14:13:39.766Z"
-    },
-    "chemicalInventory": {
-        "chemicalInventoryId": "BTL-2603-0186",
+        "actionType": "RETURN",
         "chemicalSkuId": "SKU-CHEM-032",
         "chemicalName": "Standard Cd 70%",
-        "chemicalCASNumber": "1745-95-7",
-        "chemicalSupplierId": "SUP-005",
-        "lotNumber": "LOT-93071",
-        "manufacturerName": "Fisher",
-        "manufacturerCountry": "UK",
-        "inventoryCOADocumentIds": null,
-        "currentAvailableQty": "1042",
-        "mfgDate": "2023-05-03T00:00:00.000Z",
-        "expDate": "2028-08-01T00:00:00.000Z",
-        "openedDate": "2023-08-07T00:00:00.000Z",
-        "openedExpDate": "2028-07-02T00:00:00.000Z",
-        "chemicalInventoryStatus": "Quarantined",
-        "storageBinLocation": "Tủ hóa chất B - Tầng 2",
-        "createdAt": "2026-03-03T07:15:29.334Z"
-    }
+        "casNumber": "1745-95-7",
+        "chemicalInventoryId": "BTL-2603-0186",
+        "changeQty": 29.67,
+        "chemicalTransactionUnit": "ml",
+        "parameterName": "Kiểm tra dư lượng thuốc trừ sâu",
+        "analysisId": "ANL-3980",
+        "chemicalTransactionNote": "Hàng mới nhập",
+        "createdAt": "2026-03-03T07:15:29.334Z",
+        "chemicalSku": {
+            "chemicalSkuId": "SKU-CHEM-032",
+            "chemicalName": "Standard Cd 70%",
+            "chemicalCASNumber": "1745-95-7",
+            "chemicalBaseUnit": "ml",
+            "chemicalTotalAvailableQty": "9162",
+            "chemicalReorderLevel": "160",
+            "chemicalHazardClass": "Flammable",
+            "createdAt": "2026-03-03T07:15:29.334Z"
+        },
+        "chemicalTransactionBlock": {
+            "chemicalTransactionBlockId": "TRB-2603-0001",
+            "transactionType": "IMPORT",
+            "referenceDocument": "PO/REQ-6364",
+            "createdBy": "EMP-001",
+            "createdAt": "2026-01-10T14:13:39.766Z"
+        },
+        "chemicalInventory": {
+            "chemicalInventoryId": "BTL-2603-0186",
+            "chemicalSkuId": "SKU-CHEM-032",
+            "chemicalName": "Standard Cd 70%",
+            "chemicalCASNumber": "1745-95-7",
+            "chemicalSupplierId": "SUP-005",
+            "lotNumber": "LOT-93071",
+            "manufacturerName": "Fisher",
+            "manufacturerCountry": "UK",
+            "inventoryCOADocumentIds": null,
+            "currentAvailableQty": "1042",
+            "mfgDate": "2023-05-03T00:00:00.000Z",
+            "expDate": "2028-08-01T00:00:00.000Z",
+            "openedDate": "2023-08-07T00:00:00.000Z",
+            "openedExpDate": "2028-07-02T00:00:00.000Z",
+            "chemicalInventoryStatus": "Quarantined",
+            "storageBinLocation": "Tủ hóa chất B - Tầng 2",
+            "createdAt": "2026-03-03T07:15:29.334Z"
+        }
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -730,11 +808,17 @@ Hệ thống sẽ tiến hành trừ `chemicalTotalAvailableQty` theo từng hó
 
 ```json
 {
-    "chemicalSkuId": "SKU-CHEM-001",
-    "requiredQty": 100,
-    "analysisId": "ANA-9992",
-    "parameterName": "Phân tích Chì trong nước",
-    "allocatedBy": "US-001"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "chemicalSkuId": "SKU-CHEM-001",
+        "requiredQty": 100,
+        "analysisId": "ANA-9992",
+        "parameterName": "Phân tích Chì trong nước",
+        "allocatedBy": "US-001"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -747,11 +831,17 @@ Cộng trả lại hóa chất khi kiểm nghiệm không dùng hết để tr�
 
 ```json
 {
-    "chemicalInventoryId": "BTL-2603-0001",
-    "returnQty": 20,
-    "analysisId": "ANA-9992",
-    "parameterName": "Dư trả lại kho",
-    "returnedBy": "US-001"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "chemicalInventoryId": "BTL-2603-0001",
+        "returnQty": 20,
+        "analysisId": "ANA-9992",
+        "parameterName": "Dư trả lại kho",
+        "returnedBy": "US-001"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -764,7 +854,13 @@ Force tính toán và chạy query đếm tổng Sum(currentAvailableQty) của 
 
 ```json
 {
-    "chemicalSkuId": "SKU-CHEM-001"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "chemicalSkuId": "SKU-CHEM-001"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -810,10 +906,16 @@ Cung cấp CRUD cho các dòng chi tiết nằm trong Block đang ở trạng th
 
 ```json
 {
-    "chemicalAuditDetailId": "ADD_...",
-    "actualAvailableQty": 450,
-    "actualChemicalInventoryStatus": "InUse",
-    "isScanned": true,
-    "chemicalAuditDetailNote": "Cân thực tế tại kho"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "chemicalAuditDetailId": "ADD_...",
+        "actualAvailableQty": 450,
+        "actualChemicalInventoryStatus": "InUse",
+        "isScanned": true,
+        "chemicalAuditDetailNote": "Cân thực tế tại kho"
+    },
+    "pagination": null,
+    "error": null
 }
 ```

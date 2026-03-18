@@ -47,6 +47,7 @@ To support dynamic frontend dropdowns with count distribution, all Lab Entities 
 ```json
 {
     "success": true,
+    "statusCode": 200,
     "data": [
         {
             "filterValue": "Ready",
@@ -56,7 +57,9 @@ To support dynamic frontend dropdowns with count distribution, all Lab Entities 
             "filterValue": "Testing",
             "count": 3
         }
-    ]
+    ],
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -102,54 +105,59 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
-    "result": [
-        {
-            "requestId": "REQ26d0504",
-            "requestDate": "2026-01-21T08:00:00.000Z",
-            "senderInfo": {
-                "senderName": "Grab Driver",
-                "senderPhone": "0911222333"
-            },
-            "requestContent": "Yêu cầu kiểm nghiệm mẫu nước thải công nghiệp",
-            "documentIds": null,
-            "quoteId": "QTE26d0501",
-            "clientId": "CLI26020503",
-            "client": null,
-            "contactPerson": null,
-            "reportRecipient": null,
-            "salePersonId": null,
-            "salePerson": null,
-            "saleCommissionPercent": null,
-            "samples": null,
-            "totalAmount": "3000000",
-            "totalFeeBeforeTax": "0",
-            "totalFeeBeforeTaxAndDiscount": null,
-            "totalTaxValue": null,
-            "totalDiscountValue": null,
-            "taxRate": null,
-            "discountRate": null,
-            "linkedOrderId": null,
-            "status": "New",
-            "orderUri": null,
-            "requestForm": null,
-            "receiptId": null,
-            "createdAt": "2026-02-05T10:04:15.361Z",
-            "createdById": "USR-NJG35FM",
-            "modifiedAt": "2026-02-05T10:04:15.361Z",
-            "modifiedById": "USR-NJG35FM",
-            "deletedAt": null,
-            "orderId": "ORD26d0501",
-            "incomingStatus": null,
-            "orderStatus": null,
-            "paymentStatus": null
-        }
-    ],
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "result": [
+            {
+                "requestId": "REQ26d0504",
+                "requestDate": "2026-01-21T08:00:00.000Z",
+                "senderInfo": {
+                    "senderName": "Grab Driver",
+                    "senderPhone": "0911222333"
+                },
+                "requestContent": "Yêu cầu kiểm nghiệm mẫu nước thải công nghiệp",
+                "documentIds": null,
+                "quoteId": "QTE26d0501",
+                "clientId": "CLI26020503",
+                "client": null,
+                "contactPerson": null,
+                "reportRecipient": null,
+                "salePersonId": null,
+                "salePerson": null,
+                "saleCommissionPercent": null,
+                "samples": null,
+                "totalAmount": "3000000",
+                "totalFeeBeforeTax": "0",
+                "totalFeeBeforeTaxAndDiscount": null,
+                "totalTaxValue": null,
+                "totalDiscountValue": null,
+                "taxRate": null,
+                "discountRate": null,
+                "linkedOrderId": null,
+                "status": "New",
+                "orderUri": null,
+                "requestForm": null,
+                "receiptId": null,
+                "createdAt": "2026-02-05T10:04:15.361Z",
+                "createdById": "USR-NJG35FM",
+                "modifiedAt": "2026-02-05T10:04:15.361Z",
+                "modifiedById": "USR-NJG35FM",
+                "deletedAt": null,
+                "orderId": "ORD26d0501",
+                "incomingStatus": null,
+                "orderStatus": null,
+                "paymentStatus": null
+            }
+        ]
+    },
     "pagination": {
-        "currentPage": 1,
+        "page": 1,
         "itemsPerPage": 1,
-        "totalItems": 1,
+        "total": 1,
         "totalPages": 1
-    }
+    },
+    "error": null
 }
 ```
 
@@ -161,57 +169,63 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
-    "entity": {
-        "type": "staff"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "entity": {
+            "type": "staff"
+        },
+        "requestId": "REQ26d0504",
+        "requestDate": "2026-01-21T08:00:00.000Z",
+        "senderInfo": {
+            "senderName": "Grab Driver",
+            "senderPhone": "0911222333"
+        },
+        "requestContent": "Yêu cầu kiểm nghiệm mẫu nước thải công nghiệp",
+        "documentIds": null,
+        "quoteId": "QTE26d0501",
+        "clientId": "CLI26020503",
+        "client": null,
+        "contactPerson": null,
+        "reportRecipient": null,
+        "salePersonId": null,
+        "salePerson": null,
+        "saleCommissionPercent": null,
+        "samples": null,
+        "totalAmount": "3000000",
+        "totalFeeBeforeTax": "0",
+        "totalFeeBeforeTaxAndDiscount": null,
+        "totalTaxValue": null,
+        "totalDiscountValue": null,
+        "taxRate": null,
+        "discountRate": null,
+        "linkedOrderId": null,
+        "status": "New",
+        "orderUri": null,
+        "requestForm": null,
+        "receiptId": null,
+        "createdAt": "2026-02-05T10:04:15.361Z",
+        "createdById": "USR-NJG35FM",
+        "modifiedAt": "2026-02-05T10:04:15.361Z",
+        "modifiedById": "USR-NJG35FM",
+        "deletedAt": null,
+        "orderId": "ORD26d0501",
+        "incomingStatus": null,
+        "orderStatus": null,
+        "paymentStatus": null,
+        "createdBy": {
+            "identityId": "USR-NJG35FM",
+            "identityName": "Admin Test",
+            "alias": null
+        },
+        "modifiedBy": {
+            "identityId": "USR-NJG35FM",
+            "identityName": "Admin Test",
+            "alias": null
+        }
     },
-    "requestId": "REQ26d0504",
-    "requestDate": "2026-01-21T08:00:00.000Z",
-    "senderInfo": {
-        "senderName": "Grab Driver",
-        "senderPhone": "0911222333"
-    },
-    "requestContent": "Yêu cầu kiểm nghiệm mẫu nước thải công nghiệp",
-    "documentIds": null,
-    "quoteId": "QTE26d0501",
-    "clientId": "CLI26020503",
-    "client": null,
-    "contactPerson": null,
-    "reportRecipient": null,
-    "salePersonId": null,
-    "salePerson": null,
-    "saleCommissionPercent": null,
-    "samples": null,
-    "totalAmount": "3000000",
-    "totalFeeBeforeTax": "0",
-    "totalFeeBeforeTaxAndDiscount": null,
-    "totalTaxValue": null,
-    "totalDiscountValue": null,
-    "taxRate": null,
-    "discountRate": null,
-    "linkedOrderId": null,
-    "status": "New",
-    "orderUri": null,
-    "requestForm": null,
-    "receiptId": null,
-    "createdAt": "2026-02-05T10:04:15.361Z",
-    "createdById": "USR-NJG35FM",
-    "modifiedAt": "2026-02-05T10:04:15.361Z",
-    "modifiedById": "USR-NJG35FM",
-    "deletedAt": null,
-    "orderId": "ORD26d0501",
-    "incomingStatus": null,
-    "orderStatus": null,
-    "paymentStatus": null,
-    "createdBy": {
-        "identityId": "USR-NJG35FM",
-        "identityName": "Admin Test",
-        "alias": null
-    },
-    "modifiedBy": {
-        "identityId": "USR-NJG35FM",
-        "identityName": "Admin Test",
-        "alias": null
-    }
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -223,11 +237,17 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
-    "requestContent": "Yêu cầu kiểm nghiệm mới",
-    "senderInfo": {
-        "senderName": "Nguyễn Văn A",
-        "senderPhone": "0909123456"
-    }
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "requestContent": "Yêu cầu kiểm nghiệm mới",
+        "senderInfo": {
+            "senderName": "Nguyễn Văn A",
+            "senderPhone": "0909123456"
+        }
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -241,8 +261,14 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
-    "requestId": "REQ26d0504",
-    "status": "Processing"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "requestId": "REQ26d0504",
+        "status": "Processing"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -256,7 +282,13 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
-    "requestId": "REQ26d0504"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "requestId": "REQ26d0504"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -270,7 +302,7 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
         "id": "REQ26d0504",
         "status": "Deleted"
     },
-    "meta": null,
+    "pagination": null,
     "error": null
 }
 ```
@@ -296,6 +328,8 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
+    "success": true,
+    "statusCode": 200,
     "data": [
         {
             "receiptId": "REC26d2403",
@@ -314,9 +348,10 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
     "pagination": {
         "page": 1,
         "itemsPerPage": 1,
-        "totalItems": 3655,
+        "total": 3655,
         "totalPages": 3655
-    }
+    },
+    "error": null
 }
 ```
 
@@ -380,9 +415,15 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
-    "clientId": "CLI26020502",
-    "receiptStatus": "Received",
-    "receiptDeadline": "2026-03-09T07:00:00.000Z"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "clientId": "CLI26020502",
+        "receiptStatus": "Received",
+        "receiptDeadline": "2026-03-09T07:00:00.000Z"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -398,20 +439,26 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
-    "clientId": "CLI26020502",
-    "receiptStatus": "Received",
-    "samples": [
-        {
-            "sampleTypeId": "ST0032",
-            "sampleName": "Mẫu Nước Sinh Hoạt",
-            "analyses": [
-                {
-                    "matrixId": "MX001",
-                    "parameterName": "pH"
-                }
-            ]
-        }
-    ]
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "clientId": "CLI26020502",
+        "receiptStatus": "Received",
+        "samples": [
+            {
+                "sampleTypeId": "ST0032",
+                "sampleName": "Mẫu Nước Sinh Hoạt",
+                "analyses": [
+                    {
+                        "matrixId": "MX001",
+                        "parameterName": "pH"
+                    }
+                ]
+            }
+        ]
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -425,14 +472,75 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
-    "receiptId": "TNM26d1328",
-    "receiptStatus": "Processing"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "receiptId": "TNM26d1328",
+        "receiptStatus": "Processing"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
 **Response Structure**: `200 OK` - Returns the updated Receipt object.
 
-### 3.8 Delete Receipt
+### 3.8 Update Receipt Bulk
+
+**Endpoint**: `POST /v2/receipts/update/bulk`
+
+**Request Body Example**:
+
+```json
+[
+    { "receiptId": "REC26d2402", "receiptPriority": "Urgent" }
+]
+```
+
+**Response Structure**: `200 OK` - Object containing successful/failed updates.
+
+### 3.9 Export Receipt Report
+
+**Endpoint**: `POST /v2/receipts/export/report`
+
+**Request Body Example**:
+
+```json
+{
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "receiptId": "REC26d2402",
+        "preview": false,
+        "headerHtml": "<h1>Report Header</h1>",
+        "contentHtml": "<table>...</table>"
+    },
+    "pagination": null,
+    "error": null
+}
+```
+
+**Response Structure**:
+
+```json
+{
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "reportId": "RPT-XXXXXX",
+        "documentId": "DOC-XXXXXX",
+        "fileId": "FILE-XXXXXX",
+        "message": "Report published successfully."
+    },
+    "pagination": null,
+    "error": null
+}
+```
+*(If `preview` is `true`, it returns `pdfBase64` instead of creating records).*
+
+---
+
+### 3.10 Delete Receipt
 
 **Endpoint**: `POST /v2/receipts/delete`
 
@@ -440,7 +548,13 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
-    "receiptId": "TNM26d1328"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "receiptId": "TNM26d1328"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -467,6 +581,8 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
+    "success": true,
+    "statusCode": 200,
     "data": [
         {
             "entity": {
@@ -507,9 +623,10 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
     "pagination": {
         "page": 1,
         "itemsPerPage": 1,
-        "totalItems": 59199,
+        "total": 59199,
         "totalPages": 59199
-    }
+    },
+    "error": null
 }
 ```
 
@@ -521,60 +638,66 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
-    "entity": {
-        "type": "staff"
-    },
-    "createdById": "IDx873e4",
-    "modifiedById": "IDx873e4",
-    "sampleInformation": [
-        {
-            "fname": "Số lô / LOT no.",
-            "fvalue": "010126"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "entity": {
+            "type": "staff"
         },
-        {
-            "fname": "Ngày sản xuất / mfg.",
-            "fvalue": "280126"
+        "createdById": "IDx873e4",
+        "modifiedById": "IDx873e4",
+        "sampleInformation": [
+            {
+                "fname": "Số lô / LOT no.",
+                "fvalue": "010126"
+            },
+            {
+                "fname": "Ngày sản xuất / mfg.",
+                "fvalue": "280126"
+            },
+            {
+                "fname": "Hạn sử dụng / exp.",
+                "fvalue": "280129"
+            },
+            {
+                "fname": "Nơi sản xuất / mfr.",
+                "fvalue": "CÔNG TY CỔ PHẦN DƯỢC PHẨM BIKA PHARMA"
+            },
+            {
+                "fname": "Ngày tiếp nhận / receipt date.",
+                "fvalue": "13/2/2026"
+            },
+            {
+                "fname": "Ngày thử nghiệm / test date.",
+                "fvalue": ""
+            },
+            {
+                "fname": "Mô tả / desc.",
+                "fvalue": ""
+            }
+        ],
+        "id": "SP26d1328-01",
+        "sampleId": "SP26d1328-01",
+        "createdAt": "2026-02-13T08:30:10.163Z",
+        "modifiedAt": "2026-02-13T08:30:10.163Z",
+        "receiptId": "TNM26d1328",
+        "status": 0,
+        "sampleName": "Thực phẩm bảo vệ sức khỏe Viên uống Đại tràng Hanaki",
+        "matrix": "Thực phẩm bảo vệ sức khỏe",
+        "purpose": "Chất lượng",
+        "createdBy": {
+            "identityId": "IDx873e4",
+            "identityName": "Duy Thị Kim Huyền",
+            "alias": null
         },
-        {
-            "fname": "Hạn sử dụng / exp.",
-            "fvalue": "280129"
-        },
-        {
-            "fname": "Nơi sản xuất / mfr.",
-            "fvalue": "CÔNG TY CỔ PHẦN DƯỢC PHẨM BIKA PHARMA"
-        },
-        {
-            "fname": "Ngày tiếp nhận / receipt date.",
-            "fvalue": "13/2/2026"
-        },
-        {
-            "fname": "Ngày thử nghiệm / test date.",
-            "fvalue": ""
-        },
-        {
-            "fname": "Mô tả / desc.",
-            "fvalue": ""
+        "modifiedBy": {
+            "identityId": "IDx873e4",
+            "identityName": "Duy Thị Kim Huyền",
+            "alias": null
         }
-    ],
-    "id": "SP26d1328-01",
-    "sampleId": "SP26d1328-01",
-    "createdAt": "2026-02-13T08:30:10.163Z",
-    "modifiedAt": "2026-02-13T08:30:10.163Z",
-    "receiptId": "TNM26d1328",
-    "status": 0,
-    "sampleName": "Thực phẩm bảo vệ sức khỏe Viên uống Đại tràng Hanaki",
-    "matrix": "Thực phẩm bảo vệ sức khỏe",
-    "purpose": "Chất lượng",
-    "createdBy": {
-        "identityId": "IDx873e4",
-        "identityName": "Duy Thị Kim Huyền",
-        "alias": null
     },
-    "modifiedBy": {
-        "identityId": "IDx873e4",
-        "identityName": "Duy Thị Kim Huyền",
-        "alias": null
-    }
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -773,9 +896,15 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
-    "receiptId": "REC26d1309",
-    "sampleName": "Mẫu Nước Sinh Hoạt",
-    "sampleTypeId": "ST0032"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "receiptId": "REC26d1309",
+        "sampleName": "Mẫu Nước Sinh Hoạt",
+        "sampleTypeId": "ST0032"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -791,20 +920,26 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
-    "receiptId": "REC26d1309",
-    "sampleTypeId": "ST0032",
-    "sampleVolume": "500ml",
-    "samplePreservation": "Toang",
-    "sampleClientInfo": "Sample Info for Client",
-    "analyses": [
-        {
-            "matrixId": "MX001"
-        },
-        {
-            "matrixId": "MX002",
-            "analysisStatus": "Processing"
-        }
-    ]
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "receiptId": "REC26d1309",
+        "sampleTypeId": "ST0032",
+        "sampleVolume": "500ml",
+        "samplePreservation": "Toang",
+        "sampleClientInfo": "Sample Info for Client",
+        "analyses": [
+            {
+                "matrixId": "MX001"
+            },
+            {
+                "matrixId": "MX002",
+                "analysisStatus": "Processing"
+            }
+        ]
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -818,8 +953,14 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
-    "sampleId": "SAM26d1309",
-    "sampleStatus": "Analyzing"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "sampleId": "SAM26d1309",
+        "sampleStatus": "Analyzing"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -833,7 +974,13 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
-    "sampleId": "SAM26d1309"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "sampleId": "SAM26d1309"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -842,9 +989,14 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 ```json
 {
     "success": true,
-    "id": "SAM26d1309",
-    "status": "Deleted",
-    "details": true
+    "statusCode": 200,
+    "data": {
+        "id": "SAM26d1309",
+        "status": "Deleted",
+        "details": true
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -860,13 +1012,16 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
+    "success": true,
+    "statusCode": 200,
     "data": [],
     "pagination": {
         "page": 1,
         "itemsPerPage": 1,
-        "totalItems": 121787,
+        "total": 121787,
         "totalPages": 121787
-    }
+    },
+    "error": null
 }
 ```
 
@@ -1143,9 +1298,15 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
-    "sampleId": "SAM26d1309",
-    "parameterId": "PM000357",
-    "technicianId": "USR-STF-033"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "sampleId": "SAM26d1309",
+        "parameterId": "PM000357",
+        "technicianId": "USR-STF-033"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -1159,8 +1320,14 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
-    "analysisId": "ANL_MKAGN3XI5YJ",
-    "analysisStatus": "Verified"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "analysisId": "ANL_MKAGN3XI5YJ",
+        "analysisStatus": "Verified"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -1174,9 +1341,15 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
-    "analysisId": "ANL_MKAGN3XI5YJ",
-    "resultValue": "303,03",
-    "analysisResultStatus": "Pass"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "analysisId": "ANL_MKAGN3XI5YJ",
+        "resultValue": "303,03",
+        "analysisResultStatus": "Pass"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -1190,7 +1363,13 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
-    "analysisId": "ANL_MKAGN3XI5YJ"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "analysisId": "ANL_MKAGN3XI5YJ"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -1199,9 +1378,55 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 ```json
 {
     "success": true,
-    "id": "ANL_MKAGN3XI5YJ",
-    "status": "Deleted",
-    "details": true
+    "statusCode": 200,
+    "data": {
+        "id": "ANL_MKAGN3XI5YJ",
+        "status": "Deleted",
+        "details": true
+    },
+    "pagination": null,
+    "error": null
+}
+```
+
+### 5.7 Generate Lab Report Document
+
+**Endpoint**: `POST /v2/analyses/generate/lab-report`
+
+**Request Body Example**:
+
+```json
+{
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "analyses": [
+            "ANL_MKAGN3XI5YJ",
+            "ANL_OTHER_ID"
+        ],
+        "html": "<h1>BÁO CÁO PHÂN TÍCH...</h1>",
+        "filename": "LabReport_Q1_2026.pdf"
+    },
+    "pagination": null,
+    "error": null
+}
+```
+
+*Notes*: `filename` is optional, defaults to `LabReport_{timestamp}.pdf`.
+
+**Response Structure**:
+
+```json
+{
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "documentId": "DOC_20260313101502",
+        "fileId": "FILE_20260313101502",
+        "message": "Lab report generated and documented successfully."
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -1217,35 +1442,75 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
+    "success": true,
+    "statusCode": 200,
     "data": [],
     "pagination": {
         "page": 1,
         "itemsPerPage": 1,
-        "totalItems": 0,
-        "totalPages": 0
-    }
+        "total": 0,
+        "totalPages": 1
+    },
+    "error": null
 }
 ```
 
 ### 6.2 Get Report Detail
 
-**Endpoint**: `GET /v2/reports/get/{reportId}`
+**Endpoint**: `GET /v2/reports/get/detail?reportId={reportId}`
 
 **Response Structure**:
 
 ```json
 {
-    "reportId": "RP26d2401",
-    "receiptId": "REC26d2403",
-    "sampleId": "SAM26d2405",
-    "header": "...",
-    "content": "...",
-    "footer": "...",
-    "reportStatus": "Draft",
-    "reportRevision": 1,
-    "replacedByReportId": null,
-    "createdAt": "2026-02-24T02:00:00.000Z",
-    "createdById": "USR-MGR-011"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "reportId": "RP26d2401",
+        "receiptId": "REC26d2403",
+        "sampleId": "SAM26d2405",
+        "header": "...",
+        "content": "...",
+        "footer": "...",
+        "reportStatus": "Draft",
+        "reportRevision": 1,
+        "replacedByReportId": null,
+        "createdAt": "2026-02-24T02:00:00.000Z",
+        "createdById": "USR-MGR-011"
+    },
+    "pagination": null,
+    "error": null
+}
+```
+
+### 6.3 Get Full Report Detail
+
+**Endpoint**: `GET /v2/reports/get/full?reportId={reportId}`
+
+**Description**: Fetches the report details along with the associated `document` and physical `file`.
+
+**Response Structure**:
+
+```json
+{
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "reportId": "RP26d2401",
+        "receiptId": "REC26d2403",
+        "document": {
+            "documentId": "DOC-123",
+            "fileId": "FILE-123"
+        },
+        "file": {
+            "fileId": "FILE-123",
+            "uris": [
+                "..."
+            ]
+        }
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -1257,13 +1522,45 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
-    "receiptId": "REC26d2403"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "receiptId": "REC26d2403"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
 **Response Structure**: `201 Created` - Returns the newly created Report object.
 
-### 6.4 Update Report
+### 6.4 Preview Report
+
+**Endpoint**: `GET /v2/reports/get/preview?reportId={reportId}`
+
+**Description**: Generates a temporary presigned URL to view/download the PDF file associated with the report.
+
+**Response Structure**:
+
+```json
+{
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "url": "https://s3.irdop.org/..."
+    },
+    "pagination": null,
+    "error": null
+}
+```
+
+### 6.5 Get Report IDs by Sample
+
+**Endpoint**: `GET /v2/reports/get/by-sample?sampleId={sampleId}`
+
+**Response Structure**: `200 OK` - Returns an array of `reportId` strings.
+
+### 6.6 Update Report
 
 **Endpoint**: `POST /v2/reports/update`
 
@@ -1271,8 +1568,14 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
-    "reportId": "RP26d2401",
-    "reportStatus": "Approved"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "reportId": "RP26d2401",
+        "reportStatus": "Approved"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -1286,7 +1589,13 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
-    "reportId": "RP26d2401"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "reportId": "RP26d2401"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -1300,7 +1609,7 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
         "id": "RP26d2401",
         "status": "Deleted"
     },
-    "meta": null,
+    "pagination": null,
     "error": null
 }
 ```
@@ -1313,9 +1622,13 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
-    "error": "Forbidden",
-    "message": "Insufficient permission to READ lab.sample",
-    "statusCode": 403
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "message": "Insufficient permission to READ lab.sample"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -1323,9 +1636,13 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
-    "error": "Not Found",
-    "message": "Entity not found",
-    "statusCode": 404
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "message": "Entity not found"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -1333,8 +1650,12 @@ All Lab Entities (Analyses, Samples, Receipts) support bulk creation and updates
 
 ```json
 {
-    "error": "Bad Request",
-    "message": "Invalid input syntax for type integer: \"abc\"",
-    "statusCode": 400
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "message": "Invalid input syntax for type integer: \"abc\""
+    },
+    "pagination": null,
+    "error": null
 }
 ```

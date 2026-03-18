@@ -1,11 +1,11 @@
 import { AlertCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 import { useMatrixDetail } from "@/api/library";
 import { formatNumberVi, safeText } from "./matrixFormat";
+import { AccreditationBadges } from "../shared/AccreditationTagInput";
 
 type Props = {
     open: boolean;
@@ -102,7 +102,6 @@ export function MatricesDetailModal(props: Props) {
                               const createdByName = safeText(m.createdBy?.identityName).trim();
 
                               const acc = m.protocolAccreditation ?? {};
-                              const hasAcc = Boolean(acc.VILAS) || Boolean(acc.TDC);
 
                               return (
                                   <>
@@ -115,14 +114,9 @@ export function MatricesDetailModal(props: Props) {
                                           <Field
                                               label={String(t("library.matrices.protocolAccreditation"))}
                                               value={
-                                                  hasAcc ? (
-                                                      <div className="flex items-center justify-start gap-2">
-                                                          {acc.VILAS ? <Badge variant="secondary">VILAS</Badge> : null}
-                                                          {acc.TDC ? <Badge variant="secondary">TDC</Badge> : null}
-                                                      </div>
-                                                  ) : (
-                                                      String(t("common.noData"))
-                                                  )
+                                                  <div className="flex items-center justify-start gap-2">
+                                                      <AccreditationBadges value={acc} />
+                                                  </div>
                                               }
                                           />
                                       </div>

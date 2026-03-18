@@ -1,11 +1,11 @@
 import { AlertCircle, X, Pencil } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 import { useMatrixDetail } from "@/api/library";
 import { formatNumberVi, safeText } from "./matrixFormat";
+import { AccreditationBadges } from "../shared/AccreditationTagInput";
 
 type Props = {
     matrixId: string | null;
@@ -83,7 +83,7 @@ export function MatrixDetailPanel(props: Props) {
 
                 {!q.isLoading && !q.isError && q.data
                     ? (() => {
-                          const m = q.data as any; // any to avoid complex type errors if 'createdBy' is not strongly typed
+                          const m = q.data as any;
 
                           const parameterLabel = safeText(m.parameterName).trim() || m.parameterId;
                           const protocolLabel = safeText(m.protocolCode).trim() || m.protocolId;
@@ -108,7 +108,6 @@ export function MatrixDetailPanel(props: Props) {
                           const createdByName = safeText(m.createdBy?.identityName).trim() || t("common.noData");
 
                           const acc = m.protocolAccreditation ?? {};
-                          const hasAcc = Boolean(acc.VILAS) || Boolean(acc.TDC);
 
                           return (
                               <div className="space-y-0 relative">
@@ -129,16 +128,9 @@ export function MatrixDetailPanel(props: Props) {
                                           <Field
                                               label={String(t("library.matrices.protocolAccreditation"))}
                                               value={
-                                                  hasAcc ? (
-                                                      <div className="flex items-center justify-start gap-1.5 mt-1">
-                                                          {acc.VILAS ? <Badge variant="secondary">VILAS</Badge> : null}
-                                                          {acc.TDC ? <Badge variant="secondary">TDC</Badge> : null}
-                                                      </div>
-                                                  ) : (
-                                                      <Badge variant="outline" className="font-normal mt-1 text-muted-foreground">
-                                                          {String(t("common.noData"))}
-                                                      </Badge>
-                                                  )
+                                                  <div className="mt-1">
+                                                      <AccreditationBadges value={acc} />
+                                                  </div>
                                               }
                                           />
                                       </div>

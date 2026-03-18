@@ -11,6 +11,9 @@ export type StandardListQuery = {
 
     search?: string | null;
 
+    sortColumn?: string | null;
+    sortDirection?: string | null;
+
     filters?: Record<string, unknown>;
 
     [key: string]: unknown;
@@ -46,11 +49,19 @@ export type ReceiptsDeleteInput = {
     query?: Record<string, unknown>;
 };
 
+export type ReceiptsExportReportBody = {
+    receiptId: string;
+    sampleId: string;
+    preview: boolean;
+    headerHtml: string;
+    contentHtml: string;
+    replacedByReportId?: string;
+};
+
 export type ApiMeta = {
     page: number;
     itemsPerPage: number;
 
-    totalItems?: number;
     total?: number;
 
     totalPages: number;
@@ -92,7 +103,7 @@ function assertSuccessWithMeta<T>(res: ApiResponse<T> | any): ListResult<T> {
         meta && typeof meta === "object"
             ? {
                   ...meta,
-                  total: typeof meta.total === "number" ? meta.total : typeof meta.totalItems === "number" ? meta.totalItems : 0,
+                  total: typeof meta.total === "number" ? meta.total : (meta as any).totalItems ?? 0,
               }
             : null;
 
@@ -130,16 +141,30 @@ const noCacheHeaders = {
 
 export async function receiptsGetList(input: ReceiptsGetListInput = {}): Promise<ApiResponse<ReceiptListItem[]>> {
     const { query, sort } = input;
+    const finalQuery: StandardListQuery = { ...(query ?? {}) };
+
+    if (sort) {
+        if (sort.column) finalQuery.sortColumn = String(sort.column);
+        if (sort.direction) finalQuery.sortDirection = String(sort.direction);
+    }
+
     return api.get<ReceiptListItem[], StandardListQuery>("/v2/receipts/get/list", {
-        query: { ...(query ?? {}), ...(sort ? { sort } : {}) },
+        query: finalQuery,
         headers: noCacheHeaders,
     });
 }
 
 export async function receiptsGetProcessing(input: ReceiptsGetListInput = {}): Promise<ApiResponse<ReceiptDetail[]>> {
     const { query, sort } = input;
+    const finalQuery: StandardListQuery = { ...(query ?? {}) };
+
+    if (sort) {
+        if (sort.column) finalQuery.sortColumn = String(sort.column);
+        if (sort.direction) finalQuery.sortDirection = String(sort.direction);
+    }
+
     return api.get<ReceiptDetail[], StandardListQuery>("/v2/receipts/get/processing", {
-        query: { ...(query ?? {}), ...(sort ? { sort } : {}) },
+        query: finalQuery,
         headers: noCacheHeaders,
     });
 }
@@ -181,6 +206,12 @@ export async function receiptsDelete(input: ReceiptsDeleteInput): Promise<ApiRes
     return api.post<ReceiptDeleteResult, ReceiptsDeleteBody>("/v2/receipts/delete", {
         body,
         query,
+    });
+}
+
+export async function receiptsExportReport(input: { body: ReceiptsExportReportBody }): Promise<ApiResponse<{ base64?: string; pdfBase64?: string; reportId?: string; documentId?: string; fileId?: string }>> {
+    return api.post("/v2/receipts/export/report", {
+        body: input.body,
     });
 }
 
@@ -364,6 +395,12 @@ export function useDeleteReceipt() {
         onSettled: async () => {
             await qc.invalidateQueries({ queryKey: receiptsKeys.all, exact: false, refetchType: "active" });
         },
+    });
+}
+
+export function useExportReport() {
+    return useMutation({
+        mutationFn: async (input: { body: ReceiptsExportReportBody }) => assertSuccess(await receiptsExportReport(input)),
     });
 }
 

@@ -1,12 +1,14 @@
 // src/components/reception/IncomingRequestsTable.tsx
 // Bảng hiển thị danh sách Yêu cầu tiếp nhận từ bên ngoài (crm.incomingRequests)
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Zap, Eye, Package, FlaskConical } from "lucide-react";
+import { Zap, Eye, Package, FlaskConical, Filter, X } from "lucide-react";
 
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import type { IncomingRequestListItem } from "@/types/incomingRequest";
 import type { OrderSampleItem } from "@/types/crm";
@@ -14,20 +16,20 @@ import type { OrderSampleItem } from "@/types/crm";
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Đếm tổng số mẫu từ mảng JSONB samples */
-function countSamples(samples?: OrderSampleItem[] | null): number {
+export function countSamples(samples?: OrderSampleItem[] | null): number {
     if (!Array.isArray(samples)) return 0;
     return samples.length;
 }
 
 /** Đếm tổng số chỉ tiêu từ mảng JSONB samples → analyses */
-function countAnalyses(samples?: OrderSampleItem[] | null): number {
+export function countAnalyses(samples?: OrderSampleItem[] | null): number {
     if (!Array.isArray(samples)) return 0;
     return samples.reduce((sum, s) => sum + (Array.isArray(s.analyses) ? s.analyses.length : 0), 0);
 }
 
 // ── Status Badge Helpers ─────────────────────────────────────────────────────
 
-function getOrderStatusBadge(status: string | null | undefined, t: (k: string, opts?: Record<string, unknown>) => unknown) {
+export function getOrderStatusBadge(status: string | null | undefined, t: (k: string, opts?: Record<string, unknown>) => unknown) {
     switch (status) {
         case "Pending":
             return (
@@ -42,15 +44,16 @@ function getOrderStatusBadge(status: string | null | undefined, t: (k: string, o
         case "Cancelled":
             return <Badge className="bg-destructive/15 text-destructive border-destructive/30 text-xs">{String(t("crm.orders.orderStatus.Cancelled", { defaultValue: "Hủy bỏ" }))}</Badge>;
         default:
+            if (!status || status === "-") return null;
             return (
                 <Badge variant="secondary" className="text-xs">
-                    {status ?? "-"}
+                    {status}
                 </Badge>
             );
     }
 }
 
-function getPaymentStatusBadge(status: string | null | undefined, t: (k: string, opts?: Record<string, unknown>) => unknown) {
+export function getPaymentStatusBadge(status: string | null | undefined, t: (k: string, opts?: Record<string, unknown>) => unknown) {
     switch (status) {
         case "Unpaid":
             return (
@@ -63,18 +66,21 @@ function getPaymentStatusBadge(status: string | null | undefined, t: (k: string,
             return <Badge className="bg-warning/15 text-warning border-warning/30 text-xs">{String(t("crm.orders.paymentStatus.Partial", { defaultValue: "TT một phần" }))}</Badge>;
         case "Paid":
             return <Badge className="bg-success/15 text-success border-success/30 text-xs">{String(t("crm.orders.paymentStatus.Paid", { defaultValue: "Đã TT" }))}</Badge>;
+        case "Variance":
+            return <Badge className="bg-primary/15 text-primary border-primary/30 text-xs">{String(t("crm.orders.paymentStatus.Variance", { defaultValue: "Chênh lệch" }))}</Badge>;
         case "Debt":
             return <Badge className="bg-destructive/15 text-destructive border-destructive/30 text-xs">{String(t("crm.orders.paymentStatus.Debt", { defaultValue: "Công nợ" }))}</Badge>;
         default:
+            if (!status) return null;
             return (
                 <Badge variant="secondary" className="text-xs">
-                    {status ?? "-"}
+                    {status}
                 </Badge>
             );
     }
 }
 
-function getIncomingStatusBadge(status: string | null | undefined, t: (k: string, opts?: Record<string, unknown>) => unknown) {
+export function getIncomingStatusBadge(status: string | null | undefined, t: (k: string, opts?: Record<string, unknown>) => unknown) {
     switch (status) {
         case "New":
             return <Badge className="bg-primary/15 text-primary border-primary/30 text-xs">{String(t("reception.incomingRequests.status.New", { defaultValue: "Mới" }))}</Badge>;
@@ -97,12 +103,69 @@ function getIncomingStatusBadge(status: string | null | undefined, t: (k: string
 interface IncomingRequestsTableProps {
     items: IncomingRequestListItem[];
     isLoading?: boolean;
+    filters?: { receiptId: string[]; paymentStatus: string[] };
+    onFiltersChange?: (next: { receiptId: string[]; paymentStatus: string[] }) => void;
     onConvert: (item: IncomingRequestListItem) => void;
     onViewDetail?: (requestId: string) => void;
+    onViewReceipt?: (receiptId: string) => void;
+}
+
+// ── Simple Filter Popover ────────────────────────────────────────────────────
+interface SimpleFilterPopoverProps {
+    title: string;
+    options: { label: string; value: string }[];
+    selected: string[];
+    onApply: (values: string[]) => void;
+    onClear: () => void;
+}
+
+function SimpleFilterPopover({ title, options, selected, onApply, onClear }: SimpleFilterPopoverProps) {
+    const { t } = useTranslation();
+    const [open, setOpen] = useState(false);
+    const [localSelected, setLocalSelected] = useState<string[]>(selected);
+
+    const toggle = (v: string) => {
+        setLocalSelected((cur) => cur.includes(v) ? cur.filter(x => x !== v) : [...cur, v]);
+    };
+
+    const apply = () => { onApply(localSelected); setOpen(false); };
+    const clear = () => { onClear(); setLocalSelected([]); setOpen(false); };
+
+    return (
+        <Popover open={open} onOpenChange={(v) => { setOpen(v); if(v) setLocalSelected(selected); }}>
+            <PopoverTrigger asChild>
+                <button type="button" className="relative group/filter hover:bg-muted p-1 rounded-md cursor-pointer transition-colors" onClick={(e) => e.stopPropagation()}>
+                    <Filter className="h-3.5 w-3.5 text-muted-foreground group-hover/filter:text-foreground" />
+                    {selected.length > 0 && <span className="absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full bg-primary" />}
+                </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-56 p-0" onClick={(e) => e.stopPropagation()}>
+                <div className="p-2 border-b text-sm font-medium flex items-center justify-between">
+                    <span>{title}</span>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setOpen(false)}><X className="h-3.5 w-3.5" /></Button>
+                </div>
+                <div className="p-2 space-y-1 max-h-60 overflow-y-auto">
+                    {options.map((opt) => {
+                        const isChecked = localSelected.includes(opt.value);
+                        return (
+                            <div key={opt.value} className="flex items-center gap-3 cursor-pointer hover:bg-muted p-2 rounded-md transition-colors" onClick={() => toggle(opt.value)}>
+                                <Checkbox checked={isChecked} onCheckedChange={() => toggle(opt.value)} className="pointer-events-none" />
+                                <span className="text-sm font-medium leading-none">{opt.label}</span>
+                            </div>
+                        );
+                    })}
+                </div>
+                <div className="p-2 border-t flex flex-col gap-2 bg-muted/20">
+                    <Button variant="outline" size="sm" className="w-full text-xs h-7" onClick={clear}>{String(t("common.clear", { defaultValue: "Xóa" }))}</Button>
+                    <Button variant="default" size="sm" className="w-full text-xs h-7" onClick={apply}>{String(t("common.apply", { defaultValue: "Áp dụng" }))}</Button>
+                </div>
+            </PopoverContent>
+        </Popover>
+    );
 }
 
 // ── Main Table ───────────────────────────────────────────────────────────────
-export function IncomingRequestsTable({ items, isLoading, onConvert, onViewDetail }: IncomingRequestsTableProps) {
+export function IncomingRequestsTable({ items, isLoading, filters, onFiltersChange, onConvert, onViewDetail, onViewReceipt }: IncomingRequestsTableProps) {
     const { t } = useTranslation();
 
     const columns = useMemo(
@@ -112,12 +175,51 @@ export function IncomingRequestsTable({ items, isLoading, onConvert, onViewDetai
             { key: "salePerson", label: String(t("reception.incomingRequests.columns.salePerson", { defaultValue: "NVKD" })), width: "12%" },
             { key: "incomingStatus", label: String(t("reception.incomingRequests.columns.incomingStatus", { defaultValue: "Tình trạng" })), width: "10%" },
             { key: "orderStatus", label: String(t("reception.incomingRequests.columns.orderStatus", { defaultValue: "Đơn hàng" })), width: "10%" },
-            { key: "paymentStatus", label: String(t("reception.incomingRequests.columns.paymentStatus", { defaultValue: "Thanh toán" })), width: "10%" },
+            { 
+                key: "paymentStatus", 
+                label: (
+                    <div className="flex items-center gap-1">
+                        {String(t("reception.incomingRequests.columns.paymentStatus", { defaultValue: "Thanh toán" }))}
+                        <SimpleFilterPopover
+                            title={String(t("reception.incomingRequests.columns.paymentStatus", { defaultValue: "Thanh toán" }))}
+                            options={[
+                                { label: String(t("crm.orders.paymentStatus.Unpaid", { defaultValue: "Chưa TT" })), value: "Unpaid" },
+                                { label: String(t("crm.orders.paymentStatus.Partial", { defaultValue: "TT một phần" })), value: "Partial" },
+                                { label: String(t("crm.orders.paymentStatus.Paid", { defaultValue: "Đã TT" })), value: "Paid" },
+                                { label: String(t("crm.orders.paymentStatus.Variance", { defaultValue: "Chênh lệch" })), value: "Variance" },
+                                { label: String(t("crm.orders.paymentStatus.Debt", { defaultValue: "Công nợ" })), value: "Debt" },
+                            ]}
+                            selected={filters?.paymentStatus ?? []}
+                            onApply={(v) => { if (onFiltersChange) onFiltersChange({ ...(filters ?? { receiptId: [], paymentStatus: [] }), paymentStatus: v }); }}
+                            onClear={() => { if (onFiltersChange) onFiltersChange({ ...(filters ?? { receiptId: [], paymentStatus: [] }), paymentStatus: [] }); }}
+                        />
+                    </div>
+                ),
+                width: "12%" 
+            },
             { key: "samples", label: String(t("reception.incomingRequests.columns.sampleCount", { defaultValue: "Mẫu" })), width: "7%" },
             { key: "analyses", label: String(t("reception.incomingRequests.columns.analysisCount", { defaultValue: "Chỉ tiêu" })), width: "7%" },
-            { key: "actions", label: String(t("common.actions", { defaultValue: "Thao tác" })), width: "14%" },
+            { 
+                key: "actions", 
+                label: (
+                    <div className="flex items-center gap-1">
+                        {String(t("common.actions", { defaultValue: "Thao tác" }))}
+                        <SimpleFilterPopover
+                            title={String(t("common.actions", { defaultValue: "Thao tác" }))}
+                            options={[
+                                { label: "Đã tạo phiếu", value: "IS NOT NULL" },
+                                { label: "Chưa tạo phiếu", value: "IS NULL" },
+                            ]}
+                            selected={filters?.receiptId ?? []}
+                            onApply={(v) => { if (onFiltersChange) onFiltersChange({ ...(filters ?? { receiptId: [], paymentStatus: [] }), receiptId: v }); }}
+                            onClear={() => { if (onFiltersChange) onFiltersChange({ ...(filters ?? { receiptId: [], paymentStatus: [] }), receiptId: [] }); }}
+                        />
+                    </div>
+                ),
+                width: "12%" 
+            },
         ],
-        [t],
+        [t, filters, onFiltersChange],
     );
 
     if (isLoading) {
@@ -130,14 +232,7 @@ export function IncomingRequestsTable({ items, isLoading, onConvert, onViewDetai
         );
     }
 
-    if (!items.length) {
-        return (
-            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                <Package className="h-10 w-10 mb-3 opacity-40" />
-                <span className="text-sm">{String(t("reception.incomingRequests.emptyState", { defaultValue: "Chưa có yêu cầu tiếp nhận nào" }))}</span>
-            </div>
-        );
-    }
+
 
     return (
         <div className="overflow-x-auto">
@@ -168,7 +263,6 @@ export function IncomingRequestsTable({ items, isLoading, onConvert, onViewDetai
                                 {/* Mã yêu cầu */}
                                 <td className="px-3 py-2.5">
                                     <div className="font-medium text-foreground text-xs">{item.requestId ?? "-"}</div>
-                                    {item.orderId ? <div className="text-[10px] text-muted-foreground mt-0.5">{item.orderId}</div> : null}
                                 </td>
 
                                 {/* Khách hàng */}
@@ -186,7 +280,10 @@ export function IncomingRequestsTable({ items, isLoading, onConvert, onViewDetai
                                 <td className="px-3 py-2.5">{getIncomingStatusBadge(item.incomingStatus, t)}</td>
 
                                 {/* Đơn hàng */}
-                                <td className="px-3 py-2.5">{getOrderStatusBadge(item.orderStatus, t)}</td>
+                                <td className="px-3 py-2.5 min-w-[120px]">
+                                    {item.orderId ? <div className="font-semibold text-xs text-foreground mb-1 whitespace-nowrap">{item.orderId}</div> : null}
+                                    {getOrderStatusBadge(item.orderStatus, t)}
+                                </td>
 
                                 {/* Thanh toán */}
                                 <td className="px-3 py-2.5">{getPaymentStatusBadge(item.paymentStatus, t)}</td>
@@ -237,6 +334,16 @@ export function IncomingRequestsTable({ items, isLoading, onConvert, onViewDetai
                                                 <Zap className="h-3 w-3" />
                                                 {String(t("reception.incomingRequests.fastConvert", { defaultValue: "Tạo phiếu nhanh" }))}
                                             </Button>
+                                        ) : item.receiptId ? (
+                                            <button
+                                                className="font-medium text-primary hover:underline text-xs"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (onViewReceipt) onViewReceipt(item.receiptId!);
+                                                }}
+                                            >
+                                                {item.receiptId}
+                                            </button>
                                         ) : isConverted ? (
                                             <Badge className="bg-success/10 text-success border-success/20 text-[10px]">
                                                 {String(t("reception.incomingRequests.status.Converted", { defaultValue: "Đã chuyển" }))}
@@ -247,6 +354,16 @@ export function IncomingRequestsTable({ items, isLoading, onConvert, onViewDetai
                             </tr>
                         );
                     })}
+                    {items.length === 0 && (
+                        <tr>
+                            <td colSpan={columns.length} className="py-16 text-center text-muted-foreground">
+                                <div className="flex flex-col items-center justify-center">
+                                    <Package className="h-10 w-10 mb-3 opacity-40" />
+                                    <span className="text-sm">{String(t("reception.incomingRequests.emptyState", { defaultValue: "Chưa có yêu cầu tiếp nhận nào" }))}</span>
+                                </div>
+                            </td>
+                        </tr>
+                    )}
                 </tbody>
             </table>
         </div>

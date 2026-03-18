@@ -11,6 +11,7 @@ import { CreateReceiptModal } from "@/components/reception/CreateReceiptModal";
 import { ReceiptDeleteModal } from "@/components/reception/ReceiptDeleteModal";
 import { IncomingRequestsTable } from "@/components/reception/IncomingRequestsTable";
 import { IncomingRequestDetailModal } from "@/components/reception/IncomingRequestDetailModal";
+import { CreateIncomingRequestFromOrderModalWrapper } from "@/components/reception/CreateIncomingRequestFromOrderModal";
 
 import { receiptsGetFull, useReceiptsProcessing, useReceiptsList } from "@/api/receipts";
 import { useIncomingRequestsList } from "@/api/incomingRequests";
@@ -53,45 +54,55 @@ export function SampleReception() {
     const [viewingRequestId, setViewingRequestId] = useState<string | null>(null);
 
     const [excelFilters, setExcelFilters] = useState<ReceiptExcelFiltersState>(() => createEmptyFilters());
+    const [incomingFilters, setIncomingFilters] = useState<{ receiptId: string[]; paymentStatus: string[] }>({ receiptId: [], paymentStatus: [] });
     const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);
 
     const [serverTotalPages, setServerTotalPages] = useState<number | null>(null);
-    const pagination = useServerPagination(serverTotalPages, 10);
+    const pagination = useServerPagination(serverTotalPages, 50);
 
     const isIncomingTab = activeTab === "incoming-requests";
     const isProcessingTab = activeTab === "processing";
 
     // ── Incoming Requests Query ──────────────────────────────────────────────
-    const incomingInput = useMemo(
-        () => ({
-            query: {
-                page: pagination.currentPage,
-                itemsPerPage: pagination.itemsPerPage,
-                search: debouncedSearch.trim().length ? debouncedSearch.trim() : undefined,
-            },
-        }),
-        [pagination.currentPage, pagination.itemsPerPage, debouncedSearch],
-    );
+    const incomingInput = useMemo(() => {
+        const query: any = {
+            page: pagination.currentPage,
+            itemsPerPage: pagination.itemsPerPage,
+            search: debouncedSearch.trim().length ? debouncedSearch.trim() : undefined,
+        };
+
+        if (incomingFilters.receiptId.length > 0) {
+            query["receiptId[]"] = incomingFilters.receiptId;
+        }
+        if (incomingFilters.paymentStatus.length > 0) {
+            query["paymentStatus[]"] = incomingFilters.paymentStatus;
+        }
+        
+        return {
+            query,
+            sort: { column: "createdAt", direction: "DESC" as const },
+        };
+    }, [pagination.currentPage, pagination.itemsPerPage, debouncedSearch, incomingFilters]);
 
     const incomingQ = useIncomingRequestsList(incomingInput, { enabled: isIncomingTab });
 
     // ── Receipts Queries ─────────────────────────────────────────────────────
     const listInput = useMemo(() => {
-        const otherFilters: Array<{ filterFrom: string; filterValues: string[] }> = [];
+        const query: any = {
+            page: pagination.currentPage,
+            itemsPerPage: pagination.itemsPerPage,
+            search: debouncedSearch.trim().length ? debouncedSearch.trim() : null,
+        };
+
         if (excelFilters.receiptStatus.length > 0) {
-            otherFilters.push({ filterFrom: "receiptStatus", filterValues: excelFilters.receiptStatus });
+            query["receiptStatus[]"] = excelFilters.receiptStatus;
         }
         if (excelFilters.receiptCode.length > 0) {
-            otherFilters.push({ filterFrom: "receiptCode", filterValues: excelFilters.receiptCode });
+            query["receiptCode[]"] = excelFilters.receiptCode;
         }
 
         return {
-            query: {
-                page: pagination.currentPage,
-                itemsPerPage: pagination.itemsPerPage,
-                search: debouncedSearch.trim().length ? debouncedSearch.trim() : null,
-                ...(otherFilters.length ? { otherFilters } : {}),
-            },
+            query,
             sort: { column: "createdAt", direction: "DESC" as const },
         };
     }, [pagination.currentPage, pagination.itemsPerPage, debouncedSearch, excelFilters]);
@@ -106,7 +117,7 @@ export function SampleReception() {
     const incomingItems = useMemo(() => (incomingQ.data?.data ?? []) as IncomingRequestListItem[], [incomingQ.data]);
 
     const totalItems = isIncomingTab
-        ? (((incomingQ.data?.pagination as Record<string, unknown>)?.total as number) ?? ((incomingQ.data?.pagination as Record<string, unknown>)?.totalItems as number) ?? incomingItems.length)
+        ? (((incomingQ.data?.pagination as Record<string, unknown>)?.total as number) ?? incomingItems.length)
         : ((activeQuery.data as { meta?: { total?: number; totalPages?: number } })?.meta?.total ?? pageItems.length);
 
     const totalPages = isIncomingTab
@@ -165,11 +176,13 @@ export function SampleReception() {
 
             <ReceiptDeleteModal open={deleteReceiptId !== null} receiptId={deleteReceiptId} onClose={() => setDeleteReceiptId(null)} onDeleted={() => {}} />
 
-            {/* Create Receipt from Incoming Request */}
             {convertingRequest && <CreateReceiptModal initialIncomingRequest={convertingRequest} onClose={() => setConvertingRequest(null)} onCreated={() => setConvertingRequest(null)} />}
 
             {/* Incoming Request Detail Modal */}
             {viewingRequestId && <IncomingRequestDetailModal requestId={viewingRequestId} onClose={() => setViewingRequestId(null)} />}
+
+            {/* Create Incoming Request from Order */}
+            <CreateIncomingRequestFromOrderModalWrapper />
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="bg-card rounded-lg border border-border p-4">
@@ -251,9 +264,15 @@ export function SampleReception() {
                         </div>
 
                         {!isIncomingTab && (
-                            <Button variant="default" className="flex items-center gap-2" onClick={() => setIsCreateReceiptModalOpen(true)}>
+                            <Button variant="default" className="flex items-center gap-2 px-3 text-xs" onClick={() => setIsCreateReceiptModalOpen(true)}>
                                 <Plus className="h-4 w-4" />
                                 {t("reception.sampleReception.actions.createReceipt")}
+                            </Button>
+                        )}
+                        {isIncomingTab && (
+                            <Button variant="default" className="flex items-center gap-2 px-3 text-xs" onClick={() => document.dispatchEvent(new CustomEvent("open-create-incoming-from-order"))}>
+                                <Plus className="h-4 w-4" />
+                                {String(t("reception.incomingRequests.createFromOrder", { defaultValue: "Từ đơn hàng" }))}
                             </Button>
                         )}
                     </div>
@@ -284,8 +303,11 @@ export function SampleReception() {
                         <IncomingRequestsTable
                             items={incomingItems}
                             isLoading={isLoading}
+                            filters={incomingFilters}
+                            onFiltersChange={setIncomingFilters}
                             onConvert={(item) => setConvertingRequest(item)}
                             onViewDetail={(requestId) => setViewingRequestId(requestId)}
+                            onViewReceipt={(id) => openReceipt(id)}
                         />
                     ) : (
                         /* ── Receipts Table ── */

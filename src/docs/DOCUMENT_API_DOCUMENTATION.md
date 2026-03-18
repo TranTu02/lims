@@ -50,16 +50,26 @@ Quản lý file vật lý trên S3/MinIO. File entity không chứa thông tin n
 
 ```json
 {
+    "success": true,
+    "statusCode": 200,
     "data": [
         {
             "fileId": "file_4770027e65514f6c",
             "fileName": "1C26TYY_00001123.pdf",
             "mimeType": "application/pdf",
             "fileSize": 480676,
-            "uris": ["s3://irdop/file_4770027e65514f6c_1C26TYY_00001123.pdf"],
+            "uris": [
+                "s3://irdop/file_4770027e65514f6c_1C26TYY_00001123.pdf"
+            ],
             "fileStatus": "Synced",
-            "commonKeys": ["D26dTKHZ9P613", "DH26C0836"],
-            "fileTags": ["Hóa đơn", "HOA_DON"],
+            "commonKeys": [
+                "D26dTKHZ9P613",
+                "DH26C0836"
+            ],
+            "fileTags": [
+                "Hóa đơn",
+                "HOA_DON"
+            ],
             "opaiFile": null,
             "createdById": "IDxab960",
             "createdAt": "2026-02-14T02:17:57.652Z",
@@ -69,9 +79,10 @@ Quản lý file vật lý trên S3/MinIO. File entity không chứa thông tin n
     "pagination": {
         "page": 1,
         "itemsPerPage": 1,
-        "totalItems": 33275,
+        "total": 33275,
         "totalPages": 33275
-    }
+    },
+    "error": null
 }
 ```
 
@@ -89,16 +100,30 @@ Quản lý file vật lý trên S3/MinIO. File entity không chứa thông tin n
 
 ```json
 {
-    "fileId": "file_4770027e65514f6c",
-    "fileName": "1C26TYY_00001123.pdf",
-    "mimeType": "application/pdf",
-    "fileSize": 480676,
-    "uris": ["s3://irdop/file_4770027e65514f6c_1C26TYY_00001123.pdf"],
-    "fileStatus": "Synced",
-    "commonKeys": ["D26dTKHZ9P613", "DH26C0836"],
-    "fileTags": ["Hóa đơn", "HOA_DON"],
-    "createdById": "IDxab960",
-    "createdAt": "2026-02-14T02:17:57.652Z"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "fileId": "file_4770027e65514f6c",
+        "fileName": "1C26TYY_00001123.pdf",
+        "mimeType": "application/pdf",
+        "fileSize": 480676,
+        "uris": [
+            "s3://irdop/file_4770027e65514f6c_1C26TYY_00001123.pdf"
+        ],
+        "fileStatus": "Synced",
+        "commonKeys": [
+            "D26dTKHZ9P613",
+            "DH26C0836"
+        ],
+        "fileTags": [
+            "Hóa đơn",
+            "HOA_DON"
+        ],
+        "createdById": "IDxab960",
+        "createdAt": "2026-02-14T02:17:57.652Z"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -119,9 +144,15 @@ Sinh URL có chữ ký để download trực tiếp từ S3. URL có thời hạ
 
 ```json
 {
-    "url": "https://s3.irdop.org/irdop/file_4770027e65514f6c_1C26TYY_00001123.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=...&X-Amz-Signature=...",
-    "expiresIn": 3600,
-    "fileId": "file_x4770027e65514f6c"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "url": "https://s3.irdop.org/irdop/file_4770027e65514f6c_1C26TYY_00001123.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=...&X-Amz-Signature=...",
+        "expiresIn": 3600,
+        "fileId": "file_x4770027e65514f6c"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -145,11 +176,21 @@ Upload file binary lên S3 và tạo bản ghi `document.files`.
 
 ```json
 {
-    "buffer": "<base64-encoded-file-content>",
-    "fileName": "report.pdf",
-    "mimeType": "application/pdf",
-    "commonKeys": ["ORDER_001"],
-    "fileTags": ["Report"]
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "buffer": "<base64-encoded-file-content>",
+        "fileName": "report.pdf",
+        "mimeType": "application/pdf",
+        "commonKeys": [
+            "ORDER_001"
+        ],
+        "fileTags": [
+            "Report"
+        ]
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -165,7 +206,13 @@ Xóa file từ S3 và soft-delete bản ghi trong DB.
 
 ```json
 {
-    "fileId": "file_4770027e65514f6c"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "fileId": "file_4770027e65514f6c"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -174,9 +221,16 @@ Xóa file từ S3 và soft-delete bản ghi trong DB.
 ```json
 {
     "success": true,
-    "id": "file_4770027e65514f6c",
-    "status": "Deleted",
-    "details": { "status": "deleted_from_s3_only" }
+    "statusCode": 200,
+    "data": {
+        "id": "file_4770027e65514f6c",
+        "status": "Deleted",
+        "details": {
+            "status": "deleted_from_s3_only"
+        }
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -206,6 +260,8 @@ Quản lý tài liệu nghiệp vụ. Mỗi Document liên kết với một Fil
 
 ```json
 {
+    "success": true,
+    "statusCode": 200,
     "data": [
         {
             "documentId": "D26dTKHZ9P613",
@@ -231,7 +287,9 @@ Quản lý tài liệu nghiệp vụ. Mỗi Document liên kết với một Fil
                         "unitMeasure": "Gói"
                     }
                 ],
-                "orderIds": ["DH26C0836"],
+                "orderIds": [
+                    "DH26C0836"
+                ],
                 "buyerInfo": {
                     "name": "CÔNG TY CỔ PHẦN DƯỢC PHẨM TRUNG ƯƠNG VIHECO",
                     "address": "Khu công nghiệp Quang Minh mở rộng...",
@@ -249,9 +307,10 @@ Quản lý tài liệu nghiệp vụ. Mỗi Document liên kết với một Fil
     "pagination": {
         "page": 1,
         "itemsPerPage": 1,
-        "totalItems": 24846,
+        "total": 24846,
         "totalPages": 24846
-    }
+    },
+    "error": null
 }
 ```
 
@@ -276,19 +335,25 @@ Lấy thông tin chi tiết **một** bản ghi Document (flat data, không kèm
 
 ```json
 {
-    "documentId": "D26dTKHZ9P613",
-    "createdAt": "2026-02-14T02:17:57.657Z",
-    "modifiedAt": "2026-02-14T02:17:57.657Z",
-    "createdById": "IDxab960",
-    "fileId": "file_4770027e65514f6c",
-    "refId": "DH26C0836",
-    "refType": "Order",
-    "jsonContent": {
-        "documentDate": "2026-02-14",
-        "documentTitle": "HÓA ĐƠN GIÁ TRỊ GIA TĂNG",
-        "invoiceTotalPayable": "1097250",
-        "invoiceTotalBeforeTax": "1045000"
-    }
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "documentId": "D26dTKHZ9P613",
+        "createdAt": "2026-02-14T02:17:57.657Z",
+        "modifiedAt": "2026-02-14T02:17:57.657Z",
+        "createdById": "IDxab960",
+        "fileId": "file_4770027e65514f6c",
+        "refId": "DH26C0836",
+        "refType": "Order",
+        "jsonContent": {
+            "documentDate": "2026-02-14",
+            "documentTitle": "HÓA ĐƠN GIÁ TRỊ GIA TĂNG",
+            "invoiceTotalPayable": "1097250",
+            "invoiceTotalBeforeTax": "1045000"
+        }
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -302,29 +367,43 @@ Lấy chi tiết Document **kèm theo** object File liên kết (nested). Dùng 
 
 ```json
 {
-    "documentId": "D26dTKHZ9P613",
-    "createdAt": "2026-02-14T02:17:57.657Z",
-    "modifiedAt": "2026-02-14T02:17:57.657Z",
-    "createdById": "IDxab960",
-    "fileId": "file_4770027e65514f6c",
-    "refId": "DH26C0836",
-    "refType": "Order",
-    "jsonContent": {
-        "documentDate": "2026-02-14",
-        "documentTitle": "HÓA ĐƠN GIÁ TRỊ GIA TĂNG"
-    },
-    "file": {
-        "fileId": "file_4770027e65514f6c",
-        "fileName": "1C26TYY_00001123.pdf",
-        "mimeType": "application/pdf",
-        "fileSize": 480676,
-        "uris": ["s3://irdop/file_4770027e65514f6c_1C26TYY_00001123.pdf"],
-        "fileStatus": "Synced",
-        "commonKeys": ["D26dTKHZ9P613", "DH26C0836"],
-        "fileTags": ["Hóa đơn", "HOA_DON"],
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "documentId": "D26dTKHZ9P613",
+        "createdAt": "2026-02-14T02:17:57.657Z",
+        "modifiedAt": "2026-02-14T02:17:57.657Z",
         "createdById": "IDxab960",
-        "createdAt": "2026-02-14T02:17:57.652Z"
-    }
+        "fileId": "file_4770027e65514f6c",
+        "refId": "DH26C0836",
+        "refType": "Order",
+        "jsonContent": {
+            "documentDate": "2026-02-14",
+            "documentTitle": "HÓA ĐƠN GIÁ TRỊ GIA TĂNG"
+        },
+        "file": {
+            "fileId": "file_4770027e65514f6c",
+            "fileName": "1C26TYY_00001123.pdf",
+            "mimeType": "application/pdf",
+            "fileSize": 480676,
+            "uris": [
+                "s3://irdop/file_4770027e65514f6c_1C26TYY_00001123.pdf"
+            ],
+            "fileStatus": "Synced",
+            "commonKeys": [
+                "D26dTKHZ9P613",
+                "DH26C0836"
+            ],
+            "fileTags": [
+                "Hóa đơn",
+                "HOA_DON"
+            ],
+            "createdById": "IDxab960",
+            "createdAt": "2026-02-14T02:17:57.652Z"
+        }
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -345,10 +424,16 @@ Lấy S3 presigned download URL thông qua Document → File chain.
 
 ```json
 {
-    "url": "https://s3.irdop.org/irdop/file_4770027e65514f6c_1C26TYY_00001123.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=...&X-Amz-Signature=...",
-    "expiresIn": 3600,
-    "documentId": "D26dTKHZ9P613",
-    "fileId": "file_4770027e65514f6c"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "url": "https://s3.irdop.org/irdop/file_4770027e65514f6c_1C26TYY_00001123.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=...&X-Amz-Signature=...",
+        "expiresIn": 3600,
+        "documentId": "D26dTKHZ9P613",
+        "fileId": "file_4770027e65514f6c"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -373,13 +458,19 @@ jsonContent: {"documentTitle": "Hóa đơn #001"}
 
 ```json
 {
-    "fileId": "file_4770027e65514f6c",
-    "refType": "Analysis",
-    "refId": "SP26d1001-01",
-    "jsonContent": {
-        "documentTitle": "Biên bản thử nghiệm",
-        "documentDate": "2026-02-14"
-    }
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "fileId": "file_4770027e65514f6c",
+        "refType": "Analysis",
+        "refId": "SP26d1001-01",
+        "jsonContent": {
+            "documentTitle": "Biên bản thử nghiệm",
+            "documentDate": "2026-02-14"
+        }
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -395,10 +486,16 @@ Cập nhật nội dung `jsonContent`.
 
 ```json
 {
-    "documentId": "D26dTKHZ9P613",
-    "jsonContent": {
-        "documentTitle": "HÓA ĐƠN GIÁ TRỊ GIA TĂNG (Đã cập nhật)"
-    }
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "documentId": "D26dTKHZ9P613",
+        "jsonContent": {
+            "documentTitle": "HÓA ĐƠN GIÁ TRỊ GIA TĂNG (Đã cập nhật)"
+        }
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -412,7 +509,13 @@ Soft-delete bản ghi Document (set `deletedAt`).
 
 ```json
 {
-    "documentId": "D26dTKHZ9P613"
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "documentId": "D26dTKHZ9P613"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -421,8 +524,13 @@ Soft-delete bản ghi Document (set `deletedAt`).
 ```json
 {
     "success": true,
-    "documentId": "D26dTKHZ9P613",
-    "status": "Deleted"
+    "statusCode": 200,
+    "data": {
+        "documentId": "D26dTKHZ9P613",
+        "status": "Deleted"
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
@@ -455,8 +563,13 @@ Danh sách các `refType` phổ biến:
 
 ```json
 {
-    "error": "Document not found",
-    "code": 404
+    "success": true,
+    "statusCode": 200,
+    "data": {
+        "code": 404
+    },
+    "pagination": null,
+    "error": null
 }
 ```
 
