@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 
 interface TechnicianBulkEntryModalProps {
@@ -98,13 +97,13 @@ export function TechnicianBulkEntryModal({ open, onOpenChange, selectedAnalyses,
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[900px] flex flex-col max-h-[90vh]">
+            <DialogContent className="sm:max-w-[900px] flex flex-col max-h-[90vh] [&>button:last-child]:hidden">
                 <DialogHeader>
                     <DialogTitle>{t("technician.workspace.bulkEntryTitle", { count: selectedAnalyses.length, defaultValue: `Nhập kết quả hàng loạt (${selectedAnalyses.length})` })}</DialogTitle>
                     <DialogDescription>{t("technician.workspace.bulkEntryDesc", { defaultValue: "Nhập kết quả cho các chỉ tiêu được đánh dấu. Có thể dùng nút điền tự động để copy xuống dưới cùng tham số/chỉ tiêu." })}</DialogDescription>
                 </DialogHeader>
 
-                <ScrollArea className="flex-1 -mx-6 px-6 relative max-h-[60vh]">
+                <div className="flex-1 overflow-y-auto -mx-6 px-6 relative min-h-0">
                     <Table>
                         <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
                             <TableRow>
@@ -154,7 +153,7 @@ export function TechnicianBulkEntryModal({ open, onOpenChange, selectedAnalyses,
                             })}
                         </TableBody>
                     </Table>
-                </ScrollArea>
+                </div>
 
                 <DialogFooter className="mt-4">
                     <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTranslation } from "react-i18next";
-import { Scan, Search, CheckCircle, Printer, FileDown, Loader2 } from "lucide-react";
+import { Scan, Search, CheckCircle, Printer, FileDown, Loader2, X } from "lucide-react";
 import { useAnalysesList } from "@/api/analyses";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Pagination } from "@/components/ui/pagination";
 import { HandoverDocumentModal, type TechnicianGroup } from "./HandoverDocumentModal";
+import { getTopAnalysisMarks } from "@/lib/utils";
 
 interface Analysis {
     id: string;
@@ -28,6 +29,7 @@ interface Sample {
     code: string;
     name: string;
     sampleType: string;
+    sampleTypeName?: string | null;
     receivedCondition: string;
     storageCondition: string;
     analyses: Analysis[];
@@ -93,30 +95,30 @@ export function HandoverManagement() {
     const [itemsPerPage, setItemsPerPage] = useState(100);
     const [search, setSearch] = useState("");
     const debouncedSearch = useDebounce(search, 300);
+    const [filterTechnicianId, setFilterTechnicianId] = useState<string | null>(null);
 
-    const { data: analysesRes, isLoading: isAnalysesLoading } = useAnalysesList({
+    const { data: analysesRes, isLoading: isAnalysesLoading, refetch } = useAnalysesList({
         query: {
             analysisStatus: ["Ready"] as any,
             listOption: "full" as any,
             sortColumn: "technicianId",
             sortDirection: "DESC",
             search: debouncedSearch || undefined,
+            technicianId: filterTechnicianId ? [filterTechnicianId] : undefined,
             itemsPerPage,
             page,
         },
     });
+
+    // Ensure API is called when filter changes
+    useEffect(() => {
+        refetch();
+    }, [filterTechnicianId, page, debouncedSearch, refetch]);
+
     const analysesList = analysesRes?.data ?? [];
     const meta = analysesRes?.meta;
 
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
-
-    useEffect(() => {
-        if (analysesList.length > 0) {
-            setSelectedIds(analysesList.map((a: any) => a.analysisId));
-        } else {
-            setSelectedIds([]);
-        }
-    }, [analysesList]);
 
     const handleSelectAll = (checked: boolean) => {
         if (checked) {
@@ -164,9 +166,8 @@ export function HandoverManagement() {
         setShowBulkModal(true);
     };
 
-    const handleConfirmTechnician = (_technicianId: string, _analysisIds: string[]) => {
-        // TODO: Call API to update analyses status to HandedOver
-        console.log("Confirm handover for", _technicianId, _analysisIds);
+    const handleHandoverExported = async () => {
+        await refetch();
     };
 
     const [testerCode, setTesterCode] = useState("");
@@ -285,20 +286,35 @@ Biên bản được lập thành 02 bản có giá trị pháp lý như nhau, m
                         <div className="flex items-center justify-between">
                             <h3 className="text-lg font-medium">{t("handover.tabs.listTitle", "Danh sách các chỉ tiêu đủ điều kiện bàn giao")}</h3>
                             <div className="flex items-center gap-4">
-                                <div className="relative w-64">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        placeholder={t("handover.searchPlaceholder", "Tìm kiếm mã mẫu, tên mẫu...")}
-                                        value={search}
-                                        onChange={(e) => {
-                                            setSearch(e.target.value);
-                                            setPage(1);
-                                        }}
-                                        className="pl-10"
-                                    />
+                                <div className="flex items-center gap-2">
+                                    <div className="relative w-64">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            placeholder={t("handover.searchPlaceholder", "Tìm kiếm mã mẫu, tên mẫu...")}
+                                            value={search}
+                                            onChange={(e) => {
+                                                setSearch(e.target.value);
+                                                setPage(1);
+                                            }}
+                                            className="pl-10"
+                                        />
+                                    </div>
+                                    {filterTechnicianId && (
+                                        <Badge variant="secondary" className="h-9 gap-1.5 pl-3 pr-1.5 border-primary/20 bg-primary/5 text-primary">
+                                            KTV: <span className="font-bold">{filterTechnicianId}</span>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                className="h-5 w-5 rounded-full p-0 hover:bg-primary/20 text-primary"
+                                                onClick={() => setFilterTechnicianId(null)}
+                                            >
+                                                <X className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </Badge>
+                                    )}
                                 </div>
                                 {selectedIds.length > 0 && (
-                                    <Button onClick={handleBulkHandover} className="flex items-center gap-2">
+                                    <Button onClick={handleBulkHandover} className="flex items-center gap-2 h-9 px-4">
                                         <CheckCircle className="h-4 w-4" />
                                         {t("handover.bulkHandover", "Bàn giao đã chọn")} ({selectedIds.length})
                                     </Button>
@@ -329,7 +345,8 @@ Biên bản được lập thành 02 bản có giá trị pháp lý như nhau, m
                                                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Đơn vị</th>
                                                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">KTV Phụ trách</th>
                                                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Hạn trả</th>
-                                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Ghi chú</th>
+                                                <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Ghi chú</th>
+                                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Marks</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-border">
@@ -342,14 +359,24 @@ Biên bản được lập thành 02 bản có giá trị pháp lý như nhau, m
                                                     <td className="px-4 py-3 font-medium text-primary">{item.sampleId}</td>
                                                     <td className="px-4 py-3 font-semibold">{item.parameterName}</td>
                                                     <td className="px-4 py-3">
-                                                        <Badge variant="outline">{item.sample?.sampleType ?? "-"}</Badge>
+                                                        <Badge variant="outline">{item.sampleTypeName || item.sample?.sampleTypeName || "-"}</Badge>
                                                     </td>
                                                     <td className="px-4 py-3 text-muted-foreground">{item.protocolCode ?? "-"}</td>
                                                     <td className="px-4 py-3 text-muted-foreground">{item.analysisUnit ?? "-"}</td>
-                                                    <td className="px-4 py-3">
+                                                    <td 
+                                                        className={`px-4 py-3 cursor-pointer transition-colors hover:bg-primary/5 ${filterTechnicianId === item.technician?.identityId ? "bg-primary/10" : ""}`}
+                                                        onClick={() => {
+                                                            const techId = item.technician?.identityId;
+                                                            if (!techId) return;
+                                                            setFilterTechnicianId(prev => prev === techId ? null : techId);
+                                                            setPage(1);
+                                                        }}
+                                                    >
                                                         {item.technician?.identityName ? (
                                                             <div className="flex items-center gap-2">
-                                                                <span>{item.technician.identityName}</span>
+                                                                <span className={filterTechnicianId === item.technician?.identityId ? "font-bold text-primary" : ""}>
+                                                                    {item.technician.identityName}
+                                                                </span>
                                                                 <span className="text-xs text-muted-foreground">({item.technician.identityId})</span>
                                                             </div>
                                                         ) : (
@@ -359,6 +386,15 @@ Biên bản được lập thành 02 bản có giá trị pháp lý như nhau, m
                                                     <td className="px-4 py-3">{item.analysisDeadline ? new Date(item.analysisDeadline).toLocaleDateString("vi-VN") : "-"}</td>
                                                     <td className="px-4 py-3 text-xs text-muted-foreground truncate max-w-[150px]" title={item.analysisNotes}>
                                                         {item.analysisNotes ?? "-"}
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {getTopAnalysisMarks(item.analysisMarks).map((m) => (
+                                                                <Badge key={m} variant="secondary" className="text-[10px] px-1.5 h-5 font-normal">
+                                                                    {m}
+                                                                </Badge>
+                                                            ))}
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             ))}
@@ -479,7 +515,7 @@ Biên bản được lập thành 02 bản có giá trị pháp lý như nhau, m
                                                 <Label className="text-sm text-muted-foreground">{t("handover.info.sampleType")}</Label>
                                                 <div className="mt-1">
                                                     <Badge variant="outline" className="text-foreground border-border">
-                                                        {handoverData.sample.sampleType}
+                                                        {handoverData.sample.sampleTypeName || "-"}
                                                     </Badge>
                                                 </div>
                                             </div>
@@ -544,7 +580,13 @@ Biên bản được lập thành 02 bản có giá trị pháp lý như nhau, m
             </Tabs>
 
             {/* Bulk Handover Document Modal (Phase 04) */}
-            {showBulkModal && groupedData.length > 0 && <HandoverDocumentModal groups={groupedData} onClose={() => setShowBulkModal(false)} onConfirm={handleConfirmTechnician} />}
+            {showBulkModal && groupedData.length > 0 && (
+                <HandoverDocumentModal 
+                    groups={groupedData} 
+                    onClose={() => setShowBulkModal(false)} 
+                    onExportSuccess={handleHandoverExported} 
+                />
+            )}
 
             {/* Handover Document Modal (Legacy - Scan Tab) */}
             {showHandoverDocument && (

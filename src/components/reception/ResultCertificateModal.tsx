@@ -105,7 +105,7 @@ const CONTENT_STYLE = `
   }
 `;
 
-function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail, tVi: any, tEn: any, replacingReportId?: string | null, language: "vie" | "eng" = "vie"): string {
+function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail, tVi: any, tEn: any, replacingReportId?: string | null, languages: ("vie" | "eng")[] = ["vie"]): string {
     const analyses = sample.analyses ?? [];
     const rows = analyses.map((a, i) => {
         let nameVie = a.parameterName || "-";
@@ -115,9 +115,13 @@ function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail,
             nameEng = (a.analysisReportDisplay as any).eng || "";
         }
         
-        let displayName = `${nameVie}`;
-        if (language === "eng" && nameEng) {
-            displayName = `${nameVie} / ${nameEng}`;
+        let displayName = "";
+        if (languages.includes("vie") && languages.includes("eng")) {
+            displayName = `<strong>${nameVie}</strong><br/><span style="font-size: 10px; color: #444;">/ ${nameEng || "-"}</span>`;
+        } else if (languages.includes("eng")) {
+            displayName = nameEng || nameVie;
+        } else {
+            displayName = nameVie;
         }
 
         let loc = a.analysisLocation || "";
@@ -198,9 +202,9 @@ function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail,
                                     <p style="font-weight: 900; font-size: 24pt; color: #0058a3; margin: 0; line-height: 1;">${tVi("testReport.title")}</p>
                                     <p style="font-weight: 800; font-size: 21pt; color: #0058a3; margin: 0; line-height: 1;">/ ${tEn("testReport.title")}</p>
                                     <div style="display: flex; align-items: center; gap: 2mm; font-size: 12px; margin-top: 10px;">
-                                        ${tVi("testReport.ref")} / ${tEn("testReport.ref")}: 
+                                        ${languages.includes("vie") ? tVi("testReport.ref") : ""} ${languages.length > 1 ? "/" : ""} ${languages.includes("eng") ? tEn("testReport.ref") : ""}: 
                                         <span class="ref_code" style="min-width: 5pt; margin: 0; margin-right: 5mm;">${refCode}</span>
-                                        <span style="min-width: 5pt; margin: 0;">${tVi("testReport.date")} / ${tEn("testReport.date")}: ${dateStr}</span>
+                                        <span style="min-width: 5pt; margin: 0;">${languages.includes("vie") ? tVi("testReport.date") : ""} ${languages.length > 1 ? "/" : ""} ${languages.includes("eng") ? tEn("testReport.date") : ""}: ${dateStr}</span>
                                     </div>
                                     ${replacementHtml}
                                 </div>
@@ -340,7 +344,7 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
     const [activeSampleId, setActiveSampleId] = useState(samples[0]?.sampleId ?? "");
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [replacingReportId, setReplacingReportId] = useState<string | null>(null);
-    const [reportLanguage, setReportLanguage] = useState<"vie" | "eng">("vie");
+    const [reportLanguages, setReportLanguages] = useState<("vie" | "eng")[]>(["vie"]);
     const editorRef = useRef<any>(null);
     const exportMutation = useExportReport();
     const queryClient = useQueryClient();
@@ -363,9 +367,9 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
     // Update editor content when replacement report or sample changes
     useEffect(() => {
         if (selectedSample && editorRef.current) {
-            editorRef.current.setContent(generateSampleResultHtml(selectedSample, activeReceipt, tVi, tEn, replacingReportId, reportLanguage));
+            editorRef.current.setContent(generateSampleResultHtml(selectedSample, activeReceipt, tVi, tEn, replacingReportId, reportLanguages));
         }
-    }, [replacingReportId, selectedSample?.sampleId, activeReceipt, tVi, tEn, reportLanguage]);
+    }, [replacingReportId, selectedSample?.sampleId, activeReceipt, tVi, tEn, reportLanguages]);
 
     const extractHtmlParts = (html: string) => {
         const parser = new DOMParser();
@@ -620,7 +624,7 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                                     <Editor
                                         tinymceScriptSrc="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js"
                                         onInit={(_evt, editor) => (editorRef.current = editor)}
-                                        initialValue={generateSampleResultHtml(selectedSample, activeReceipt, tVi, tEn, replacingReportId, reportLanguage)}
+                                        initialValue={generateSampleResultHtml(selectedSample, activeReceipt, tVi, tEn, replacingReportId, reportLanguages)}
                                         init={{
                                             height: "100%",
                                             menubar: false,
@@ -662,18 +666,34 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                                                     <label className="text-[11px] font-medium text-muted-foreground pl-0.5">Ngôn ngữ báo cáo</label>
                                                     <div className="flex items-center gap-2">
                                                         <Button 
-                                                            variant={reportLanguage === "vie" ? "default" : "outline"}
+                                                            variant={reportLanguages.includes("vie") ? "default" : "outline"}
                                                             size="sm"
-                                                            className={`flex-1 h-8 text-xs ${reportLanguage !== "vie" ? "bg-background" : ""}`}
-                                                            onClick={() => setReportLanguage("vie")}
+                                                            className={`flex-1 h-8 text-xs ${!reportLanguages.includes("vie") ? "bg-background" : ""}`}
+                                                            onClick={() => {
+                                                                setReportLanguages(prev => {
+                                                                    if (prev.includes("vie")) {
+                                                                        if (prev.length === 1) return prev; // Keep at least one
+                                                                        return prev.filter(l => l !== "vie");
+                                                                    }
+                                                                    return [...prev, "vie"];
+                                                                });
+                                                            }}
                                                         >
                                                             VIE
                                                         </Button>
                                                         <Button 
-                                                            variant={reportLanguage === "eng" ? "default" : "outline"}
+                                                            variant={reportLanguages.includes("eng") ? "default" : "outline"}
                                                             size="sm"
-                                                            className={`flex-1 h-8 text-xs ${reportLanguage !== "eng" ? "bg-background" : ""}`}
-                                                            onClick={() => setReportLanguage("eng")}
+                                                            className={`flex-1 h-8 text-xs ${!reportLanguages.includes("eng") ? "bg-background" : ""}`}
+                                                            onClick={() => {
+                                                                setReportLanguages(prev => {
+                                                                    if (prev.includes("eng")) {
+                                                                        if (prev.length === 1) return prev; // Keep at least one
+                                                                        return prev.filter(l => l !== "eng");
+                                                                    }
+                                                                    return [...prev, "eng"];
+                                                                });
+                                                            }}
                                                         >
                                                             ENG
                                                         </Button>

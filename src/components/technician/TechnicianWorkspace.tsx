@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, Loader2, FastForward, FlaskConical, PenLine, Beaker, FilePenLine } from "lucide-react";
+import { Search, Loader2, FastForward, FlaskConical, PenLine, Beaker, FilePenLine, RotateCcw } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ import { DocumentPreviewButton } from "@/components/document/DocumentPreviewButt
 function getStatusVariant(status: string) {
     if (status === "Pending") return "warning";
     if (status === "Ready") return "success";
+    if (status === "HandedOver") return "secondary";
     if (status === "Testing") return "default";
     if (status === "ReTest") return "destructive";
     if (status === "Complained") return "destructive";
@@ -30,8 +31,9 @@ function getStatusVariant(status: string) {
 }
 
 function getStatusText(status: string) {
-    if (status === "Pending") return "Chờ xử lý"; // these should probably be handled with t() inside the component instead of here. We can leave it or pass t to it.
+    if (status === "Pending") return "Chờ xử lý";
     if (status === "Ready") return "Sẵn sàng";
+    if (status === "HandedOver") return "Đã nhận bàn giao";
     if (status === "Testing") return "Đang thử nghiệm";
     if (status === "DataEntered") return "Đã nhập KQ";
     if (status === "TechReview") return "Chờ soát xét";
@@ -64,6 +66,7 @@ export function TechnicianWorkspace() {
     // Filter bases on tab
     const statusFilter = useMemo(() => {
         if (activeTab === "pending") return ["Pending", "Ready"];
+        if (activeTab === "handedover") return ["HandedOver"];
         if (activeTab === "testing") return ["Testing"];
         if (activeTab === "retest") return ["ReTest"];
         return ["Testing"]; // fallback
@@ -193,9 +196,32 @@ export function TechnicianWorkspace() {
     const handleReceiveSamples = () => {
         if (!selectedIds.length) return;
 
+        const isStarting = activeTab === "handedover";
+        const nextStatus = isStarting ? "Testing" : "HandedOver";
+
         const payload = selectedIds.map((id) => ({
             analysisId: id,
-            analysisStatus: "Testing" as const,
+            analysisStatus: nextStatus as any,
+            ...(isStarting ? { analysisStartedAt: new Date().toISOString() } : {}),
+        }));
+
+        bulkUpdate(
+            { body: payload },
+            {
+                onSuccess: () => {
+                    setSelectedIds([]);
+                    refetch();
+                },
+            },
+        );
+    };
+
+    const handleRequestReassignment = () => {
+        if (!selectedIds.length) return;
+
+        const payload = selectedIds.map((id) => ({
+            analysisId: id,
+            analysisStatus: "Ready" as any,
         }));
 
         bulkUpdate(
@@ -237,9 +263,17 @@ export function TechnicianWorkspace() {
 
                 <div className="flex w-full flex-wrap items-center gap-2 border bg-muted/30 p-2 rounded-md">
                     <span className="text-sm font-medium mr-2">{t("common.actions", { defaultValue: "Hành động:" })}</span>
-                    <Button size="sm" variant="secondary" disabled={selectedIds.length === 0 || activeTab !== "pending" || isUpdating} onClick={handleReceiveSamples}>
+                    <Button size="sm" variant="secondary" disabled={selectedIds.length === 0 || (activeTab !== "pending" && activeTab !== "handedover") || isUpdating} onClick={handleReceiveSamples}>
                         <FlaskConical className="w-4 h-4 mr-2" />
-                        {t("technician.workspace.receiveSamples", { defaultValue: "Nhận chỉ tiêu" })} ({activeTab === "pending" ? selectedIds.length : 0})
+                        {activeTab === "handedover" 
+                            ? t("technician.workspace.startTesting", { defaultValue: "Bắt đầu thử nghiệm" }) 
+                            : t("technician.workspace.receiveSamples", { defaultValue: "Nhận chỉ tiêu" })
+                        } ({selectedIds.length})
+                    </Button>
+
+                    <Button size="sm" variant="outline" disabled={selectedIds.length === 0 || isUpdating} onClick={handleRequestReassignment}>
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        {t("technician.workspace.requestResample", { defaultValue: "Xin cấp lại mẫu" })}
                     </Button>
 
                     <Button size="sm" variant="default" disabled={selectedIds.length === 0 || (activeTab !== "testing" && activeTab !== "retest")} onClick={handleOpenBulkEntry}>
@@ -247,7 +281,7 @@ export function TechnicianWorkspace() {
                         {t("technician.workspace.bulkEntry", { defaultValue: "Nhập kết quả lô" })} ({(activeTab === "testing" || activeTab === "retest") ? selectedIds.length : 0})
                     </Button>
 
-                    <Button size="sm" variant="outline" disabled={selectedIds.length === 0 || (activeTab !== "testing" && activeTab !== "retest")} onClick={() => setShowChemicalModal(true)}>
+                    <Button size="sm" variant="outline" disabled={selectedIds.length === 0 || (activeTab !== "testing" && activeTab !== "retest" && activeTab !== "handedover")} onClick={() => setShowChemicalModal(true)}>
                         <Beaker className="w-4 h-4 mr-2" />
                         {t("technician.workspace.suggestChemicals", { defaultValue: "Gợi ý hóa chất FEFO" })}
                     </Button>
@@ -268,11 +302,12 @@ export function TechnicianWorkspace() {
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                    <TabsList className="grid w-full grid-cols-4 md:w-[550px]">
+                    <TabsList className="grid w-full grid-cols-5 md:w-[700px]">
                         <TabsTrigger value="pending">{t("technician.workspace.tabs.pending", { defaultValue: "Chờ nhận" })}</TabsTrigger>
+                        <TabsTrigger value="handedover">{t("technician.workspace.tabs.handedover", { defaultValue: "Đã nhận bàn giao" })}</TabsTrigger>
                         <TabsTrigger value="testing">{t("technician.workspace.tabs.testing", { defaultValue: "Đang thử nghiệm" })}</TabsTrigger>
                         <TabsTrigger value="retest">{t("technician.workspace.tabs.retest", { defaultValue: "Cần làm lại" })}</TabsTrigger>
-                        <TabsTrigger value="chemical-requests">{t("technician.workspace.tabs.chemicalRequests", { defaultValue: "Yêu cầu xuất hóa chất" })}</TabsTrigger>
+                        <TabsTrigger value="chemical-requests">{t("technician.workspace.tabs.chemicalRequests", { defaultValue: "Yêu cầu hóa chất" })}</TabsTrigger>
                     </TabsList>
 
                     <div className="relative w-full md:w-80">

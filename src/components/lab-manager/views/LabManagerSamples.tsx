@@ -148,7 +148,7 @@ export function LabManagerSamples() {
                     </div>
                 </div>
 
-                {meta && <Pagination currentPage={page} totalPages={meta.totalPages} itemsPerPage={itemsPerPage} totalItems={meta.total ?? meta.totalItems ?? 0} onPageChange={setPage} onItemsPerPageChange={setItemsPerPage} />}
+                {meta && <Pagination currentPage={page} totalPages={meta.totalPages} itemsPerPage={itemsPerPage} totalItems={Number(meta.total ?? meta.totalItems ?? 0)} onPageChange={setPage} onItemsPerPageChange={setItemsPerPage} />}
             </Tabs>
 
             {/* Detail Modal */}

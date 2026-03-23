@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ChemicalInsertModal } from "@/components/technician/ChemicalInsertModal";
+import { AnalysisTableInsertModal } from "@/components/technician/AnalysisTableInsertModal";
 
 const CONTENT_STYLE = `
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -131,6 +132,7 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
     }, [analyses]);
     const [quantities, setQuantities] = useState<Record<string, string>>({});
     const [showChemicalInsertModal, setShowChemicalInsertModal] = useState(false);
+    const [showAnalysisTableInsertModal, setShowAnalysisTableInsertModal] = useState(false);
 
     // Mammoth docx upload
     const docxInputRef = useRef<HTMLInputElement>(null);
@@ -538,7 +540,7 @@ ${CONTENT_STYLE}
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="max-w-[90vw] w-[90vw] sm:max-w-[90vw] h-[90vh] p-0 flex flex-col overflow-hidden bg-background border-none shadow-2xl">
+                <DialogContent className="max-w-[90vw] w-[90vw] sm:max-w-[90vw] h-[90vh] p-0 flex flex-col overflow-hidden bg-background border-none shadow-2xl [&>button:last-child]:hidden">
                     {/* App-level Header Bar */}
                     <div className="flex items-center justify-between px-6 py-3 border-b shrink-0 bg-muted/30">
                         <div className="flex items-center gap-3">
@@ -721,8 +723,11 @@ ${CONTENT_STYLE}
                                                                 <th className="text-left px-2 py-1.5 font-semibold whitespace-nowrap">
                                                                     {t("technician.workspace.protocolCodeCol", { defaultValue: "PP thử" })}
                                                                 </th>
-                                                                <th className="text-left px-2 py-1.5 font-semibold whitespace-nowrap">
+                                                                 <th className="text-left px-2 py-1.5 font-semibold whitespace-nowrap">
                                                                     {t("technician.workspace.unit", { defaultValue: "Đơn vị" })}
+                                                                </th>
+                                                                <th className="text-left px-2 py-1.5 font-semibold whitespace-nowrap">
+                                                                    {t("technician.workspace.result", { defaultValue: "Kết quả" })}
                                                                 </th>
                                                             </tr>
                                                         </thead>
@@ -738,10 +743,18 @@ ${CONTENT_STYLE}
                                                                     <td className="px-2 py-1.5 text-muted-foreground whitespace-nowrap ">
                                                                         {(a as AnalysisListItem & { analysisUnit?: string }).analysisUnit || "-"}
                                                                     </td>
+                                                                    <td className="px-2 py-1.5 font-medium text-blue-600 whitespace-nowrap ">
+                                                                        {a.analysisResult || "-"}
+                                                                    </td>
                                                                 </tr>
                                                             ))}
                                                         </tbody>
                                                     </table>
+                                                </div>
+                                                <div className="p-2 border-t">
+                                                    <Button variant="ghost" className="w-full h-8 text-xs text-primary hover:bg-primary/10 flex justify-between px-3" onClick={() => setShowAnalysisTableInsertModal(true)}>
+                                                        {t("technician.workspace.insertAnalysesTable", { defaultValue: "Chèn bảng chỉ tiêu vào mẫu" })} <PlusCircle className="w-3.5 h-3.5" />
+                                                    </Button>
                                                 </div>
                                             </div>
                                         )}
@@ -841,9 +854,23 @@ ${CONTENT_STYLE}
                     }
                 }}
             />
+            <AnalysisTableInsertModal
+                open={showAnalysisTableInsertModal}
+                onOpenChange={setShowAnalysisTableInsertModal}
+                analyses={analyses}
+                onInsert={(html) => {
+                    if (editorRef.current) {
+                        setTimeout(() => {
+                            editorRef.current.focus();
+                            editorRef.current.insertContent(html);
+                            toast.success(t("technician.workspace.insertSuccess", { defaultValue: "Đã chèn nội dung vào biên bản" }));
+                        }, 100);
+                    }
+                }}
+            />
             {/* Protocol Docs Selection Modal */}
             <Dialog open={showProtocolDocsModal} onOpenChange={setShowProtocolDocsModal}>
-                <DialogContent className="sm:max-w-[600px]">
+                <DialogContent className="sm:max-w-[600px] [&>button:last-child]:hidden">
                     <DialogTitle className="text-lg font-semibold">{t("technician.workspace.sysProtocolDocs", { defaultValue: "Biểu mẫu Phương pháp" })}</DialogTitle>
                     <div className="text-sm text-muted-foreground -mt-1 mb-2">
                         {t("technician.workspace.sysProtocolDocsHint", { defaultValue: "Danh sách các file đính kèm thuộc phương pháp thử nghiệm. Chọn biểu mẫu để nạp vào trình soạn thảo." })}

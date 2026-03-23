@@ -5,24 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Search } from "lucide-react";
+import { Search, RefreshCw } from "lucide-react";
+import { TableFilterPopover } from "./TableFilterPopover";
 import type { ChemicalTransaction } from "@/types/chemical";
 import { TransactionDetailPanel } from "./TransactionDetailPanel";
 import { Pagination } from "@/components/ui/pagination";
 
-function ActionBadge({ type }: { type?: string | null }) {
+function TransactionTypeBadge({ type }: { type?: string | null }) {
     const { t } = useTranslation();
-    const ACTION_TYPE_MAP: Record<string, { label: string; cls: string }> = {
-        INITIAL_ISSUE: {
-            label: t("inventory.chemical.transactions.actionTypeLabels.INITIAL_ISSUE", { defaultValue: "Xuất ban đầu" }),
-            cls: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
-        },
-        SUPPLEMENTAL: {
-            label: t("inventory.chemical.transactions.actionTypeLabels.SUPPLEMENTAL", { defaultValue: "Bổ sung thêm" }),
-            cls: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
-        },
-        RETURN: { label: t("inventory.chemical.transactions.actionTypeLabels.RETURN", { defaultValue: "Hoàn trả" }), cls: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
-        WASTE: { label: t("inventory.chemical.transactions.actionTypeLabels.WASTE", { defaultValue: "Thải bỏ" }), cls: "bg-gray-200 text-gray-600" },
+    const TRANSACTION_TYPE_MAP: Record<string, { label: string; cls: string }> = {
         IMPORT: { label: t("inventory.chemical.transactions.actionTypeLabels.IMPORT", { defaultValue: "Nhập kho" }), cls: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" },
         EXPORT: { label: t("inventory.chemical.transactions.actionTypeLabels.EXPORT", { defaultValue: "Xuất kho" }), cls: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" },
         ADJUSTMENT: {
@@ -30,7 +21,7 @@ function ActionBadge({ type }: { type?: string | null }) {
             cls: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
         },
     };
-    const s = type ? ACTION_TYPE_MAP[type] : undefined;
+    const s = type ? TRANSACTION_TYPE_MAP[type] : undefined;
     if (s) return <Badge className={s.cls}>{s.label}</Badge>;
     return <Badge variant="outline">{type ?? "-"}</Badge>;
 }
@@ -43,10 +34,15 @@ export function TransactionsTab() {
     const [page, setPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(20);
 
+    const [filters, setFilters] = useState<{
+        transactionType: string[];
+    }>({ transactionType: [] });
+
     const {
         data: result,
         isLoading,
         error,
+        refetch,
     } = useChemicalTransactionsList({
         query: {
             search: submittedSearch,
@@ -54,6 +50,7 @@ export function TransactionsTab() {
             itemsPerPage,
             sortColumn: "createdAt",
             sortDirection: "DESC",
+            ...filters,
         },
     });
 
@@ -86,6 +83,9 @@ export function TransactionsTab() {
                         <Button variant="outline" size="sm" type="button" onClick={handleSearch}>
                             {t("common.search", { defaultValue: "Tìm kiếm" })}
                         </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => refetch()} title="Tải lại">
+                            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                        </Button>
                     </div>
                 </div>
 
@@ -102,13 +102,29 @@ export function TransactionsTab() {
                                         {t("inventory.chemical.transactions.chemicalTransactionBlockId", { defaultValue: "Mã Phiếu" })}
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {t("inventory.chemical.transactions.actionType", { defaultValue: "Hành động" })}
+                                        <TableFilterPopover
+                                            title={t("inventory.chemical.transactions.transactionType", { defaultValue: "Hành động" })}
+                                            type="enum"
+                                            value={filters.transactionType}
+                                            options={[
+                                                { label: "Nhập kho (IMPORT)", value: "IMPORT" },
+                                                { label: "Xuất kho (EXPORT)", value: "EXPORT" },
+                                                { label: "Điều chỉnh (ADJUSTMENT)", value: "ADJUSTMENT" },
+                                            ]}
+                                            onChange={(v) => {
+                                                setFilters((f) => ({ ...f, transactionType: v }));
+                                                setPage(1);
+                                            }}
+                                        />
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.transactions.chemicalSkuId", { defaultValue: "Mã SKU" })}
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                                         {t("inventory.chemical.transactions.chemicalName", { defaultValue: "Tên hóa chất" })}
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {t("inventory.chemical.transactions.casNumber", { defaultValue: "Số CAS" })}
+                                        {t("inventory.chemical.transactions.chemicalCasNumber", { defaultValue: "Số CAS" })}
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                                         {t("inventory.chemical.transactions.chemicalInventoryId", { defaultValue: "Mã lọ/chai" })}
@@ -120,13 +136,10 @@ export function TransactionsTab() {
                                         {t("inventory.chemical.transactions.unit", { defaultValue: "Đơn vị" })}
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {t("inventory.chemical.transactions.testName", { defaultValue: "Phép thử" })}
+                                        {t("inventory.chemical.transactions.analysisId", { defaultValue: "Mã chỉ tiêu" })}
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                                         {t("inventory.chemical.transactions.note", { defaultValue: "Ghi chú" })}
-                                    </th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {t("inventory.chemical.transactions.createdAt", { defaultValue: "Ngày tạo" })}
                                     </th>
                                 </tr>
                             </thead>
@@ -157,29 +170,24 @@ export function TransactionsTab() {
                                             <td className="px-3 py-2 whitespace-nowrap font-mono text-xs font-medium text-primary">{txn.chemicalTransactionId ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap font-mono text-xs text-muted-foreground">{txn.chemicalTransactionBlockId ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap">
-                                                <ActionBadge type={txn.actionType} />
+                                                <TransactionTypeBadge type={txn.transactionType} />
                                             </td>
+                                            <td className="px-3 py-2 whitespace-nowrap text-muted-foreground font-mono text-[10px]">{txn.chemicalSkuId ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap font-medium">{txn.chemicalName ?? "-"}</td>
-                                            <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{txn.casNumber ?? "-"}</td>
+                                            <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{txn.chemicalCasNumber ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap font-mono text-xs">{txn.chemicalInventoryId ?? "-"}</td>
                                             <td
                                                 className={`px-3 py-2 whitespace-nowrap text-right font-bold ${txn.changeQty > 0 ? "text-green-600 dark:text-green-400" : txn.changeQty < 0 ? "text-red-600 dark:text-red-400" : ""}`}
                                             >
-                                                {txn.changeQty > 0 ? "+" : ""}
-                                                {txn.changeQty}
+                                                {txn.changeQty > 0 ? "+" : ""}{txn.changeQty}
                                             </td>
-                                            <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{txn.unit ?? "-"}</td>
+                                            <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{txn.chemicalTransactionUnit || (txn as any).unit || "-"}</td>
+                                            <td className="px-3 py-2 whitespace-nowrap font-mono text-[10px] text-muted-foreground">{txn.analysisId ?? "-"}</td>
                                             <td className="px-3 py-2 max-w-[160px]">
-                                                <span className="truncate block" title={txn.testName ?? undefined}>
-                                                    {txn.testName ?? "-"}
+                                                <span className="truncate block text-muted-foreground italic" title={txn.chemicalTransactionNote || (txn as any).note || undefined}>
+                                                    {txn.chemicalTransactionNote || (txn as any).note || "-"}
                                                 </span>
                                             </td>
-                                            <td className="px-3 py-2 max-w-[160px]">
-                                                <span className="truncate block text-muted-foreground italic" title={txn.note ?? undefined}>
-                                                    {txn.note ?? "-"}
-                                                </span>
-                                            </td>
-                                            <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{txn.createdAt ? new Date(txn.createdAt).toLocaleString("vi-VN") : "-"}</td>
                                         </tr>
                                     ))
                                 )}
@@ -193,7 +201,7 @@ export function TransactionsTab() {
                             currentPage={page}
                             totalPages={result.pagination.totalPages}
                             itemsPerPage={itemsPerPage}
-                            totalItems={result.pagination.totalItems}
+                            totalItems={result.pagination.total}
                             onPageChange={(p) => setPage(p)}
                             onItemsPerPageChange={(iper) => {
                                 setItemsPerPage(iper);

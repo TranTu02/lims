@@ -3,11 +3,12 @@ import type { BaseEntity } from "./common";
 export interface ChemicalSku extends BaseEntity {
     chemicalSkuId: string;
     chemicalName: string;
-    chemicalCASNumber?: string | null;
+    chemicalCasNumber?: string | null;
     chemicalBaseUnit?: string | null;
     chemicalTotalAvailableQty?: number | null;
     chemicalReorderLevel?: number | null;
     chemicalHazardClass?: string | null;
+    openedExpDays?: number | null;
 
     // Virtual fields available on get/full
     items?: ChemicalInventory[];
@@ -50,17 +51,20 @@ export interface ChemicalInventory extends BaseEntity {
     chemicalInventoryId: string;
     chemicalSkuId: string;
     chemicalName?: string | null; // Snapshot from SKU
-    chemicalCASNumber?: string | null; // Snapshot from SKU
+    chemicalCasNumber?: string | null; // Snapshot from SKU
     chemicalSupplierId?: string | null;
     lotNumber?: string | null;
     manufacturerName?: string | null;
     manufacturerCountry?: string | null;
     inventoryCOADocumentIds?: string[] | null;
+    inventoryInvoiceDocumentIds?: string[] | null;
+    storageConditions?: string | null;
     currentAvailableQty: number;
     mfgDate?: string | null; // ISO Date string
     expDate?: string | null;
     openedDate?: string | null;
     openedExpDate?: string | null;
+    openedExpDays?: number | null;
     chemicalInventoryStatus: ChemicalInventoryStatus;
     storageBinLocation?: string | null;
 
@@ -82,18 +86,18 @@ export interface ChemicalTransactionBlock extends BaseEntity {
     approvedAt?: string | null;
 
     // Virtual fields
-    transactions?: ChemicalTransaction[];
-    details?: ChemicalTransactionBlockDetail[];
+    chemicalTransactions?: ChemicalTransaction[];
+    chemicalTransactionBlockDetails?: ChemicalTransactionBlockDetail[];
 }
 
 // Bảng tạm — chi tiết dự kiến chưa thực thi
 export interface ChemicalTransactionBlockDetail extends BaseEntity {
     chemicalTransactionBlockDetailId: string;
     chemicalTransactionBlockId: string;
-    actionType?: string | null;
+    transactionType?: ChemicalTransactionType | null;
     chemicalSkuId?: string | null;
     chemicalName?: string | null;
-    casNumber?: string | null;
+    chemicalCasNumber?: string | null;
     chemicalInventoryId?: string | null;
     changeQty: number;
     chemicalTransactionBlockDetailUnit?: string | null;
@@ -105,10 +109,10 @@ export interface ChemicalTransactionBlockDetail extends BaseEntity {
 export interface ChemicalTransaction extends BaseEntity {
     chemicalTransactionId: string;
     chemicalTransactionBlockId: string;
-    actionType?: string | null; // INITIAL_ISSUE, SUPPLEMENTAL, RETURN, WASTE...
+    transactionType?: ChemicalTransactionType | null;
     chemicalSkuId?: string | null;
     chemicalName?: string | null;
-    casNumber?: string | null;
+    chemicalCasNumber?: string | null;
     chemicalInventoryId?: string | null;
     changeQty: number;
     chemicalTransactionUnit?: string | null;
@@ -202,7 +206,7 @@ export interface EstimateDetail {
     analysisId: string;
     chemicalSkuId: string;
     chemicalName: string;
-    chemicalCASNumber?: string | null;
+    chemicalCasNumber?: string | null;
     changeQty: number;
     unit: string;
     parameterName?: string | null;
@@ -211,7 +215,7 @@ export interface EstimateDetail {
 export interface EstimateSummary {
     chemicalSkuId: string;
     chemicalName: string;
-    chemicalCASNumber?: string | null;
+    chemicalCasNumber?: string | null;
     totalChangeQty: number;
     unit: string;
     analysisIds: string[];
@@ -231,18 +235,21 @@ export interface AllocateStockPayload {
 export interface AllocateTransactionDetail {
     chemicalSkuId: string;
     chemicalName: string;
-    casNumber?: string | null;
+    chemicalCasNumber?: string | null;
     chemicalInventoryId: string;
     changeQty: number;
     chemicalTransactionBlockDetailUnit: string;
     parameterName?: string | null;
     analysisId: string;
-    actionType: string;
+    transactionType: string;
+    currentAvailableQty?: number;
 }
 
 export interface AllocatePickingItem {
     chemicalInventoryId: string;
     chemicalSkuId: string;
+    chemicalName?: string | null;
+    chemicalCasNumber?: string | null;
     analysisIds: (string | null)[];
     totalChangeQty: number;
 }

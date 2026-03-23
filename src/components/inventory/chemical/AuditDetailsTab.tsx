@@ -29,7 +29,7 @@ export function AuditDetailsTab() {
     };
 
     if (error) {
-        return <div className="p-4 text-destructive bg-destructive/10 rounded-md">{(error as any).message || "Failed to load"}</div>;
+        return <div className="p-4 text-destructive bg-destructive/10 rounded-md">{error instanceof Error ? error.message : "Failed to load"}</div>;
     }
 
     return (
@@ -102,7 +102,7 @@ export function AuditDetailsTab() {
                                     </td>
                                 </tr>
                             ) : (
-                                result?.data?.map((d: any) => {
+                                result?.data?.map((d) => {
                                     const variance = d.varianceQty ?? (d.actualAvailableQty != null && d.systemAvailableQty != null ? d.actualAvailableQty - d.systemAvailableQty : null);
                                     return (
                                         <tr key={d.chemicalAuditDetailId} className="hover:bg-muted/30 transition-colors">
@@ -123,7 +123,7 @@ export function AuditDetailsTab() {
                                             </td>
                                             <td className="px-3 py-2 whitespace-nowrap text-center">
                                                 {d.isScanned ? (
-                                                    <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-[10px]">✓</Badge>
+                                                    <Badge className="bg-success text-success-foreground text-[10px]">✓</Badge>
                                                 ) : (
                                                     <span className="text-muted-foreground">-</span>
                                                 )}
@@ -141,7 +141,7 @@ export function AuditDetailsTab() {
                         currentPage={page}
                         totalPages={result.pagination.totalPages}
                         itemsPerPage={itemsPerPage}
-                        totalItems={result.pagination.totalItems}
+                        totalItems={result.pagination.total}
                         onPageChange={(p) => setPage(p)}
                         onItemsPerPageChange={(iper) => {
                             setItemsPerPage(iper);

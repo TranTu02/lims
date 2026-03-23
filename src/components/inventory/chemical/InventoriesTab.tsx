@@ -11,6 +11,8 @@ import { InventoryDetailPanel } from "./InventoryDetailPanel";
 import { InventoryEditModal } from "./InventoryEditModal";
 import { PrintLabelModal } from "./PrintLabelModal";
 import { Badge } from "@/components/ui/badge";
+import { TableFilterPopover } from "./TableFilterPopover";
+import { RefreshCw } from "lucide-react";
 
 function StatusBadge({ status }: { status?: string | null }) {
     const { t } = useTranslation();
@@ -36,6 +38,12 @@ export function InventoriesTab() {
     const [page, setPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(20);
 
+    const [filters, setFilters] = useState<{
+        chemicalInventoryStatus: string[];
+        expDate: string[];
+        openedDate: string[];
+    }>({ chemicalInventoryStatus: [], expDate: [], openedDate: [] });
+
     // Label print state
     const [selectMode, setSelectMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -45,8 +53,9 @@ export function InventoriesTab() {
         data: result,
         isLoading,
         error,
+        refetch,
     } = useChemicalInventoriesList({
-        query: { search: submittedSearch, page, itemsPerPage, sortColumn: "createdAt", sortDirection: "DESC" },
+        query: { search: submittedSearch, page, itemsPerPage, sortColumn: "createdAt", sortDirection: "DESC", ...filters },
     });
 
     const allItems = (result?.data as any[] | undefined) ?? [];
@@ -111,6 +120,9 @@ export function InventoriesTab() {
                         <Button variant="outline" size="sm" type="button" onClick={handleSearch}>
                             {t("common.search", { defaultValue: "Tìm kiếm" })}
                         </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => refetch()} title="Tải lại">
+                            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                        </Button>
                     </div>
                     <div className="flex items-center gap-2">
                         {selectMode && (
@@ -173,6 +185,12 @@ export function InventoriesTab() {
                                         {t("inventory.chemical.inventories.chemicalInventoryId", { defaultValue: "Barcode / Item ID" })}
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.skus.chemicalName", { defaultValue: "Tên hóa chất" })}
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.skus.chemicalCasNumber", { defaultValue: "Số CAS" })}
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                                         {t("inventory.chemical.inventories.chemicalSkuId", { defaultValue: "Mã SKU" })}
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
@@ -185,13 +203,48 @@ export function InventoriesTab() {
                                         {t("inventory.chemical.inventories.currentAvailableQty", { defaultValue: "Tồn Hiện Tại" })}
                                     </th>
                                     <th className="px-3 py-2 text-center text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {t("inventory.chemical.inventories.chemicalInventoryStatus", { defaultValue: "Trạng thái" })}
+                                        <TableFilterPopover
+                                            title={t("inventory.chemical.inventories.chemicalInventoryStatus", { defaultValue: "Trạng thái" })}
+                                            type="enum"
+                                            value={filters.chemicalInventoryStatus}
+                                            options={[
+                                                { label: "Kiểm dịch (Quarantined)", value: "Quarantined" },
+                                                { label: "Mới (New)", value: "New" },
+                                                { label: "Đang dùng (InUse)", value: "InUse" },
+                                                { label: "Hết (Empty)", value: "Empty" },
+                                                { label: "Hết hạn (Expired)", value: "Expired" },
+                                                { label: "Đã hủy (Disposed)", value: "Disposed" },
+                                            ]}
+                                            onChange={(v) => {
+                                                setFilters(f => ({ ...f, chemicalInventoryStatus: v }));
+                                                setPage(1);
+                                            }}
+                                        />
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {t("inventory.chemical.inventories.expiryDate", { defaultValue: "Hạn sử dụng" })}
+                                        <TableFilterPopover
+                                            title={t("inventory.chemical.inventories.expiryDate", { defaultValue: "Hạn sử dụng" })}
+                                            type="date"
+                                            value={filters.expDate}
+                                            onChange={(v) => {
+                                                setFilters(f => ({ ...f, expDate: v }));
+                                                setPage(1);
+                                            }}
+                                        />
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {t("inventory.chemical.inventories.openedAt", { defaultValue: "Ngày mở" })}
+                                        <TableFilterPopover
+                                            title={t("inventory.chemical.inventories.openedAt", { defaultValue: "Ngày mở nắp" })}
+                                            type="date"
+                                            value={filters.openedDate}
+                                            onChange={(v) => {
+                                                setFilters(f => ({ ...f, openedDate: v }));
+                                                setPage(1);
+                                            }}
+                                        />
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.inventories.openedExpDays", { defaultValue: "Hạn sau mở (ngày)" })}
                                     </th>
                                 </tr>
                             </thead>
@@ -199,7 +252,7 @@ export function InventoriesTab() {
                                 {isLoading ? (
                                     Array.from({ length: 5 }).map((_, i) => (
                                         <tr key={i}>
-                                            {Array.from({ length: selectMode ? 9 : 8 }).map((__, j) => (
+                                            {Array.from({ length: selectMode ? 12 : 11 }).map((__, j) => (
                                                 <td key={j} className="p-3">
                                                     <Skeleton className="h-4 w-20" />
                                                 </td>
@@ -208,7 +261,7 @@ export function InventoriesTab() {
                                     ))
                                 ) : allItems.length === 0 ? (
                                     <tr>
-                                        <td colSpan={selectMode ? 9 : 8} className="p-6 text-center text-muted-foreground">
+                                        <td colSpan={selectMode ? 12 : 11} className="p-6 text-center text-muted-foreground">
                                             {t("common.noData", { defaultValue: "Không có dữ liệu" })}
                                         </td>
                                     </tr>
@@ -235,7 +288,9 @@ export function InventoriesTab() {
                                                     </td>
                                                 )}
                                                 <td className="px-3 py-2 whitespace-nowrap font-mono text-xs font-medium text-primary">{inv.chemicalInventoryId ?? "-"}</td>
-                                                <td className="px-3 py-2 whitespace-nowrap">{inv.chemicalSkuId ?? "-"}</td>
+                                                <td className="px-3 py-2 whitespace-nowrap font-medium">{inv.chemicalName || (inv as any).chemicalSku?.chemicalName || "-"}</td>
+                                                <td className="px-3 py-2 whitespace-nowrap font-mono text-xs">{inv.chemicalCasNumber || (inv as any).chemicalSku?.chemicalCASNumber || "-"}</td>
+                                                <td className="px-3 py-2 whitespace-nowrap text-xs text-muted-foreground">{inv.chemicalSkuId ?? "-"}</td>
                                                 <td className="px-3 py-2 whitespace-nowrap">{inv.lotNumber ?? "-"}</td>
                                                 <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{inv.storageBinLocation ?? "-"}</td>
                                                 <td className="px-3 py-2 whitespace-nowrap text-right font-medium">{inv.currentAvailableQty ?? 0}</td>
@@ -244,6 +299,7 @@ export function InventoriesTab() {
                                                 </td>
                                                 <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{inv.expDate ? new Date(inv.expDate).toLocaleDateString("vi-VN") : "-"}</td>
                                                 <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{inv.openedDate ? new Date(inv.openedDate).toLocaleDateString("vi-VN") : "-"}</td>
+                                                <td className="px-3 py-2 whitespace-nowrap text-center font-medium">{inv.openedExpDays ?? "-"}</td>
                                             </tr>
                                         );
                                     })
@@ -258,7 +314,7 @@ export function InventoriesTab() {
                             currentPage={page}
                             totalPages={result.pagination.totalPages}
                             itemsPerPage={itemsPerPage}
-                            totalItems={result.pagination.totalItems}
+                            totalItems={result.pagination.total}
                             onPageChange={(p) => setPage(p)}
                             onItemsPerPageChange={(iper) => {
                                 setItemsPerPage(iper);

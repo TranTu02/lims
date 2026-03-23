@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { X, Loader2, Beaker, MapPin, Tag, Calendar, Pencil } from "lucide-react";
+import { X, Loader2, Beaker, MapPin, Tag, Calendar, Pencil, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { ChemicalInventory } from "@/types/chemical";
+import type { ChemicalInventory, ChemicalTransaction, ChemicalTransactionBlockDetail } from "@/types/chemical";
 import { useChemicalInventoryFull } from "@/api/chemical";
 import { InventoryEditModal } from "./InventoryEditModal";
+import { History } from "lucide-react";
 
 type Props = {
     inventory: ChemicalInventory | null;
@@ -26,6 +27,41 @@ function StatusBadge({ status }: { status?: string | null }) {
     const s = status ? STATUS_MAP[status] : undefined;
     if (s) return <Badge className={s.cls}>{s.label}</Badge>;
     return <Badge variant="outline">{status ?? "-"}</Badge>;
+}
+
+function TransactionRow({ item, type }: { item: ChemicalTransaction | ChemicalTransactionBlockDetail; type: "TXN" | "DETAIL" }) {
+    const { t } = useTranslation();
+    const a = item as any;
+    const isTxn = type === "TXN";
+    const changeQty = a.changeQty ?? 0;
+    const unit = a.chemicalTransactionUnit ?? a.chemicalTransactionBlockDetailUnit ?? "";
+    const date = a.createdAt;
+
+    return (
+        <div className="flex items-start gap-3 p-3 bg-muted/20 rounded-lg border border-border/50 text-xs">
+            <div className={`mt-0.5 h-2 w-2 rounded-full shrink-0 ${isTxn ? "bg-primary" : "bg-yellow-400"}`} title={isTxn ? "Đã thực thi" : "Dự kiến (Bảng tạm)"} />
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-foreground">
+                        {a.transactionType || a.actionType}
+                    </span>
+                    <span className={`font-bold ${changeQty > 0 ? "text-green-600" : changeQty < 0 ? "text-red-600" : ""}`}>
+                        {changeQty > 0 ? "+" : ""}{changeQty} {unit}
+                    </span>
+                </div>
+                {a.parameterName && (
+                    <div className="text-muted-foreground mt-0.5 truncate">
+                        {t("inventory.chemical.transactions.testName", { defaultValue: "Phép thử" })}: <span className="text-foreground">{a.parameterName}</span>
+                    </div>
+                )}
+                <div className="flex items-center justify-between mt-1 text-[10px] text-muted-foreground">
+                    <span className="font-mono text-primary/80">{a.chemicalInventoryId || "-"}</span>
+                    <span>{date ? new Date(date).toLocaleString("vi-VN") : "-"}</span>
+                    <span className="font-mono">{a.chemicalTransactionId || a.chemicalTransactionBlockDetailId}</span>
+                </div>
+            </div>
+        </div>
+    );
 }
 
 export function InventoryDetailPanel({ inventory, onClose }: Props) {
@@ -100,7 +136,7 @@ export function InventoryDetailPanel({ inventory, onClose }: Props) {
                                     <div className="font-semibold">{sku.chemicalName || sku.chemicalSkuId}</div>
                                     <div className="flex gap-4 mt-2 text-muted-foreground text-xs">
                                         <span>
-                                            CAS: <strong className="text-foreground">{sku.chemicalCASNumber || "-"}</strong>
+                                            CAS: <strong className="text-foreground">{(sku as any).chemicalCasNumber || sku.chemicalCASNumber || "-"}</strong>
                                         </span>
                                         <span>
                                             Level: <strong className="text-foreground">{sku.chemicalHazardClass || "-"}</strong>
@@ -146,6 +182,13 @@ export function InventoryDetailPanel({ inventory, onClose }: Props) {
                                 </div>
                                 <div className="text-sm font-medium mt-1">{(displayInv as any).manufacturerCountry || "-"}</div>
                             </div>
+                            
+                            <div className="col-span-2">
+                                <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
+                                    {t("inventory.chemical.inventories.storageConditions", { defaultValue: "Điều kiện bảo quản" })}
+                                </div>
+                                <div className="text-sm font-medium mt-1">{(displayInv as any).storageConditions || "-"}</div>
+                            </div>
                         </div>
 
                         {/* Dates */}
@@ -171,6 +214,68 @@ export function InventoryDetailPanel({ inventory, onClose }: Props) {
                                     <div className="text-muted-foreground text-xs">{t("inventory.chemical.inventories.openedExpiryDate", { defaultValue: "Hạn SD (Sau khui)" })}</div>
                                     <div className="font-medium mt-0.5">{(displayInv as any).openedExpDate ? new Date((displayInv as any).openedExpDate).toLocaleDateString("vi-VN") : "-"}</div>
                                 </div>
+                                <div className="col-span-2 border-t border-border/50 pt-2 flex justify-between items-center">
+                                    <div className="text-muted-foreground text-xs">{t("inventory.chemical.inventories.openedExpDays", { defaultValue: "Số ngày được dùng sau khui" })}</div>
+                                    <div className="font-bold text-primary">
+                                        {(displayInv as any).openedExpDays ?? "-"} {t("common.days", { defaultValue: "ngày" })}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Documents */}
+                        {((displayInv as any).inventoryCOADocumentIds?.length > 0 || (displayInv as any).inventoryInvoiceDocumentIds?.length > 0) && (
+                            <div className="space-y-2 border-t border-border pt-4 mt-2">
+                                <h3 className="text-sm font-semibold flex items-center gap-1.5 text-muted-foreground">
+                                    <FileText className="h-3.5 w-3.5" />
+                                    {t("inventory.chemical.inventories.documents", { defaultValue: "Tài liệu đính kèm" })}
+                                </h3>
+                                <div className="space-y-2">
+                                    {(displayInv as any).inventoryCOADocumentIds?.length > 0 && (
+                                        <div className="bg-muted/30 p-2 rounded border border-border/50 flex flex-col gap-1">
+                                            <span className="text-[10px] uppercase font-bold text-muted-foreground">COA Documents</span>
+                                            <div className="flex flex-wrap gap-2 mt-1">
+                                                {(displayInv as any).inventoryCOADocumentIds.map((id: string) => (
+                                                    <Badge key={id} variant="secondary" className="font-mono text-[9px]">{id}</Badge>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {(displayInv as any).inventoryInvoiceDocumentIds?.length > 0 && (
+                                        <div className="bg-muted/30 p-2 rounded border border-border/50 flex flex-col gap-1">
+                                            <span className="text-[10px] uppercase font-bold text-muted-foreground">Invoice / Order Documents</span>
+                                            <div className="flex flex-wrap gap-2 mt-1">
+                                                {(displayInv as any).inventoryInvoiceDocumentIds.map((id: string) => (
+                                                    <Badge key={id} variant="secondary" className="font-mono text-[9px]">{id}</Badge>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Transactions / History */}
+                        <div className="space-y-3 border-t border-border pt-4 mt-2 mb-8">
+                            <h3 className="text-sm font-semibold flex items-center gap-1.5 text-muted-foreground">
+                                <History className="h-3.5 w-3.5" />
+                                {t("inventory.chemical.inventories.transactions", { defaultValue: "Lịch sử giao dịch (Snapshots)" })}
+                            </h3>
+                            
+                            <div className="space-y-2">
+                                {(displayInv as any).chemicalTransactions?.length > 0 ? (
+                                    (displayInv as any).chemicalTransactions.map((txn: any) => (
+                                        <TransactionRow key={txn.chemicalTransactionId} item={txn} type="TXN" />
+                                    ))
+                                ) : (displayInv as any).chemicalTransactionBlockDetails?.length > 0 ? (
+                                   (displayInv as any).chemicalTransactionBlockDetails.map((det: any) => (
+                                        <TransactionRow key={det.chemicalTransactionBlockDetailId} item={det} type="DETAIL" />
+                                    ))
+                                ) : (
+                                    <div className="text-center py-8 bg-muted/10 rounded-lg border border-dashed border-border text-muted-foreground text-xs">
+                                        {t("common.noData", { defaultValue: "Chưa có lịch sử giao dịch" })}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

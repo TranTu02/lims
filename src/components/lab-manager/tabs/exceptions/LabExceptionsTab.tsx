@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { AlertTriangle, Clock, Activity, MessageSquare, Send, CheckCircle2, ChevronRight } from "lucide-react";
+import { Clock, Activity, MessageSquare, Send, CheckCircle2 } from "lucide-react";
 import { useLabExceptions } from "../../hooks/useLabExceptions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+// import { toast } from "sonner"; // Removed unused toast
 import type { ExceptionSample, ExceptionAnalysis } from "../../hooks/useLabExceptions";
 
 export function LabExceptionsTab() {

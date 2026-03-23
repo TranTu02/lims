@@ -14,6 +14,7 @@ export interface DocumentInfo {
     refType?: string | null;
     commonKeys?: string[];
     documentStatus?: DocumentStatus | null;
+    documentType?: string | null;
     jsonContent?: Record<string, any>;
     deletedAt?: string | null;
 }
@@ -35,6 +36,7 @@ export interface DocumentCreateRefBody {
     refType?: string;
     refId?: string;
     classifierCode?: string;
+    documentType?: string;
     commonKeys?: string[];
     jsonContent?: Record<string, any>;
 }

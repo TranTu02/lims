@@ -19,7 +19,7 @@ import { useIncomingRequestConvert } from "@/api/incomingRequests";
 import type { ReceiptDetail, ReceiptsCreateBody, ReceiptsCreateFullBody, ReceiptPriority, ReceiptDeliveryMethod, SampleInfoItem, ReceiptStatus } from "@/types/receipt";
 
 import type { ClientDetail, ClientListItem } from "@/types/crm/client";
-import type { SampleInfoValue } from "@/types/sample";
+// import type { SampleInfoValue } from "@/types/sample"; // Removed unused import
 import type { IncomingRequestListItem } from "@/types/incomingRequest";
 
 type Mode = "basic" | "full";

@@ -63,9 +63,9 @@ export function SkuDetailPanel({ sku, onClose }: Props) {
 
                             <div>
                                 <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
-                                    {t("inventory.chemical.skus.chemicalCASNumber", { defaultValue: "Số CAS" })}
+                                    {t("inventory.chemical.skus.chemicalCasNumber", { defaultValue: "Số CAS" })}
                                 </div>
-                                <div className="text-sm font-medium mt-1">{displaySku.chemicalCASNumber || "-"}</div>
+                                <div className="text-sm font-medium mt-1">{(displaySku as any).chemicalCasNumber || "-"}</div>
                             </div>
 
                             <div>

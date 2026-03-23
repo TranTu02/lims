@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 
-import { X, Edit, Save, Upload, FileText, Printer, FileCheck, Mail, ChevronLeft, ChevronRight, ImageOff, Camera, Search, Building2, Plus } from "lucide-react";
+import { X, Edit, Save, Upload, FileText, Printer, FileCheck, Mail, ChevronLeft, ChevronRight, ImageOff, Camera, Search, Building2, Plus, Paperclip } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Editor } from "@tinymce/tinymce-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -22,7 +23,7 @@ import type { ReceiptDetail, ReceiptSample, ReceiptAnalysis, ReceiptsUpdateBody,
 import { ResultCertificateModal } from "./ResultCertificateModal";
 
 import { SampleDetailModal } from "./SampleDetailModal";
-import { SamplePrintLabelModal, type SampleLabelItem } from "./SamplePrintLabelModal";
+import { SamplePrintLabelModal } from "./SamplePrintLabelModal";
 import { AddSampleModal } from "./AddSampleModal";
 
 interface ReceiptDetailModalProps {
@@ -371,23 +372,90 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
     const emailDefaults = useMemo(() => {
         const toEmail = editedReceipt.client?.clientEmail ?? editedReceipt.reportRecipient?.receiverEmail ?? "";
 
+        const renderInfo = (info: any) => {
+            if (Array.isArray(info)) {
+                return info.map((item: any) => `<div><b>${item.label || ""}:</b> ${item.value || ""}</div>`).join("");
+            }
+            return "";
+        };
+
+        const samplesHtml = (editedReceipt.samples || []).map(sample => {
+            const analyses = (sample.analyses || []).filter(a => Boolean(a.analysisId));
+            const rowSpan = analyses.length > 0 ? analyses.length : 1;
+            
+            const sampleInfoHtml = sample.sampleInfo ? `<div style="margin-top: 8px;"><b>Thông tin mẫu:</b><br/>${renderInfo(sample.sampleInfo)}</div>` : "";
+            const receiptInfoHtml = sample.sampleReceiptInfo ? `<div style="margin-top: 8px;"><b>Thông tin tiếp nhận:</b><br/>${renderInfo(sample.sampleReceiptInfo)}</div>` : "";
+
+            const sampleCol = `
+                <td style="width: 50%; padding: 8px; border: 1px solid #ddd; vertical-align: top;" rowspan="${rowSpan}">
+                    <div style="font-weight: bold; margin-bottom: 4px;">${sample.sampleId || ""}</div>
+                    <div>${sample.sampleName || sample.sampleClientInfo || sample.sampleTypeName || "-"}</div>
+                    ${sampleInfoHtml}
+                    ${receiptInfoHtml}
+                </td>
+            `;
+
+            if (analyses.length === 0) {
+                return `
+                    <tr>
+                        ${sampleCol}
+                        <td style="padding: 8px; border: 1px solid #ddd; text-align: center;" colspan="3">-</td>
+                    </tr>
+                `;
+            }
+
+            return analyses.map((analysis, idx) => `
+                <tr>
+                    ${idx === 0 ? sampleCol : ""}
+                    <td style="padding: 8px; border: 1px solid #ddd;">${analysis.parameterName || "-"}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">${analysis.protocolCode || "-"}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">${analysis.analysisUnit || "-"}</td>
+                </tr>
+            `).join("");
+        }).join("");
+
+        const tableHtml = `
+            <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-family: sans-serif; font-size: 14px;">
+                <thead>
+                    <tr style="background-color: #f4f4f5;">
+                        <th style="padding: 8px; border: 1px solid #ddd; text-align: left; width: 50%;">Thông tin mẫu</th>
+                        <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Chỉ tiêu</th>
+                        <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Phương pháp</th>
+                        <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Đơn vị</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${samplesHtml}
+                </tbody>
+            </table>
+        `;
+
+        const clientName = editedReceipt.client?.clientName ?? "Quý khách";
+        const receiptCode = editedReceipt.receiptCode ?? "";
+        
+        const contentHtml = `
+            <div style="font-family: sans-serif; font-size: 14px; line-height: 1.5; color: #333;">
+                <p>Kính gửi ${clientName},</p>
+                <p>Chúng tôi xin thông báo về việc tiếp nhận mẫu thử nghiệm theo số phiếu <strong>${receiptCode}</strong>.</p>
+                
+                ${tableHtml}
+                
+                <p style="margin-top: 20px;">Trân trọng,</p>
+                <p><strong>Phòng Thí Nghiệm</strong></p>
+            </div>
+        `;
+
         return {
-            from: String(t("reception.receiptDetail.emailTemplate.from", { defaultValue: "" })),
+            from: String(t("reception.receiptDetail.emailTemplate.from", { defaultValue: "noreply@lims.com" })),
             to: toEmail,
             subject: String(
                 t("reception.receiptDetail.emailTemplate.subject", {
-                    code: editedReceipt.receiptCode,
+                    code: receiptCode,
+                    defaultValue: `Thông báo tiếp nhận mẫu - ${receiptCode}`
                 }),
             ),
-            content: String(
-                t("reception.receiptDetail.emailTemplate.content", {
-                    clientName: editedReceipt.client?.clientName ?? "",
-                    receiptCode: editedReceipt.receiptCode ?? "",
-                    receiptDate: editedReceipt.receiptDate?.split("T")[0] ?? "",
-                    deadline: editedReceipt.receiptDeadline?.split("T")[0] ?? "",
-                }),
-            ),
-            attachments: [] as string[],
+            content: contentHtml.replace(/^\s+/gm, ''),
+            attachments: (editedReceipt.receiptReceivedImageFileIds || []) as string[],
         };
     }, [editedReceipt, t]);
 
@@ -1233,7 +1301,7 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
             {showEmailModal && (
                 <>
                     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[80]" onClick={() => setShowEmailModal(false)} />
-                    <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-2xl mx-auto bg-background rounded-xl shadow-2xl z-[80] flex flex-col max-h-[90vh] border border-border animate-in zoom-in-95 duration-200">
+                    <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-4xl mx-auto bg-background rounded-xl shadow-2xl z-[80] flex flex-col max-h-[90vh] border border-border animate-in zoom-in-95 duration-200">
                         <div className="flex items-center justify-between p-5 border-b border-border">
                             <div>
                                 <h2 className="text-lg font-semibold text-foreground">{String(t("reception.receiptDetail.sendMailTitle", { defaultValue: "Gửi thông tin biên nhận" }))}</h2>
@@ -1260,10 +1328,42 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                                     <Label className="text-xs text-muted-foreground uppercase">{String(t("reception.receiptDetail.email.subject", { defaultValue: "Tiêu đề" }))}</Label>
                                     <Input value={emailForm.subject} onChange={(e) => handleEmailChange("subject", e.target.value)} className="h-9 text-sm" />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label className="text-xs text-muted-foreground uppercase">{String(t("reception.receiptDetail.email.content", { defaultValue: "Nội dung" }))}</Label>
-                                    <Textarea value={emailForm.content} onChange={(e) => handleEmailChange("content", e.target.value)} className="min-h-[250px] text-sm resize-none" />
-                                </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs text-muted-foreground uppercase">{String(t("reception.receiptDetail.email.content", { defaultValue: "Nội dung" }))}</Label>
+                                        <div className="border border-border rounded-lg overflow-hidden h-[400px]">
+                                            <Editor
+                                                tinymceScriptSrc="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js"
+                                                value={emailForm.content}
+                                                onEditorChange={(content) => handleEmailChange("content", content)}
+                                                init={{
+                                                    height: "100%",
+                                                    menubar: false,
+                                                    statusbar: false,
+                                                    plugins: "table lists code",
+                                                    toolbar: "bold italic underline | alignleft aligncenter alignright | table | code",
+                                                    branding: false,
+                                                    promotion: false,
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {emailForm.attachments.length > 0 && (
+                                        <div className="space-y-2">
+                                            <Label className="text-xs text-muted-foreground uppercase flex items-center gap-1.5">
+                                                <Paperclip className="h-3 w-3" />
+                                                {String(t("reception.receiptDetail.email.attachments", { defaultValue: "Tệp đính kèm" }))}
+                                            </Label>
+                                            <div className="bg-muted/30 border border-border rounded-lg p-3 space-y-2">
+                                                {emailForm.attachments.map((fileId) => (
+                                                    <div key={fileId} className="flex items-center gap-2 text-xs text-foreground bg-background p-2 rounded border border-border shadow-sm">
+                                                        <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                                                        <span className="flex-1 font-medium truncate">{fileId}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                             </div>
                         </div>
 

@@ -10,6 +10,8 @@ import type { ChemicalAuditBlock, ChemicalInventory } from "@/types/chemical";
 import { Pagination } from "@/components/ui/pagination";
 import { AuditBlockEditModal } from "./AuditBlockEditModal";
 import { CreateBlockModal } from "./TransactionBlocksTab";
+import { RefreshCw } from "lucide-react";
+import { TableFilterPopover } from "./TableFilterPopover";
 
 // Status badge
 function AuditStatusBadge({ status }: { status?: string | null }) {
@@ -211,12 +213,17 @@ export function AuditBlocksTab() {
     const [page, setPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(20);
 
+    const [filters, setFilters] = useState<{
+        chemicalAuditBlockStatus: string[];
+    }>({ chemicalAuditBlockStatus: [] });
+
     const {
         data: result,
         isLoading,
         error,
+        refetch,
     } = useChemicalAuditBlocksList({
-        query: { search: submittedSearch, page, itemsPerPage, sortColumn: "createdAt", sortDirection: "DESC" },
+        query: { search: submittedSearch, page, itemsPerPage, sortColumn: "createdAt", sortDirection: "DESC", ...filters },
     });
 
     const handleSearch = () => {
@@ -248,6 +255,9 @@ export function AuditBlocksTab() {
                         <Button variant="outline" size="sm" type="button" onClick={handleSearch}>
                             {t("common.search", { defaultValue: "Tìm kiếm" })}
                         </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => refetch()} title="Tải lại">
+                            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                        </Button>
                     </div>
                     <Button variant="default" type="button" onClick={() => setCreateOpen(true)}>
                         <Plus className="h-4 w-4 mr-2" />
@@ -271,7 +281,22 @@ export function AuditBlocksTab() {
                                         {t("inventory.chemical.audit.scope", { defaultValue: "Phạm vi" })}
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {t("inventory.chemical.audit.status", { defaultValue: "Trạng thái" })}
+                                        <TableFilterPopover
+                                            title={t("inventory.chemical.audit.status", { defaultValue: "Trạng thái" })}
+                                            type="enum"
+                                            value={filters.chemicalAuditBlockStatus}
+                                            options={[
+                                                { label: "Nháp (DRAFT)", value: "DRAFT" },
+                                                { label: "Đang kiểm (IN_PROGRESS)", value: "IN_PROGRESS" },
+                                                { label: "Chờ duyệt (PENDING_APPROVAL)", value: "PENDING_APPROVAL" },
+                                                { label: "Hoàn thành (COMPLETED)", value: "COMPLETED" },
+                                                { label: "Đã hủy (CANCELLED)", value: "CANCELLED" },
+                                            ]}
+                                            onChange={(v) => {
+                                                setFilters(f => ({ ...f, chemicalAuditBlockStatus: v }));
+                                                setPage(1);
+                                            }}
+                                        />
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                                         {t("inventory.chemical.audit.assignedTo", { defaultValue: "Người thực hiện" })}
@@ -328,7 +353,7 @@ export function AuditBlocksTab() {
                             currentPage={page}
                             totalPages={result.pagination.totalPages}
                             itemsPerPage={itemsPerPage}
-                            totalItems={result.pagination.totalItems}
+                            totalItems={result.pagination.total}
                             onPageChange={(p) => setPage(p)}
                             onItemsPerPageChange={(iper) => {
                                 setItemsPerPage(iper);

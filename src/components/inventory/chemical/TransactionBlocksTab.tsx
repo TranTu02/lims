@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, X, Package, Printer, Scan } from "lucide-react";
+import { Plus, Search, X, Package, Printer, Scan, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useQrScanner } from "@/hooks/useQrScanner";
 import type { ChemicalTransactionBlock, ChemicalInventory } from "@/types/chemical";
@@ -16,6 +16,8 @@ import { Pagination } from "@/components/ui/pagination";
 import { InventoryEditModal } from "./InventoryEditModal";
 import { PrintLabelModal } from "./PrintLabelModal";
 import { AllocateStockModal } from "./AllocateStockModal";
+import { ApproveTransactionBlockModal } from "./ApproveTransactionBlockModal";
+import { TableFilterPopover } from "./TableFilterPopover";
 
 // --- Helper ---
 function BlockStatusBadge({ status }: { status?: string | null }) {
@@ -445,7 +447,7 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                     analysisId: item.analysisId || "",
                     chemicalTransactionUnit: (inv as any).chemicalSku?.chemicalBaseUnit || "",
                     chemicalTransactionBlockDetailUnit: (inv as any).chemicalSku?.chemicalBaseUnit || "",
-                    actionType: transactionType === "IMPORT" ? "INITIAL_ISSUE" : transactionType === "EXPORT" ? "SUPPLEMENTAL" : "ADJUSTMENT",
+                    transactionType: transactionType,
                 };
             }),
         };
@@ -682,15 +684,26 @@ export function TransactionBlocksTab() {
     const [activeBlock, setActiveBlock] = useState<ChemicalTransactionBlock | null>(null);
     const [createOpen, setCreateOpen] = useState(false);
     const [allocateOpen, setAllocateOpen] = useState(false);
+    const [approveOpenId, setApproveOpenId] = useState<string | null>(null);
     const [page, setPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(20);
+
+    const handleApproveClick = (id: string) => {
+        setApproveOpenId(id);
+    };
+
+    const [filters, setFilters] = useState<{
+        transactionType: string[];
+        chemicalTransactionBlockStatus: string[];
+    }>({ transactionType: [], chemicalTransactionBlockStatus: [] });
 
     const {
         data: result,
         isLoading,
         error,
+        refetch,
     } = useChemicalTransactionBlocksList({
-        query: { search: submittedSearch, page, itemsPerPage, sortColumn: "createdAt", sortDirection: "DESC" },
+        query: { search: submittedSearch, page, itemsPerPage, sortColumn: "createdAt", sortDirection: "DESC", ...filters },
     });
 
     const handleSearch = () => {
@@ -732,6 +745,9 @@ export function TransactionBlocksTab() {
                             <Package className="h-4 w-4 mr-2" />
                             {t("inventory.chemical.transactionBlocks.allocate", { defaultValue: "Cấp phát tự động (FEFO)" })}
                         </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => refetch()} title="Tải lại">
+                            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                        </Button>
                     </div>
 
                     {/* Table */}
@@ -744,10 +760,37 @@ export function TransactionBlocksTab() {
                                             {String(t("inventory.chemical.transactionBlocks.blockId", { defaultValue: "Mã Phiếu" }))}
                                         </th>
                                         <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                            {String(t("inventory.chemical.transactionBlocks.type", { defaultValue: "Loại phiếu" }))}
+                                            <TableFilterPopover
+                                                title={String(t("inventory.chemical.transactionBlocks.type", { defaultValue: "Loại phiếu" }))}
+                                                type="enum"
+                                                value={filters.transactionType}
+                                                options={[
+                                                    { label: "Nhập kho (IMPORT)", value: "IMPORT" },
+                                                    { label: "Xuất kho (EXPORT)", value: "EXPORT" },
+                                                    { label: "Điều chỉnh (ADJUSTMENT)", value: "ADJUSTMENT" },
+                                                ]}
+                                                onChange={(v) => {
+                                                    setFilters((f) => ({ ...f, transactionType: v }));
+                                                    setPage(1);
+                                                }}
+                                            />
                                         </th>
                                         <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                            {String(t("inventory.chemical.transactionBlocks.status", { defaultValue: "Trạng thái" }))}
+                                            <TableFilterPopover
+                                                title={String(t("inventory.chemical.transactionBlocks.status", { defaultValue: "Trạng thái" }))}
+                                                type="enum"
+                                                value={filters.chemicalTransactionBlockStatus}
+                                                options={[
+                                                    { label: "Nháp (DRAFT)", value: "DRAFT" },
+                                                    { label: "Chờ duyệt (PENDING_APPROVAL)", value: "PENDING_APPROVAL" },
+                                                    { label: "Đã duyệt (APPROVED)", value: "APPROVED" },
+                                                    { label: "Từ chối (REJECTED)", value: "REJECTED" },
+                                                ]}
+                                                onChange={(v) => {
+                                                    setFilters((f) => ({ ...f, chemicalTransactionBlockStatus: v }));
+                                                    setPage(1);
+                                                }}
+                                            />
                                         </th>
                                         <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                                             {String(t("inventory.chemical.transactionBlocks.createdAt", { defaultValue: "Ngày tạo" }))}
@@ -806,7 +849,7 @@ export function TransactionBlocksTab() {
                                 currentPage={page}
                                 totalPages={result.pagination.totalPages}
                                 itemsPerPage={itemsPerPage}
-                                totalItems={result.pagination.totalItems}
+                                totalItems={result.pagination.total}
                                 onPageChange={(p) => setPage(p)}
                                 onItemsPerPageChange={(iper) => {
                                     setItemsPerPage(iper);
@@ -817,11 +860,12 @@ export function TransactionBlocksTab() {
                     </div>
                 </div>
 
-                {activeBlock && <TransactionBlockDetailPanel block={activeBlock} onClose={() => setActiveBlock(null)} />}
+                {activeBlock && <TransactionBlockDetailPanel block={activeBlock} onClose={() => setActiveBlock(null)} onApproveClick={handleApproveClick} />}
             </div>
 
             {createOpen && <CreateBlockModal onClose={() => setCreateOpen(false)} />}
             {allocateOpen && <AllocateStockModal onClose={() => setAllocateOpen(false)} />}
+            {approveOpenId && <ApproveTransactionBlockModal blockId={approveOpenId} onClose={() => { setApproveOpenId(null); refetch(); }} />}
         </>
     );
 }

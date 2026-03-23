@@ -438,6 +438,7 @@ export function ProtocolsView() {
             <DocumentUploadModal
                 open={uploadModalOpen}
                 onClose={() => setUploadModalOpen(false)}
+                fixedDocumentType="SOP"
                 onSuccess={(doc) => {
                     if (doc?.documentId) {
                         setEditForm((s) => ({

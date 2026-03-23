@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import { Printer, X, FileDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { randomSafe } from "@/utils/random";
 import { useGenerateHandoverPdf } from "@/api/analyses";
 
 /* ------------------------------------------------------------------ */
@@ -26,14 +25,15 @@ export type TechnicianGroup = {
         analysisDeadline?: string | null;
         analysisLocation?: string | null;
         analysisNotes?: string | null;
-        sample?: { sampleName?: string | null; sampleType?: string | null } | null;
+        sampleTypeName?: string | null;
+        sample?: { sampleName?: string | null; sampleType?: string | null; sampleTypeName?: string | null } | null;
     }>;
 };
 
 type Props = {
     groups: TechnicianGroup[];
     onClose: () => void;
-    onConfirm: (technicianId: string, analysisIds: string[]) => void;
+    onExportSuccess?: () => void;
 };
 
 /* ------------------------------------------------------------------ */
@@ -78,7 +78,7 @@ const CONTENT_STYLE = `
 
 function generateHandoverHtml(group: TechnicianGroup, t: any): string {
     const today = new Date().toLocaleDateString("vi-VN");
-    const bbCode = `BB_${randomSafe(10)}`;
+    const bbCode = "HandoverId";
 
     const analysisRows = group.analyses
         .map(
@@ -86,7 +86,7 @@ function generateHandoverHtml(group: TechnicianGroup, t: any): string {
       <tr>
         <td style="border:1px solid #000;padding:4px 8px;text-align:center">${i + 1}</td>
         <td style="border:1px solid #000;padding:4px 8px">${a.sampleId ?? "-"}</td>
-        <td style="border:1px solid #000;padding:4px 8px">${a.sample?.sampleType ?? "-"}</td>
+        <td style="border:1px solid #000;padding:4px 8px">${a.sampleTypeName || a.sample?.sampleTypeName || "-"}</td>
         <td style="border:1px solid #000;padding:4px 8px;font-weight:bold">${a.parameterName ?? "-"}</td>
         <td style="border:1px solid #000;padding:4px 8px">${a.protocolCode ?? "-"}</td>
         <td style="border:1px solid #000;padding:4px 8px;text-align:center">${a.analysisUnit ?? "-"}</td>
@@ -237,9 +237,10 @@ type TabEditorProps = {
     group: TechnicianGroup;
     registerPrint: (fn: () => void) => void;
     registerExport: (fn: () => Promise<void>) => void;
+    onExportSuccess?: () => void;
 };
 
-function TechnicianTabEditor({ group, registerPrint, registerExport }: TabEditorProps) {
+function TechnicianTabEditor({ group, registerPrint, registerExport, onExportSuccess }: TabEditorProps) {
     const { t } = useTranslation();
     const exportPdf = useGenerateHandoverPdf();
     const editorRef = useRef<any>(null);
@@ -267,6 +268,7 @@ function TechnicianTabEditor({ group, registerPrint, registerExport }: TabEditor
             link.click();
             link.parentNode?.removeChild(link);
             window.URL.revokeObjectURL(url);
+            onExportSuccess?.();
         } catch (error) {
             console.error("Export error:", error);
         }
@@ -316,7 +318,7 @@ function TechnicianTabEditor({ group, registerPrint, registerExport }: TabEditor
 /*  Modal Component                                                    */
 /* ------------------------------------------------------------------ */
 
-export function HandoverDocumentModal({ groups, onClose, onConfirm }: Props) {
+export function HandoverDocumentModal({ groups, onClose, onExportSuccess }: Props) {
     const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState(groups[0]?.technician.identityId ?? "");
     const [isExporting, setIsExporting] = useState(false);
@@ -349,15 +351,7 @@ export function HandoverDocumentModal({ groups, onClose, onConfirm }: Props) {
         });
     };
 
-    const handleConfirmAll = () => {
-        groups.forEach((g) => {
-            onConfirm(
-                g.technician.identityId,
-                g.analyses.map((a) => a.analysisId),
-            );
-        });
-        onClose();
-    };
+
 
     if (groups.length === 0) return null;
 
@@ -382,9 +376,6 @@ export function HandoverDocumentModal({ groups, onClose, onConfirm }: Props) {
                         <Button variant="outline" size="sm" className="flex items-center gap-1.5" onClick={handleExport} disabled={isExporting}>
                             {isExporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
                             {t("handover.document.export", "Xuất PDF")}
-                        </Button>
-                        <Button size="sm" className="flex items-center gap-1.5" onClick={handleConfirmAll} disabled={isExporting}>
-                            {t("handover.confirmAll", "Xác nhận bàn giao")}
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
                             <X className="h-4 w-4" />
@@ -412,6 +403,7 @@ export function HandoverDocumentModal({ groups, onClose, onConfirm }: Props) {
                             {activeTab === g.technician.identityId ? (
                                 <TechnicianTabEditor
                                     group={g}
+                                    onExportSuccess={onExportSuccess}
                                     registerPrint={(fn) => {
                                         printFns.current[g.technician.identityId] = fn;
                                     }}

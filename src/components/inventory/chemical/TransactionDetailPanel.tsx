@@ -10,19 +10,15 @@ type Props = {
     onClose: () => void;
 };
 
-const ACTION_TYPE_MAP: Record<string, { cls: string }> = {
-    INITIAL_ISSUE: { cls: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" },
-    SUPPLEMENTAL: { cls: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300" },
-    RETURN: { cls: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
-    WASTE: { cls: "bg-gray-200 text-gray-600" },
+const TRANSACTION_TYPE_MAP: Record<string, { cls: string }> = {
     IMPORT: { cls: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" },
     EXPORT: { cls: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" },
     ADJUSTMENT: { cls: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
 };
 
-function ActionBadge({ type }: { type?: string | null; className?: string }) {
+function TransactionTypeBadge({ type }: { type?: string | null; className?: string }) {
     const { t } = useTranslation();
-    const s = type ? ACTION_TYPE_MAP[type] : undefined;
+    const s = type ? TRANSACTION_TYPE_MAP[type] : undefined;
     if (s) return <Badge className={`${s.cls} ${type}`}>{t(`inventory.chemical.transactions.actionTypeLabels.${type}`, { defaultValue: type })}</Badge>;
     return (
         <Badge variant="outline" className={type ?? ""}>
@@ -79,10 +75,10 @@ export function TransactionDetailPanel({ transaction, onClose }: Props) {
                     <div className="flex justify-between items-center bg-muted/20 p-4 border border-border rounded-lg">
                         <div>
                             <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
-                                {t("inventory.chemical.transactions.details.impact", { defaultValue: "Tác động" })} ({displayTxn.actionType})
+                                {t("inventory.chemical.transactions.details.impact", { defaultValue: "Tác động" })} ({displayTxn.transactionType})
                             </div>
                             <div className="mt-1.5">
-                                <ActionBadge type={displayTxn.actionType} />
+                                <TransactionTypeBadge type={displayTxn.transactionType} />
                             </div>
                         </div>
                         <div className="text-right">
@@ -117,7 +113,7 @@ export function TransactionDetailPanel({ transaction, onClose }: Props) {
                                 <div className="font-semibold">{displayTxn.chemicalName || sku.chemicalName}</div>
                                 <div className="flex gap-4 mt-2 text-muted-foreground text-xs">
                                     <span>
-                                        CAS: <strong className="text-foreground">{displayTxn.casNumber || sku.chemicalCASNumber || "-"}</strong>
+                                        CAS: <strong className="text-foreground">{displayTxn.chemicalCasNumber || sku.chemicalCASNumber || "-"}</strong>
                                     </span>
                                     <span>
                                         {t("inventory.chemical.skus.chemicalSkuId", { defaultValue: "Mã SKU" })}: <strong className="text-foreground">{sku.chemicalSkuId || "-"}</strong>

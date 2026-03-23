@@ -583,8 +583,9 @@ function DocumentsListView({
             {/* Table Header */}
             <div className="bg-muted/50 border-b border-border">
                 <div className="grid grid-cols-12 gap-2 px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    <div className="col-span-4">{String(t("documentCenter.col.title", { defaultValue: "Tiêu đề" }))}</div>
-                    <div className="col-span-2">{String(t("documentCenter.col.status", { defaultValue: "Trạng thái" }))}</div>
+                    <div className="col-span-3">{String(t("documentCenter.col.title", { defaultValue: "Tiêu đề" }))}</div>
+                    <div className="col-span-2">{String(t("documentCenter.col.type", { defaultValue: "Phân loại" }))}</div>
+                    <div className="col-span-1">{String(t("documentCenter.col.status", { defaultValue: "Trạng thái" }))}</div>
                     <div className="col-span-2">{String(t("documentCenter.col.ref", { defaultValue: "Tham chiếu" }))}</div>
                     <div className="col-span-2">{String(t("documentCenter.col.date", { defaultValue: "Ngày tạo" }))}</div>
                     <div className="col-span-2 text-right">{String(t("documentCenter.col.actions", { defaultValue: "Thao tác" }))}</div>
@@ -602,7 +603,7 @@ function DocumentsListView({
                         onClick={() => onSelect(doc.documentId)}
                     >
                         {/* Title + ID */}
-                        <div className="col-span-4 flex items-center gap-3 min-w-0">
+                        <div className="col-span-3 flex items-center gap-3 min-w-0">
                             <div className="shrink-0">{getFileIcon(null, doc.documentTitle)}</div>
                             <div className="min-w-0 flex flex-col gap-1 items-start py-0.5">
                                 <div className="text-sm font-semibold text-foreground truncate w-full" title={doc.documentTitle || doc.documentId}>
@@ -612,8 +613,13 @@ function DocumentsListView({
                             </div>
                         </div>
 
+                        {/* Type */}
+                        <div className="col-span-2">
+                            {doc.documentType ? <Badge variant="secondary" className="text-[10px] font-bold uppercase">{doc.documentType}</Badge> : <span className="text-xs text-muted-foreground">-</span>}
+                        </div>
+
                         {/* Status */}
-                        <div className="col-span-2">{doc.documentStatus ? <DocumentStatusBadge status={doc.documentStatus} /> : <span className="text-xs text-muted-foreground">-</span>}</div>
+                        <div className="col-span-1">{doc.documentStatus ? <DocumentStatusBadge status={doc.documentStatus} /> : <span className="text-xs text-muted-foreground">-</span>}</div>
 
                         {/* Ref */}
                         <div className="col-span-2">

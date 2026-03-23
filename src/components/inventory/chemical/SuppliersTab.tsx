@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, RefreshCw } from "lucide-react";
+import { TableFilterPopover } from "./TableFilterPopover";
 import { useChemicalSuppliersList } from "@/api/chemical";
 import { SupplierEditModal } from "./SupplierEditModal";
 import { Pagination } from "@/components/ui/pagination";
@@ -41,10 +42,15 @@ export function SuppliersTab() {
     const [page, setPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(20);
 
+    const [filters, setFilters] = useState<{
+        supplierStatus: string[];
+    }>({ supplierStatus: [] });
+
     const {
         data: result,
         isLoading,
         error,
+        refetch,
     } = useChemicalSuppliersList({
         query: {
             search: submittedSearch,
@@ -52,6 +58,7 @@ export function SuppliersTab() {
             itemsPerPage,
             sortColumn: "createdAt",
             sortDirection: "DESC",
+            ...filters,
         },
     });
 
@@ -84,6 +91,9 @@ export function SuppliersTab() {
                         <Button variant="outline" size="sm" type="button" onClick={handleSearch}>
                             {String(t("common.search", { defaultValue: "Tìm kiếm" }))}
                         </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => refetch()} title="Tải lại">
+                            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                        </Button>
                     </div>
                     <Button variant="default" type="button" onClick={() => setCreateOpen(true)}>
                         <Plus className="h-4 w-4 mr-2" />
@@ -113,7 +123,20 @@ export function SuppliersTab() {
                                         {String(t("inventory.chemical.suppliers.email", { defaultValue: "Email" }))}
                                     </th>
                                     <th className="px-3 py-2 text-center text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {String(t("inventory.chemical.suppliers.supplierStatus", { defaultValue: "Trạng thái" }))}
+                                        <TableFilterPopover
+                                            title={String(t("inventory.chemical.suppliers.supplierStatus", { defaultValue: "Trạng thái" }))}
+                                            type="enum"
+                                            value={filters.supplierStatus}
+                                            options={[
+                                                { label: "Đang hoạt động (Active)", value: "Active" },
+                                                { label: "Ngừng hoạt động (Inactive)", value: "Inactive" },
+                                                { label: "Bị cấm (Blacklisted)", value: "Blacklisted" },
+                                            ]}
+                                            onChange={(v) => {
+                                                setFilters((f) => ({ ...f, supplierStatus: v }));
+                                                setPage(1);
+                                            }}
+                                        />
                                     </th>
                                     <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground whitespace-nowrap">
                                         {String(t("inventory.chemical.suppliers.evalScore", { defaultValue: "Điểm ĐG" }))}
@@ -169,7 +192,7 @@ export function SuppliersTab() {
                             currentPage={page}
                             totalPages={result.pagination.totalPages}
                             itemsPerPage={itemsPerPage}
-                            totalItems={result.pagination.totalItems}
+                            totalItems={result.pagination.total}
                             onPageChange={(p) => setPage(p)}
                             onItemsPerPageChange={(iper) => {
                                 setItemsPerPage(iper);

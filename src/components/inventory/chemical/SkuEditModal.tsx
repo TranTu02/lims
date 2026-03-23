@@ -24,10 +24,11 @@ export function SkuEditModal({ sku, onClose }: Props) {
     const [form, setForm] = useState({
         chemicalSkuId: sku?.chemicalSkuId ?? "",
         chemicalName: sku?.chemicalName ?? "",
-        chemicalCASNumber: sku?.chemicalCASNumber ?? "",
+        chemicalCasNumber: sku?.chemicalCasNumber ?? "",
         chemicalBaseUnit: sku?.chemicalBaseUnit ?? "",
         chemicalReorderLevel: String(sku?.chemicalReorderLevel ?? ""),
         chemicalHazardClass: sku?.chemicalHazardClass ?? "",
+        openedExpDays: String(sku?.openedExpDays ?? ""),
     });
 
     const mutation = useMutation({
@@ -88,8 +89,8 @@ export function SkuEditModal({ sku, onClose }: Props) {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
-                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("inventory.chemical.skus.chemicalCASNumber", { defaultValue: "Số CAS" })}</label>
-                            <Input value={form.chemicalCASNumber} onChange={(e) => set("chemicalCASNumber", e.target.value)} id="edit-sku-cas" placeholder="VD: 67-56-1" />
+                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("inventory.chemical.skus.chemicalCasNumber", { defaultValue: "Số CAS" })}</label>
+                            <Input value={form.chemicalCasNumber} onChange={(e) => set("chemicalCasNumber", e.target.value)} id="edit-sku-cas" placeholder="VD: 67-56-1" />
                         </div>
                         <div className="space-y-1">
                             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -120,6 +121,12 @@ export function SkuEditModal({ sku, onClose }: Props) {
                                     </option>
                                 ))}
                             </select>
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                {t("inventory.chemical.skus.openedExpDays", { defaultValue: "Ngày dùng sau mở (Mặc định)" })}
+                            </label>
+                            <Input type="number" value={form.openedExpDays} onChange={(e) => set("openedExpDays", e.target.value)} id="edit-sku-exp-open" placeholder="0" />
                         </div>
                     </div>
                 </div>

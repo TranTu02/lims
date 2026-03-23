@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
-import { AlertTriangle, CheckCircle2, History, XCircle, FileText } from "lucide-react";
+
+import { CheckCircle2, XCircle, FileText } from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -33,7 +33,7 @@ export function AnalysisReviewModal({
     onReject,
     loading = false 
 }: AnalysisReviewModalProps) {
-    const { t } = useTranslation();
+    // const { t } = useTranslation();
     const [reason, setReason] = useState("");
 
     if (!analysis) return null;
@@ -144,10 +144,10 @@ export function AnalysisReviewModal({
                         {isDataEntered ? "Từ chối (Yêu cầu làm lại)" : "Trả lại soát xét (Về KTV)"}
                     </Button>
                     <Button 
-                        variant="default" 
+                        variant="success" 
                         onClick={() => onApprove(analysis.analysisId)}
                         disabled={loading}
-                        className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white"
+                        className="flex-1 sm:flex-none"
                     >
                         <CheckCircle2 className="h-4 w-4 mr-2" />
                         {isDataEntered ? "Duyệt soát xét (Lên QA)" : "Duyệt chốt KQ (Approved)"}

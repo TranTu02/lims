@@ -68,4 +68,10 @@ export const chemicalKeys = {
         list: (input?: unknown) => [...chemicalKeys.auditDetails.all(), "list", stableKey(input)] as const,
         detail: (id: string) => [...chemicalKeys.auditDetails.all(), "detail", id] as const,
     },
+
+    // Enums
+    enums: {
+        all: () => [...chemicalKeys.all, "enums"] as const,
+        list: (type: string) => [...chemicalKeys.enums.all(), "list", type] as const,
+    },
 };

@@ -114,7 +114,7 @@ export function SkuSelect({ value, onChange, placeholder, id, className }: Props
                                         <div>
                                             <div className="font-medium text-foreground">{sku.chemicalSkuId}</div>
                                             <div className="text-muted-foreground">
-                                                {sku.chemicalName ?? ""} {sku.chemicalCASNumber ? `(${sku.chemicalCASNumber})` : ""}
+                                                {sku.chemicalName ?? ""} {sku.chemicalCasNumber ? `(${sku.chemicalCasNumber})` : ""}
                                             </div>
                                         </div>
                                         <div className="text-[10px] text-muted-foreground shrink-0 ml-2">{sku.chemicalBaseUnit ?? ""}</div>

@@ -15,6 +15,7 @@ import type { DocumentStatus, DocumentCreateRefBody } from "@/api/documents";
 import { fileApi, buildFileUploadFormData } from "@/api/files";
 import type { FileInfo } from "@/api/files";
 import { useDebouncedValue } from "@/components/library/hooks/useDebouncedValue";
+import { useEnumList } from "@/api/chemical";
 
 import { SearchableSelect, type Option } from "@/components/common/SearchableSelect";
 
@@ -22,6 +23,7 @@ interface DocumentUploadModalProps {
     open: boolean;
     onClose: () => void;
     onSuccess?: (doc: any) => void;
+    fixedDocumentType?: string; // Optional: preset and lock the document type
 }
 
 const DOCUMENT_STATUS_OPTIONS: { label: string; value: DocumentStatus }[] = [
@@ -31,12 +33,15 @@ const DOCUMENT_STATUS_OPTIONS: { label: string; value: DocumentStatus }[] = [
     { label: "Cancelled (Đã huỷ)", value: "Cancelled" },
 ];
 
-export function DocumentUploadModal({ open, onClose, onSuccess }: DocumentUploadModalProps) {
+export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentType }: DocumentUploadModalProps) {
     const { t } = useTranslation();
     const qc = useQueryClient();
 
+    const { data: documentTypes, isLoading: typesLoading } = useEnumList("documentType", { enabled: open });
+
     const [documentTitle, setDocumentTitle] = useState("");
     const [documentStatus, setDocumentStatus] = useState<DocumentStatus>("Issued");
+    const [documentType, setDocumentType] = useState<string>(fixedDocumentType || "");
     const [refType, setRefType] = useState<string>("");
     const [commonKeys, setCommonKeys] = useState<string>("");
 
@@ -70,6 +75,7 @@ export function DocumentUploadModal({ open, onClose, onSuccess }: DocumentUpload
     const resetForm = () => {
         setDocumentTitle("");
         setDocumentStatus("Issued");
+        setDocumentType(fixedDocumentType || "");
         setRefType("");
         setCommonKeys("");
         setFileId("");
@@ -77,6 +83,13 @@ export function DocumentUploadModal({ open, onClose, onSuccess }: DocumentUpload
         setFileSearch("");
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
+
+    // Update documentType if fixedDocumentType changes
+    React.useEffect(() => {
+        if (open) {
+            setDocumentType(fixedDocumentType || "");
+        }
+    }, [open, fixedDocumentType]);
 
     const handleClose = () => {
         resetForm();
@@ -143,8 +156,14 @@ export function DocumentUploadModal({ open, onClose, onSuccess }: DocumentUpload
             return;
         }
 
+        if (!documentType) {
+            toast.error(String(t("documentCenter.validation.missingType", { defaultValue: "Vui lòng chọn phân loại tài liệu" })));
+            return;
+        }
+
         const body: DocumentCreateRefBody = {
             fileId,
+            documentType,
             refType: refType.trim() ? refType.trim() : undefined,
             commonKeys: commonKeys.trim()
                 ? commonKeys
@@ -279,7 +298,25 @@ export function DocumentUploadModal({ open, onClose, onSuccess }: DocumentUpload
                             </div>
 
                             <div className="space-y-2">
-                                <Label className="text-sm font-medium text-foreground">{String(t("documentCenter.uploadModal.refType", { defaultValue: "Phân loại (refType)" }))}</Label>
+                                <Label className="text-sm font-medium text-foreground">
+                                    {String(t("documentCenter.uploadModal.documentType", { defaultValue: "Phân loại tài liệu" }))} <span className="text-destructive">*</span>
+                                </Label>
+                                <Select value={documentType} onValueChange={setDocumentType} disabled={Boolean(fixedDocumentType) || typesLoading}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Chọn..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {documentTypes?.map((t: string) => (
+                                            <SelectItem key={t} value={t}>
+                                                {t}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-sm font-medium text-foreground">{String(t("documentCenter.uploadModal.refType", { defaultValue: "Phân loại (REF TEST)" }))}</Label>
                                 <Input
                                     placeholder={String(t("documentCenter.uploadModal.refTypePlaceholder", { defaultValue: "VD: Protocol, SOP, TCVN..." }))}
                                     value={refType}

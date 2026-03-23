@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, RefreshCw } from "lucide-react";
+import { TableFilterPopover } from "./TableFilterPopover";
 import { useChemicalSkusList } from "@/api/chemical";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ChemicalSku } from "@/types/chemical";
@@ -18,10 +19,15 @@ export function SkusTab() {
     const [page, setPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(20);
 
+    const [filters, setFilters] = useState<{
+        chemicalHazardClass: string[];
+    }>({ chemicalHazardClass: [] });
+
     const {
         data: result,
         isLoading,
         error,
+        refetch,
     } = useChemicalSkusList({
         query: {
             search: submittedSearch,
@@ -29,6 +35,7 @@ export function SkusTab() {
             itemsPerPage,
             sortColumn: "createdAt",
             sortDirection: "DESC",
+            ...filters,
         },
     });
 
@@ -61,6 +68,9 @@ export function SkusTab() {
                         <Button variant="outline" size="sm" type="button" onClick={handleSearch}>
                             {t("common.search", { defaultValue: "Tìm kiếm" })}
                         </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => refetch()} title="Tải lại">
+                            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                        </Button>
                     </div>
                     <Button variant="default" type="button" onClick={() => setCreateOpen(true)}>
                         <Plus className="h-4 w-4 mr-2" />
@@ -78,7 +88,7 @@ export function SkusTab() {
                                         {t("inventory.chemical.skus.chemicalSkuId", { defaultValue: "Mã SKU" })}
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {t("inventory.chemical.skus.chemicalCASNumber", { defaultValue: "Số CAS" })}
+                                        {t("inventory.chemical.skus.chemicalCasNumber", { defaultValue: "Số CAS" })}
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                                         {t("inventory.chemical.skus.chemicalName", { defaultValue: "Tên hóa chất" })}
@@ -87,7 +97,23 @@ export function SkusTab() {
                                         {t("inventory.chemical.skus.chemicalBaseUnit", { defaultValue: "Đơn vị" })}
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {t("inventory.chemical.skus.chemicalHazardClass", { defaultValue: "Phân loại nguy hiểm" })}
+                                        <TableFilterPopover
+                                            title={t("inventory.chemical.skus.chemicalHazardClass", { defaultValue: "Phân loại nguy hiểm" })}
+                                            type="enum"
+                                            value={filters.chemicalHazardClass}
+                                            options={[
+                                                { label: "O - Oxidizing", value: "O" },
+                                                { label: "F - Flammable", value: "F" },
+                                                { label: "T - Toxic", value: "T" },
+                                                { label: "C - Corrosive", value: "C" },
+                                                { label: "X - Harmful", value: "X" },
+                                                { label: "N - Environmental", value: "N" },
+                                            ]}
+                                            onChange={(v) => {
+                                                setFilters(f => ({ ...f, chemicalHazardClass: v }));
+                                                setPage(1);
+                                            }}
+                                        />
                                     </th>
                                     <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground whitespace-nowrap">
                                         {t("inventory.chemical.skus.chemicalTotalAvailableQty", { defaultValue: "Tổng Tồn C/D" })}
@@ -122,7 +148,7 @@ export function SkusTab() {
                                             onClick={() => setActiveSku(sku)}
                                         >
                                             <td className="px-3 py-2 whitespace-nowrap font-mono text-xs text-primary font-medium">{sku.chemicalSkuId ?? "-"}</td>
-                                            <td className="px-3 py-2 whitespace-nowrap">{sku.chemicalCASNumber ?? "-"}</td>
+                                            <td className="px-3 py-2 whitespace-nowrap font-mono text-xs">{sku.chemicalCasNumber ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap font-medium">{sku.chemicalName ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap">{sku.chemicalBaseUnit ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{sku.chemicalHazardClass ?? "-"}</td>
@@ -141,7 +167,7 @@ export function SkusTab() {
                             currentPage={page}
                             totalPages={result.pagination.totalPages}
                             itemsPerPage={itemsPerPage}
-                            totalItems={result.pagination.totalItems}
+                            totalItems={result.pagination.total}
                             onPageChange={(p) => setPage(p)}
                             onItemsPerPageChange={(iper) => {
                                 setItemsPerPage(iper);

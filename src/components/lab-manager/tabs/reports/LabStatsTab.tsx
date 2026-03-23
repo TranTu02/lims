@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useTranslation } from "react-i18next";
+// import { useTranslation } from "react-i18next"; // Removed unused import
 import { 
     BarChart3, 
     TrendingUp, 
@@ -18,7 +18,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLabStats } from "../../hooks/useLabStats";
 
 export function LabStatsTab() {
-    const { t } = useTranslation();
     const { loading, summary, statusData, workloadData, fetchStats } = useLabStats();
 
     useEffect(() => {

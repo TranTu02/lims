@@ -22,6 +22,7 @@ interface Sample {
     code: string;
     name: string;
     sampleType: string;
+    sampleTypeName?: string;
     analyses: Analysis[];
 }
 
@@ -157,7 +158,7 @@ export function SampleHandoverModal({ receipt, onClose, onSave }: SampleHandover
                                                             </td>
                                                             <td className="px-4 py-3 align-top border-r border-border bg-blue-50/10 dark:bg-blue-900/10" rowSpan={sample.analyses.length}>
                                                                 <Badge variant="outline" className="text-xs border-border text-foreground">
-                                                                    {sample.sampleType}
+                                                                    {sample.sampleTypeName || sample.sampleType}
                                                                 </Badge>
                                                             </td>
                                                         </>

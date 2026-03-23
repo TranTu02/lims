@@ -63,7 +63,15 @@ export function TechnicianChemicalAllocationModal({
         if (!estimateData) return;
         
         const payload = {
-            requiredChemicals: estimateData.summary,
+            requiredChemicals: estimateData.details.map(d => ({
+                chemicalSkuId: d.chemicalSkuId,
+                chemicalName: d.chemicalName,
+                chemicalCasNumber: d.chemicalCasNumber,
+                totalChangeQty: d.changeQty,
+                unit: d.unit,
+                analysisIds: [d.analysisId],
+                parameterName: d.parameterName,
+            })),
         };
         
         allocate(
@@ -86,7 +94,7 @@ export function TechnicianChemicalAllocationModal({
                 referenceDocument: `Export for ${selectedAnalyses.length} analyses`,
             },
             chemicalTransactionBlockDetails: allocationData.transactionDetails.map((d) => ({
-                actionType: d.actionType || "EXPORT",
+                transactionType: d.transactionType || "EXPORT",
                 chemicalSkuId: d.chemicalSkuId,
                 chemicalInventoryId: d.chemicalInventoryId,
                 changeQty: d.changeQty,
@@ -111,7 +119,7 @@ export function TechnicianChemicalAllocationModal({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-[95vw] w-[95vw] sm:max-w-[95vw] h-[90vh] flex flex-col p-0 overflow-hidden">
+            <DialogContent className="max-w-[95vw] w-[95vw] sm:max-w-[95vw] h-[90vh] flex flex-col p-0 overflow-hidden [&>button:last-child]:hidden">
                 <DialogHeader className="px-6 py-4 border-b bg-muted/30">
                     <DialogTitle className="flex items-center gap-2">
                         <Beaker className="w-5 h-5 text-primary" />
@@ -162,24 +170,39 @@ export function TechnicianChemicalAllocationModal({
                                         <div className="bg-muted px-4 py-2 border-b font-semibold">{t("technician.workspace.summaryByChem", { defaultValue: "1. Tổng hợp nhu cầu theo hóa chất" })}</div>
                                         <Table>
                                             <TableHeader>
-                                                <TableRow>
+                                                 <TableRow>
                                                     <TableHead>{t("technician.workspace.chemSku", { defaultValue: "Tên hóa chất (SKU)" })}</TableHead>
+                                                    <TableHead>{t("inventory.chemical.transactions.casNumber", { defaultValue: "Số CAS" })}</TableHead>
                                                     <TableHead className="">{t("technician.workspace.sampleCount", { defaultValue: "Số lượng mẫu" })}</TableHead>
                                                     <TableHead className="">{t("technician.workspace.totalNorm", { defaultValue: "Tổng định mức" })}</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
                                                 {estimateData.summary.map((item) => (
-                                                    <TableRow key={item.chemicalSkuId}>
-                                                        <TableCell>
-                                                            <div className="font-medium text-primary">{item.chemicalName}</div>
-                                                            <div className="text-xs text-muted-foreground">{item.chemicalSkuId}</div>
-                                                        </TableCell>
+                                                     <TableRow key={item.chemicalSkuId} className="hover:bg-muted/30">
+                                                         <TableCell>
+                                                             <div className="font-bold text-sm text-primary leading-tight">{item.chemicalName}</div>
+                                                             <div className="text-[10px] text-muted-foreground font-mono mt-0.5">{item.chemicalSkuId}</div>
+                                                             <div className="flex flex-wrap gap-x-2 gap-y-1 mt-2">
+                                                                 {item.analysisIds?.map((aid: string) => {
+                                                                     const detailsForAid = estimateData.details.filter(d => d.analysisId === aid && d.chemicalSkuId === item.chemicalSkuId);
+                                                                     const params = detailsForAid.map(d => d.parameterName).filter(Boolean).join(", ");
+                                                                     return (
+                                                                         <span key={aid} className="text-[9px] text-primary/70 bg-primary/5 border border-primary/10 px-1.5 py-0.5 rounded font-medium">
+                                                                             {aid}{params ? `: ${params}` : ""}
+                                                                         </span>
+                                                                     );
+                                                                 })}
+                                                             </div>
+                                                         </TableCell>
+                                                        <TableCell className="text-xs font-mono text-muted-foreground">{item.chemicalCasNumber || "-"}</TableCell>
                                                         <TableCell className="">
-                                                            <Badge variant="outline">{item.analysisIds.length}</Badge>
+                                                            <Badge variant="secondary" className="bg-primary/10 text-primary border-none text-[10px]">
+                                                                {item.analysisIds.length} mẫu
+                                                            </Badge>
                                                         </TableCell>
-                                                        <TableCell className=" font-bold">
-                                                            {Math.abs(item.totalChangeQty)} {item.unit}
+                                                        <TableCell className="text-right font-bold text-sm text-primary">
+                                                            {Math.abs(item.totalChangeQty)} <span className="text-[10px] font-medium text-muted-foreground">{item.unit}</span>
                                                         </TableCell>
                                                     </TableRow>
                                                 ))}
@@ -193,9 +216,10 @@ export function TechnicianChemicalAllocationModal({
                                         <div>
                                             <Table>
                                                 <TableHeader className="bg-background z-10 border-b shadow-sm">
-                                                    <TableRow>
+                                                     <TableRow>
                                                         <TableHead>{t("technician.workspace.parameter", { defaultValue: "Chỉ tiêu" })}</TableHead>
                                                         <TableHead>{t("inventory.chemical.transactions.chemical", { defaultValue: "Hóa chất" })}</TableHead>
+                                                        <TableHead>{t("inventory.chemical.transactions.casNumber", { defaultValue: "Số CAS" })}</TableHead>
                                                         <TableHead className="">{t("technician.workspace.norm", { defaultValue: "Định mức" })}</TableHead>
                                                     </TableRow>
                                                 </TableHeader>
@@ -206,10 +230,11 @@ export function TechnicianChemicalAllocationModal({
                                                                 <div className="font-medium">{detail.parameterName}</div>
                                                                 <div className="text-xs text-muted-foreground">{detail.analysisId}</div>
                                                             </TableCell>
-                                                            <TableCell>
+                                                             <TableCell>
                                                                 <div className="text-sm">{detail.chemicalName}</div>
                                                                 <div className="text-xs text-muted-foreground">{detail.chemicalSkuId}</div>
                                                             </TableCell>
+                                                            <TableCell className="text-xs">{detail.chemicalCasNumber || "-"}</TableCell>
                                                             <TableCell className=" whitespace-nowrap">
                                                                 {Math.abs(detail.changeQty)} {detail.unit}
                                                             </TableCell>
@@ -243,9 +268,10 @@ export function TechnicianChemicalAllocationModal({
                                         <div className="bg-muted px-4 py-2 border-b font-semibold">{t("technician.workspace.expectedExportVoucher", { defaultValue: "1. Phiếu xuất kho dự kiến" })}</div>
                                         <Table>
                                             <TableHeader>
-                                                <TableRow>
+                                                 <TableRow>
                                                     <TableHead>{t("inventory.chemical.transactions.bottleId", { defaultValue: "Chai/Lọ (Inventory ID)" })}</TableHead>
                                                     <TableHead>{t("inventory.chemical.transactions.chemical", { defaultValue: "Hóa chất" })}</TableHead>
+                                                    <TableHead>{t("inventory.chemical.transactions.casNumber", { defaultValue: "Số CAS" })}</TableHead>
                                                     <TableHead className="">{t("inventory.chemical.transactions.exportQty", { defaultValue: "Lượng xuất" })}</TableHead>
                                                 </TableRow>
                                             </TableHeader>
@@ -253,10 +279,11 @@ export function TechnicianChemicalAllocationModal({
                                                 {allocationData.transactionDetails.map((tx, idx) => (
                                                     <TableRow key={idx}>
                                                         <TableCell className="font-mono text-xs">{tx.chemicalInventoryId}</TableCell>
-                                                        <TableCell>
+                                                         <TableCell>
                                                             <div className="font-medium">{tx.chemicalName}</div>
                                                             <div className="text-xs text-muted-foreground">{tx.chemicalSkuId}</div>
                                                         </TableCell>
+                                                        <TableCell className="text-xs">{tx.chemicalCasNumber || "-"}</TableCell>
                                                         <TableCell className=" font-bold text-red-600">
                                                             {tx.changeQty}
                                                         </TableCell>
@@ -268,35 +295,49 @@ export function TechnicianChemicalAllocationModal({
 
                                     {/* Right: Picking List */}
                                     <div className="border rounded-lg shadow-sm bg-card overflow-hidden border-orange-200">
-                                        <div className="bg-orange-50 px-4 py-2 border-b border-orange-200 font-semibold text-orange-800 flex items-center gap-2">
-                                            <MapPin className="w-4 h-4" /> {t("technician.workspace.pickingList", { defaultValue: "2. Danh sách đi lấy hàng (Picking List)" })}
+                                        <div className="bg-orange-50/50 px-4 py-2.5 border-b border-orange-200 font-semibold text-orange-900 flex items-center gap-2">
+                                            <MapPin className="w-4 h-4 text-orange-600" /> 
+                                            <span className="text-sm font-semibold">{t("technician.workspace.pickingList", { defaultValue: "2. Danh sách đi lấy hàng (Picking List)" })}</span>
                                         </div>
                                         <Table>
-                                            <TableHeader>
+                                            <TableHeader className="bg-muted/50 text-[11px] uppercase text-muted-foreground font-bold">
                                                 <TableRow>
-                                                    <TableHead>{t("technician.workspace.bottleToPick", { defaultValue: "Mã chai cần lấy" })}</TableHead>
-                                                    <TableHead>{t("technician.workspace.chemSku", { defaultValue: "Hóa chất (SKU)" })}</TableHead>
-                                                    <TableHead className="">{t("technician.workspace.qtyToPick", { defaultValue: "Số lượng lấy" })}</TableHead>
+                                                    <TableHead className="px-4 py-3 text-left w-[200px] font-bold">{t("technician.workspace.bottleToPick", { defaultValue: "Mã chai cần lấy" })}</TableHead>
+                                                    <TableHead className="px-4 py-3 text-left font-bold">{t("technician.workspace.chemSku", { defaultValue: "Hóa chất (SKU)" })}</TableHead>
+                                                    <TableHead className="px-4 py-3 text-right w-[150px] font-bold">{t("technician.workspace.qtyToPick", { defaultValue: "Số lượng lấy" })}</TableHead>
                                                 </TableRow>
                                             </TableHeader>
-                                            <TableBody>
-                                                {allocationData.pickingList.map((pick, idx) => {
-                                                    const chemName = allocationData.transactionDetails.find(tx => tx.chemicalSkuId === pick.chemicalSkuId)?.chemicalName || "Unknown";
+                                            <TableBody className="divide-y divide-border">
+                                                {allocationData.pickingList.map((pick: any, idx) => {
+                                                    const chemName = pick.chemicalName || (allocationData.transactionDetails.find(tx => tx.chemicalSkuId === pick.chemicalSkuId)?.chemicalName || "Unknown");
+                                                    const relatedDetail = allocationData.transactionDetails.find(tx => tx.chemicalSkuId === pick.chemicalSkuId);
+                                                    const unit = relatedDetail?.chemicalTransactionBlockDetailUnit || "";
+
                                                     return (
-                                                        <TableRow key={idx} className="bg-orange-50/10">
-                                                            <TableCell>
-                                                                <Badge variant="outline" className="bg-background text-[11px] font-mono whitespace-nowrap">
+                                                        <TableRow key={idx} className="hover:bg-muted/5">
+                                                            <TableCell className="px-4 py-4 align-middle">
+                                                                <div className="inline-flex items-center px-2 py-1 rounded-full bg-muted border border-border/50 text-[10px] font-mono font-medium text-muted-foreground uppercase tracking-tighter">
                                                                     {pick.chemicalInventoryId}
-                                                                </Badge>
+                                                                </div>
                                                             </TableCell>
-                                                            <TableCell>
-                                                                <div className="font-medium">{chemName}</div>
-                                                                <div className="text-xs text-muted-foreground">{pick.chemicalSkuId}</div>
+                                                            <TableCell className="px-4 py-4">
+                                                                <div className="font-bold text-sm text-foreground leading-tight">{chemName}</div>
+                                                                <div className="text-[10px] text-muted-foreground font-mono uppercase mt-0.5">{pick.chemicalSkuId}</div>
+                                                                {pick.analysisIds && pick.analysisIds.length > 0 && (
+                                                                    <div className="flex flex-wrap gap-1.5 mt-2.5">
+                                                                        {pick.analysisIds.map((aid: string) => (
+                                                                            <span key={aid} className="bg-primary/5 text-primary border border-primary/10 rounded px-1.5 py-0.5 text-[9px] font-mono font-medium">
+                                                                                #{aid}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
                                                             </TableCell>
-                                                            <TableCell className="">
-                                                                <div className="font-bold flex items-center justify-end gap-1 text-primary">
-                                                                    <ArrowRight className="w-3 h-3" />
+                                                            <TableCell className="px-4 py-4 text-right align-middle">
+                                                                <div className="flex items-center justify-end font-bold text-sm text-emerald-600 dark:text-emerald-400 gap-1.5">
+                                                                    <span className="text-muted-foreground/30 text-[10px] font-normal">→</span>
                                                                     {Math.abs(pick.totalChangeQty)}
+                                                                    {unit && <span className="font-medium text-muted-foreground text-[10px] ml-0.5">{unit}</span>}
                                                                 </div>
                                                             </TableCell>
                                                         </TableRow>

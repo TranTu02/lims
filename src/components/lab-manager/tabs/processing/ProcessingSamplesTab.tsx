@@ -1,13 +1,12 @@
 import { useEffect } from "react";
-import { useTranslation } from "react-i18next";
-import { PackageSearch, Clock, ChevronRight, Eye, AlertCircle, Calendar } from "lucide-react";
+// import { useTranslation } from "react-i18next"; // Removed unused import
+import { PackageSearch, Clock, ChevronRight, AlertCircle, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+// import { Progress } from "@/components/ui/progress"; // Removed unused Progress
 import { useProcessingSamples } from "../../hooks/useProcessingSamples";
 
 export function ProcessingSamplesTab() {
-    const { t } = useTranslation();
     const { loading, samples, fetchSamples } = useProcessingSamples();
 
     useEffect(() => {

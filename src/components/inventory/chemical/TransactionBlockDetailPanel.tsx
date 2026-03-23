@@ -1,14 +1,17 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { X, Loader2, ListOrdered, Calendar, User, FileText, ArrowUpDown, Clock, CheckCircle2, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { ChemicalTransactionBlock, ChemicalTransactionBlockDetail, ChemicalTransaction } from "@/types/chemical";
 import { useChemicalTransactionBlockFull, useApproveTransactionBlock } from "@/api/chemical";
+import { ChemicalProposalEditor } from "@/components/technician/ChemicalProposalEditor";
 
 type Props = {
     block: ChemicalTransactionBlock | null;
     onClose: () => void;
     hideApprove?: boolean;
+    onApproveClick?: (blockId: string) => void;
 };
 
 // Status badge cho block
@@ -48,78 +51,88 @@ function StatusBadge({ status }: { status?: string | null }) {
 function LineItemCard({ item, idField }: { item: ChemicalTransactionBlockDetail | ChemicalTransaction; idField: string }) {
     const { t } = useTranslation();
     const id = (item as any)[idField] ?? "-";
-    const getActionTypeBadge = (type?: string | null) => {
-        if (!type) return <span className="text-muted-foreground">-</span>;
-        return (
-            <Badge variant="secondary" className="font-normal">
-                {type}
-            </Badge>
-        );
-    };
-
-    // Normalize fields across union types (ChemicalTransactionBlockDetail vs ChemicalTransaction)
+    
+    // Normalize fields across union types
     const a = item as any;
     const itemUnit = a.chemicalTransactionUnit ?? a.chemicalTransactionBlockDetailUnit ?? "";
     const itemParamName = a.parameterName ?? "";
     const itemNote = a.chemicalTransactionNote ?? a.chemicalTransactionBlockDetailNote ?? "";
+    const analysisIds = item.analysisId ? item.analysisId.split(",").map(s => s.trim()).filter(Boolean) : [];
 
     return (
-        <div className="p-3 bg-muted/30 border border-border rounded-md text-sm space-y-2">
-            <div className="flex items-start justify-between">
-                <div>
-                    <div className="font-semibold text-primary">{item.chemicalName || t("inventory.chemical.transactions.noName", { defaultValue: "Hóa chất (Không tên)" })}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5 gap-2 flex items-center">
-                        <span>CAS: {item.casNumber || "-"}</span>
-                        <span>•</span>
-                        <span>
-                            {t("inventory.chemical.transactions.bottleId", { defaultValue: "Mã chai" })}: {item.chemicalInventoryId || "-"}
-                        </span>
+        <div className="p-4 bg-background border border-border rounded-lg shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                        <div className="font-bold text-sm text-foreground leading-tight truncate">{item.chemicalName || t("inventory.chemical.transactions.noName", { defaultValue: "Hóa chất (Không tên)" })}</div>
+                        {item.chemicalInventoryId && (
+                            <div className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-muted border border-border/50 text-[9px] font-mono font-medium text-muted-foreground uppercase tracking-tighter shrink-0">
+                                {item.chemicalInventoryId}
+                            </div>
+                        )}
                     </div>
-                    <div className="text-[10px] font-mono text-muted-foreground/70 mt-0.5">ID: {id}</div>
+                    
+                    <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-medium mb-2">
+                        <span className="bg-muted/50 px-1 rounded">SKU: {item.chemicalSkuId || "-"}</span>
+                        <span>CAS: {item.chemicalCasNumber || "-"}</span>
+                    </div>
+
+                    {analysisIds.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                            {analysisIds.map((aid) => (
+                                <span key={aid} className="bg-primary/5 text-primary border border-primary/10 rounded px-1.5 py-0.5 text-[9px] font-mono font-medium">
+                                    #{aid}
+                                </span>
+                            ))}
+                        </div>
+                    )}
                 </div>
-                <div className={`font-bold ml-2 whitespace-nowrap ${item.changeQty > 0 ? "text-success" : item.changeQty < 0 ? "text-destructive" : ""}`}>
-                    {item.changeQty > 0 ? "+" : ""}
-                    {item.changeQty} {itemUnit}
+
+                <div className="text-right shrink-0">
+                    <div className={`font-bold text-sm flex items-center justify-end gap-1 ${item.changeQty > 0 ? "text-success" : item.changeQty < 0 ? "text-destructive" : ""}`}>
+                        {item.changeQty > 0 ? "+" : ""}
+                        {item.changeQty} 
+                        <span className="text-[10px] font-medium text-muted-foreground lowercase ml-0.5">{itemUnit}</span>
+                    </div>
+                    <div className="text-[9px] text-muted-foreground/50 font-mono mt-1 uppercase">ID: {id}</div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-border/50 text-xs">
-                <div>
-                    <span className="text-muted-foreground block mb-0.5">{t("inventory.chemical.transactions.purpose", { defaultValue: "Mục đích" })}:</span>
-                    {getActionTypeBadge(item.actionType)}
+            {(itemParamName || itemNote) && (
+                <div className="mt-3 pt-3 border-t border-border/40 grid grid-cols-1 gap-2">
+                    {itemParamName && (
+                        <div className="flex items-start gap-1.5">
+                            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-tight shrink-0 mt-0.5">{t("inventory.chemical.transactions.testName", { defaultValue: "Phép thử" })}:</span>
+                            <span className="text-[11px] font-medium text-foreground">{itemParamName}</span>
+                        </div>
+                    )}
+                    {itemNote && (
+                        <div className="flex items-start gap-1.5">
+                            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-tight shrink-0 mt-0.5">{t("inventory.chemical.transactions.note", { defaultValue: "Ghi chú" })}:</span>
+                            <span className="text-[11px] italic text-muted-foreground">{itemNote}</span>
+                        </div>
+                    )}
                 </div>
-                {itemParamName && (
-                    <div>
-                        <span className="text-muted-foreground block mb-0.5">{t("inventory.chemical.transactions.testName", { defaultValue: "Phép thử" })}:</span>
-                        <span className="font-medium">{itemParamName}</span>
-                        {item.analysisId && <span className="text-[10px] text-muted-foreground ml-1">({item.analysisId})</span>}
-                    </div>
-                )}
-                {itemNote && (
-                    <div className="col-span-2">
-                        <span className="text-muted-foreground block mb-0.5">{t("inventory.chemical.transactions.note", { defaultValue: "Ghi chú" })}:</span>
-                        <span className="italic">{itemNote}</span>
-                    </div>
-                )}
-            </div>
+            )}
         </div>
     );
 }
 
-export function TransactionBlockDetailPanel({ block, onClose, hideApprove }: Props) {
+export function TransactionBlockDetailPanel({ block, onClose, hideApprove, onApproveClick }: Props) {
     const { t } = useTranslation();
     const fullBlockQuery = useChemicalTransactionBlockFull(block?.chemicalTransactionBlockId || "", {
         enabled: !!block?.chemicalTransactionBlockId,
     });
     const approveMutation = useApproveTransactionBlock();
+    const [showProposalEditor, setShowProposalEditor] = useState(false);
 
     const displayBlock = fullBlockQuery.data || block;
 
     if (!displayBlock) return null;
 
     const isApproved = displayBlock.chemicalTransactionBlockStatus === "APPROVED";
-    const hasDetails = displayBlock.details && displayBlock.details.length > 0;
-    const hasTransactions = displayBlock.transactions && displayBlock.transactions.length > 0;
+    const hasDetails = displayBlock.chemicalTransactionBlockDetails && displayBlock.chemicalTransactionBlockDetails.length > 0;
+    const hasTransactions = displayBlock.chemicalTransactions && displayBlock.chemicalTransactions.length > 0;
 
     // Logic: nếu APPROVED → hiển thị transactions (lịch sử đã thực thi).
     // Nếu chưa APPROVED (DRAFT, PENDING_APPROVAL, REJECTED) → hiển thị details (bảng tạm).
@@ -141,29 +154,57 @@ export function TransactionBlockDetailPanel({ block, onClose, hideApprove }: Pro
 
     return (
         <div className="w-96 lg:w-[500px] shrink-0 bg-background rounded-lg border border-border overflow-y-auto max-h-[calc(100vh-140px)] sticky top-[72px]">
-            <div className="sticky top-0 bg-background border-b border-border px-4 py-3 flex items-start justify-between z-10">
-                <div>
-                    <h2 className="text-base font-semibold text-foreground">{t("inventory.chemical.transactionBlocks.detail", { defaultValue: "Chi tiết Phiếu" })}</h2>
-                    <p className="text-xs text-muted-foreground mt-0.5">{displayBlock.chemicalTransactionBlockId}</p>
+            <div className="sticky top-0 bg-background/80 backdrop-blur-sm border-b border-border px-5 py-4 flex items-center justify-between z-10">
+                <div className="flex flex-col">
+                    <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+                        <ListOrdered className="h-4 w-4 text-primary" />
+                        {t("inventory.chemical.transactionBlocks.detail", { defaultValue: "Chi tiết Phiếu" })}
+                    </h2>
+                    <p className="text-[10px] font-mono text-muted-foreground mt-0.5 tracking-tight">{displayBlock.chemicalTransactionBlockId}</p>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
                     {!hideApprove && !isApproved && displayBlock.chemicalTransactionBlockStatus !== "REJECTED" && (
                         <Button
-                            variant="default"
+                            variant="success"
                             size="sm"
                             type="button"
-                            onClick={() => approveMutation.mutate({ body: { chemicalTransactionBlockId: displayBlock.chemicalTransactionBlockId } })}
+                            onClick={() => {
+                                if (onApproveClick) {
+                                    onApproveClick(displayBlock.chemicalTransactionBlockId);
+                                } else {
+                                    approveMutation.mutate({ body: { chemicalTransactionBlockId: displayBlock.chemicalTransactionBlockId } });
+                                }
+                            }}
                             disabled={approveMutation.isPending}
+                            className="h-8 text-xs px-3 shadow-sm transition-all active:scale-95"
                         >
-                            {approveMutation.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-1" />}
+                            {approveMutation.isPending ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />}
                             {t("inventory.chemical.transactionBlocks.approveButton", { defaultValue: "Duyệt Phiếu" })}
                         </Button>
                     )}
-                    <Button variant="ghost" size="sm" onClick={onClose} type="button">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        type="button"
+                        onClick={() => setShowProposalEditor(true)}
+                        className="h-8 text-[11px] border-primary/30 text-primary hover:bg-primary/5 px-3"
+                    >
+                        <FileText className="h-3.5 w-3.5 mr-1.5" />
+                        {t("inventory.chemical.transactionBlocks.exportProposal", { defaultValue: "Trích xuất" })}
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={onClose} type="button" className="h-8 w-8 rounded-full hover:bg-muted font-bold text-muted-foreground hover:text-foreground">
                         <X className="h-4 w-4" />
                     </Button>
                 </div>
             </div>
+
+            {showProposalEditor && displayBlock && (
+                <ChemicalProposalEditor
+                    open={showProposalEditor}
+                    onOpenChange={setShowProposalEditor}
+                    block={displayBlock as any}
+                />
+            )}
 
             {fullBlockQuery.isLoading ? (
                 <div className="p-12 flex justify-center">
@@ -198,13 +239,6 @@ export function TransactionBlockDetailPanel({ block, onClose, hideApprove }: Pro
                         </div>
                         <div>
                             <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5 mb-1">
-                                <FileText className="h-3 w-3" />
-                                {t("inventory.chemical.transactionBlocks.reference", { defaultValue: "Tham chiếu" })}
-                            </div>
-                            <div className="text-sm font-medium">{displayBlock.referenceDocument || "-"}</div>
-                        </div>
-                        <div>
-                            <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5 mb-1">
                                 <User className="h-3 w-3" />
                                 {t("inventory.chemical.transactionBlocks.createdBy", { defaultValue: "Người tạo" })}
                             </div>
@@ -225,23 +259,23 @@ export function TransactionBlockDetailPanel({ block, onClose, hideApprove }: Pro
                     </div>
 
                     {/* Details hoặc Transactions */}
-                    <div className="space-y-2.5">
-                        <div className="flex items-center justify-between border-b border-border pb-1.5">
-                            <h3 className="text-sm font-semibold flex items-center gap-1.5">
-                                <ListOrdered className="h-4 w-4 text-primary" />
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                            <h3 className="text-[13px] font-bold flex items-center gap-2 text-foreground/80">
+                                <ListOrdered className="h-4 w-4 text-primary/70" />
                                 {isApproved
                                     ? t("inventory.chemical.transactionBlocks.executedHistory", { defaultValue: "Lịch sử đã thực thi" })
-                                    : t("inventory.chemical.transactionBlocks.pendingDetails", { defaultValue: "Chi tiết dự kiến (Bảng tạm)" })}
+                                    : t("inventory.chemical.transactionBlocks.pendingDetails", { defaultValue: "Chi tiết dự kiến" })}
                             </h3>
-                            <Badge variant="secondary" className="rounded-full">
-                                {isApproved ? displayBlock.transactions?.length || 0 : displayBlock.details?.length || 0}
-                            </Badge>
+                            <div className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full border border-primary/20">
+                                {isApproved ? displayBlock.chemicalTransactions?.length || 0 : displayBlock.chemicalTransactionBlockDetails?.length || 0} mục
+                            </div>
                         </div>
 
                         {/* Nếu APPROVED → show transactions (đã thực thi) */}
                         {showTransactions && (
                             <div className="space-y-3">
-                                {displayBlock.transactions!.map((txn) => (
+                                {displayBlock.chemicalTransactions!.map((txn) => (
                                     <LineItemCard key={txn.chemicalTransactionId} item={txn} idField="chemicalTransactionId" />
                                 ))}
                             </div>
@@ -254,7 +288,7 @@ export function TransactionBlockDetailPanel({ block, onClose, hideApprove }: Pro
                                     <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                                     {t("inventory.chemical.transactionBlocks.pendingNote", { defaultValue: "Phiếu chưa được duyệt. Tồn kho chưa bị tác động." })}
                                 </div>
-                                {displayBlock.details!.map((detail) => (
+                                {displayBlock.chemicalTransactionBlockDetails!.map((detail) => (
                                     <LineItemCard key={detail.chemicalTransactionBlockDetailId} item={detail} idField="chemicalTransactionBlockDetailId" />
                                 ))}
                             </div>
@@ -263,7 +297,7 @@ export function TransactionBlockDetailPanel({ block, onClose, hideApprove }: Pro
                         {/* Fallback: nếu có transactions nhưng chưa approved (edge case) */}
                         {!showTransactions && !showDetails && hasTransactions && (
                             <div className="space-y-3">
-                                {displayBlock.transactions!.map((txn) => (
+                                {displayBlock.chemicalTransactions!.map((txn) => (
                                     <LineItemCard key={txn.chemicalTransactionId} item={txn} idField="chemicalTransactionId" />
                                 ))}
                             </div>

@@ -75,7 +75,6 @@ export function TechnicianChemicalRequestsTab({ search }: Props) {
                                 <TableHead className="min-w-[150px]">{t("technician.workspace.statusCol", { defaultValue: "Trạng thái" })}</TableHead>
                                 <TableHead className="min-w-[150px]">{t("common.createdAt", { defaultValue: "Ngày tạo" })}</TableHead>
                                 <TableHead className="min-w-[150px]">{t("common.createdBy", { defaultValue: "Người tạo" })}</TableHead>
-                                <TableHead className="min-w-[200px]">{t("inventory.chemical.transactionBlocks.table.reference", { defaultValue: "Tham chiếu" })}</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -115,9 +114,6 @@ export function TechnicianChemicalRequestsTab({ search }: Props) {
                                         </TableCell>
                                         <TableCell className="whitespace-nowrap text-muted-foreground">
                                             {block.createdBy ?? block.createdById ?? "-"}
-                                        </TableCell>
-                                        <TableCell className="whitespace-nowrap text-muted-foreground">
-                                            {block.referenceDocument ?? "-"}
                                         </TableCell>
                                     </TableRow>
                                 ))

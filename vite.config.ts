@@ -34,4 +34,16 @@ export default defineConfig({
         port: 4173,
         allowedHosts: [".irdop.org"],
     },
+    build: {
+        chunkSizeWarningLimit: 1500, // Increase limit to 1.5MB to stay quiet
+        rollupOptions: {
+            output: {
+                manualChunks(id) {
+                    if (id.includes("node_modules")) {
+                        return "vendor"; // Put all dependencies in one vendor chunk
+                    }
+                },
+            },
+        },
+    },
 });

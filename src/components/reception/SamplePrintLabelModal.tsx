@@ -1,6 +1,6 @@
 // src/components/reception/SamplePrintLabelModal.tsx
-// In tem dán nhãn mẫu: 50mm x 30mm × 2 tem / hàng (100mm × 30mm per row)
-// Bố cục mỗi tem: Trái → 3 dòng text | Phải → QR 20×20mm (lề 3mm)
+// In tem dán nhãn mẫu: 50mm x 22mm × 2 tem / hàng (100mm × 22mm per row)
+// Bố cục mỗi tem: Trái → 3 dòng text | Phải → QR 18×18mm (lề 2mm)
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
@@ -45,8 +45,8 @@ function SampleLabelSingle({ item }: { item: SampleLabelItem }) {
             className="label-single"
             style={{
                 width: "50mm",
-                height: "30mm",
-                padding: "3mm",
+                height: "22mm",
+                padding: "2mm",
                 fontFamily: "'Inter', 'Segoe UI', Arial, sans-serif",
                 color: "#000",
                 display: "flex",
@@ -74,8 +74,8 @@ function SampleLabelSingle({ item }: { item: SampleLabelItem }) {
                 <div
                     className="label-sample-id"
                     style={{
-                        fontWeight: 800,
-                        fontSize: "8.5pt",
+                        fontWeight: 900,
+                        fontSize: "9pt",
                         wordBreak: "break-all",
                         lineHeight: 1.1,
                         marginBottom: "0.5mm",
@@ -88,9 +88,10 @@ function SampleLabelSingle({ item }: { item: SampleLabelItem }) {
                 <div
                     className="label-type"
                     style={{
-                        fontSize: "6.5pt",
-                        color: "#333",
-                        lineHeight: 1.2,
+                        fontSize: "7.5pt",
+                        color: "#000",
+                        fontWeight: 600,
+                        lineHeight: 1.1,
                         wordBreak: "break-word",
                     }}
                 >
@@ -101,9 +102,10 @@ function SampleLabelSingle({ item }: { item: SampleLabelItem }) {
                 <div
                     className="label-product"
                     style={{
-                        fontSize: "6pt",
-                        color: "#555",
-                        lineHeight: 1.2,
+                        fontSize: "7pt",
+                        color: "#000",
+                        fontWeight: 500,
+                        lineHeight: 1.1,
                         wordBreak: "break-word",
                     }}
                 >
@@ -156,7 +158,7 @@ function SampleLabelSingle({ item }: { item: SampleLabelItem }) {
 // ── Print CSS ─────────────────────────────────────────────────────────────────
 const PRINT_CSS = `
     @page {
-        size: 100mm 30mm;
+        size: 100mm 22mm;
         margin: 0;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -170,7 +172,7 @@ const PRINT_CSS = `
     }
     .label-row {
         width: 100mm;
-        height: 30mm;
+        height: 22mm;
         display: flex;
         flex-direction: row;
         page-break-after: always;
@@ -181,8 +183,8 @@ const PRINT_CSS = `
     }
     .label-single {
         width: 50mm;
-        height: 30mm;
-        padding: 3mm;
+        height: 22mm;
+        padding: 2mm;
         display: flex;
         flex-direction: row;
         overflow: hidden;
@@ -199,22 +201,25 @@ const PRINT_CSS = `
         padding-right: 2mm;
     }
     .label-sample-id {
-        font-weight: 800;
-        font-size: 8.5pt;
+        font-weight: 900;
+        font-size: 9pt;
         line-height: 1.1;
         word-break: break-all;
         margin-bottom: 0.5mm;
+        color: #000;
     }
     .label-type {
-        font-size: 6.5pt;
-        color: #333;
-        line-height: 1.2;
+        font-size: 7.5pt;
+        color: #000;
+        font-weight: 600;
+        line-height: 1.1;
         word-break: break-word;
     }
     .label-product {
-        font-size: 6pt;
-        color: #555;
-        line-height: 1.2;
+        font-size: 7pt;
+        color: #000;
+        font-weight: 500;
+        line-height: 1.1;
         word-break: break-word;
     }
     .label-qr {
@@ -286,7 +291,7 @@ ${content}
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">
                             {receiptCode && <span className="font-medium">Phiếu {receiptCode} · </span>}
-                            {items.length} tem · kích thước 50×30mm · 2 tem/hàng
+                            {items.length} tem · kích thước 50×22mm · 2 tem/hàng
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -310,16 +315,16 @@ ${content}
                     ) : (
                         <div ref={printRef} className="space-y-4" style={{ transform: "scale(2.2)", transformOrigin: "top center" }}>
                             {rows.map((row, ri) => (
-                                <div
-                                    key={ri}
-                                    className="label-row flex"
-                                    style={{
-                                        width: "100mm",
-                                        height: "30mm",
-                                        boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
-                                        marginBottom: ri === rows.length - 1 ? "40px" : "0", // Gap for the scaled preview at bottom
-                                    }}
-                                >
+                                    <div
+                                        key={ri}
+                                        className="label-row flex"
+                                        style={{
+                                            width: "100mm",
+                                            height: "22mm",
+                                            boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
+                                            marginBottom: ri === rows.length - 1 ? "40px" : "0", // Gap for the scaled preview at bottom
+                                        }}
+                                    >
                                     {row.map((item) => (
                                         <SampleLabelSingle key={item.sampleId} item={item} />
                                     ))}
@@ -328,7 +333,7 @@ ${content}
                                         <div
                                             style={{
                                                 width: "50mm",
-                                                height: "30mm",
+                                                height: "22mm",
                                                 background: "#fafafa",
                                                 borderLeft: "1px dashed #ccc",
                                                 display: "flex",
@@ -349,7 +354,7 @@ ${content}
 
                 {/* Footer */}
                 <div className="px-5 py-3 border-t border-border flex items-center justify-between shrink-0">
-                    <span className="text-xs text-muted-foreground">Kích thước: 50×30mm × 2 tem/hàng (100×30mm) · Lề 3mm · QR 18×18mm (SVG)</span>
+                    <span className="text-xs text-muted-foreground">Kích thước: 50×22mm × 2 tem/hàng (100×22mm) · Lề 2mm · QR 18×18mm (SVG)</span>
                     <Button variant="outline" size="sm" onClick={onClose}>
                         Đóng
                     </Button>

@@ -112,6 +112,9 @@ export const chemicalApi = {
         estimate: (input: { body: EstimateChemicalPayload }) => api.post<EstimateResponse>("/v2/chemicaltransactionblocks/estimate", { body: input.body }),
         allocate: (input: { body: AllocateStockPayload }) => api.post<AllocateStockResponse>("/v2/chemicaltransactionblocks/allocate", { body: input.body }),
     },
+    transactionBlockDetails: {
+        updateBulk: (input: { body: any[] }) => api.post<any>("/v2/chemicaltransactionblockdetails/update/bulk", { body: input.body }),
+    },
     transactions: {
         list: (input?: any) => api.post<ChemicalTransaction[]>("/v2/chemicaltransactions/get/list", { query: { ...DEFAULT_LIST_QUERY, ...(input?.query ?? {}) }, headers: noCacheHeaders }),
         full: (input: { id: string }) => api.post<ChemicalTransaction>("/v2/chemicaltransactions/get/full", { query: { id: input.id }, headers: noCacheHeaders }),
@@ -126,6 +129,9 @@ export const chemicalApi = {
     auditDetails: {
         list: (input?: any) => api.post<ChemicalAuditDetail[]>("/v2/chemicalauditdetails/get/list", { query: { ...DEFAULT_LIST_QUERY, ...(input?.query ?? {}) }, headers: noCacheHeaders }),
         update: (input: { body: any }) => api.post<ChemicalAuditDetail>("/v2/chemicalauditdetails/update", { body: input.body }),
+    },
+    enums: {
+        list: (type: string) => api.get<string[]>("/v2/enum/get/list", { query: { enumType: type }, headers: noCacheHeaders }),
     },
 };
 
@@ -316,5 +322,27 @@ export function useAllocateStock() {
     return useMutation({
         mutationFn: async (input: { body: AllocateStockPayload }) => assertSuccess(await chemicalApi.transactionBlocks.allocate(input)),
         onError: (err: any) => toast.error(err.message || String(t("common.error"))),
+    });
+}
+
+export function useChemicalTransactionBlockDetailsUpdateBulk() {
+    const qc = useQueryClient();
+    const { t } = useTranslation();
+    return useMutation({
+        mutationFn: async (input: { body: any[] }) => assertSuccess(await chemicalApi.transactionBlockDetails.updateBulk(input)),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: chemicalKeys.transactionBlocks.all() });
+            toast.success(String(t("common.toast.saved")));
+        },
+        onError: (err: any) => toast.error(err.message || String(t("common.toast.failed"))),
+    });
+}
+
+export function useEnumList(type: string, opts?: { enabled?: boolean }) {
+    return useQuery({
+        queryKey: chemicalKeys.enums.list(type),
+        queryFn: async () => assertSuccess(await chemicalApi.enums.list(type)),
+        enabled: !!type && (opts?.enabled ?? true),
+        staleTime: 60 * 60 * 1000, // cache 1h
     });
 }
