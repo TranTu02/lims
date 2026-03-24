@@ -9,6 +9,7 @@ export interface ChemicalSku extends BaseEntity {
     chemicalReorderLevel?: number | null;
     chemicalHazardClass?: string | null;
     openedExpDays?: number | null;
+    chemicalSkuOldId?: string | null;
 
     // Virtual fields available on get/full
     items?: ChemicalInventory[];

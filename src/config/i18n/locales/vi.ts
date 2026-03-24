@@ -56,6 +56,9 @@ export default {
         chemicalInventoryTitle: "Kho hóa chất",
         chemicalInventoryDescription: "Quản lý hóa chất",
 
+        generalInventoryTitle: "Kho Dụng cụ & Thiết bị",
+        generalInventoryDescription: "Quản lý dụng cụ, thiết bị máy móc",
+
         crmTitle: "Khách hàng",
         crmDescription: "Quản lý quan hệ khách hàng",
 
@@ -199,6 +202,7 @@ export default {
             sessionDomain: "Tên miền truy cập",
         },
     },
+
     crm: {
         title: "Khách hàng",
         subtitle: "Quản lý quan hệ khách hàng",
@@ -1565,6 +1569,49 @@ export default {
                 lot: "LOT",
                 hsd: "HSD",
                 cas: "CAS",
+            },
+        },
+        general: {
+            title: "Kho Dụng cụ & Thiết bị",
+            description: "Quản lý toàn bộ thông tin tài sản, thiết bị, và sổ cài truy vết hoạt động.",
+            tabs: {
+                equipment: "Thiết bị máy móc",
+                labTools: "Dụng cụ thí nghiệm",
+                activityLogs: "Sổ cái Truy vết",
+            },
+            equipment: {
+                title: "Thiết bị",
+                id: "Mã TB",
+                name: "Tên thiết bị",
+                code: "Mã/Số thẻ TS",
+                status: "Trạng thái",
+                lastCal: "HC gần nhất",
+                nextCal: "Hạn HC",
+                create: "Thêm Thiết bị",
+                edit: "Sửa Thiết bị",
+                search: "Tìm kiếm thiết bị...",
+            },
+            labTools: {
+                title: "Dụng cụ",
+                id: "Mã DC",
+                name: "Tên dụng cụ",
+                code: "Mã/Số thẻ",
+                type: "Phân loại",
+                status: "Trạng thái",
+                lastCal: "HC gần nhất",
+                create: "Thêm Dụng cụ",
+                edit: "Sửa Dụng cụ",
+                search: "Tìm kiếm dụng cụ...",
+            },
+            assetLogs: {
+                title: "Sổ cái Truy vết",
+                logId: "Mã Log",
+                assetId: "Mã Tài sản (TB/DC)",
+                table: "Phân loại",
+                logType: "Sự kiện",
+                description: "Mô tả",
+                actionTime: "Thời gian",
+                search: "Tìm kiếm nhật ký...",
             },
         },
     },

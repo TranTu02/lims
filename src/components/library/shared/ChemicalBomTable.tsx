@@ -25,6 +25,7 @@ type Props = {
 
 type SkuOption = {
     chemicalSkuId: string;
+    chemicalSkuOldId?: string | null;
     chemicalName: string;
     chemicalBaseUnit: string;
 };
@@ -122,7 +123,7 @@ function SkuSearchDropdown({ onSelect, existingIds }: { onSelect: (sku: SkuOptio
                                     <span className="flex-1 min-w-0 pr-4">
                                         <span className="block truncate font-medium">{sku.chemicalName}</span>
                                         <span className="block text-xs text-muted-foreground truncate">
-                                            {sku.chemicalSkuId} · {sku.chemicalBaseUnit}
+                                            {sku.chemicalSkuId} {sku.chemicalSkuOldId ? `(${sku.chemicalSkuOldId})` : ""} · {sku.chemicalBaseUnit}
                                         </span>
                                     </span>
                                     <div

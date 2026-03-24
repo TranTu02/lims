@@ -19,6 +19,7 @@ import {
     Moon,
     Microscope,
     Monitor,
+    Wrench,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/config/theme/ThemeContext";
@@ -207,6 +208,13 @@ export function Sidebar({ activeTab, onTabChange, sidebarOpen = true }: SidebarP
                 icon: Beaker,
                 titleKey: "nav.chemicalInventoryTitle",
                 descriptionKey: "nav.chemicalInventoryDescription",
+            },
+            {
+                type: "item",
+                id: "general-inventory",
+                icon: Wrench,
+                titleKey: "nav.generalInventoryTitle",
+                descriptionKey: "nav.generalInventoryDescription",
             },
             {
                 type: "item",

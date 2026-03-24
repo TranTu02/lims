@@ -167,6 +167,18 @@ export type ProtocolChemical = {
     unit?: string;
 };
 
+export type ProtocolEquipment = {
+    equipmentId: string;
+    equipmentName: string;
+    equipmentType?: string | null;
+};
+
+export type ProtocolLabTool = {
+    labToolId: string;
+    labToolName: string;
+    labToolType?: string | null;
+};
+
 export type MatrixChemical = {
     chemicalSkuId: string;
     chemicalName: string;
@@ -183,7 +195,9 @@ export type Protocol = {
     protocolAccreditation?: ProtocolAccreditation;
     protocolTitle?: string | null;
     protocolDescription?: string | null;
+    turnaroundDays?: number | null;
     protocolDocumentIds?: string[] | null;
+    sopDocumentIds?: string[] | null;
     documents?:
         | {
               documentId: string;
@@ -203,6 +217,10 @@ export type Protocol = {
     parameters?: ProtocolParameter[] | null;
     sampleTypes?: ProtocolSampleType[] | null;
     chemicals?: ProtocolChemical[] | null;
+    equipmentIds?: string[] | null;
+    equipments?: ProtocolEquipment[] | null;
+    labToolIds?: string[] | null;
+    labTools?: ProtocolLabTool[] | null;
     createdAt: string;
     createdById?: string | null;
     modifiedAt?: string | null;
@@ -322,10 +340,16 @@ export type ProtocolCreateBody = {
     protocolAccreditation?: ProtocolAccreditation;
     protocolTitle?: string | null;
     protocolDescription?: string | null;
+    turnaroundDays?: number | null;
     protocolDocumentIds?: string[] | null;
+    sopDocumentIds?: string[] | null;
     parameters?: ProtocolParameter[] | null;
     sampleTypes?: ProtocolSampleType[] | null;
     chemicals?: ProtocolChemical[] | null;
+    equipmentIds?: string[] | null;
+    equipments?: ProtocolEquipment[] | null;
+    labToolIds?: string[] | null;
+    labTools?: ProtocolLabTool[] | null;
 };
 
 export type ProtocolUpdateBody = {
@@ -335,10 +359,16 @@ export type ProtocolUpdateBody = {
     protocolAccreditation?: ProtocolAccreditation;
     protocolTitle?: string | null;
     protocolDescription?: string | null;
+    turnaroundDays?: number | null;
     protocolDocumentIds?: string[] | null;
+    sopDocumentIds?: string[] | null;
     parameters?: ProtocolParameter[] | null;
     sampleTypes?: ProtocolSampleType[] | null;
     chemicals?: ProtocolChemical[] | null;
+    equipmentIds?: string[] | null;
+    equipments?: ProtocolEquipment[] | null;
+    labToolIds?: string[] | null;
+    labTools?: ProtocolLabTool[] | null;
 };
 
 export type ParameterCreateBody = {

@@ -949,7 +949,7 @@ _Lưu dữ liệu mà thuật toán gợi ý hoặc KTV xin xuất/nhập, nhưn
 | `actionType`                         | `text`    |        | `INITIAL_ISSUE`, `SUPPLEMENTAL`, `RETURN`... |
 | `chemicalSkuId`                      | `text`    | **FK** | Mã SKU.                                      |
 | `chemicalName`                       | `text`    |        | Tên Hóa chất.                                |
-| `chemicalCasNumber`                          | `text`    |        | Số CAS.                                      |
+| `chemicalCasNumber`                  | `text`    |        | Số CAS.                                      |
 | `chemicalInventoryId`                | `text`    | **FK** | **Dự kiến** bốc chai/lọ nào.                 |
 | `changeQty`                          | `numeric` |        | **Dự kiến** thay đổi bao nhiêu.              |
 | `chemicalTransactionBlockDetailUnit` | `text`    |        | Đơn vị tính.                                 |
@@ -1102,21 +1102,44 @@ Chứa thông tin kho vật tư, dụng cụ, thiết bị văn phòng và quả
 
 #### Phân hệ 3: EQUIPMENT MANAGEMENT
 
-#### 7. Bảng `equipment` (Quản lý thiết bị LIMS)
+#### 7. Bảng `equipment` (Thiết bị máy móc)
 
-| Column Name             | Type        | Key    | Description                                  |
-| :---------------------- | :---------- | :----- | :------------------------------------------- |
-| `equipmentId`           | `text`      | **PK** | Mã thiết bị (VD: `EQ-HPLC-01`).              |
-| `equipmentName`         | `text`      |        | Tên thiết bị.                                |
-| `equipmentCode`         | `text`      | **UQ** | Mã tài sản/Số thẻ tài sản.                   |
-| `equipmentType`         | `text`      |        | `Analytical`, `Auxiliary`, `Office`.         |
-| `inventoryInventoryId`  | `text`      | **FK** | Link tới kho (để biết nguồn gốc/vị trí).     |
-| `equipmentStatus`       | `text`      |        | `Ready`, `InUse`, `Maintenance`, `Faulty`.   |
-| `calibrationCycleMonths`| `int`       |        | Chu kỳ hiệu chuẩn (tháng).                   |
-| `lastCalibrationDate`   | `date`      |        | Ngày hiệu chuẩn gần nhất.                    |
-| `nextCalibrationDate`   | `date`      |        | Hạn hiệu chuẩn tiếp theo.                    |
-| `maintenanceLog`        | `jsonb`     |        | Lịch sử bảo trì/sửa chữa.                    |
-| `equipmentManualIds`    | `text[]`    | **FK** | Link tài liệu hướng dẫn (`document.files`).  |
+| Column Name           | Type   | Key    | Description                                |
+| :-------------------- | :----- | :----- | :----------------------------------------- |
+| `equipmentId`         | `text` | **PK** | Mã thiết bị (VD: `EQ-HPLC-01`).            |
+| `equipmentName`       | `text` |        | Tên thiết bị.                              |
+| `equipmentCode`       | `text` | **UQ** | Mã tài sản/Số thẻ tài sản.                 |
+| `equipmentStatus`     | `text` |        | `Ready`, `InUse`, `Maintenance`, `Faulty`. |
+| `lastCalibrationDate` | `date` |        | Ngày hiệu chuẩn gần nhất.                  |
+| `nextCalibrationDate` | `date` |        | Hạn hiệu chuẩn tiếp theo.                  |
+
+#### 8. Bảng `labTools` (Dụng cụ thí nghiệm)
+
+| Column Name           | Type   | Key    | Description                                       |
+| :-------------------- | :----- | :----- | :------------------------------------------------ |
+| `labToolId`           | `text` | **PK** | Mã dụng cụ (VD: `TOOL-001`).                      |
+| `labToolName`         | `text` |        | Tên dụng cụ (VD: `Micropipette 100-1000uL`).      |
+| `labToolCode`         | `text` | **UQ** | Mã quản lý (nếu có).                              |
+| `labToolType`         | `text` |        | Phân loại (VD: `Pipette`, `Burette`, `Glassware`).|
+| `labToolStatus`       | `text` |        | `Ready`, `InUse`, `Maintenance`, `Broken`.        |
+| `lastCalibrationDate` | `date` |        | Ngày kiểm tra/hiệu chuẩn gần nhất.                |
+| `nextCalibrationDate` | `date` |        | Hạn kiểm tra tiếp theo.                           |
+
+#### 9. Bảng `assetActivityLogs` (Nhật ký Tải sản/Dụng cụ)
+
+_Dùng chung để ghi nhận lịch sử Mượn/Trả, Bảo trì, Sửa chữa của cả `equipment` và `labTools`._
+
+| Column Name        | Type        | Key    | Description                                                                                          |
+| :----------------- | :---------- | :----- | :--------------------------------------------------------------------------------------------------- |
+| `logId`            | `text`      | **PK** | Mã nhật ký (VD: `LOG-2601-001`).                                                                     |
+| `assetId`          | `text`      | **FK** | Tham chiếu đến `equipmentId` hoặc `labToolId`.                                                       |
+| `assetTable`       | `text`      |        | Tên bảng tham chiếu: `equipment` hoặc `labTools`.                                                    |
+| `logType`          | `text`      |        | Loại hoạt động: `Borrow` (Mượn), `Return` (Trả), `Maintenance` (Bảo trì), `Repair` (Sửa chữa).       |
+| `actionBy`         | `text`      | **FK** | User thực hiện hành động.                                                                            |
+| `actionTime`       | `timestamp` |        | Thời gian thực hiện.                                                                                 |
+| `description`      | `text`      |        | Mô tả chi tiết (Tình trạng trước/sau, linh kiện thay thế...).                                      |
+| `associatedTask`   | `text`      |        | Liên kết vơi Test/Analysis nếu có (Không bắt buộc).                                                |
+
 | _Audit Cols_            | ...         |        |                                              |
 
 ---

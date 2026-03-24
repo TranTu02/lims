@@ -359,6 +359,8 @@ export function ProtocolsTable(props: Props) {
                             </span>
                         </th>
 
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-[10%]">{String(t("library.protocols.turnaroundDays", { defaultValue: "Dự kiến" }))}</th>
+
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-[15%]">{String(t("library.protocols.detail.description", { defaultValue: "Mô tả" }))}</th>
 
                         <th className="px-3 py-3 text-center text-xs font-medium text-muted-foreground uppercase w-[5%]">{String(t("library.protocols.columns.actions"))}</th>
@@ -391,6 +393,12 @@ export function ProtocolsTable(props: Props) {
                                 <td className="px-3 py-3 align-top">
                                     <div className="flex flex-wrap gap-1">
                                         <AccreditationBadges value={p.protocolAccreditation} className="text-xs" />
+                                    </div>
+                                </td>
+
+                                <td className="px-4 py-3 align-top">
+                                    <div className="text-sm text-foreground text-center" title={String(p.turnaroundDays)}>
+                                        {p.turnaroundDays != null ? p.turnaroundDays : "-"}
                                     </div>
                                 </td>
 

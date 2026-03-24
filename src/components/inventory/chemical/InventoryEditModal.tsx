@@ -66,6 +66,8 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
             const isInUse = ["InUse", "Inuse"].includes(form.chemicalInventoryStatus);
             const payload = {
                 ...form,
+                mfgDate: form.mfgDate || null,
+                expDate: form.expDate || null,
                 openedDate: isInUse ? (form.openedDate || null) : null,
                 openedExpDate: isInUse ? (form.openedExpDate || null) : null,
             };

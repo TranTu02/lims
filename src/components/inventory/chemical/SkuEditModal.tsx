@@ -12,11 +12,12 @@ import type { ChemicalSku } from "@/types/chemical";
 type Props = {
     sku?: ChemicalSku | null; // null/undefined → create mode
     onClose: () => void;
+    onSuccess?: (sku: ChemicalSku) => void;
 };
 
 const HAZARD_CLASSES = ["Flammable", "Toxic", "Corrosive", "Oxidizing", "Explosive", "Radioactive", "Biohazard", "Irritant", "Environmental Hazard", "None"];
 
-export function SkuEditModal({ sku, onClose }: Props) {
+export function SkuEditModal({ sku, onClose, onSuccess }: Props) {
     const { t } = useTranslation();
     const qc = useQueryClient();
     const isCreate = !sku;
@@ -29,6 +30,7 @@ export function SkuEditModal({ sku, onClose }: Props) {
         chemicalReorderLevel: String(sku?.chemicalReorderLevel ?? ""),
         chemicalHazardClass: sku?.chemicalHazardClass ?? "",
         openedExpDays: String(sku?.openedExpDays ?? ""),
+        chemicalSkuOldId: sku?.chemicalSkuOldId ?? "",
     });
 
     const mutation = useMutation({
@@ -43,10 +45,15 @@ export function SkuEditModal({ sku, onClose }: Props) {
             }
             toast.success(
                 isCreate
-                    ? t("inventory.chemical.skus.createSuccess", { defaultValue: "Đã tạo danh mục hóa chất thành công" })
-                    : t("inventory.chemical.skus.updateSuccess", { defaultValue: "Đã cập nhật danh mục hóa chất thành công" }),
+                    ? t("inventory.chemical.skus.createSuccess", { defaultValue: "Đã tạo SKU mới thành công" })
+                    : t("inventory.chemical.skus.updateSuccess", { defaultValue: "Đã cập nhật thông tin SKU thành công" }),
             );
             qc.invalidateQueries({ queryKey: chemicalKeys.skus.all() });
+            
+            if (isCreate && onSuccess && res.data) {
+                onSuccess(res.data as ChemicalSku);
+            }
+            
             onClose();
         },
         onError: (err: any) => {
@@ -127,6 +134,12 @@ export function SkuEditModal({ sku, onClose }: Props) {
                                 {t("inventory.chemical.skus.openedExpDays", { defaultValue: "Ngày dùng sau mở (Mặc định)" })}
                             </label>
                             <Input type="number" value={form.openedExpDays} onChange={(e) => set("openedExpDays", e.target.value)} id="edit-sku-exp-open" placeholder="0" />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                {t("inventory.chemical.skus.chemicalSkuOldId", { defaultValue: "Mã SKU cũ (nếu có)" })}
+                            </label>
+                            <Input value={form.chemicalSkuOldId} onChange={(e) => set("chemicalSkuOldId", e.target.value)} id="edit-sku-old-id" placeholder="SKU_OLD_..." />
                         </div>
                     </div>
                 </div>

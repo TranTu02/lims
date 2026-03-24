@@ -88,6 +88,9 @@ export function SkusTab() {
                                         {t("inventory.chemical.skus.chemicalSkuId", { defaultValue: "Mã SKU" })}
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.skus.chemicalSkuOldId", { defaultValue: "Mã SKU Cũ" })}
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                                         {t("inventory.chemical.skus.chemicalCasNumber", { defaultValue: "Số CAS" })}
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
@@ -127,7 +130,7 @@ export function SkusTab() {
                                 {isLoading ? (
                                     Array.from({ length: 5 }).map((_, i) => (
                                         <tr key={i}>
-                                            {Array.from({ length: 7 }).map((__, j) => (
+                                            {Array.from({ length: 8 }).map((__, j) => (
                                                 <td key={j} className="p-3">
                                                     <Skeleton className="h-4 w-20" />
                                                 </td>
@@ -136,7 +139,7 @@ export function SkusTab() {
                                     ))
                                 ) : (result?.data as any[])?.length === 0 ? (
                                     <tr>
-                                        <td colSpan={7} className="p-6 text-center text-muted-foreground">
+                                        <td colSpan={8} className="p-6 text-center text-muted-foreground">
                                             {t("common.noData", { defaultValue: "Không có dữ liệu" })}
                                         </td>
                                     </tr>
@@ -148,6 +151,7 @@ export function SkusTab() {
                                             onClick={() => setActiveSku(sku)}
                                         >
                                             <td className="px-3 py-2 whitespace-nowrap font-mono text-xs text-primary font-medium">{sku.chemicalSkuId ?? "-"}</td>
+                                            <td className="px-3 py-2 whitespace-nowrap font-mono text-xs text-muted-foreground">{sku.chemicalSkuOldId ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap font-mono text-xs">{sku.chemicalCasNumber ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap font-medium">{sku.chemicalName ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap">{sku.chemicalBaseUnit ?? "-"}</td>

@@ -70,6 +70,13 @@ export function SkuDetailPanel({ sku, onClose }: Props) {
 
                             <div>
                                 <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
+                                    {t("inventory.chemical.skus.chemicalSkuOldId", { defaultValue: "Mã SKU cũ" })}
+                                </div>
+                                <div className="text-sm font-medium mt-1 font-mono text-muted-foreground">{displaySku.chemicalSkuOldId || "-"}</div>
+                            </div>
+
+                            <div>
+                                <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
                                     {t("inventory.chemical.skus.chemicalHazardClass", { defaultValue: "Phân loại nguy hiểm" })}
                                 </div>
                                 <div className="text-sm font-medium mt-1">{displaySku.chemicalHazardClass ? <Badge variant="destructive">{displaySku.chemicalHazardClass}</Badge> : "-"}</div>

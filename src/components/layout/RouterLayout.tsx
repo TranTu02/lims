@@ -17,6 +17,7 @@ type TabKey =
     | "document"
     | "inventory"
     | "chemical-inventory"
+    | "general-inventory"
     | "crm"
     | "hr"
     | "library-parameters"
@@ -61,6 +62,8 @@ function getTabFromPath(pathname: string): TabKey {
             return "inventory";
         case "/chemical-inventory":
             return "chemical-inventory";
+        case "/general-inventory":
+            return "general-inventory";
         case "/crm":
             return "crm";
         case "/hr":
@@ -178,6 +181,10 @@ export function RouterLayout() {
             "chemical-inventory": {
                 title: t("nav.chemicalInventoryTitle"),
                 description: t("nav.chemicalInventoryDescription"),
+            },
+            "general-inventory": {
+                title: t("nav.generalInventoryTitle", { defaultValue: "Kho Dụng cụ & Thiết bị" }),
+                description: t("nav.generalInventoryDescription", { defaultValue: "Quản lý thiết bị máy móc, phụ tùng và dụng cụ." }),
             },
             crm: {
                 title: t("nav.crmTitle"),

@@ -7,7 +7,13 @@ import { Input } from "@/components/ui/input";
 
 import { useCreateProtocol, useUpdateProtocol, useProtocolDetail, type Protocol } from "@/api/library";
 import { ChemicalBomTable, type ChemicalBomItem } from "../shared/ChemicalBomTable";
+import { EquipmentSnapshotTable, type EquipmentSnapshotItem } from "../shared/EquipmentSnapshotTable";
+import { LabToolSnapshotTable, type LabToolSnapshotItem } from "../shared/LabToolSnapshotTable";
 import { ProtocolMatrixManager } from "./ProtocolMatrixManager";
+import { SearchSelectPicker, type PickerItem } from "./SearchSelectPicker";
+import { searchDocuments } from "@/api/documents";
+import { DocumentUploadModal } from "@/components/document/DocumentUploadModal";
+import { Upload, FileText } from "lucide-react";
 
 type Props = {
     onClose: () => void;
@@ -32,13 +38,39 @@ export function ProtocolFormModal({ onClose, protocolId, initialData, onSuccess 
     const [protocolCode, setProtocolCode] = useState(String(initialData?.protocolCode || ""));
     const [protocolSource, setProtocolSource] = useState("");
     const [protocolDescription, setProtocolDescription] = useState("");
+    const [turnaroundDays, setTurnaroundDays] = useState<number | "">("");
     const [chemicals, setChemicals] = useState<ChemicalBomItem[]>([]);
+    
+    // Document States
+    const [sopDocumentIds, setSopDocumentIds] = useState<string[]>([]);
+    const [selectedSopDocs, setSelectedSopDocs] = useState<PickerItem[]>([]);
+    const [protocolDocumentIds, setProtocolDocumentIds] = useState<string[]>([]);
+    const [selectedProtocolDocs, setSelectedProtocolDocs] = useState<PickerItem[]>([]);
+
+    const [uploadSopOpen, setUploadSopOpen] = useState(false);
+    const [uploadDocOpen, setUploadDocOpen] = useState(false);
+
+    // Equipment & Lab Tools
+    const [equipments, setEquipments] = useState<EquipmentSnapshotItem[]>([]);
+    const [labTools, setLabTools] = useState<LabToolSnapshotItem[]>([]);
 
     useEffect(() => {
         if (protocolDetail && isEdit) {
             setProtocolCode(String(protocolDetail.protocolCode || ""));
             setProtocolSource(String(protocolDetail.protocolSource || ""));
             setProtocolDescription(String(protocolDetail.protocolDescription || ""));
+            setTurnaroundDays(protocolDetail.turnaroundDays ?? "");
+
+            const sopIds = protocolDetail.sopDocumentIds || [];
+            setSopDocumentIds(sopIds);
+            setSelectedSopDocs(sopIds.map(id => ({ id, label: id, sublabel: "" })));
+            
+            const docIds = protocolDetail.protocolDocumentIds || [];
+            setProtocolDocumentIds(docIds);
+            setSelectedProtocolDocs(docIds.map(id => ({ id, label: id, sublabel: "" })));
+
+            setEquipments(protocolDetail.equipments || []);
+            setLabTools(protocolDetail.labTools || []);
 
             if (protocolDetail.chemicals && Array.isArray(protocolDetail.chemicals)) {
                 setChemicals(
@@ -77,6 +109,13 @@ export function ProtocolFormModal({ onClose, protocolId, initialData, onSuccess 
                     protocolCode: codeTrimmed,
                     protocolSource: sourceTrimmed || "Manual",
                     protocolDescription: descTrimmed || null,
+                    turnaroundDays: turnaroundDays === "" ? null : Number(turnaroundDays),
+                    sopDocumentIds: sopDocumentIds.length > 0 ? sopDocumentIds : null,
+                    protocolDocumentIds: protocolDocumentIds.length > 0 ? protocolDocumentIds : null,
+                    equipmentIds: equipments.map(e => e.equipmentId).filter(Boolean),
+                    equipments: equipments.filter(e => e.equipmentId || e.equipmentName),
+                    labToolIds: labTools.map(l => l.labToolId).filter(Boolean),
+                    labTools: labTools.filter(l => l.labToolId || l.labToolName),
                     chemicals: payloadChemicals,
                 },
             });
@@ -87,6 +126,13 @@ export function ProtocolFormModal({ onClose, protocolId, initialData, onSuccess 
                     protocolCode: codeTrimmed,
                     protocolSource: sourceTrimmed || "Manual",
                     protocolDescription: descTrimmed || null,
+                    turnaroundDays: turnaroundDays === "" ? null : Number(turnaroundDays),
+                    sopDocumentIds: sopDocumentIds.length > 0 ? sopDocumentIds : null,
+                    protocolDocumentIds: protocolDocumentIds.length > 0 ? protocolDocumentIds : null,
+                    equipmentIds: equipments.map(e => e.equipmentId).filter(Boolean),
+                    equipments: equipments.filter(e => e.equipmentId || e.equipmentName),
+                    labToolIds: labTools.map(l => l.labToolId).filter(Boolean),
+                    labTools: labTools.filter(l => l.labToolId || l.labToolName),
                     chemicals: payloadChemicals,
                 },
             });
@@ -139,8 +185,77 @@ export function ProtocolFormModal({ onClose, protocolId, initialData, onSuccess 
                                     <Input value={protocolDescription} onChange={(e) => setProtocolDescription(e.target.value)} />
                                 </div>
 
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-foreground">{String(t("library.protocols.create.turnaroundDays", { defaultValue: "Dự kiến số ngày hoàn thành" }))}</label>
+                                    <Input 
+                                        type="number" 
+                                        min="0"
+                                        value={turnaroundDays} 
+                                        onChange={(e) => setTurnaroundDays(e.target.value === "" ? "" : Number(e.target.value))} 
+                                    />
+                                </div>
+
                                 <div className="mt-6 border-t pt-4">
                                     <ChemicalBomTable items={chemicals} onChange={setChemicals} disabled={isPending} />
+                                </div>
+
+                                <div className="mt-6 border-t pt-4 space-y-4">
+                                    <div>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="text-sm font-semibold flex items-center gap-1.5 text-muted-foreground uppercase tracking-wider">
+                                                <FileText className="h-4 w-4" />
+                                                {String(t("library.protocols.create.sopDocuments", { defaultValue: "Hồ sơ SOP" }))}
+                                            </label>
+                                            <Button type="button" variant="outline" size="sm" onClick={() => setUploadSopOpen(true)} className="h-7 text-[10px]">
+                                                <Upload className="h-3 w-3 mr-1" /> {String(t("common.upload"))}
+                                            </Button>
+                                        </div>
+                                        <SearchSelectPicker
+                                            label={String(t("library.protocols.create.selectSop", { defaultValue: "Chọn hồ sơ SOP" }))}
+                                            selected={selectedSopDocs}
+                                            onChange={(items) => {
+                                                setSelectedSopDocs(items);
+                                                setSopDocumentIds(items.map(i => i.id));
+                                            }}
+                                            onSearch={async (q) => {
+                                                const res = await searchDocuments(q);
+                                                return res.map(d => ({ id: d.documentId, label: d.documentTitle || d.documentId, sublabel: d.documentId }));
+                                            }}
+                                            placeholder={String(t("library.protocols.create.searchSop", { defaultValue: "Tìm hồ sơ SOP..." }))}
+                                        />
+                                    </div>
+
+                                    <div className="pt-2">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="text-sm font-semibold flex items-center gap-1.5 text-muted-foreground uppercase tracking-wider">
+                                                <FileText className="h-4 w-4" />
+                                                {String(t("library.protocols.create.protocolDocuments", { defaultValue: "Tài liệu phương pháp" }))}
+                                            </label>
+                                            <Button type="button" variant="outline" size="sm" onClick={() => setUploadDocOpen(true)} className="h-7 text-[10px]">
+                                                <Upload className="h-3 w-3 mr-1" /> {String(t("common.upload"))}
+                                            </Button>
+                                        </div>
+                                        <SearchSelectPicker
+                                            label={String(t("library.protocols.create.selectDoc", { defaultValue: "Chọn tài liệu" }))}
+                                            selected={selectedProtocolDocs}
+                                            onChange={(items) => {
+                                                setSelectedProtocolDocs(items);
+                                                setProtocolDocumentIds(items.map(i => i.id));
+                                            }}
+                                            onSearch={async (q) => {
+                                                const res = await searchDocuments(q);
+                                                return res.map(d => ({ id: d.documentId, label: d.documentTitle || d.documentId, sublabel: d.documentId }));
+                                            }}
+                                            placeholder={String(t("library.protocols.create.searchDoc", { defaultValue: "Tìm tài liệu phương pháp..." }))}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="mt-8 border-t pt-4">
+                                    <EquipmentSnapshotTable items={equipments} onChange={setEquipments} disabled={isPending} />
+                                </div>
+
+                                <div className="mt-8 border-t pt-4">
+                                    <LabToolSnapshotTable items={labTools} onChange={setLabTools} disabled={isPending} />
                                 </div>
                             </>
                         )}
@@ -164,6 +279,34 @@ export function ProtocolFormModal({ onClose, protocolId, initialData, onSuccess 
                     </Button>
                 </div>
             </div>
+
+            <DocumentUploadModal
+                open={uploadSopOpen}
+                onClose={() => setUploadSopOpen(false)}
+                fixedDocumentType="PROTOCOL_SOP"
+                onSuccess={(doc) => {
+                    if (doc?.documentId) {
+                        const newId = doc.documentId;
+                        const newItem = { id: newId, label: doc.documentTitle || newId, sublabel: newId };
+                        setSopDocumentIds(prev => [...prev, newId]);
+                        setSelectedSopDocs(prev => [...prev, newItem]);
+                    }
+                }}
+            />
+
+            <DocumentUploadModal
+                open={uploadDocOpen}
+                onClose={() => setUploadDocOpen(false)}
+                fixedDocumentType="PROTOCOL_DOC"
+                onSuccess={(doc) => {
+                    if (doc?.documentId) {
+                        const newId = doc.documentId;
+                        const newItem = { id: newId, label: doc.documentTitle || newId, sublabel: newId };
+                        setProtocolDocumentIds(prev => [...prev, newId]);
+                        setSelectedProtocolDocs(prev => [...prev, newItem]);
+                    }
+                }}
+            />
         </div>
     );
 }

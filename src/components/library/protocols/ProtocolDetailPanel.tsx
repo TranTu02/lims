@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { X, FileText, FlaskConical, Beaker, Eye, Loader2, Pencil, Grid3X3 } from "lucide-react";
+import { X, FileText, FlaskConical, Beaker, Eye, Loader2, Pencil, Grid3X3, Shield, Cpu, Wrench } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -108,7 +108,20 @@ export function ProtocolDetailPanel(props: Props) {
     if (!displayProtocol) return null;
 
     // Support fallback directly from UI if backend hasn't populated generic 'documents' but populated old 'protocolDocumentIds' list.
-    const docsArray = displayProtocol.documents?.length ? displayProtocol.documents : displayProtocol.protocolDocumentIds?.map((id) => ({ documentId: id })) || [];
+    // Documents logic
+    const allDocs = displayProtocol.documents || [];
+    
+    // SOP Documents: filter from allDocs if type matches, OR fallback to sopDocumentIds
+    const sopsFromDocs = allDocs.filter(d => (d as any).documentType === "PROTOCOL_SOP");
+    const sopArray = sopsFromDocs.length > 0 
+        ? sopsFromDocs 
+        : (displayProtocol.sopDocumentIds?.map(id => ({ documentId: id })) || []);
+
+    // Protocol Documents: filter from allDocs if type matches, OR fallback to protocolDocumentIds
+    const docsFromDocs = allDocs.filter(d => (d as any).documentType === "PROTOCOL_DOC" || !(d as any).documentType);
+    const docsArray = docsFromDocs.length > 0 
+        ? docsFromDocs 
+        : (displayProtocol.protocolDocumentIds?.map(id => ({ documentId: id })) || []);
 
     const matrices = (displayProtocol as any).matrices as any[] | undefined;
 
@@ -152,6 +165,11 @@ export function ProtocolDetailPanel(props: Props) {
                         <div>
                             <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">{String(t("library.protocols.protocolSource"))}</div>
                             <div className="text-sm text-foreground font-medium mt-1">{displayProtocol.protocolSource}</div>
+                        </div>
+
+                        <div>
+                            <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">{String(t("library.protocols.turnaroundDays", { defaultValue: "Dự kiến (ngày)" }))}</div>
+                            <div className="text-sm text-foreground font-medium mt-1">{displayProtocol.turnaroundDays != null ? displayProtocol.turnaroundDays : "-"}</div>
                         </div>
 
                         <div className="col-span-1 md:col-span-2">
@@ -205,9 +223,31 @@ export function ProtocolDetailPanel(props: Props) {
                         </div>
                     </div>
 
-                    {/* Documents */}
+                    {/* SOP Documents */}
                     <div className="space-y-1.5">
-                        <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">{String(t("library.protocols.detail.documents"))}</div>
+                        <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5 ">
+                            <Shield className="h-3.5 w-3.5 text-blue-500" />
+                            {String(t("library.protocols.detail.sopDocuments", { defaultValue: "Hồ sơ SOP" }))}
+                        </div>
+                        {sopArray.length ? (
+                            <div className="grid grid-cols-1 gap-3">
+                                {sopArray.map((doc, idx) => (
+                                    <DocumentItem key={doc.documentId || idx} doc={doc} />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-sm text-muted-foreground pl-5 italic opacity-60">
+                                {String(t("library.protocols.detail.noSop", { defaultValue: "Chưa có hồ sơ SOP" }))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Protocol Documents */}
+                    <div className="space-y-1.5">
+                        <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                            <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                            {String(t("library.protocols.detail.documents", { defaultValue: "Tài liệu phương pháp" }))}
+                        </div>
                         {docsArray.length ? (
                             <div className="grid grid-cols-1 gap-3">
                                 {docsArray.map((doc, idx) => (
@@ -215,7 +255,55 @@ export function ProtocolDetailPanel(props: Props) {
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-sm text-muted-foreground">{String(t("common.noData"))}</div>
+                            <div className="text-sm text-muted-foreground pl-5 italic opacity-60">
+                                {String(t("library.protocols.detail.noDocs", { defaultValue: "Chưa có tài liệu phương pháp" }))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Equipment */}
+                    <div className="space-y-1.5">
+                        <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                            <Cpu className="h-3.5 w-3.5 text-orange-500" />
+                            {String(t("library.protocols.detail.equipments", { defaultValue: "Thiết bị máy móc" }))}
+                        </div>
+                        {displayProtocol.equipments?.length ? (
+                            <div className="grid grid-cols-1 gap-1.5 pl-5">
+                                {displayProtocol.equipments.map((e, idx) => (
+                                    <div key={idx} className="text-sm flex items-start gap-2">
+                                        <Badge variant="outline" className="text-[10px] font-mono h-4 px-1 shrink-0">{e.equipmentId}</Badge>
+                                        <span className="text-foreground leading-tight">{e.equipmentName}</span>
+                                        {e.equipmentType && <span className="text-xs text-muted-foreground italic">({e.equipmentType})</span>}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-sm text-muted-foreground pl-5 italic opacity-60">
+                                {String(t("library.protocols.detail.noEquipments", { defaultValue: "Chưa thiết lập thiết bị" }))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Lab Tools */}
+                    <div className="space-y-1.5">
+                        <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5">
+                            <Wrench className="h-3.5 w-3.5 text-purple-500" />
+                            {String(t("library.protocols.detail.labTools", { defaultValue: "Dụng cụ hỗ trợ" }))}
+                        </div>
+                        {displayProtocol.labTools?.length ? (
+                            <div className="grid grid-cols-1 gap-1.5 pl-5">
+                                {displayProtocol.labTools.map((l, idx) => (
+                                    <div key={idx} className="text-sm flex items-start gap-2">
+                                        <Badge variant="outline" className="text-[10px] font-mono h-4 px-1 shrink-0">{l.labToolId}</Badge>
+                                        <span className="text-foreground leading-tight">{l.labToolName}</span>
+                                        {l.labToolType && <span className="text-xs text-muted-foreground italic">({l.labToolType})</span>}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-sm text-muted-foreground pl-5 italic opacity-60">
+                                {String(t("library.protocols.detail.noLabTools", { defaultValue: "Chưa thiết lập dụng cụ" }))}
+                            </div>
                         )}
                     </div>
 

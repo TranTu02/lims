@@ -143,7 +143,16 @@ export function SkuSelect({ value, onChange, placeholder, id, className }: Props
             </div>
 
             {/* Create SKU modal */}
-            {createOpen && <SkuEditModal sku={null} onClose={() => setCreateOpen(false)} />}
+            {createOpen && (
+                <SkuEditModal 
+                    sku={null} 
+                    onClose={() => setCreateOpen(false)} 
+                    onSuccess={(sku) => {
+                        onChange(sku.chemicalSkuId, sku);
+                        setCreateOpen(false);
+                    }}
+                />
+            )}
         </>
     );
 }

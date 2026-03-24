@@ -56,6 +56,9 @@ export default {
         chemicalInventoryTitle: "Chemical Inventory",
         chemicalInventoryDescription: "Chemicals & Reagents",
 
+        generalInventoryTitle: "General Inventory",
+        generalInventoryDescription: "Manage equipment and lab tools",
+
         crmTitle: "Customers",
         crmDescription: "Customer relationship management",
 
@@ -1235,6 +1238,10 @@ export default {
         },
     },
     inventory: {
+        nav: {
+            chemical: "Chemical Inventory",
+            general: "General Inventory",
+        },
         dashboard: {
             title: "Inventory & Assets",
             description: "Chemicals, supplies, equipment",
@@ -1551,6 +1558,49 @@ export default {
                 },
                 done: "Finish & Close",
                 resetAllocation: "Recalculate",
+            },
+        },
+        general: {
+            title: "General Inventory",
+            description: "Manage all asset information, equipment, and audit trails of activities.",
+            tabs: {
+                equipment: "Equipment",
+                labTools: "Lab Tools",
+                activityLogs: "Audit Trail",
+            },
+            equipment: {
+                title: "Equipment",
+                id: "Equip ID",
+                name: "Equipment Name",
+                code: "Asset/Card ID",
+                status: "Status",
+                lastCal: "Last Cal",
+                nextCal: "Next Cal",
+                create: "Add Equipment",
+                edit: "Edit Equipment",
+                search: "Search equipment...",
+            },
+            labTools: {
+                title: "Lab Tools",
+                id: "Tool ID",
+                name: "Tool Name",
+                code: "Code/Card ID",
+                type: "Category",
+                status: "Status",
+                lastCal: "Last Cal/Test",
+                create: "Add Tool",
+                edit: "Edit Tool",
+                search: "Search tools...",
+            },
+            assetLogs: {
+                title: "Asset Audit Trail",
+                logId: "Log ID",
+                assetId: "Asset ID (EQP/TOOL)",
+                table: "Category",
+                logType: "Event",
+                description: "Description",
+                actionTime: "Time",
+                search: "Search logs...",
             },
         },
     },

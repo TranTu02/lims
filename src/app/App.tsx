@@ -22,6 +22,7 @@ import { ParameterGroupsPage } from "@/pages/library/ParameterGroupsPage";
 import { IdentityPage } from "@/pages/IdentityPage";
 import { CRMPage } from "@/pages/crm/CRMPage";
 import { ChemicalInventoryPage } from "@/pages/inventory/chemical/ChemicalInventoryPage";
+import { GeneralInventoryPage } from "@/pages/inventory/general/GeneralInventoryPage";
 
 
 // Protected Route Wrapper
@@ -71,6 +72,7 @@ function App() {
                         <Route path="/document" element={<DocumentPage />} />
                         <Route path="/inventory" element={<InventoryPage />} />
                         <Route path="/chemical-inventory" element={<ChemicalInventoryPage />} />
+                        <Route path="/general-inventory" element={<GeneralInventoryPage />} />
                         <Route path="/hr" element={<IdentityPage />} />
                     </Route>
 
