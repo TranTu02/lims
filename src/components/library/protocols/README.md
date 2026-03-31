@@ -2,7 +2,7 @@
 
 ## Tổng quan
 
-Quản lý danh sách **phương pháp phân tích** (Protocols). Mỗi phương pháp gồm: mã hiệu, tiêu đề, nguồn gốc, mô tả, chứng nhận (VILAS/TDC), danh sách chỉ tiêu, loại mẫu, hóa chất, tài liệu đính kèm, và **matrices snapshot**.
+Quản lý danh sách **phương pháp phân tích** (Protocols). Mỗi phương pháp gồm: mã hiệu, tiêu đề, nguồn gốc, mô tả, chứng nhận (VILAS/TDC), danh sách chỉ tiêu, hóa chất, hồ sơ SOP, và tài liệu liên quan.
 
 ## Danh sách file
 
@@ -10,70 +10,40 @@ Quản lý danh sách **phương pháp phân tích** (Protocols). Mỗi phương
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | `ProtocolsView.tsx`         | Component chính: quản lý toàn bộ state, API, danh sách.                                                                              |
 | `ProtocolsTable.tsx`        | Bảng danh sách với filter Excel-style. Cột: Code, Title, Source, Accreditation, Actions                                              |
-| `ProtocolDetailPanel.tsx`   | Panel chi tiết bên phải khi click vào hàng. Có nút **Edit** (✏️) bên cạnh nút Close. Hiển thị matrices snapshot bên dưới documents.  |
-| `ProtocolDetailModal.tsx`   | Modal chi tiết (dạng popup toàn màn hình), kèm bảng hóa chất và danh sách tài liệu.Fetch full protocol data via `useProtocolDetail`. |
-| `ProtocolFormModal.tsx`     | Modal tạo mới / chỉnh sửa phương pháp. Chế độ Edit hiển thị layout 2 cột với ProtocolMatrixManager bên phải.                         |
+| `ProtocolDetailPanel.tsx`   | Panel chi tiết bên phải khi click vào hàng. Hiển thị hồ sơ SOP và tài liệu riêng biệt.                                               |
+| `ProtocolDetailModal.tsx`   | Modal chi tiết (popup toàn màn hình), kèm bảng hóa chất và danh sách tài liệu chi tiết.                                              |
+| `ProtocolFormModal.tsx`     | Modal tạo mới / chỉnh sửa phương pháp. Hỗ trợ bộ chọn tài liệu theo loại (SOP vs DOC) và quản lý công nhận chi tiết theo ngày.       |
 | `ProtocolMatrixManager.tsx` | Quản lý danh sách các ma trận liên quan đến phương pháp này. Tích hợp MatricesCreateModal/EditModal.                                 |
-| `SearchSelectPicker.tsx`    | Component tìm kiếm + chọn nhiều item (dùng cho parameters, sample types, documents trong modal edit)                                 |
 
 ## Luồng hoạt động
 
 1. **Xem danh sách**: `ProtocolsView` gọi `useProtocolsList` với phân trang server-side
 2. **Xem chi tiết**: Click hàng → `ProtocolDetailPanel` (sidebar)
-    - Tự động fetch full protocol data via `useProtocolDetail` (endpoint `/v2/protocols/get/full`)
-    - Hiển thị loading spinner trong khi fetch
-    - Sử dụng `displayProtocol` (full data hoặc fallback prop)
+    * Tự động lọc tài liệu thành 2 danh sách riêng: **Hồ sơ SOP** (loại `PROTOCOL_SOP`) và **Tài liệu liên quan** (loại `PROTOCOL_DOC`).
 3. **Tạo/Chỉnh sửa**: Click nút Add/Edit → Mở `ProtocolFormModal`.
-    - **Chế độ Edit**: Modal mở rộng (80% width) với layout 2 cột.
-    - **Cột Trái**: Thông tin phương pháp, hóa chất, tài liệu.
-    - **Cột Phải**: Quản lý ma trận (`ProtocolMatrixManager`) - cho phép quản lý ma trận nền mẫu của phương pháp này ngay tại chỗ.
-4. **Quản lý Ma trận**: `ProtocolMatrixManager` gọi `MatricesCreateModal` và `MatricesEditModal`. Khi thêm mới từ đây, `protocolId` sẽ được khóa (locked) theo phương pháp hiện tại.
-5. **Upload tài liệu**: Nút "Tải lên tài liệu" trong modal edit → tạo document → thêm vào `documentIds`.
+    * **Phân loại tài liệu**: Khi chọn đính kèm hoặc tải lên, hệ thống gọi `searchDocuments` với filter `documentType` tương ứng để tránh nhầm lẫn.
+    * **Quản lý công nhận**: Sử dụng `AccreditationTagInput` tích hợp Enum API. Mỗi mã hiệu (VILAS, TDC...) cho phép nhập riêng **Ngày cấp** và **Ngày hết hạn**.
+    * **Chế độ Edit**: Modal mở rộng (80% width) với layout 2 cột.
+4. **Quản lý Ma trận**: `ProtocolMatrixManager` gọi `MatricesCreateModal` và `MatricesEditModal`.
 
-## Chi tiết hiển thị tài liệu đính kèm (DocumentItem)
+## Quản lý Tài liệu (Document Management)
 
-Mỗi document trong `ProtocolDetailPanel` / `ProtocolDetailModal` hiển thị:
+Mỗi phương pháp phân tích quản lý hai loại tài liệu chính:
 
-1. **Title** — Ưu tiên: `jsonContent.documentTitle` → `documentTitle` → `file.fileName` → `documentId`
-2. **Status** — `jsonContent.documentStatus` → `documentStatus`
-3. **Common Keys** — `jsonContent.commonKeys` → `commonKeys`
-4. **Document ID** — Badge nhỏ
-5. **Nút Preview** — Gọi `documentApi.url()` → mở `DocumentPreviewModal`
+* **PROTOCOL_DOC**: Các tài liệu đính kèm công khai, hướng dẫn sử dụng,...
+* **PROTOCOL_SOP**: Các quy trình thực hành chuẩn (SOP), thường chỉ dành cho bộ phận kỹ thuật hoặc quản lý.
 
-## Matrices Snapshot
+## Quản lý Công nhận (Accreditation)
 
-Khi API `/v2/protocols/get/full` trả về mảng `matrices`, `ProtocolDetailPanel` hiển thị bảng mini (scrollable max 300px) bên dưới phần tài liệu đính kèm:
-
-| Cột          | Source                               |
-| ------------ | ------------------------------------ |
-| Tên chỉ tiêu | `parameterName` hoặc `parameterId`   |
-| Loại mẫu     | `sampleTypeName` hoặc `sampleTypeId` |
-| Phí sau thuế | `feeAfterTax` (format vi-VN)         |
+Sử dụng cấu hình JSONB chi tiết:
+* **Nguồn**: `/v2/enum/get/list?enumType=protocolAccreditation`
+* **Dữ liệu**: `{ "CODE": { "registrationDate": "DD/MM/YYYY", "expirationDate": "DD/MM/YYYY" } }`
+* **Giao diện**: Cho phép Bật/Tắt (Enable/Disable) từng loại công nhận ngay trên form.
 
 ## API Endpoints
 
-- `GET /v2/protocols/get/list` – Danh sách
-- `GET /v2/protocols/get/detail` – Chi tiết cơ bản
-- `GET /v2/protocols/get/full` – **Full protocol snapshot** (documents + matrices)
-- `POST /v2/protocols/create` – Tạo mới
-- `POST /v2/protocols/update` – Cập nhật
-- `POST /v2/protocols/delete` – Xóa
-- `POST /v2/protocols/filter` – Filter Excel-style
-
-## Tính năng nút Edit
-
-Tất cả DetailPanel trong module Library (Protocol, Parameter, Matrix, SampleType) đều hỗ trợ prop `onEdit?`. Khi được cung cấp, nút ✏️ (Pencil) hiển thị bên cạnh nút X (Close).
-
-## i18n Keys
-
-| Namespace                    | Mô tả                         |
-| ---------------------------- | ----------------------------- |
-| `library.protocols.*`        | Labels chung, columns, form   |
-| `library.protocols.detail.*` | Labels panel chi tiết         |
-| `library.matrices.*`         | Labels bảng matrices snapshot |
-
-## Lưu ý
-
-- `useProtocolDetail` hook nhận `{ params: { protocolId: string } }`, sử dụng endpoint `/v2/protocols/get/full`
-- `Protocol` type trong `library.ts` bao gồm `documents[].jsonContent`, `documents[].file` cho nested data
-- Modal create/edit dùng chung cùng một form state (`editForm`), phân biệt bằng `editForm.protocolId`
+* `GET /v2/protocols/get/list` – Danh sách
+* `GET /v2/protocols/get/full` – **Full protocol snapshot** (SOPs + Docs + Matrices)
+* `POST /v2/protocols/create` – Tạo mới
+* `POST /v2/protocols/update` – Cập nhật
+* `GET /v2/documents/get/list?documentType=...` – Tìm kiếm tài liệu theo loại

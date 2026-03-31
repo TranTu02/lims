@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { createPortal } from "react-dom";
-
-import { X, Edit, Save, Upload, FileText, Printer, FileCheck, Mail, ChevronLeft, ChevronRight, ImageOff, Camera, Search, Building2, Plus, Paperclip } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState, useCallback, memo } from "react";
+import {
+    X, Edit, Save, Upload, FileText, Printer, FileCheck, Mail, ChevronLeft, ChevronRight,
+    ImageOff, Camera, Search, Building2, Plus, Paperclip, Loader2, User,
+    ClipboardList, ShieldCheck, Package, RefreshCw,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Editor } from "@tinymce/tinymce-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -14,29 +15,27 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-import { receiptsUpdate, receiptsGetFull } from "@/api/receipts";
+import { receiptsUpdate, receiptsGetFull, receiptsGetReceptionEmailForm, receiptsGetFinalResultEmailForm } from "@/api/receipts";
 import { receiptsKeys } from "@/api/receiptsKeys";
 import { samplesGetFull } from "@/api/samples";
 import { fileApi, buildFileUploadFormData } from "@/api/files";
 
 import type { ReceiptDetail, ReceiptSample, ReceiptAnalysis, ReceiptsUpdateBody, ReceiptStatus } from "@/types/receipt";
 import { ResultCertificateModal } from "./ResultCertificateModal";
-
 import { SampleDetailModal } from "./SampleDetailModal";
 import { SamplePrintLabelModal } from "./SamplePrintLabelModal";
 import { AddSampleModal } from "./AddSampleModal";
+import { EmailModal } from "@/components/common/EmailModal";
 
+// ─── Props ──────────────────────────────────────────────────────────────────
 interface ReceiptDetailModalProps {
     receipt: ReceiptDetail;
     onClose: () => void;
-
     onSampleClick: (sample: ReceiptSample) => void;
-
     onUpdated?: (next: ReceiptDetail) => void;
 }
 
-const RECEIPT_STATUS_OPTIONS: ReceiptStatus[] = ["Draft", "Received", "Processing", "Completed", "Reported", "Cancelled"];
-
+// ─── Pure helpers (hoisted outside component for perf) ───────────────────────
 function getErrorMessage(e: unknown, fallback: string): string {
     if (e instanceof Error && e.message.trim().length > 0) return e.message;
     return fallback;
@@ -52,120 +51,145 @@ function receiptStatusKey(status: ReceiptStatus): string | null {
     return null;
 }
 
-function receiptStatusLabel(t: (key: string, options?: Record<string, unknown>) => unknown, status: ReceiptStatus) {
+function receiptStatusLabel(t: ReturnType<typeof useTranslation>["t"], status: ReceiptStatus) {
     const key = receiptStatusKey(status);
     return String(key ? t(key, { defaultValue: status }) : status);
 }
 
-function getReceiptStatusBadge(t: (key: string, options?: Record<string, unknown>) => unknown, status: ReceiptStatus | null | undefined) {
-    const st = status ?? "";
-    const key = status ? receiptStatusKey(status) : null;
-    const label = String(key ? t(key, { defaultValue: st }) : st || "-");
-
+function getReceiptStatusBadge(t: ReturnType<typeof useTranslation>["t"], status: ReceiptStatus | null | undefined) {
+    if (!status) return null;
+    const label = receiptStatusLabel(t, status);
     switch (status) {
-        case "Draft":
-            return (
-                <Badge variant="outline" className="text-xs text-muted-foreground border-border">
-                    {label}
-                </Badge>
-            );
-
-        case "Received":
-            return (
-                <Badge variant="outline" className="text-xs text-muted-foreground border-border">
-                    {label}
-                </Badge>
-            );
-
-        case "Processing":
-            return (
-                <Badge variant="default" className="text-xs bg-warning text-warning-foreground hover:bg-warning/90">
-                    {label}
-                </Badge>
-            );
-
-        case "Completed":
-            return (
-                <Badge variant="default" className="text-xs bg-success text-success-foreground hover:bg-success/90">
-                    {label}
-                </Badge>
-            );
-
-        case "Reported":
-            return (
-                <Badge variant="default" className="text-xs bg-primary text-primary-foreground hover:bg-primary/90">
-                    {label}
-                </Badge>
-            );
-
-        case "Cancelled":
-            return (
-                <Badge variant="destructive" className="text-xs">
-                    {label}
-                </Badge>
-            );
-
-        default:
-            return (
-                <Badge variant="secondary" className="text-xs text-muted-foreground">
-                    {label}
-                </Badge>
-            );
+        case "Draft": return <Badge variant="outline" className="bg-muted/50 text-muted-foreground border-muted-foreground/20">{label}</Badge>;
+        case "Received": return <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">{label}</Badge>;
+        case "Processing": return <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">{label}</Badge>;
+        case "Completed": return <Badge variant="outline" className="bg-success/10 text-success border-success/30">{label}</Badge>;
+        case "Reported": return <Badge variant="outline" className="bg-secondary text-secondary-foreground">{label}</Badge>;
+        case "Cancelled": return <Badge variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">{label}</Badge>;
+        default: return <Badge variant="outline">{label}</Badge>;
     }
 }
 
-function getAnalysisStatusBadge(t: (key: string, options?: Record<string, unknown>) => unknown, status: ReceiptAnalysis["analysisStatus"]) {
-    switch (status) {
-        case "Pending":
-            return (
-                <Badge variant="outline" className="text-xs bg-muted text-muted-foreground">
-                    {String(t("lab.analyses.status.Pending"))}
-                </Badge>
-            );
-        case "Testing":
-            return (
-                <Badge variant="default" className="text-xs">
-                    {String(t("lab.analyses.status.Testing"))}
-                </Badge>
-            );
-        case "Approved":
-            return (
-                <Badge variant="default" className="text-xs">
-                    {String(t("lab.analyses.status.Approved"))}
-                </Badge>
-            );
-        case "Review":
-            return (
-                <Badge variant="default" className="text-xs">
-                    {String(t("lab.analyses.status.Review"))}
-                </Badge>
-            );
-        default:
-            return (
-                <Badge variant="secondary" className="text-xs">
-                    {String(status ?? "")}
-                </Badge>
-            );
-    }
-}
+const STATUS_OPTIONS: ReceiptStatus[] = ["Draft", "Received", "Processing", "Completed", "Reported", "Cancelled"];
 
+// ─── Sub-components (defined outside to avoid re-creation on each render) ────
+const InfoRow = memo(function InfoRow({ label, value, mono }: { label: string; value?: string | null; mono?: boolean }) {
+    return (
+        <div className="flex flex-col gap-0.5">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">{label}</span>
+            <span className={`text-sm text-foreground leading-snug ${mono ? "font-mono" : "font-medium"}`}>{value ?? "—"}</span>
+        </div>
+    );
+});
+
+const SectionHeader = memo(function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
+    return (
+        <div className="flex items-center gap-2 text-[10px] font-semibold text-primary uppercase tracking-wider mb-3">
+            <Icon className="h-3.5 w-3.5 shrink-0" />
+            <span>{title}</span>
+        </div>
+    );
+});
+
+// ─── Main component ───────────────────────────────────────────────────────────
 export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated }: ReceiptDetailModalProps) {
     const { t } = useTranslation();
     const qc = useQueryClient();
 
     const [isEditing, setIsEditing] = useState(false);
     const [editedReceipt, setEditedReceipt] = useState<ReceiptDetail>(receipt);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     useEffect(() => {
         setEditedReceipt(receipt);
         setIsEditing(false);
     }, [receipt]);
 
+    // ── Email states ──────────────────────────────────────────────
     const [showEmailModal, setShowEmailModal] = useState(false);
+    const [emailData, setEmailData] = useState<{ subject: string; content: string; to: string; cc: string }>({
+        subject: "", content: "", to: "", cc: ""
+    });
+    const [isReceptionEmailLoading, setIsReceptionEmailLoading] = useState(false);
+    const [isResultEmailLoading, setIsResultEmailLoading] = useState(false);
+    const [emailType, setEmailType] = useState<"RECEPTION" | "FINAL_RESULT">("RECEPTION");
+
+    const DEFAULT_CC = "botfather@irdop.org";
+
+    const handleSendReceptionEmail = useCallback(async () => {
+        setIsReceptionEmailLoading(true);
+        try {
+            const res = await receiptsGetReceptionEmailForm({ receiptId: receipt.receiptId });
+            const data = (res as any).data ?? res;
+            if (data) {
+                const recipientEmail = editedReceipt.reportRecipient?.receiverEmail ?? data.to ?? "";
+                setEmailData({ subject: data.subject ?? "", content: data.body ?? "", to: recipientEmail, cc: DEFAULT_CC });
+                setEmailType("RECEPTION");
+                setShowEmailModal(true);
+            }
+        } catch (e) {
+            toast.error(getErrorMessage(e, "Không thể tải mẫu email tiếp nhận"));
+        } finally {
+            setIsReceptionEmailLoading(false);
+        }
+    }, [receipt.receiptId, editedReceipt.reportRecipient, DEFAULT_CC]);
+
+    const handleSendResultEmail = useCallback(async () => {
+        setIsResultEmailLoading(true);
+        try {
+            const res = await receiptsGetFinalResultEmailForm({ receiptId: receipt.receiptId });
+            const list = (res as any).data ?? res;
+            const first = Array.isArray(list) ? list[0] : list;
+            if (first) {
+                const recipientEmail = editedReceipt.reportRecipient?.receiverEmail ?? first.to ?? "";
+                setEmailData({ subject: first.subject ?? "", content: first.body ?? "", to: recipientEmail, cc: DEFAULT_CC });
+                setEmailType("FINAL_RESULT");
+                setShowEmailModal(true);
+            } else {
+                toast.warning("Chưa có báo cáo kết quả để gửi email");
+            }
+        } catch (e) {
+            toast.error(getErrorMessage(e, "Không thể tải mẫu email kết quả"));
+        } finally {
+            setIsResultEmailLoading(false);
+        }
+    }, [receipt.receiptId, editedReceipt.reportRecipient, DEFAULT_CC]);
+
+    const handleRefresh = useCallback(async () => {
+        setIsRefreshing(true);
+        try {
+            await Promise.all([
+                qc.invalidateQueries({ queryKey: receiptsKeys.list(undefined) }),
+                qc.invalidateQueries({ queryKey: receiptsKeys.detail(receipt.receiptId) }),
+                qc.invalidateQueries({ queryKey: receiptsKeys.full(receipt.receiptId) }),
+            ]);
+            const fullRes = await receiptsGetFull({ receiptId: receipt.receiptId });
+            const fullData: ReceiptDetail = (fullRes as any)?.data !== undefined ? (fullRes as any).data : (fullRes as ReceiptDetail);
+            setEditedReceipt(fullData);
+            onUpdated?.(fullData);
+            toast.success(String(t("common.toast.refreshed", { defaultValue: "Đã làm mới dữ liệu" })));
+        } catch (e) {
+            toast.error(getErrorMessage(e, "Không thể làm mới dữ liệu"));
+        } finally {
+            setIsRefreshing(false);
+        }
+    }, [receipt.receiptId, onUpdated, t, qc]);
+
+    // ── Modal states ──────────────────────────────────────────────
     const [showPrintLabelModal, setShowPrintLabelModal] = useState(false);
     const [showResultCertificateModal, setShowResultCertificateModal] = useState(false);
+    const [showAddSampleModal, setShowAddSampleModal] = useState(false);
+    const [openSampleModal, setOpenSampleModal] = useState(false);
+    const [selectedSample, setSelectedSample] = useState<ReceiptSample | null>(null);
+    const [focusAnalysisId, setFocusAnalysisId] = useState<string | null>(null);
 
-    // ── Image viewer state ──────────────────────────────────────────────────
+    useEffect(() => {
+        setOpenSampleModal(false);
+        setSelectedSample(null);
+        setFocusAnalysisId(null);
+    }, [receipt.receiptId]);
+
+    // ── Image viewer ──────────────────────────────────────────────
     type LoadedImage = { fileId: string; url: string };
     const [loadedImages, setLoadedImages] = useState<LoadedImage[]>([]);
     const [imageLoading, setImageLoading] = useState(false);
@@ -174,1253 +198,659 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
     const [isUploading, setIsUploading] = useState(false);
-
-    // Manage Manage Images state
     const [manageModalOpen, setManageModalOpen] = useState(false);
     const [manageImages, setManageImages] = useState<LoadedImage[]>([]);
     const [manageSelectedIds, setManageSelectedIds] = useState<string[]>([]);
 
-    // Safely parse fileIds whether it comes as array, stringified array, or pg array string
     const rawFileIds = editedReceipt.receiptReceivedImageFileIds as unknown as string[] | string | null | undefined;
     const fileIds: string[] = useMemo(() => {
         if (!rawFileIds) return [];
-        if (Array.isArray(rawFileIds)) {
-            return rawFileIds.map((f) => (typeof f === "string" ? f : ((f as any)?.fileId ?? (f as any)?.id ?? String(f)))).filter(Boolean);
-        }
+        if (Array.isArray(rawFileIds)) return rawFileIds.map((f) => (typeof f === "string" ? f : ((f as any)?.fileId ?? String(f)))).filter(Boolean);
         if (typeof rawFileIds === "string") {
-            try {
-                // Try to parse JSON array '["file_1"]'
-                const parsed = JSON.parse(rawFileIds);
-                if (Array.isArray(parsed)) return parsed.map(String);
-            } catch {
-                // Handle postgres `{val1,val2}` format
-                if ((rawFileIds as any).startsWith("{") && (rawFileIds as any).endsWith("}")) {
-                    return (rawFileIds as any)
-                        .slice(1, -1)
-                        .split(",")
-                        .map((v: string) => v.trim().replace(/^"|"$/g, ""))
-                        .filter(Boolean);
-                }
-                return [rawFileIds]; // single string
-            }
+            try { const p = JSON.parse(rawFileIds); if (Array.isArray(p)) return p.map(String); } catch { return [rawFileIds]; }
         }
         return [];
     }, [rawFileIds]);
 
-    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = Array.from(e.target.files || []);
-        if (files.length === 0) return;
-
-        try {
-            setIsUploading(true);
-            const newLoaded: LoadedImage[] = [];
-            const newFileIds: string[] = [];
-
-            for (const file of files) {
-                const formData = buildFileUploadFormData(file, {
-                    commonKeys: [editedReceipt.receiptCode ?? ""],
-                    fileTags: ["Received Image"],
-                });
-
-                const uploadRes: any = await fileApi.upload(formData);
-                const newFileId = uploadRes?.data?.fileId ?? uploadRes?.fileId;
-
-                if (newFileId) {
-                    newFileIds.push(newFileId);
-                    try {
-                        const urlRes: any = await fileApi.url(newFileId, 3600);
-                        const url = urlRes?.data?.url ?? urlRes?.url;
-                        if (url) newLoaded.push({ fileId: newFileId, url });
-                    } catch {
-                        // ignore
-                    }
-                }
-            }
-
-            if (newLoaded.length > 0) {
-                const combined = [...loadedImages];
-                newLoaded.forEach((nl) => {
-                    if (!combined.some((c) => c.fileId === nl.fileId)) combined.push(nl);
-                });
-                setManageImages(combined);
-                setManageSelectedIds([...fileIds, ...newFileIds]);
-                setManageModalOpen(true);
-            }
-        } catch (err) {
-            toast.error(getErrorMessage(err, "Upload failed"));
-        } finally {
-            setIsUploading(false);
-            if (e.target) e.target.value = "";
-        }
-    };
-
-    const handleFindRelated = async () => {
-        if (!editedReceipt.receiptCode) return;
-        try {
-            setIsUploading(true);
-            const res: any = await fileApi.list({
-                fileTags: ["Received Image"],
-                commonKeys: [editedReceipt.receiptCode],
-            });
-            const fetchedItems = res?.data ?? [];
-            if (fetchedItems.length === 0) {
-                toast.info(String(t("reception.receiptDetail.noRelatedImages", { defaultValue: "Không tìm thấy ảnh liên quan." })));
-                return;
-            }
-
-            const newLoaded: LoadedImage[] = [];
-            for (const item of fetchedItems) {
-                const fid = item.fileId ?? item.id;
-                if (!fid) continue;
-                let url = loadedImages.find((l: LoadedImage) => l.fileId === fid)?.url;
-                if (!url) {
-                    try {
-                        const urlRes: any = await fileApi.url(fid, 3600);
-                        url = urlRes?.data?.url ?? urlRes?.url;
-                    } catch {
-                        // ignore fail
-                    }
-                }
-                if (url) newLoaded.push({ fileId: fid, url });
-            }
-
-            const combined = [...loadedImages];
-            newLoaded.forEach((nl) => {
-                if (!combined.some((c) => c.fileId === nl.fileId)) combined.push(nl);
-            });
-            setManageImages(combined);
-            setManageSelectedIds([...fileIds]);
-            setManageModalOpen(true);
-        } catch (err) {
-            toast.error(getErrorMessage(err, "Search failed"));
-        } finally {
-            setIsUploading(false);
-        }
-    };
-
-    const handleConfirmManage = async () => {
-        try {
-            setIsUploading(true);
-            const body: ReceiptsUpdateBody = {
-                receiptId: editedReceipt.receiptId,
-                receiptReceivedImageFileIds: manageSelectedIds,
-            };
-            await receiptsUpdate({ body });
-            toast.success(String(t("common.toast.saved")));
-
-            // refetch
-            const fullRes: any = await receiptsGetFull({ receiptId: receipt.receiptId });
-            const fullData: ReceiptDetail = fullRes?.data !== undefined ? fullRes.data : fullRes;
-            setEditedReceipt(fullData);
-            onUpdated?.(fullData);
-
-            setManageModalOpen(false);
-        } catch (err) {
-            toast.error(getErrorMessage(err, String(t("common.toast.error"))));
-        } finally {
-            setIsUploading(false);
-        }
-    };
-
-    // Fetch signed URLs whenever fileIds changes
     useEffect(() => {
-        if (fileIds.length === 0) {
-            setLoadedImages([]);
-            setFocusedImageIdx(0);
-            return;
-        }
         let cancelled = false;
+        if (fileIds.length === 0) { setLoadedImages([]); return; }
         setImageLoading(true);
-        Promise.all(
-            fileIds.map(async (fid: string) => {
-                try {
-                    const res: any = await fileApi.url(fid, 3600);
-                    const url = res?.data?.url ?? res?.url ?? null;
-                    return url ? { fileId: fid, url } : null;
-                } catch {
-                    return null;
-                }
-            }),
-        ).then((results) => {
-            if (!cancelled) {
-                setLoadedImages(results.filter((u: LoadedImage | null): u is LoadedImage => u !== null));
-                setFocusedImageIdx(0);
-                setImageLoading(false);
+        (async () => {
+            const results: LoadedImage[] = [];
+            for (const id of fileIds) {
+                try { const r = await fileApi.url(id, 3600); const url = (r as any)?.data?.url ?? (r as any)?.url; if (url) results.push({ fileId: id, url }); } catch { /* ignore */ }
             }
-        });
-        return () => {
-            cancelled = true;
-        };
+            if (!cancelled) { setLoadedImages(results); setImageLoading(false); }
+        })();
+        return () => { cancelled = true; };
     }, [fileIds]);
 
-    const handlePrevImg = useCallback(() => setFocusedImageIdx((i: number) => (i === 0 ? loadedImages.length - 1 : i - 1)), [loadedImages.length]);
-    const handleNextImg = useCallback(() => setFocusedImageIdx((i: number) => (i === loadedImages.length - 1 ? 0 : i + 1)), [loadedImages.length]);
-
-    // scroll selected thumbnail into view
     useEffect(() => {
         if (!thumbnailsRef.current) return;
         const el = thumbnailsRef.current.children[focusedImageIdx] as HTMLElement | undefined;
         el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
     }, [focusedImageIdx]);
 
+    const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+        try {
+            setIsUploading(true);
+            const newLoaded: LoadedImage[] = [];
+            const newFileIds: string[] = [];
+            for (const file of files) {
+                const fd = buildFileUploadFormData(file, { commonKeys: [editedReceipt.receiptCode ?? ""], fileTags: ["Received Image"] });
+                const up = await fileApi.upload(fd);
+                const fid = (up as any)?.data?.fileId ?? (up as any)?.fileId;
+                if (fid) {
+                    newFileIds.push(fid);
+                    try { const ur = await fileApi.url(fid, 3600); const url = (ur as any)?.data?.url ?? (ur as any)?.url; if (url) newLoaded.push({ fileId: fid, url }); } catch { /* ignore */ }
+                }
+            }
+            if (newLoaded.length > 0) {
+                const combined = [...loadedImages];
+                newLoaded.forEach((nl) => { if (!combined.some((c) => c.fileId === nl.fileId)) combined.push(nl); });
+                setManageImages(combined);
+                setManageSelectedIds([...fileIds, ...newFileIds]);
+                setManageModalOpen(true);
+            }
+        } catch (err) { toast.error(getErrorMessage(err, "Upload failed")); }
+        finally { setIsUploading(false); if (e.target) e.target.value = ""; }
+    }, [editedReceipt.receiptCode, fileIds, loadedImages]);
+
+    const handleFindRelated = useCallback(async () => {
+        if (!editedReceipt.receiptCode) return;
+        try {
+            setImageLoading(true);
+            const res = await fileApi.list({ search: editedReceipt.receiptCode, itemsPerPage: 50 });
+            const list = (res as any)?.data || [];
+            const valid = list.filter((f: any) => f.mimeType?.startsWith("image/"));
+            const loaded: LoadedImage[] = [];
+            for (const f of valid) {
+                try { const ur = await fileApi.url(f.fileId, 3600); const url = (ur as any)?.data?.url ?? (ur as any)?.url; if (url) loaded.push({ fileId: f.fileId, url }); } catch { /* ignore */ }
+            }
+            setManageImages(loaded); setManageSelectedIds(fileIds); setManageModalOpen(true);
+        } catch { toast.error("Failed to find related images"); }
+        finally { setImageLoading(false); }
+    }, [editedReceipt.receiptCode, fileIds]);
+
+    const handleConfirmManage = useCallback(async () => {
+        try {
+            const body: ReceiptsUpdateBody = { receiptId: editedReceipt.receiptId, receiptReceivedImageFileIds: manageSelectedIds };
+            await receiptsUpdate({ body });
+            toast.success(String(t("common.toast.saved")));
+            setEditedReceipt(prev => ({ ...prev, receiptReceivedImageFileIds: manageSelectedIds }));
+            setManageModalOpen(false);
+        } catch (err) { toast.error(getErrorMessage(err, "Update images failed")); }
+    }, [editedReceipt.receiptId, manageSelectedIds, t]);
+
+    // ── Samples ───────────────────────────────────────────────────
     const samples = editedReceipt.samples ?? [];
 
     const getAnalysesForSample = useCallback((sample: ReceiptSample): ReceiptAnalysis[] => {
         return (sample.analyses ?? []).filter((a) => Boolean(a?.analysisId));
     }, []);
 
-    const emailDefaults = useMemo(() => {
-        const toEmail = editedReceipt.client?.clientEmail ?? editedReceipt.reportRecipient?.receiverEmail ?? "";
-
-        const renderInfo = (info: any) => {
-            if (Array.isArray(info)) {
-                return info.map((item: any) => `<div><b>${item.label || ""}:</b> ${item.value || ""}</div>`).join("");
-            }
-            return "";
-        };
-
-        const samplesHtml = (editedReceipt.samples || []).map(sample => {
-            const analyses = (sample.analyses || []).filter(a => Boolean(a.analysisId));
-            const rowSpan = analyses.length > 0 ? analyses.length : 1;
-            
-            const sampleInfoHtml = sample.sampleInfo ? `<div style="margin-top: 8px;"><b>Thông tin mẫu:</b><br/>${renderInfo(sample.sampleInfo)}</div>` : "";
-            const receiptInfoHtml = sample.sampleReceiptInfo ? `<div style="margin-top: 8px;"><b>Thông tin tiếp nhận:</b><br/>${renderInfo(sample.sampleReceiptInfo)}</div>` : "";
-
-            const sampleCol = `
-                <td style="width: 50%; padding: 8px; border: 1px solid #ddd; vertical-align: top;" rowspan="${rowSpan}">
-                    <div style="font-weight: bold; margin-bottom: 4px;">${sample.sampleId || ""}</div>
-                    <div>${sample.sampleName || sample.sampleClientInfo || sample.sampleTypeName || "-"}</div>
-                    ${sampleInfoHtml}
-                    ${receiptInfoHtml}
-                </td>
-            `;
-
-            if (analyses.length === 0) {
-                return `
-                    <tr>
-                        ${sampleCol}
-                        <td style="padding: 8px; border: 1px solid #ddd; text-align: center;" colspan="3">-</td>
-                    </tr>
-                `;
-            }
-
-            return analyses.map((analysis, idx) => `
-                <tr>
-                    ${idx === 0 ? sampleCol : ""}
-                    <td style="padding: 8px; border: 1px solid #ddd;">${analysis.parameterName || "-"}</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">${analysis.protocolCode || "-"}</td>
-                    <td style="padding: 8px; border: 1px solid #ddd;">${analysis.analysisUnit || "-"}</td>
-                </tr>
-            `).join("");
-        }).join("");
-
-        const tableHtml = `
-            <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-family: sans-serif; font-size: 14px;">
-                <thead>
-                    <tr style="background-color: #f4f4f5;">
-                        <th style="padding: 8px; border: 1px solid #ddd; text-align: left; width: 50%;">Thông tin mẫu</th>
-                        <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Chỉ tiêu</th>
-                        <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Phương pháp</th>
-                        <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Đơn vị</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${samplesHtml}
-                </tbody>
-            </table>
-        `;
-
-        const clientName = editedReceipt.client?.clientName ?? "Quý khách";
-        const receiptCode = editedReceipt.receiptCode ?? "";
-        
-        const contentHtml = `
-            <div style="font-family: sans-serif; font-size: 14px; line-height: 1.5; color: #333;">
-                <p>Kính gửi ${clientName},</p>
-                <p>Chúng tôi xin thông báo về việc tiếp nhận mẫu thử nghiệm theo số phiếu <strong>${receiptCode}</strong>.</p>
-                
-                ${tableHtml}
-                
-                <p style="margin-top: 20px;">Trân trọng,</p>
-                <p><strong>Phòng Thí Nghiệm</strong></p>
-            </div>
-        `;
-
-        return {
-            from: String(t("reception.receiptDetail.emailTemplate.from", { defaultValue: "noreply@lims.com" })),
-            to: toEmail,
-            subject: String(
-                t("reception.receiptDetail.emailTemplate.subject", {
-                    code: receiptCode,
-                    defaultValue: `Thông báo tiếp nhận mẫu - ${receiptCode}`
-                }),
-            ),
-            content: contentHtml.replace(/^\s+/gm, ''),
-            attachments: (editedReceipt.receiptReceivedImageFileIds || []) as string[],
-        };
-    }, [editedReceipt, t]);
-
-    const [emailForm, setEmailForm] = useState(emailDefaults);
-
-    useEffect(() => {
-        setEmailForm(emailDefaults);
-    }, [emailDefaults]);
-
-    const updateMut = useMutation({
-        mutationFn: (body: ReceiptsUpdateBody) => receiptsUpdate({ body }),
-        onSuccess: async () => {
-            // Re-fetch full receipt to get all nested data (samples, analyses, images...)
-            try {
-                const fullRes: any = await receiptsGetFull({ receiptId: receipt.receiptId });
-                const fullData: ReceiptDetail = fullRes?.data !== undefined ? fullRes.data : fullRes;
-                setEditedReceipt(fullData);
-                onUpdated?.(fullData);
-            } catch {
-                // fallback: just invalidate
-            }
-
-            await Promise.all([
-                qc.invalidateQueries({ queryKey: receiptsKeys.list(undefined) }),
-                qc.invalidateQueries({
-                    queryKey: receiptsKeys.detail(receipt.receiptId),
-                }),
-                qc.invalidateQueries({
-                    queryKey: receiptsKeys.full(receipt.receiptId),
-                }),
-            ]);
-
-            toast.success(String(t("common.toast.saved")));
-            setIsEditing(false);
-        },
-        onError: (e) => {
-            toast.error(getErrorMessage(e, String(t("common.toast.error"))));
-        },
-    });
-
-    const handleSave = async () => {
-        const body: ReceiptsUpdateBody = {
-            receiptId: editedReceipt.receiptId,
-            receiptStatus: editedReceipt.receiptStatus ?? null,
-            receiptDeadline: editedReceipt.receiptDeadline ?? null,
-            receiptNote: editedReceipt.receiptNote ?? null,
-            client: editedReceipt.client
-                ? {
-                      clientId: editedReceipt.client.clientId ?? null,
-                      clientName: editedReceipt.client.clientName ?? null,
-                  }
-                : null,
-        };
-
-        await updateMut.mutateAsync(body);
-    };
-
-    const handleEmailChange = useCallback((field: "from" | "to" | "subject" | "content", value: string) => {
-        setEmailForm((p) => ({ ...p, [field]: value }));
-    }, []);
-
-    const handleSendEmail = useCallback(() => {
-        // eslint-disable-next-line no-console
-        console.log("Sending email:", emailForm);
-        setShowEmailModal(false);
-    }, [emailForm]);
-
-    const [openSampleModal, setOpenSampleModal] = useState(false);
-    const [selectedSample, setSelectedSample] = useState<ReceiptSample | null>(null);
-    const [focusAnalysisId, setFocusAnalysisId] = useState<string | null>(null);
-    const [sampleFetching, setSampleFetching] = useState(false);
-    const [showAddSampleModal, setShowAddSampleModal] = useState(false);
-
-    useEffect(() => {
-        setOpenSampleModal(false);
-        setSelectedSample(null);
-        setFocusAnalysisId(null);
-    }, [receipt.receiptId]);
-
-    const openSampleByLabId = useCallback(
-        async (sample: ReceiptSample, analysisId: string | null) => {
-            setFocusAnalysisId(analysisId);
-            setOpenSampleModal(true);
-            setSelectedSample(sample); // Quick show
-
-            setSampleFetching(true);
-            try {
-                const res = await samplesGetFull({ sampleId: sample.sampleId });
-                const fullData = res.data ?? res;
-                if (fullData) {
-                    const s = fullData as any as ReceiptSample;
-                    setSelectedSample(s);
-                    // Also notify parent if needed
-                    onSampleClick?.(s);
-                }
-            } catch (e) {
-                console.error("Failed to fetch full sample info:", e);
-            } finally {
-                setSampleFetching(false);
-            }
-        },
-        [onSampleClick],
-    );
+    const openSampleByLabId = useCallback(async (sample: ReceiptSample, analysisId: string | null) => {
+        setFocusAnalysisId(analysisId);
+        setOpenSampleModal(true);
+        setSelectedSample(sample);
+        try {
+            const res = await samplesGetFull({ sampleId: sample.sampleId });
+            const fullData = (res as any).data ?? res;
+            if (fullData) { const s = fullData as unknown as ReceiptSample; setSelectedSample(s); onSampleClick?.(s); }
+        } catch { /* ignore */ }
+    }, [onSampleClick]);
 
     const closeSampleModal = useCallback(() => {
-        setOpenSampleModal(false);
-        setSelectedSample(null);
-        setFocusAnalysisId(null);
+        setOpenSampleModal(false); setSelectedSample(null); setFocusAnalysisId(null);
     }, []);
 
-    const handleSaveSample = async (updatedSample: ReceiptSample) => {
-        setEditedReceipt((prev: ReceiptDetail) => {
-            const nextSamples = (prev.samples ?? []).map((s: ReceiptSample) => (s.sampleId === updatedSample.sampleId ? updatedSample : s));
+    const handleSaveSample = useCallback(async (updatedSample: ReceiptSample) => {
+        setEditedReceipt((prev) => {
+            const nextSamples = (prev.samples ?? []).map((s) => (s.sampleId === updatedSample.sampleId ? updatedSample : s));
             const next: ReceiptDetail = { ...prev, samples: nextSamples };
             onUpdated?.(next);
             return next;
         });
-
         toast.success(String(t("common.toast.saved")));
         closeSampleModal();
-    };
+    }, [onUpdated, t, closeSampleModal]);
 
-    const samplesTableJSX = useMemo(
-        () => (
-            <div>
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-foreground">{String(t("reception.createReceipt.samplesList"))}</h3>
-                    <Button variant="outline" size="sm" onClick={() => setShowAddSampleModal(true)} className="gap-1.5">
-                        <Plus className="h-3.5 w-3.5" />
-                        {String(t("reception.addSample.addButton", { defaultValue: "Thêm mẫu" }))}
-                    </Button>
+    // ── Save mutation ─────────────────────────────────────────────
+    const updateMut = useMutation({
+        mutationFn: (body: ReceiptsUpdateBody) => receiptsUpdate({ body }),
+        onSuccess: async () => {
+            try {
+                const fullRes = await receiptsGetFull({ receiptId: receipt.receiptId });
+                const fullData: ReceiptDetail = (fullRes as any)?.data !== undefined ? (fullRes as any).data : fullRes;
+                setEditedReceipt(fullData); onUpdated?.(fullData);
+            } catch { /* ignore */ }
+            await Promise.all([
+                qc.invalidateQueries({ queryKey: receiptsKeys.list(undefined) }),
+                qc.invalidateQueries({ queryKey: receiptsKeys.detail(receipt.receiptId) }),
+                qc.invalidateQueries({ queryKey: receiptsKeys.full(receipt.receiptId) }),
+            ]);
+            toast.success(String(t("common.toast.saved"))); setIsEditing(false);
+        },
+        onError: (e) => toast.error(getErrorMessage(e, String(t("common.toast.error")))),
+    });
+
+    const handleSave = useCallback(() => {
+        updateMut.mutate({
+            receiptId: editedReceipt.receiptId,
+            receiptStatus: editedReceipt.receiptStatus ?? null,
+            receiptDeadline: editedReceipt.receiptDeadline ?? null,
+            receiptNote: editedReceipt.receiptNote ?? null,
+            receiptPriority: editedReceipt.receiptPriority ?? null,
+            receiptDeliveryMethod: editedReceipt.receiptDeliveryMethod ?? null,
+            client: editedReceipt.client ?? null,
+            contactPerson: editedReceipt.contactPerson ?? null,
+            reportRecipient: editedReceipt.reportRecipient ?? null,
+            senderInfo: editedReceipt.senderInfo ?? null,
+            conditionCheck: editedReceipt.conditionCheck ?? null,
+            reportConfig: editedReceipt.reportConfig ?? null,
+            isBlindCoded: editedReceipt.isBlindCoded ?? null,
+        });
+    }, [updateMut, editedReceipt]);
+
+    const handleCancelEdit = useCallback(() => {
+        setIsEditing(false); setEditedReceipt(receipt);
+    }, [receipt]);
+
+    // ── Samples table JSX ─────────────────────────────────────────
+    const samplesTableJSX = useMemo(() => (
+        <section className="rounded-xl border border-border bg-background shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/20">
+                <div className="flex items-center gap-2 text-[10px] font-semibold text-primary uppercase tracking-wider">
+                    <Package className="h-3.5 w-3.5" />
+                    <span>{String(t("reception.createReceipt.samplesList"))}</span>
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{samples.length}</Badge>
                 </div>
-
-                <div className="bg-background border border-border rounded-lg overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-muted/50 border-b border-border">
-                                <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("lab.samples.sampleId"))}</th>
-
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("lab.samples.sampleName"))}</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("lab.samples.sampleTypeName"))}</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("lab.analyses.analysisId", { defaultValue: "Mã phép thử" }))}</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("lab.analyses.parameterName"))}</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("lab.analyses.protocolCode"))}</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("lab.analyses.technicianIds"))}</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("lab.analyses.analysisStatus"))}</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("lab.analyses.analysisResult"))}</th>
-                                </tr>
-                            </thead>
-
-                            <tbody className="divide-y divide-border">
-                                {samples.map((sample: ReceiptSample) => {
-                                    const analyses = getAnalysesForSample(sample);
-
-                                    return (
-                                        <React.Fragment key={sample.sampleId}>
-                                            {analyses.length > 0 ? (
-                                                analyses.map((analysis, index) => (
-                                                    <tr key={analysis.analysisId} className="hover:bg-muted/30">
-                                                        {index === 0 && (
-                                                            <>
-                                                                <td className="px-4 py-3 align-top border-r bg-primary/5" rowSpan={analyses.length}>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            onSampleClick(sample);
-                                                                            openSampleByLabId(sample, null);
-                                                                        }}
-                                                                        className="font-medium text-primary hover:text-primary/80 hover:underline text-sm"
-                                                                    >
-                                                                        {sample.sampleId}
-                                                                    </button>
-                                                                </td>
-                                                                <td className="px-4 py-3 align-top border-r bg-primary/5" rowSpan={analyses.length}>
-                                                                    <div className="text-sm text-foreground">{sample.sampleName || sample.sampleClientInfo || sample.sampleTypeName || "-"}</div>
-                                                                </td>
-                                                                <td className="px-4 py-3 align-top border-r bg-primary/5" rowSpan={analyses.length}>
-                                                                    <Badge variant="outline" className="text-xs">
-                                                                        {sample.sampleTypeName ?? "-"}
-                                                                    </Badge>
-                                                                </td>
-                                                            </>
-                                                        )}
-
-                                                        <td className="px-4 py-3 text-sm">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => openSampleByLabId(sample, analysis.analysisId)}
-                                                                className="font-medium text-primary hover:text-primary/80 hover:underline whitespace-nowrap"
-                                                            >
-                                                                {analysis.analysisId}
-                                                            </button>
-                                                        </td>
-
-                                                        <td className="px-4 py-3 text-sm text-foreground">{analysis.parameterName ?? "-"}</td>
-                                                        <td className="px-4 py-3 text-xs text-muted-foreground">{analysis.protocolCode ?? "-"}</td>
-                                                        <td className="px-4 py-3 text-sm text-foreground">{analysis.technician?.identityName ?? analysis.technicianId ?? "-"}</td>
-                                                        <td className="px-4 py-3">{getAnalysisStatusBadge(t, analysis.analysisStatus)}</td>
-                                                        <td className="px-4 py-3">
-                                                            {analysis.analysisResult != null ? (
-                                                                <div className="text-sm font-medium text-foreground">
-                                                                    {String(analysis.analysisResult)} {analysis.analysisUnit ?? ""}
-                                                                </div>
-                                                            ) : (
-                                                                <span className="text-sm text-muted-foreground">-</span>
-                                                            )}
-                                                        </td>
-                                                    </tr>
-                                                ))
-                                            ) : (
-                                                <tr className="hover:bg-muted/30">
-                                                    <td className="px-4 py-3 align-top border-r bg-primary/5">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                onSampleClick(sample);
-                                                                openSampleByLabId(sample, null);
-                                                            }}
-                                                            className="font-medium text-primary hover:text-primary/80 hover:underline text-sm"
-                                                        >
-                                                            {sample.sampleId}
-                                                        </button>
-                                                    </td>
-                                                    <td className="px-4 py-3 align-top border-r bg-primary/5">
-                                                        <div className="text-sm text-foreground">{sample.sampleClientInfo ?? "-"}</div>
-                                                    </td>
-                                                    <td className="px-4 py-3 align-top border-r bg-primary/5">
-                                                        <Badge variant="outline" className="text-xs">
-                                                            {sample.sampleTypeName ?? "-"}
-                                                        </Badge>
-                                                    </td>
-
-                                                    <td className="px-4 py-3 text-sm text-muted-foreground">-</td>
-
-                                                    <td colSpan={5} className="px-4 py-3 text-center text-muted-foreground text-sm">
-                                                        {String(t("reception.createReceipt.noAnalysis"))}
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </React.Fragment>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                <Button variant="outline" size="sm" onClick={() => setShowAddSampleModal(true)} className="gap-1.5 h-7 text-xs">
+                    <Plus className="h-3 w-3" />
+                    {String(t("reception.addSample.addButton", { defaultValue: "Thêm mẫu" }))}
+                </Button>
             </div>
-        ),
-        [samples, t, openSampleByLabId, onSampleClick, getAnalysesForSample],
-    );
+            <div className="overflow-x-auto">
+                <table className="w-full">
+                    <thead className="bg-muted/30 border-b border-border">
+                        <tr>
+                            {["Mã mẫu", "Tên mẫu", "Loại mẫu", "Mã PT", "Chỉ tiêu", "Phương pháp", "Kết quả", "Đơn vị", "STT", "KTV"].map((h) => (
+                                <th key={h} className="px-3 py-2.5 text-left text-[10px] font-semibold text-muted-foreground uppercase">{h}</th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                        {samples.length === 0 ? (
+                            <tr><td colSpan={10} className="px-4 py-8 text-center text-xs text-muted-foreground italic">{String(t("reception.createReceipt.noAnalysis"))}</td></tr>
+                        ) : samples.map((s) => {
+                            const analyses = getAnalysesForSample(s);
+                            if (analyses.length === 0) return (
+                                <tr key={s.sampleId} className="hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => onSampleClick(s)}>
+                                    <td className="px-2 py-2 w-16"><Badge variant="outline" className="font-mono text-[9px] px-1">{s.sampleId}</Badge></td>
+                                    <td className="px-3 py-2 text-sm">{s.sampleName ?? s.sampleClientInfo ?? "—"}</td>
+                                    <td className="px-3 py-2 text-xs text-muted-foreground">{s.sampleTypeName ?? "—"}</td>
+                                    <td colSpan={7} className="px-3 py-2 text-xs text-muted-foreground italic">{String(t("reception.createReceipt.noAnalysis"))}</td>
+                                </tr>
+                            );
+                            return analyses.map((a, idx) => (
+                                <tr key={a.analysisId} className="hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => openSampleByLabId(s, a.analysisId)}>
+                                    {idx === 0 && <>
+                                        <td rowSpan={analyses.length} className="px-2 py-2 align-top border-r border-border/40 w-16">
+                                            <Badge variant="outline" className="font-mono text-[9px] px-1">{s.sampleId}</Badge>
+                                        </td>
+                                        <td rowSpan={analyses.length} className="px-3 py-2 align-top font-medium text-sm border-r border-border/40 max-w-[140px]">{s.sampleName ?? s.sampleClientInfo ?? "—"}</td>
+                                        <td rowSpan={analyses.length} className="px-3 py-2 align-top text-xs text-muted-foreground border-r border-border/40">{s.sampleTypeName ?? "—"}</td>
+                                    </>}
+                                    <td className="px-3 py-2 text-[10px] text-muted-foreground font-mono">{a.analysisId}</td>
+                                    <td className="px-3 py-2 text-xs font-medium max-w-[160px] truncate">{a.parameterName ?? "—"}</td>
+                                    <td className="px-3 py-2 text-[10px] text-muted-foreground">{a.protocolCode ?? "—"}</td>
+                                    <td className="px-3 py-2 text-xs font-bold text-primary">{a.analysisResult ?? "—"}</td>
+                                    <td className="px-3 py-2 text-xs text-muted-foreground">{a.analysisUnit ?? "—"}</td>
+                                    <td className="px-3 py-2">
+                                        {a.analysisStatus && <Badge variant="outline" className="text-[9px] h-4 px-1">{a.analysisStatus}</Badge>}
+                                    </td>
+                                    <td className="px-3 py-2 text-xs text-muted-foreground">{a.technician?.identityName ?? "—"}</td>
+                                </tr>
+                            ));
+                        })}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    ), [samples, t, onSampleClick, openSampleByLabId, getAnalysesForSample]);
 
-    return createPortal(
+    const fmtDate = (d?: string | null) => d ? new Date(d).toLocaleDateString("vi-VN") : "—";
+
+    // ─── Render ───────────────────────────────────────────────────
+    return (
         <>
-            {/* Premium Backdrop with improved blur */}
-            <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-[70] transition-all duration-300" onClick={onClose} aria-hidden="true" />
-
-            <div className="fixed inset-4 bg-background rounded-lg shadow-2xl z-[70] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                    <div>
-                        <h2 className="text-lg font-semibold text-foreground">
-                            {String(
-                                t("reception.receiptDetail.title", {
-                                    code: receipt.receiptCode,
-                                }),
-                            )}
-                        </h2>
-                        <p className="text-xs text-muted-foreground mt-0.5">{String(t("reception.receiptDetail.description"))}</p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <Button size="sm" onClick={() => setShowPrintLabelModal(true)} variant="outline" className="flex items-center gap-1.5 text-xs">
-                            <Printer className="h-3.5 w-3.5" />
-                            {String(t("reception.receiptDetail.printLabel"))}
-                        </Button>
-
-                        <Button size="sm" onClick={() => console.log("Export handover")} variant="outline" className="flex items-center gap-1.5 text-xs">
-                            <FileCheck className="h-3.5 w-3.5" />
-                            {String(t("reception.receiptDetail.exportHandover"))}
-                        </Button>
-
-                        <Button size="sm" onClick={() => setShowResultCertificateModal(true)} variant="outline" className="flex items-center gap-1.5 text-xs">
-                            <FileText className="h-3.5 w-3.5" />
-                            {String(t("reception.receiptDetail.resultCertificate", { defaultValue: "Phiếu kết quả" }))}
-                        </Button>
-
-                        {!isEditing ? (
-                            <Button size="sm" onClick={() => setIsEditing(true)} className="flex items-center gap-1.5 text-xs">
-                                <Edit className="h-3.5 w-3.5" />
-                                {String(t("common.edit"))}
-                            </Button>
-                        ) : (
-                            <>
-                                <Button size="sm" onClick={handleSave} disabled={updateMut.isPending} className="flex items-center gap-1.5 text-xs">
-                                    <Save className="h-3.5 w-3.5" />
-                                    {String(t("common.save"))}
-                                </Button>
-
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    disabled={updateMut.isPending}
-                                    onClick={() => {
-                                        setEditedReceipt(receipt);
-                                        setIsEditing(false);
-                                    }}
-                                    className="text-xs"
-                                >
-                                    {String(t("common.cancel"))}
-                                </Button>
-                            </>
-                        )}
-
-                        <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
-                            <X className="h-4 w-4" />
-                        </Button>
-                    </div>
-                </div>
-
-                <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-background">
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-primary-foreground bg-primary px-2.5 py-1 rounded shadow-sm">
-                            {String(t("reception.receiptDetail.infoAndSamples", { defaultValue: "Xem thông tin phiếu và danh sách mẫu/chỉ tiêu." }))}
-                        </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-                        <div className="xl:col-span-3">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-y-5 gap-x-6 text-sm">
-                                <div>
-                                    <Label className="text-sm text-muted-foreground">{String(t("lab.receipts.receiptCode"))}</Label>
-                                    <div className="mt-1 font-medium text-foreground">{editedReceipt.receiptCode ?? "-"}</div>
-                                </div>
-
-                                <div>
-                                    <Label className="text-sm text-muted-foreground">{String(t("crm.clients.clientId"))}</Label>
-                                    {isEditing ? (
-                                        <Input
-                                            value={editedReceipt.client?.clientId ?? ""}
-                                            onChange={(e) =>
-                                                setEditedReceipt((p: ReceiptDetail) => ({
-                                                    ...p,
-                                                    client: {
-                                                        ...(p.client ?? { clientName: "" }),
-                                                        clientId: e.target.value,
-                                                    },
-                                                }))
-                                            }
-                                            className="mt-1 bg-background h-8"
-                                        />
-                                    ) : (
-                                        <div className="mt-1 font-medium text-foreground">{editedReceipt.client?.clientId ?? "-"}</div>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <Label className="text-sm text-muted-foreground">{String(t("crm.clients.legalId", { defaultValue: "Mã định danh (Số ĐKKD)" }))}</Label>
-                                    {isEditing ? (
-                                        <Input
-                                            value={editedReceipt.client?.legalId ?? ""}
-                                            onChange={(e) =>
-                                                setEditedReceipt((p: ReceiptDetail) => ({
-                                                    ...p,
-                                                    client: {
-                                                        ...(p.client ?? { clientId: "", clientName: "" }),
-                                                        legalId: e.target.value,
-                                                    },
-                                                }))
-                                            }
-                                            className="mt-1 bg-background h-8"
-                                        />
-                                    ) : (
-                                        <div className="mt-1 font-medium text-foreground">{editedReceipt.client?.legalId ?? "-"}</div>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <Label className="text-sm text-muted-foreground">{String(t("crm.clients.clientName"))}</Label>
-                                    {isEditing ? (
-                                        <Input
-                                            value={editedReceipt.client?.clientName ?? ""}
-                                            onChange={(e) =>
-                                                setEditedReceipt((p: ReceiptDetail) => ({
-                                                    ...p,
-                                                    client: {
-                                                        ...(p.client ?? { clientId: "", clientName: "" }),
-                                                        clientName: e.target.value,
-                                                    },
-                                                }))
-                                            }
-                                            className="mt-1 bg-background h-8"
-                                        />
-                                    ) : (
-                                        <div className="mt-1 font-medium text-foreground">{editedReceipt.client?.clientName ?? "-"}</div>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <Label className="text-sm text-muted-foreground">{String(t("reception.receipts.orderCode", { defaultValue: "Mã đơn hàng L/K" }))}</Label>
-                                    <div className="mt-1 text-foreground">{editedReceipt.order?.orderCode ?? "-"}</div>
-                                </div>
-
-                                <div>
-                                    <Label className="text-sm text-muted-foreground">{String(t("crm.clients.clientAddress"))}</Label>
-                                    {isEditing ? (
-                                        <Input
-                                            value={editedReceipt.client?.clientAddress ?? ""}
-                                            onChange={(e) =>
-                                                setEditedReceipt((p: ReceiptDetail) => ({
-                                                    ...p,
-                                                    client: {
-                                                        ...(p.client ?? { clientId: "", clientName: "" }),
-                                                        clientAddress: e.target.value,
-                                                    },
-                                                }))
-                                            }
-                                            className="mt-1 bg-background h-8"
-                                        />
-                                    ) : (
-                                        <div className="mt-1 text-foreground">{editedReceipt.client?.clientAddress ?? "-"}</div>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <Label className="text-sm text-muted-foreground">{String(t("reception.createReceipt.contactInfo", { defaultValue: "Thông tin liên hệ" }))}</Label>
-                                    {isEditing ? (
-                                        <div className="flex flex-col gap-2 mt-1">
-                                            <Input
-                                                placeholder="Email"
-                                                value={editedReceipt.client?.clientEmail ?? ""}
-                                                onChange={(e) =>
-                                                    setEditedReceipt((p: ReceiptDetail) => ({
-                                                        ...p,
-                                                        client: {
-                                                            ...(p.client ?? { clientId: "", clientName: "" }),
-                                                            clientEmail: e.target.value,
-                                                        },
-                                                    }))
-                                                }
-                                                className="bg-background h-8"
-                                            />
-                                            <Input
-                                                placeholder="Phone"
-                                                value={editedReceipt.client?.clientPhone ?? ""}
-                                                onChange={(e) =>
-                                                    setEditedReceipt((p: ReceiptDetail) => ({
-                                                        ...p,
-                                                        client: {
-                                                            ...(p.client ?? { clientId: "", clientName: "" }),
-                                                            clientPhone: e.target.value,
-                                                        },
-                                                    }))
-                                                }
-                                                className="bg-background h-8"
-                                            />
-                                        </div>
-                                    ) : (
-                                        <div className="mt-1 text-foreground">
-                                            {editedReceipt.client?.clientPhone ? `${editedReceipt.client.clientPhone} - ` : ""}
-                                            {editedReceipt.client?.clientEmail ?? "-"}
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <Label className="text-sm text-muted-foreground">{String(t("reception.receipts.contactPerson", { defaultValue: "Người liên hệ" }))}</Label>
-                                    <div className="mt-1 text-foreground">
-                                        {editedReceipt.contactPerson?.contactName ? `${editedReceipt.contactPerson.contactName} - ${editedReceipt.contactPerson.contactPhone ?? ""}` : "-"}
-                                    </div>
-                                </div>
-
-                                <div className="md:col-span-3 border-t border-border pt-4 mt-2">
-                                    <h3 className="text-sm font-semibold text-primary mb-4 flex items-center gap-2">
-                                        <Building2 className="h-4 w-4" />
-                                        {String(t("reception.createReceipt.invoiceInfo", { defaultValue: "Thông tin xuất hóa đơn" }))}
-                                    </h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                        <div>
-                                            <Label className="text-sm text-muted-foreground">{String(t("crm.clients.invoice.taxCode"))}</Label>
-                                            {isEditing ? (
-                                                <Input
-                                                    value={editedReceipt.client?.invoiceInfo?.taxCode ?? ""}
-                                                    onChange={(e) =>
-                                                        setEditedReceipt((p: ReceiptDetail) => ({
-                                                            ...p,
-                                                            client: {
-                                                                ...(p.client ?? { clientId: "", clientName: "" }),
-                                                                invoiceInfo: { ...(p.client?.invoiceInfo ?? {}), taxCode: e.target.value },
-                                                            },
-                                                        }))
-                                                    }
-                                                    className="mt-1 bg-background h-8"
-                                                />
-                                            ) : (
-                                                <div className="mt-1 text-foreground font-medium">{editedReceipt.client?.invoiceInfo?.taxCode ?? "-"}</div>
-                                            )}
-                                        </div>
-                                        <div>
-                                            <Label className="text-sm text-muted-foreground">{String(t("crm.clients.invoice.taxName"))}</Label>
-                                            {isEditing ? (
-                                                <Input
-                                                    value={editedReceipt.client?.invoiceInfo?.taxName ?? ""}
-                                                    onChange={(e) =>
-                                                        setEditedReceipt((p: ReceiptDetail) => ({
-                                                            ...p,
-                                                            client: {
-                                                                ...(p.client ?? { clientId: "", clientName: "" }),
-                                                                invoiceInfo: { ...(p.client?.invoiceInfo ?? {}), taxName: e.target.value },
-                                                            },
-                                                        }))
-                                                    }
-                                                    className="mt-1 bg-background h-8"
-                                                />
-                                            ) : (
-                                                <div className="mt-1 text-foreground">{editedReceipt.client?.invoiceInfo?.taxName ?? "-"}</div>
-                                            )}
-                                        </div>
-                                        <div>
-                                            <Label className="text-sm text-muted-foreground">{String(t("crm.clients.invoice.taxEmail"))}</Label>
-                                            {isEditing ? (
-                                                <Input
-                                                    value={editedReceipt.client?.invoiceInfo?.taxEmail ?? ""}
-                                                    onChange={(e) =>
-                                                        setEditedReceipt((p: ReceiptDetail) => ({
-                                                            ...p,
-                                                            client: {
-                                                                ...(p.client ?? { clientId: "", clientName: "" }),
-                                                                invoiceInfo: { ...(p.client?.invoiceInfo ?? {}), taxEmail: e.target.value },
-                                                            },
-                                                        }))
-                                                    }
-                                                    className="mt-1 bg-background h-8"
-                                                />
-                                            ) : (
-                                                <div className="mt-1 text-foreground">{editedReceipt.client?.invoiceInfo?.taxEmail ?? "-"}</div>
-                                            )}
-                                        </div>
-                                        <div>
-                                            <Label className="text-sm text-muted-foreground">{String(t("crm.clients.invoice.taxAddress"))}</Label>
-                                            {isEditing ? (
-                                                <Input
-                                                    value={editedReceipt.client?.invoiceInfo?.taxAddress ?? ""}
-                                                    onChange={(e) =>
-                                                        setEditedReceipt((p: ReceiptDetail) => ({
-                                                            ...p,
-                                                            client: {
-                                                                ...(p.client ?? { clientId: "", clientName: "" }),
-                                                                invoiceInfo: { ...(p.client?.invoiceInfo ?? {}), taxAddress: e.target.value },
-                                                            },
-                                                        }))
-                                                    }
-                                                    className="mt-1 bg-background h-8"
-                                                />
-                                            ) : (
-                                                <div className="mt-1 text-foreground">{editedReceipt.client?.invoiceInfo?.taxAddress ?? "-"}</div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <Label className="text-sm text-muted-foreground">{String(t("reception.receiptDetail.sendMail"))}</Label>
-                                    <div className="mt-1">
-                                        <Button size="sm" variant="outline" className="flex items-center gap-2 h-7" onClick={() => setShowEmailModal(true)}>
-                                            <Mail className="h-3 w-3" />
-                                            {String(t("reception.receiptDetail.sendMailTitle"))}
-                                        </Button>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <Label className="text-sm text-muted-foreground">{String(t("lab.receipts.receiptStatus"))}</Label>
-                                    {isEditing ? (
-                                        <Select
-                                            value={editedReceipt.receiptStatus ?? ""}
-                                            onValueChange={(val: ReceiptStatus) => setEditedReceipt((p: ReceiptDetail) => ({ ...p, receiptStatus: val }))}
-                                        >
-                                            <SelectTrigger className="w-full mt-1 h-8">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {RECEIPT_STATUS_OPTIONS.map((st) => (
-                                                    <SelectItem key={st} value={st}>
-                                                        {receiptStatusLabel(t, st)}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    ) : (
-                                        <div className="mt-1">{getReceiptStatusBadge(t, editedReceipt.receiptStatus)}</div>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <Label className="text-sm text-muted-foreground">{String(t("reception.receipts.priority", { defaultValue: "Cấp yêu cầu" }))}</Label>
-                                    <div className="mt-1 text-foreground">{editedReceipt.receiptPriority ?? "-"}</div>
-                                </div>
-
-                                <div>
-                                    <Label className="text-sm text-muted-foreground">{String(t("reception.receipts.receiptDate", { defaultValue: "Ngày nhận mẫu" }))}</Label>
-                                    <div className="mt-1 text-foreground">{editedReceipt.receiptDate ? new Date(editedReceipt.receiptDate).toLocaleDateString() : "-"}</div>
-                                </div>
-
-                                <div>
-                                    <Label className="text-sm text-muted-foreground">{String(t("reception.receipts.receiptDeadline", { defaultValue: "Hẹn trả lịch" }))}</Label>
-                                    <div className="mt-1 text-foreground">{editedReceipt.receiptDeadline ? new Date(editedReceipt.receiptDeadline).toLocaleDateString() : "-"}</div>
-                                </div>
-
-                                <div>
-                                    <Label className="text-sm text-muted-foreground">{String(t("reception.receipts.deliveryMethod", { defaultValue: "Hình thức giao mẫu" }))}</Label>
-                                    <div className="mt-1 text-foreground">{editedReceipt.receiptDeliveryMethod ?? "-"}</div>
-                                </div>
-
-                                <div>
-                                    <Label className="text-sm text-muted-foreground">{String(t("reception.receipts.trackingNumber", { defaultValue: "Mã vận đơn" }))}</Label>
-                                    <div className="mt-1 text-foreground">{editedReceipt.trackingNumber ?? editedReceipt.receiptTrackingNo ?? "-"}</div>
-                                </div>
-
-                                <div>
-                                    <Label className="text-sm text-muted-foreground">{String(t("reception.receipts.reportRecipient", { defaultValue: "Nơi nhận phiếu KQ" }))}</Label>
-                                    <div className="mt-1 text-foreground">
-                                        {editedReceipt.reportRecipient?.receiverName ? `${editedReceipt.reportRecipient.receiverName} - ${editedReceipt.reportRecipient.receiverAddress ?? ""}` : "-"}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <Label className="text-sm text-muted-foreground">{String(t("reception.receipts.senderInfo", { defaultValue: "Thông tin người gửi" }))}</Label>
-                                    <div className="mt-1 text-foreground">{editedReceipt.senderInfo?.name ? `${editedReceipt.senderInfo.name} - ${editedReceipt.senderInfo.phone ?? ""}` : "-"}</div>
-                                </div>
-
-                                <div>
-                                    <Label className="text-sm text-muted-foreground">{String(t("reception.receipts.conditionCheck", { defaultValue: "Tình trạng mẫu khi nhận" }))}</Label>
-                                    <div className="mt-1 text-foreground">
-                                        {editedReceipt.conditionCheck ? `Niêm phong: ${editedReceipt.conditionCheck.seal || "-"} / Nhiệt độ: ${editedReceipt.conditionCheck.temp || "-"}` : "-"}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <Label className="text-sm text-muted-foreground">{String(t("reception.receipts.reportConfig", { defaultValue: "Cấu hình trả KQ" }))}</Label>
-                                    <div className="mt-1 text-foreground">
-                                        {editedReceipt.reportConfig
-                                            ? `Ngôn ngữ: ${editedReceipt.reportConfig.language || "VN"}, Bản cứng: ${editedReceipt.reportConfig.copies || 0}, Bản mềm: ${editedReceipt.reportConfig.sendSoftCopy ? "Có" : "Không"}`
-                                            : "-"}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <Label className="text-sm text-muted-foreground">{String(t("reception.receipts.isBlindCoded", { defaultValue: "Mã hóa mù" }))}</Label>
-                                    <div className="mt-1 text-foreground">{editedReceipt.isBlindCoded ? "Có" : "Không"}</div>
-                                </div>
-
-                                <div>
-                                    <Label className="text-sm text-muted-foreground">{String(t("reception.receipts.receptionistId", { defaultValue: "Nhân viên tiếp nhận" }))}</Label>
-                                    <div className="mt-1 text-foreground">{editedReceipt.receptionistId || editedReceipt.createdBy?.identityName || "-"}</div>
-                                </div>
-
-                                <div className="mt-1 col-span-1 md:col-span-3">
-                                    <Label className="text-sm text-muted-foreground">{String(t("lab.receipts.receiptNote"))}</Label>
-                                    {isEditing ? (
-                                        <Textarea
-                                            value={editedReceipt.receiptNote ?? ""}
-                                            onChange={(e) =>
-                                                setEditedReceipt((p: ReceiptDetail) => ({
-                                                    ...p,
-                                                    receiptNote: e.target.value,
-                                                }))
-                                            }
-                                            className="mt-1 bg-background"
-                                            rows={2}
-                                        />
-                                    ) : (
-                                        <div className="mt-1 text-foreground">{editedReceipt.receiptNote ?? "-"}</div>
-                                    )}
+            {/* Full-screen overlay — increased z-index to ensure it covers app footers/sidebars */}
+            <div
+                className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-md flex items-center justify-center animate-in fade-in duration-200 w-full h-full"
+                onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+            >
+                {/* Modal panel */}
+                <div
+                    className="bg-background rounded-2xl shadow-2xl flex flex-col border border-border animate-in zoom-in-95 duration-200 overflow-hidden"
+                    style={{ width: "95vw", height: "95vh" }}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {/* ── Header ─────────────────────────────────── */}
+                    <div className="flex shrink-0 items-center justify-between px-5 py-3 border-b border-border bg-card">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                                <FileText className="h-4.5 w-4.5" />
+                            </div>
+                            <div className="min-w-0">
+                                <h2 className="text-base font-bold text-foreground leading-tight truncate">
+                                    {String(t("reception.receiptDetail.title", { code: editedReceipt.receiptCode }))}
+                                </h2>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                    {getReceiptStatusBadge(t, editedReceipt.receiptStatus)}
+                                    <span className="text-[10px] text-muted-foreground font-mono">{editedReceipt.receiptId}</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="xl:col-span-1 border-t xl:border-t-0 xl:border-l border-border pt-4 xl:pt-0 xl:pl-4 flex flex-col">
-                            <div className="flex items-center justify-between mb-3">
-                                <h3 className="text-sm text-muted-foreground">{String(t("reception.receiptDetail.images", { defaultValue: "Ảnh đính kèm" }))}</h3>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1.5 h-8 text-xs"
+                                onClick={handleSendReceptionEmail}
+                                disabled={isReceptionEmailLoading}
+                            >
+                                {isReceptionEmailLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />}
+                                {String(t("reception.receiptDetail.sendMailReception"))}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1.5 h-8 text-xs"
+                                onClick={handleSendResultEmail}
+                                disabled={isResultEmailLoading}
+                            >
+                                {isResultEmailLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <FileCheck className="h-3 w-3" />}
+                                {String(t("reception.receiptDetail.sendMailResult"))}
+                            </Button>
+                            <div className="w-px h-5 bg-border mx-0.5" />
+                            <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs" onClick={() => setShowPrintLabelModal(true)}>
+                                <Printer className="h-3 w-3" />
+                                {String(t("reception.receiptDetail.printLabel"))}
+                            </Button>
+                            <Button size="sm" className="gap-1.5 h-8 text-xs" onClick={() => setShowResultCertificateModal(true)}>
+                                <FileCheck className="h-3 w-3" />
+                                {String(t("reception.receiptDetail.exportHandover"))}
+                            </Button>
+                            <div className="w-px h-5 bg-border mx-0.5" />
+                            {isEditing ? (
+                                <>
+                                    <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={handleCancelEdit}>
+                                        {String(t("common.cancel"))}
+                                    </Button>
+                                    <Button size="sm" className="h-8 text-xs gap-1.5" onClick={handleSave} disabled={updateMut.isPending}>
+                                        {updateMut.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                                        {String(t("common.save"))}
+                                    </Button>
+                                </>
+                            ) : (
+                                <Button variant="secondary" size="sm" className="h-8 text-xs gap-1.5" onClick={() => setIsEditing(true)}>
+                                    <Edit className="h-3 w-3" />
+                                    {String(t("common.edit"))}
+                                </Button>
+                            ) /* Correct closing for edit button conditional */}
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8 rounded-full ml-0.5"
+                                onClick={handleRefresh}
+                                disabled={isRefreshing}
+                                title={String(t("common.refresh", { defaultValue: "Làm mới" }))}
+                            >
+                                <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full ml-0.5" onClick={onClose}>
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
 
-                                <div className="flex items-center gap-1.5">
-                                    <Button
-                                        size="icon"
-                                        variant="outline"
-                                        className="h-7 w-7"
-                                        onClick={handleFindRelated}
-                                        disabled={isUploading}
-                                        title={String(t("common.search", { defaultValue: "Tìm ảnh LK" }))}
-                                    >
-                                        <Search className="h-3.5 w-3.5" />
-                                    </Button>
+                    {/* ── Body ───────────────────────────────────── */}
+                    <div className="flex-1 overflow-hidden flex min-h-0">
+                        {/* Left: info + samples */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/30 min-w-0">
 
-                                    <Button
-                                        size="icon"
-                                        variant="outline"
-                                        className="h-7 w-7"
-                                        title={String(t("common.manage", { defaultValue: "Quản lý" }))}
-                                        onClick={() => {
-                                            setManageImages([...loadedImages]);
-                                            setManageSelectedIds([...fileIds]);
-                                            setManageModalOpen(true);
-                                        }}
-                                    >
-                                        <Edit className="h-3.5 w-3.5" />
-                                    </Button>
+                            {/* 4-column info row */}
+                            <div className="grid grid-cols-4 gap-4">
 
-                                    <Button
-                                        size="icon"
-                                        variant="default"
-                                        className="h-7 w-7"
-                                        onClick={() => fileInputRef.current?.click()}
-                                        disabled={isUploading}
-                                        title={String(t("reception.receiptDetail.uploadFile", { defaultValue: "Tải lên" }))}
-                                    >
-                                        <Upload className="h-3.5 w-3.5" />
-                                    </Button>
-                                    <Button
-                                        size="icon"
-                                        variant="default"
-                                        className="h-7 w-7"
-                                        onClick={() => cameraInputRef.current?.click()}
-                                        disabled={isUploading}
-                                        title={String(t("reception.receiptDetail.takePhoto", { defaultValue: "Chụp ảnh" }))}
-                                    >
-                                        <Camera className="h-3.5 w-3.5" />
-                                    </Button>
+                                {/* Khách hàng */}
+                                <section className="p-4 rounded-xl border border-border bg-card shadow-sm space-y-3 overflow-y-auto max-h-full">
+                                    <SectionHeader icon={Building2} title={String(t("reception.createReceipt.clientInfo"))} />
+                                    {isEditing ? (
+                                        <div className="space-y-1.5">
+                                            <Input className="h-7 text-xs bg-background" placeholder="Tên KH/Tên công ty" value={editedReceipt.client?.clientName ?? ""} onChange={(e) => setEditedReceipt(p => ({ ...p, client: { ...p.client, clientId: p.client?.clientId ?? "", clientName: e.target.value } }))} />
+                                            <Input className="h-7 text-xs bg-background" placeholder="Mã số thuế" value={editedReceipt.client?.legalId ?? ""} onChange={(e) => setEditedReceipt(p => ({ ...p, client: { ...p.client, clientId: p.client?.clientId ?? "", clientName: p.client?.clientName ?? "", legalId: e.target.value } }))} />
+                                            <Input className="h-7 text-xs bg-background" placeholder="Địa chỉ" value={editedReceipt.client?.clientAddress ?? ""} onChange={(e) => setEditedReceipt(p => ({ ...p, client: { ...p.client, clientId: p.client?.clientId ?? "", clientName: p.client?.clientName ?? "", clientAddress: e.target.value } }))} />
+                                            <div className="grid grid-cols-2 gap-1.5">
+                                                <Input className="h-7 text-xs bg-background" placeholder="SĐT" value={editedReceipt.client?.clientPhone ?? ""} onChange={(e) => setEditedReceipt(p => ({ ...p, client: { ...p.client, clientId: p.client?.clientId ?? "", clientName: p.client?.clientName ?? "", clientPhone: e.target.value } }))} />
+                                                <Input className="h-7 text-xs bg-background" placeholder="Email" value={editedReceipt.client?.clientEmail ?? ""} onChange={(e) => setEditedReceipt(p => ({ ...p, client: { ...p.client, clientId: p.client?.clientId ?? "", clientName: p.client?.clientName ?? "", clientEmail: e.target.value } }))} />
+                                            </div>
+                                            <div className="pt-2 border-t border-border/60 space-y-1.5">
+                                                <div className="text-[10px] text-muted-foreground uppercase font-medium flex items-center gap-1"><ClipboardList className="h-3 w-3" /> Thông tin hoá đơn</div>
+                                                <Input className="h-7 text-xs bg-background" placeholder="Tên công ty (HĐ)" value={(editedReceipt.client?.invoiceInfo?.taxName as string) ?? ""} onChange={(e) => setEditedReceipt(p => ({ ...p, client: { ...p.client, clientId: p.client?.clientId ?? "", clientName: p.client?.clientName ?? "", invoiceInfo: { ...p.client?.invoiceInfo, taxName: e.target.value } } }))} />
+                                                <Input className="h-7 text-xs bg-background" placeholder="MST (HĐ)" value={(editedReceipt.client?.invoiceInfo?.taxCode as string) ?? ""} onChange={(e) => setEditedReceipt(p => ({ ...p, client: { ...p.client, clientId: p.client?.clientId ?? "", clientName: p.client?.clientName ?? "", invoiceInfo: { ...p.client?.invoiceInfo, taxCode: e.target.value } } }))} />
+                                                <Input className="h-7 text-xs bg-background" placeholder="Địa chỉ (HĐ)" value={(editedReceipt.client?.invoiceInfo?.taxAddress as string) ?? ""} onChange={(e) => setEditedReceipt(p => ({ ...p, client: { ...p.client, clientId: p.client?.clientId ?? "", clientName: p.client?.clientName ?? "", invoiceInfo: { ...p.client?.invoiceInfo, taxAddress: e.target.value } } }))} />
+                                                <Input className="h-7 text-xs bg-background" placeholder="Email (HĐ)" value={(editedReceipt.client?.invoiceInfo?.taxEmail as string) ?? ""} onChange={(e) => setEditedReceipt(p => ({ ...p, client: { ...p.client, clientId: p.client?.clientId ?? "", clientName: p.client?.clientName ?? "", invoiceInfo: { ...p.client?.invoiceInfo, taxEmail: e.target.value } } }))} />
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <InfoRow label={String(t("crm.clients.clientName", { defaultValue: "Tên KH" }))} value={editedReceipt.client?.clientName} />
+                                            <InfoRow label="MST" value={editedReceipt.client?.legalId} mono />
+                                            <InfoRow label={String(t("common.address", { defaultValue: "Địa chỉ" }))} value={editedReceipt.client?.clientAddress} />
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <InfoRow label={String(t("common.phone", { defaultValue: "SĐT" }))} value={editedReceipt.client?.clientPhone} />
+                                                <InfoRow label={String(t("common.email", { defaultValue: "Email" }))} value={editedReceipt.client?.clientEmail} />
+                                            </div>
+                                            {editedReceipt.client?.invoiceInfo && (
+                                                <div className="pt-2 border-t border-border/60 space-y-2">
+                                                    <div className="text-[10px] text-muted-foreground uppercase font-medium flex items-center gap-1"><ClipboardList className="h-3 w-3" /> Thông tin hoá đơn</div>
+                                                    <InfoRow label="Tên" value={editedReceipt.client.invoiceInfo.taxName as string} />
+                                                    <InfoRow label="MST" value={editedReceipt.client.invoiceInfo.taxCode as string} mono />
+                                                    <InfoRow label="Địa chỉ" value={editedReceipt.client.invoiceInfo.taxAddress as string} />
+                                                    <InfoRow label="Email" value={editedReceipt.client.invoiceInfo.taxEmail as string} />
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+                                </section>
+
+                                {/* Người liên hệ & Nhận BC */}
+                                <section className="p-4 rounded-xl border border-border bg-card shadow-sm space-y-3">
+                                    <SectionHeader icon={User} title={String(t("reception.createReceipt.contactInfo"))} />
+                                    <div className="pb-3 border-b border-border/60 space-y-2">
+                                        <div className="text-[10px] text-muted-foreground uppercase font-medium">Người liên hệ</div>
+                                        {isEditing ? (
+                                            <div className="space-y-1.5">
+                                                {(["contactName", "contactPhone", "contactEmail", "contactPosition"] as const).map((f) => (
+                                                    <Input key={f} className="h-7 text-xs bg-background" value={(editedReceipt.contactPerson?.[f] as string) ?? ""} placeholder={f} onChange={(e) => setEditedReceipt(p => ({ ...p, contactPerson: { ...p.contactPerson, [f]: e.target.value } }))} />
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-1.5">
+                                                <InfoRow label="Họ tên" value={editedReceipt.contactPerson?.contactName} />
+                                                <InfoRow label="Chức vụ" value={editedReceipt.contactPerson?.contactPosition} />
+                                                <InfoRow label="SĐT" value={editedReceipt.contactPerson?.contactPhone} />
+                                                <InfoRow label="Email" value={editedReceipt.contactPerson?.contactEmail} />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="text-[10px] text-muted-foreground uppercase font-medium">Người nhận báo cáo</div>
+                                        {isEditing ? (
+                                            <div className="space-y-1.5">
+                                                {(["receiverName", "receiverPhone", "receiverEmail", "receiverAddress"] as const).map((f) => (
+                                                    <Input key={f} className="h-7 text-xs bg-background" value={(editedReceipt.reportRecipient?.[f] as string) ?? ""} placeholder={f} onChange={(e) => setEditedReceipt(p => ({ ...p, reportRecipient: { ...p.reportRecipient, [f]: e.target.value } }))} />
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-1.5">
+                                                <InfoRow label="Họ tên" value={editedReceipt.reportRecipient?.receiverName} />
+                                                <InfoRow label="SĐT" value={editedReceipt.reportRecipient?.receiverPhone} />
+                                                <InfoRow label="Email" value={editedReceipt.reportRecipient?.receiverEmail} />
+                                                <InfoRow label="Địa chỉ" value={editedReceipt.reportRecipient?.receiverAddress} />
+                                            </div>
+                                        )}
+                                    </div>
+                                </section>
+
+                                {/* Thông tin phiếu */}
+                                <section className="p-4 rounded-xl border border-border bg-card shadow-sm space-y-3">
+                                    <SectionHeader icon={FileText} title={String(t("reception.createReceipt.receiptInfo"))} />
+                                    <InfoRow label={String(t("lab.receipts.receiptCode", { defaultValue: "Mã phiếu" }))} value={editedReceipt.receiptCode} mono />
+                                    <InfoRow label={String(t("lab.receipts.receiptDate"))} value={fmtDate(editedReceipt.receiptDate)} />
+                                    <div>
+                                        <Label className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">{String(t("lab.receipts.receiptDeadline"))}</Label>
+                                        {isEditing ? (
+                                            <Input type="date" className="mt-1 h-7 text-xs bg-background" value={editedReceipt.receiptDeadline?.split("T")[0] ?? ""} onChange={(e) => setEditedReceipt(p => ({ ...p, receiptDeadline: e.target.value }))} />
+                                        ) : (
+                                            <div className="text-sm font-bold text-destructive mt-0.5">{fmtDate(editedReceipt.receiptDeadline)}</div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <Label className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">{String(t("lab.receipts.receiptStatus", { defaultValue: "Trạng thái" }))}</Label>
+                                        {isEditing ? (
+                                            <Select value={editedReceipt.receiptStatus ?? ""} onValueChange={(v) => setEditedReceipt(p => ({ ...p, receiptStatus: v as ReceiptStatus }))}>
+                                                <SelectTrigger className="mt-1 h-7 text-xs bg-background"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    {STATUS_OPTIONS.map(s => <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        ) : (
+                                            <div className="mt-0.5">{getReceiptStatusBadge(t, editedReceipt.receiptStatus)}</div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <Label className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">{String(t("lab.receipts.receiptPriority"))}</Label>
+                                        {isEditing ? (
+                                            <Select value={editedReceipt.receiptPriority ?? "Normal"} onValueChange={(v) => setEditedReceipt(p => ({ ...p, receiptPriority: v }))}>
+                                                <SelectTrigger className="mt-1 h-7 text-xs bg-background"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="Normal" className="text-xs">Normal</SelectItem>
+                                                    <SelectItem value="Urgent" className="text-xs">Urgent</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        ) : (
+                                            <div className="text-sm font-medium text-foreground mt-0.5">{editedReceipt.receiptPriority ?? "Normal"}</div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <Label className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">{String(t("lab.receipts.receiptDeliveryMethod", { defaultValue: "Phương thức giao" }))}</Label>
+                                        {isEditing ? (
+                                            <Select value={editedReceipt.receiptDeliveryMethod ?? ""} onValueChange={(v) => setEditedReceipt(p => ({ ...p, receiptDeliveryMethod: v }))}>
+                                                <SelectTrigger className="mt-1 h-7 text-xs bg-background"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="HandOver" className="text-xs">HandOver</SelectItem>
+                                                    <SelectItem value="Post" className="text-xs">Post</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        ) : (
+                                            <div className="text-sm font-medium text-foreground mt-0.5">{editedReceipt.receiptDeliveryMethod ?? "—"}</div>
+                                        )}
+                                    </div>
+                                    <InfoRow label={String(t("lab.receipts.receiptTrackingNo", { defaultValue: "Mã vận đơn" }))} value={editedReceipt.shipmentTrackingNumber} mono />
+                                    <InfoRow label={String(t("lab.receipts.orderId", { defaultValue: "Đơn hàng" }))} value={editedReceipt.order?.orderCode} mono />
+                                </section>
+
+                                {/* Cấu hình & Bàn giao */}
+                                <section className="p-4 rounded-xl border border-border bg-card shadow-sm space-y-3">
+                                    <SectionHeader icon={ShieldCheck} title="Cấu hình & Bàn giao" />
+                                    <div>
+                                        <Label className="text-[10px] text-muted-foreground uppercase font-medium">Ngôn ngữ BC</Label>
+                                        {isEditing ? (
+                                            <Select value={editedReceipt.reportConfig?.language ?? "vi"} onValueChange={(v) => setEditedReceipt(p => ({ ...p, reportConfig: { ...p.reportConfig, language: v } }))}>
+                                                <SelectTrigger className="mt-1 h-7 text-xs bg-background"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="vi" className="text-xs">Tiếng Việt</SelectItem>
+                                                    <SelectItem value="en" className="text-xs">English</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        ) : <div className="text-sm font-medium text-foreground mt-0.5">{editedReceipt.reportConfig?.language ?? "—"}</div>}
+                                    </div>
+                                    <div>
+                                        <Label className="text-[10px] text-muted-foreground uppercase font-medium">Số bản in</Label>
+                                        {isEditing ? (
+                                            <Input type="number" min={1} className="mt-1 h-7 text-xs bg-background" value={editedReceipt.reportConfig?.copies?.toString() ?? ""} onChange={(e) => setEditedReceipt(p => ({ ...p, reportConfig: { ...p.reportConfig, copies: parseInt(e.target.value) || 1 } }))} />
+                                        ) : <div className="text-sm font-medium text-foreground mt-0.5">{editedReceipt.reportConfig?.copies ?? "—"}</div>}
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] text-muted-foreground uppercase font-medium">Mã hoá phiếu</span>
+                                        {isEditing ? (
+                                            <button type="button" onClick={() => setEditedReceipt(p => ({ ...p, isBlindCoded: !p.isBlindCoded }))} className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${editedReceipt.isBlindCoded ? "bg-primary" : "bg-muted-foreground/30"}`}>
+                                                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${editedReceipt.isBlindCoded ? "translate-x-4.5" : "translate-x-0.5"}`} />
+                                            </button>
+                                        ) : editedReceipt.isBlindCoded
+                                            ? <Badge variant="outline" className="text-[9px] bg-warning/10 text-warning border-warning/30">Có</Badge>
+                                            : <Badge variant="outline" className="text-[9px]">Không</Badge>}
+                                    </div>
+                                    <div className="pt-2 border-t border-border/60 space-y-1.5">
+                                        <div className="text-[10px] text-muted-foreground uppercase font-medium">Kiểm tra điều kiện</div>
+                                        {isEditing ? (
+                                            <>
+                                                <Input className="h-7 text-xs bg-background" placeholder="Niêm phong" value={editedReceipt.conditionCheck?.seal ?? ""} onChange={(e) => setEditedReceipt(p => ({ ...p, conditionCheck: { ...p.conditionCheck, seal: e.target.value } }))} />
+                                                <Input className="h-7 text-xs bg-background" placeholder="Nhiệt độ" value={editedReceipt.conditionCheck?.temp ?? ""} onChange={(e) => setEditedReceipt(p => ({ ...p, conditionCheck: { ...p.conditionCheck, temp: e.target.value } }))} />
+                                            </>
+                                        ) : (
+                                            <>
+                                                <InfoRow label="Niêm phong" value={editedReceipt.conditionCheck?.seal} />
+                                                <InfoRow label="Nhiệt độ" value={editedReceipt.conditionCheck?.temp} />
+                                            </>
+                                        )}
+                                    </div>
+                                    <div className="pt-2 border-t border-border/60 space-y-1.5">
+                                        <div className="text-[10px] text-muted-foreground uppercase font-medium">Người gửi mẫu</div>
+                                        {isEditing ? (
+                                            <>
+                                                <Input className="h-7 text-xs bg-background" placeholder="Họ tên" value={editedReceipt.senderInfo?.name ?? ""} onChange={(e) => setEditedReceipt(p => ({ ...p, senderInfo: { ...p.senderInfo, name: e.target.value } }))} />
+                                                <Input className="h-7 text-xs bg-background" placeholder="SĐT" value={editedReceipt.senderInfo?.phone ?? ""} onChange={(e) => setEditedReceipt(p => ({ ...p, senderInfo: { ...p.senderInfo, phone: e.target.value } }))} />
+                                            </>
+                                        ) : (
+                                            <>
+                                                <InfoRow label="Họ tên" value={editedReceipt.senderInfo?.name} />
+                                                <InfoRow label="SĐT" value={editedReceipt.senderInfo?.phone} />
+                                            </>
+                                        )}
+                                    </div>
+                                    <div className="pt-2 border-t border-border/60">
+                                        <Label className="text-[10px] text-muted-foreground uppercase font-medium">{String(t("lab.receipts.receiptNote"))}</Label>
+                                        {isEditing ? (
+                                            <Textarea value={editedReceipt.receiptNote ?? ""} onChange={(e) => setEditedReceipt(p => ({ ...p, receiptNote: e.target.value }))} className="mt-1 min-h-[56px] text-xs bg-background" placeholder="..." />
+                                        ) : (
+                                            <div className="text-xs text-muted-foreground bg-muted/40 px-2.5 py-2 rounded-lg mt-1 italic">{editedReceipt.receiptNote ?? "—"}</div>
+                                        )}
+                                    </div>
+                                </section>
+                            </div>
+
+                            {/* Samples table */}
+                            {samplesTableJSX}
+                        </div>
+
+                        {/* Right panel: Images */}
+                        <div className="w-60 shrink-0 border-l border-border bg-card flex flex-col">
+                            <div className="flex items-center justify-between px-3 py-2.5 border-b border-border bg-muted/20">
+                                <h3 className="text-[10px] font-semibold text-primary uppercase tracking-wider flex items-center gap-1.5">
+                                    <Camera className="h-3 w-3" />
+                                    {String(t("reception.receiptDetail.sampleImage"))}
+                                </h3>
+                                <div className="flex gap-1">
+                                    <Button size="icon" variant="outline" className="h-6 w-6" onClick={handleFindRelated} disabled={isUploading} title={String(t("common.search"))}><Search className="h-3 w-3" /></Button>
+                                    <Button size="icon" variant="outline" className="h-6 w-6" onClick={() => { setManageImages([...loadedImages]); setManageSelectedIds([...fileIds]); setManageModalOpen(true); }} title={String(t("reception.receiptDetail.manageImages"))}><Edit className="h-3 w-3" /></Button>
+                                    <Button size="icon" variant="default" className="h-6 w-6" onClick={() => fileInputRef.current?.click()} disabled={isUploading}><Upload className="h-3 w-3" /></Button>
+                                    <Button size="icon" variant="default" className="h-6 w-6" onClick={() => cameraInputRef.current?.click()} disabled={isUploading}><Camera className="h-3 w-3" /></Button>
                                     <input type="file" multiple accept="image/*" className="hidden" ref={fileInputRef} onChange={handleUpload} />
                                     <input type="file" multiple accept="image/*" capture="environment" className="hidden" ref={cameraInputRef} onChange={handleUpload} />
                                 </div>
                             </div>
 
-                            {imageLoading || isUploading ? (
-                                <div className="flex-1 flex items-center justify-center border-2 border-dashed border-border rounded-lg bg-muted/10 min-h-[300px]">
-                                    <div className="animate-pulse flex flex-col items-center">
-                                        <div className="h-10 w-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-3" />
-                                        <div className="text-sm text-muted-foreground">{String(t("common.loading"))}</div>
+                            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                                {imageLoading || isUploading ? (
+                                    <div className="aspect-[4/3] flex items-center justify-center border-2 border-dashed border-border rounded-xl bg-muted/20">
+                                        <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
                                     </div>
-                                </div>
-                            ) : loadedImages.length === 0 ? (
-                                <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg bg-muted/10 min-h-[300px] text-muted-foreground">
-                                    <ImageOff className="h-12 w-12 mb-3 opacity-20" />
-                                    <p className="text-sm">{String(t("reception.receiptDetail.noImage"))}</p>
-                                </div>
-                            ) : (
-                                <>
-                                    {/* Main Viewer */}
-                                    <div className="relative flex-1 rounded-lg overflow-hidden flex items-center justify-center min-h-[300px] mb-3 group">
-                                        {loadedImages.length > 1 && (
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={handlePrevImg}
-                                                className="absolute left-2 z-10 bg-black/40 text-white hover:bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
-                                                <ChevronLeft className="h-6 w-6" />
-                                            </Button>
-                                        )}
-                                        <img src={loadedImages[focusedImageIdx]?.url} alt={`img-${focusedImageIdx}`} className="max-w-full max-h-full object-contain" />
-                                        {loadedImages.length > 1 && (
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={handleNextImg}
-                                                className="absolute right-2 z-10 bg-black/40 text-white hover:bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
-                                                <ChevronRight className="h-6 w-6" />
-                                            </Button>
-                                        )}
-                                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-2 py-1 rounded-full px-3">
-                                            {focusedImageIdx + 1} / {loadedImages.length}
-                                        </div>
+                                ) : loadedImages.length === 0 ? (
+                                    <div className="aspect-[4/3] flex flex-col items-center justify-center border-2 border-dashed border-border rounded-xl bg-muted/20 text-muted-foreground">
+                                        <ImageOff className="h-8 w-8 mb-2 opacity-30" />
+                                        <p className="text-xs">{String(t("reception.receiptDetail.noImage"))}</p>
                                     </div>
-
-                                    {/* Thumbnail strip */}
-                                    {loadedImages.length > 1 && (
-                                        <div ref={thumbnailsRef} className="flex gap-1.5 overflow-x-auto pb-1 scroll-smooth" style={{ scrollbarWidth: "thin" }}>
-                                            {loadedImages.map((img: LoadedImage, idx: number) => (
-                                                <button
-                                                    key={img.fileId}
-                                                    type="button"
-                                                    onClick={() => setFocusedImageIdx(idx)}
-                                                    className={[
-                                                        "shrink-0 w-14 h-14 rounded border-2 overflow-hidden transition-all",
-                                                        idx === focusedImageIdx ? "border-primary shadow-md" : "border-border opacity-60 hover:opacity-100",
-                                                    ].join(" ")}
-                                                >
-                                                    <img src={img.url} alt={`thumb-${idx + 1}`} className="w-full h-full object-cover" />
-                                                </button>
-                                            ))}
+                                ) : (
+                                    <>
+                                        <div className="relative aspect-[4/3] rounded-xl overflow-hidden flex items-center justify-center bg-black/5 group border border-border">
+                                            {loadedImages.length > 1 && (
+                                                <Button variant="ghost" size="icon" onClick={() => setFocusedImageIdx((i) => (i === 0 ? loadedImages.length - 1 : i - 1))} className="absolute left-1 z-10 h-6 w-6 bg-black/40 text-white hover:bg-black/60 opacity-0 group-hover:opacity-100">
+                                                    <ChevronLeft className="h-3 w-3" />
+                                                </Button>
+                                            )}
+                                            <img src={loadedImages[focusedImageIdx]?.url} alt="" className="max-w-full max-h-full object-contain" />
+                                            {loadedImages.length > 1 && (
+                                                <Button variant="ghost" size="icon" onClick={() => setFocusedImageIdx((i) => (i === loadedImages.length - 1 ? 0 : i + 1))} className="absolute right-1 z-10 h-6 w-6 bg-black/40 text-white hover:bg-black/60 opacity-0 group-hover:opacity-100">
+                                                    <ChevronRight className="h-3 w-3" />
+                                                </Button>
+                                            )}
+                                            <div className="absolute bottom-1 left-1/2 -translate-x-1/2 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded-full">{focusedImageIdx + 1}/{loadedImages.length}</div>
                                         </div>
-                                    )}
-                                </>
-                            )}
-                        </div>
-                    </div>
-
-                    {samplesTableJSX}
-
-                    <div>
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-semibold text-foreground">{String(t("reception.receiptDetail.digitalRecords"))}</h3>
-                            <Button size="sm" variant="outline" className="flex items-center gap-2">
-                                <Upload className="h-4 w-4" />
-                                {String(t("reception.receiptDetail.uploadFile"))}
-                            </Button>
-                        </div>
-
-                        <div className="bg-background border border-border rounded-lg overflow-hidden">
-                            <div className="p-8 text-center text-muted-foreground">
-                                <FileText className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
-                                <p>{String(t("reception.receiptDetail.noFile"))}</p>
+                                        {loadedImages.length > 1 && (
+                                            <div ref={thumbnailsRef} className="flex gap-1 overflow-x-auto pb-1">
+                                                {loadedImages.map((img, idx) => (
+                                                    <button key={img.fileId} type="button" onClick={() => setFocusedImageIdx(idx)} className={`shrink-0 w-10 h-10 rounded-lg border-2 overflow-hidden transition-all ${idx === focusedImageIdx ? "border-primary" : "border-border opacity-60"}`}>
+                                                        <img src={img.url} alt="" className="w-full h-full object-cover" />
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {openSampleModal && selectedSample && (
-                <div className="relative">
-                    <SampleDetailModal sample={selectedSample} receipt={editedReceipt} focusAnalysisId={focusAnalysisId} onClose={closeSampleModal} onSave={handleSaveSample} />
-                    {sampleFetching && (
-                        <div className="fixed top-4 right-12 z-[100] flex items-center gap-2 bg-background/80 px-3 py-1.5 rounded-full border border-primary/20 shadow-lg text-xs font-medium animate-in fade-in slide-in-from-top-2">
-                            <div className="h-3 w-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                            <span>{String(t("common.loading", { defaultValue: "Đang tải chi tiết..." }))}</span>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {showAddSampleModal && (
-                <AddSampleModal
-                    receipt={editedReceipt}
-                    onClose={() => setShowAddSampleModal(false)}
-                    onCreated={(updatedReceipt) => {
-                        setEditedReceipt(updatedReceipt);
-                        onUpdated?.(updatedReceipt);
-                        setShowAddSampleModal(false);
-                    }}
-                />
-            )}
-
+            {/* ── Child Modals ──────────────────────────────────── */}
             {showEmailModal && (
-                <>
-                    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[80]" onClick={() => setShowEmailModal(false)} />
-                    <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-4xl mx-auto bg-background rounded-xl shadow-2xl z-[80] flex flex-col max-h-[90vh] border border-border animate-in zoom-in-95 duration-200">
-                        <div className="flex items-center justify-between p-5 border-b border-border">
-                            <div>
-                                <h2 className="text-lg font-semibold text-foreground">{String(t("reception.receiptDetail.sendMailTitle", { defaultValue: "Gửi thông tin biên nhận" }))}</h2>
-                                <p className="text-xs text-muted-foreground mt-0.5">{String(t("reception.receiptDetail.sendMailDesc", { defaultValue: "Gửi email thông báo cho khách hàng về biên nhận này." }))}</p>
-                            </div>
-                            <Button variant="ghost" size="icon" onClick={() => setShowEmailModal(false)}>
-                                <X className="h-4 w-4" />
-                            </Button>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto p-5 space-y-4">
-                            <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label className="text-xs text-muted-foreground uppercase">{String(t("reception.receiptDetail.email.from", { defaultValue: "Người gửi" }))}</Label>
-                                        <Input value={emailForm.from} onChange={(e) => handleEmailChange("from", e.target.value)} className="h-9 text-sm" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-xs text-muted-foreground uppercase">{String(t("reception.receiptDetail.email.to", { defaultValue: "Người nhận" }))}</Label>
-                                        <Input value={emailForm.to} onChange={(e) => handleEmailChange("to", e.target.value)} className="h-9 text-sm" />
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-xs text-muted-foreground uppercase">{String(t("reception.receiptDetail.email.subject", { defaultValue: "Tiêu đề" }))}</Label>
-                                    <Input value={emailForm.subject} onChange={(e) => handleEmailChange("subject", e.target.value)} className="h-9 text-sm" />
-                                </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-xs text-muted-foreground uppercase">{String(t("reception.receiptDetail.email.content", { defaultValue: "Nội dung" }))}</Label>
-                                        <div className="border border-border rounded-lg overflow-hidden h-[400px]">
-                                            <Editor
-                                                tinymceScriptSrc="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js"
-                                                value={emailForm.content}
-                                                onEditorChange={(content) => handleEmailChange("content", content)}
-                                                init={{
-                                                    height: "100%",
-                                                    menubar: false,
-                                                    statusbar: false,
-                                                    plugins: "table lists code",
-                                                    toolbar: "bold italic underline | alignleft aligncenter alignright | table | code",
-                                                    branding: false,
-                                                    promotion: false,
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {emailForm.attachments.length > 0 && (
-                                        <div className="space-y-2">
-                                            <Label className="text-xs text-muted-foreground uppercase flex items-center gap-1.5">
-                                                <Paperclip className="h-3 w-3" />
-                                                {String(t("reception.receiptDetail.email.attachments", { defaultValue: "Tệp đính kèm" }))}
-                                            </Label>
-                                            <div className="bg-muted/30 border border-border rounded-lg p-3 space-y-2">
-                                                {emailForm.attachments.map((fileId) => (
-                                                    <div key={fileId} className="flex items-center gap-2 text-xs text-foreground bg-background p-2 rounded border border-border shadow-sm">
-                                                        <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                                                        <span className="flex-1 font-medium truncate">{fileId}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                            </div>
-                        </div>
-
-                        <div className="p-4 border-t border-border flex justify-end gap-3 bg-muted/20">
-                            <Button variant="ghost" onClick={() => setShowEmailModal(false)}>{String(t("common.cancel"))}</Button>
-                            <Button className="gap-2" onClick={handleSendEmail}>
-                                <Mail className="h-4 w-4" />
-                                {String(t("common.send", { defaultValue: "Gửi Email" }))}
-                            </Button>
-                        </div>
-                    </div>
-                </>
+                <EmailModal
+                    open={showEmailModal}
+                    onClose={() => setShowEmailModal(false)}
+                    defaultTo={emailData.to}
+                    defaultCc={emailData.cc}
+                    defaultSubject={emailData.subject}
+                    defaultContent={emailData.content}
+                    refId={editedReceipt.receiptId}
+                    refType="receipt"
+                    type={emailType}
+                />
             )}
 
             {manageModalOpen && (
                 <>
-                    <div className="fixed inset-0 bg-black/60 z-[90]" onClick={() => setManageModalOpen(false)} />
-                    <div className="fixed inset-y-10 inset-x-4 md:inset-x-auto md:right-10 md:w-[600px] bg-background rounded-xl shadow-2xl z-[90] flex flex-col border border-border animate-in slide-in-from-right duration-300">
-                        <div className="flex items-center justify-between p-4 border-b">
-                            <h3 className="font-semibold text-lg flex items-center gap-2">
-                                <Edit className="h-5 w-5 text-primary" />
-                                {String(t("reception.receiptDetail.manageImages", { defaultValue: "Quản lý hình ảnh" }))}
+                    <div className="fixed inset-0 bg-black/60 z-[1050]" onClick={() => setManageModalOpen(false)} />
+                    <div className="fixed inset-y-8 right-8 w-[520px] bg-background rounded-xl shadow-2xl z-[1051] flex flex-col border border-border animate-in slide-in-from-right duration-200">
+                        <div className="flex items-center justify-between p-4 border-b border-border">
+                            <h3 className="font-semibold text-base text-foreground flex items-center gap-2">
+                                <Edit className="h-4 w-4 text-primary" />
+                                {String(t("reception.receiptDetail.manageImages"))}
                             </h3>
-                            <Button variant="ghost" size="icon" onClick={() => setManageModalOpen(false)}>
-                                <X className="h-5 w-5" />
-                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => setManageModalOpen(false)}><X className="h-4 w-4" /></Button>
                         </div>
                         <div className="flex-1 overflow-y-auto p-4 bg-muted/10">
                             <div className="grid grid-cols-3 gap-3">
                                 {manageImages.map((img) => (
                                     <div
                                         key={img.fileId}
-                                        className={`relative aspect-square rounded-lg border-2 overflow-hidden bg-background group cursor-pointer transition-all ${
-                                            manageSelectedIds.includes(img.fileId) ? "border-primary shadow-md" : "border-border opacity-70 hover:opacity-100"
-                                        }`}
-                                        onClick={() => {
-                                            setManageSelectedIds(prev => prev.includes(img.fileId) ? prev.filter(id => id !== img.fileId) : [...prev, img.fileId])
-                                        }}
+                                        className={`relative aspect-square rounded-lg border-2 overflow-hidden cursor-pointer transition-all ${manageSelectedIds.includes(img.fileId) ? "border-primary shadow-md" : "border-border opacity-70 hover:opacity-100"}`}
+                                        onClick={() => setManageSelectedIds(prev => prev.includes(img.fileId) ? prev.filter(id => id !== img.fileId) : [...prev, img.fileId])}
                                     >
                                         <img src={img.url} className="w-full h-full object-cover" alt="" />
-                                        <div className={`absolute top-2 right-2 h-5 w-5 rounded-full border-2 flex items-center justify-center transition-colors ${manageSelectedIds.includes(img.fileId) ? "bg-primary border-primary shadow-sm" : "bg-black/20 border-white/50"}`}>
-                                            {manageSelectedIds.includes(img.fileId) && <FileCheck className="h-3 w-3 text-white" />}
+                                        <div className={`absolute top-1.5 right-1.5 h-4 w-4 rounded-full border-2 flex items-center justify-center ${manageSelectedIds.includes(img.fileId) ? "bg-primary border-primary" : "bg-black/20 border-white/50"}`}>
+                                            {manageSelectedIds.includes(img.fileId) && <FileCheck className="h-2.5 w-2.5 text-primary-foreground" />}
                                         </div>
                                     </div>
                                 ))}
                             </div>
                             {manageImages.length === 0 && (
                                 <div className="h-40 flex flex-col items-center justify-center text-muted-foreground opacity-50">
-                                    <ImageOff className="h-10 w-10 mb-2" />
-                                    <p className="text-sm">Không có ảnh nào</p>
+                                    <ImageOff className="h-8 w-8 mb-2" />
+                                    <p className="text-sm">{String(t("reception.receiptDetail.noImage"))}</p>
                                 </div>
                             )}
                         </div>
-                        <div className="p-4 border-t bg-background flex justify-between items-center">
-                            <div className="text-sm text-muted-foreground font-medium">
-                                {String(t("common.selected", { defaultValue: "Đã chọn" }))}: <span className="text-primary">{manageSelectedIds.length}</span> / {manageImages.length}
-                            </div>
+                        <div className="p-4 border-t border-border bg-card flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">
+                                Đã chọn: <span className="text-primary font-medium">{manageSelectedIds.length}</span>/{manageImages.length}
+                            </span>
                             <div className="flex gap-2">
                                 <Button variant="ghost" size="sm" onClick={() => setManageModalOpen(false)}>{String(t("common.cancel"))}</Button>
                                 <Button size="sm" onClick={handleConfirmManage} className="px-6">{String(t("common.save"))}</Button>
@@ -1437,21 +867,24 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                         sampleName: s.sampleName,
                         sampleTypeName: s.sampleTypeName ?? null,
                         productType: s.productType ?? null,
-                        sampleClientInfo: s.sampleClientInfo ?? null
-                    })) || []}
+                        sampleClientInfo: s.sampleClientInfo ?? null,
+                    })) ?? []}
                     receiptCode={receipt.receiptCode}
                     onClose={() => setShowPrintLabelModal(false)}
                 />
             )}
 
             {showResultCertificateModal && (
-                <ResultCertificateModal
-                    open={showResultCertificateModal}
-                    onOpenChange={setShowResultCertificateModal}
-                    receipt={editedReceipt}
-                />
+                <ResultCertificateModal open={showResultCertificateModal} onOpenChange={setShowResultCertificateModal} receipt={editedReceipt} />
             )}
-        </>,
-        document.body,
+
+            {openSampleModal && selectedSample && (
+                <SampleDetailModal sample={selectedSample} receipt={editedReceipt} focusAnalysisId={focusAnalysisId} onClose={closeSampleModal} onSave={handleSaveSample} />
+            )}
+
+            {showAddSampleModal && (
+                <AddSampleModal receipt={editedReceipt} open={showAddSampleModal} onOpenChange={setShowAddSampleModal} onAdded={() => { }} />
+            )}
+        </>
     );
 }

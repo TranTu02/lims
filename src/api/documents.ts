@@ -84,8 +84,8 @@ export function useDocumentUrl(id: string | null, expiresIn?: number) {
 }
 
 /** Search documents by title for use in picker components */
-export async function searchDocuments(searchTerm: string): Promise<DocumentInfo[]> {
-    const res = await documentApi.list({ search: searchTerm, itemsPerPage: 30, page: 1 });
+export async function searchDocuments(searchTerm: string, documentType?: string): Promise<DocumentInfo[]> {
+    const res = await documentApi.list({ search: searchTerm, documentType, itemsPerPage: 30, page: 1 });
     const raw = res as unknown as { data?: DocumentInfo[]; pagination?: unknown };
     return Array.isArray(raw.data) ? raw.data : [];
 }

@@ -65,7 +65,7 @@ export function IdentityDetailModal({ open, identityId, onClose }: Props) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1">
                 <div className="text-xs text-muted-foreground">
-                  {t("hr.fields.identityId")}
+                   {t("hr.fields.identityId")}
                 </div>
                 <Badge
                   variant="outline"
@@ -86,6 +86,15 @@ export function IdentityDetailModal({ open, identityId, onClose }: Props) {
                     defaultValue: data.identityStatus,
                   })}
                 </Badge>
+              </div>
+
+              <div className="space-y-1">
+                <div className="text-xs text-muted-foreground">
+                   {t("hr.fields.identityGroupId", { defaultValue: "Nhóm nhân sự" })}
+                </div>
+                <div className="text-sm font-medium">
+                  {data.identityGroupId || "-"}
+                </div>
               </div>
 
               <div className="space-y-1">
@@ -113,10 +122,47 @@ export function IdentityDetailModal({ open, identityId, onClose }: Props) {
 
               <div className="space-y-1">
                 <div className="text-xs text-muted-foreground">
+                  {t("hr.fields.identityPhone", { defaultValue: "Số điện thoại" })}
+                </div>
+                <div className="text-sm text-foreground">{data.identityPhone || "-"}</div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="text-xs text-muted-foreground">
+                  {t("hr.fields.identityNID", { defaultValue: "Số CCCD/NID" })}
+                </div>
+                <div className="text-sm text-foreground">{data.identityNID|| "-"}</div>
+              </div>
+
+              <div className="space-y-1 sm:col-span-2">
+                <div className="text-xs text-muted-foreground">
+                  {t("hr.fields.identityAddress", { defaultValue: "Địa chỉ" })}
+                </div>
+                <div className="text-sm text-foreground">{data.identityAddress || "-"}</div>
+              </div>
+
+              <div className="space-y-1 sm:col-span-2">
+                <div className="text-xs text-muted-foreground">
                   {t("hr.fields.roles")}
                 </div>
-                <IdentityRoleBadges roles={data.roles} max={6} />
+                <IdentityRoleBadges roles={data.roles} max={8} />
               </div>
+
+              {Array.isArray(data.documents) && data.documents.length > 0 && (
+                <div className="space-y-1 sm:col-span-2 pt-2 border-t border-border mt-2">
+                  <div className="text-xs text-muted-foreground mb-1">
+                    {t("hr.fields.documents", { defaultValue: "Hồ sơ năng lực / Tài liệu" })}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {(data.documents as any[]).map(doc => (
+                      <Badge key={doc.documentId} variant="secondary" className="flex items-center gap-1.5 py-1 px-2">
+                        <span className="text-[10px] opacity-50">{doc.documentId}</span>
+                        <span>{doc.documentTitle || doc.documentId}</span>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

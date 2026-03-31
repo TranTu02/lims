@@ -9,13 +9,15 @@ import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@
 
 import type { ParameterWithMatrices } from "../hooks/useLibraryData";
 import { useParametersFilter, type ParametersFilterFrom, type ParametersFilterOtherFilter } from "@/api/library";
+import { useIdentityGroupsList } from "@/api/identityGroups";
+import { useEnumList } from "@/api/chemical";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { renderInlineEm } from "@/utils/renderInlineEm";
 
 export type ParametersExcelFiltersState = {
-    parameterId: string[];
-    parameterName: string[];
     technicianAlias: string[];
+    technicianGroupId: string[];
+    parameterStatus: string[];
 };
 
 type FilterKey = keyof ParametersExcelFiltersState;
@@ -33,9 +35,9 @@ type Props = {
 type OptionWithCount<T extends string> = { value: T; count: number };
 
 const FILTER_FROM_MAP: Record<FilterKey, ParametersFilterFrom> = {
-    parameterId: "parameterId",
-    parameterName: "parameterName",
     technicianAlias: "technicianAlias",
+    technicianGroupId: "technicianGroupId",
+    parameterStatus: "parameterStatus",
 };
 
 function buildOtherFilters(filters: ParametersExcelFiltersState, excludeKey: FilterKey): ParametersFilterOtherFilter[] {
@@ -64,6 +66,7 @@ type ExcelFilterPopoverProps = {
     onApply: (values: string[]) => void;
     onClear: () => void;
     limit?: number;
+    staticOptions?: string[];
 };
 
 function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
@@ -88,20 +91,63 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
         [filterFrom, debouncedSearch, props.excelFilters, props.filterKey, props.limit],
     );
 
-    const q = useParametersFilter(input, { enabled: open });
+    const isAliasFilter = props.filterKey === "technicianAlias";
+    const isGroupFilter = props.filterKey === "technicianGroupId";
+    const isApiFilter = isAliasFilter || isGroupFilter;
+
+    const qParams = useParametersFilter(input, { enabled: open && !props.staticOptions && !isApiFilter });
+
+    const qAliasEnum = useEnumList("technicianAlias", { enabled: open && isAliasFilter });
+
+    const qGroups = useIdentityGroupsList(
+        {
+            query: {
+                page: 1,
+                itemsPerPage: 100,
+                search: debouncedSearch.trim() || undefined,
+                identityGroupMainRole: ["ROLE_TECHNICIAN"],
+            },
+        },
+        { enabled: open && isGroupFilter },
+    );
+
+    const q = isAliasFilter ? qAliasEnum : isGroupFilter ? qGroups : qParams;
 
     const options = useMemo((): OptionWithCount<string>[] => {
-        const data = q.data ?? [];
+        if (isAliasFilter) {
+            const data = (qAliasEnum.data ?? []) as string[];
+            return data.map((alias) => ({
+                value: String(alias),
+                label: String(alias),
+                count: 0,
+            }));
+        }
+
+        if (isGroupFilter) {
+            const data = (qGroups.data?.data ?? []) as any[];
+            return data.map((g) => ({
+                value: String(g.identityGroupId),
+                label: g.identityGroupName ? `${g.identityGroupId} - ${g.identityGroupName}` : g.identityGroupId,
+                count: 0,
+            }));
+        }
+
+        if (props.staticOptions) {
+            return props.staticOptions.filter((x) => x.toLowerCase().includes(debouncedSearch.toLowerCase())).map((x) => ({ value: x, count: 0 }));
+        }
+
+        const rawBody = qParams.data as any;
+        const data = Array.isArray(rawBody) ? rawBody : (rawBody?.data ?? []) as any[];
 
         return data
             .map((x) => {
                 const raw = x?.filterValue;
                 const value = typeof raw === "string" ? raw : raw == null ? "" : String(raw);
-                return { value, count: x.count };
+                return { value, count: Number(x?.count ?? 0) };
             })
             .filter((x) => x.value.trim().length > 0)
             .sort((a, b) => a.value.localeCompare(b.value));
-    }, [q.data]);
+    }, [qParams.data, qAliasEnum.data, qGroups.data, props.staticOptions, debouncedSearch, isAliasFilter, isGroupFilter]);
 
     const toggle = (v: string) => {
         setLocalSelected((cur) => (cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v]));
@@ -175,10 +221,10 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
                                                         {checked ? <Check className="h-3 w-3" /> : null}
                                                     </span>
 
-                                                    <span className="text-sm text-foreground break-words whitespace-normal">{o.value}</span>
+                                                    <span className="text-sm text-foreground break-words whitespace-normal">{(o as any).label || o.value}</span>
                                                 </div>
 
-                                                <span className="text-xs text-muted-foreground tabular-nums shrink-0">{o.count}</span>
+                                                {!isAliasFilter && !isGroupFilter && !props.staticOptions && <span className="text-xs text-muted-foreground tabular-nums shrink-0">{o.count}</span>}
                                             </CommandItem>
                                         );
                                     })}
@@ -214,35 +260,8 @@ export function ParametersTable(props: Props) {
             <table className="w-full min-w-max">
                 <thead className="bg-muted/50 border-b border-border">
                     <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                            <span className="inline-flex items-center gap-2">
-                                {String(t("library.parameters.parameterId"))}
-                                <ExcelFilterPopover
-                                    title={String(t("library.parameters.parameterId"))}
-                                    filterKey="parameterId"
-                                    activeCount={excelFilters.parameterId.length}
-                                    selected={excelFilters.parameterId}
-                                    excelFilters={excelFilters}
-                                    onApply={(v) => setStr("parameterId", v)}
-                                    onClear={() => setStr("parameterId", [])}
-                                />
-                            </span>
-                        </th>
-
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                            <span className="inline-flex items-center gap-2">
-                                {String(t("library.parameters.parameterName"))}
-                                <ExcelFilterPopover
-                                    title={String(t("library.parameters.parameterName"))}
-                                    filterKey="parameterName"
-                                    activeCount={excelFilters.parameterName.length}
-                                    selected={excelFilters.parameterName}
-                                    excelFilters={excelFilters}
-                                    onApply={(v) => setStr("parameterName", v)}
-                                    onClear={() => setStr("parameterName", [])}
-                                />
-                            </span>
-                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.parameters.parameterId"))}</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.parameters.parameterName"))}</th>
 
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                             <span className="inline-flex items-center gap-2">
@@ -258,8 +277,35 @@ export function ParametersTable(props: Props) {
                                 />
                             </span>
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.parameters.technicianGroupId"))}</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.parameters.parameterStatus"))}</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                            <span className="inline-flex items-center gap-2">
+                                {String(t("library.parameters.technicianGroupId"))}
+                                <ExcelFilterPopover
+                                    title={String(t("library.parameters.technicianGroupId"))}
+                                    filterKey="technicianGroupId"
+                                    activeCount={excelFilters.technicianGroupId.length}
+                                    selected={excelFilters.technicianGroupId}
+                                    excelFilters={excelFilters}
+                                    onApply={(v) => setStr("technicianGroupId", v)}
+                                    onClear={() => setStr("technicianGroupId", [])}
+                                />
+                            </span>
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                            <span className="inline-flex items-center gap-2">
+                                {String(t("library.parameters.parameterStatus"))}
+                                <ExcelFilterPopover
+                                    title={String(t("library.parameters.parameterStatus"))}
+                                    filterKey="parameterStatus"
+                                    activeCount={excelFilters.parameterStatus.length}
+                                    selected={excelFilters.parameterStatus}
+                                    excelFilters={excelFilters}
+                                    onApply={(v) => setStr("parameterStatus", v)}
+                                    onClear={() => setStr("parameterStatus", [])}
+                                    staticOptions={["Active", "Inactive"]}
+                                />
+                            </span>
+                        </th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.parameters.displayStyle"))}</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("common.actions"))}</th>
                     </tr>

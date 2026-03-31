@@ -75,4 +75,11 @@ export const QUERY_KEYS = {
         detail: (id: string) => [...QUERY_KEYS.samples.details(), id] as const,
         tracking: (id: string) => [...QUERY_KEYS.samples.detail(id), "tracking"] as const,
     },
+    shipments: {
+        all: ["shipments"] as const,
+        lists: () => [...QUERY_KEYS.shipments.all, "list"] as const,
+        list: (filters: Record<string, unknown>) => [...QUERY_KEYS.shipments.lists(), { filters }] as const,
+        details: () => [...QUERY_KEYS.shipments.all, "detail"] as const,
+        detail: (id: string) => [...QUERY_KEYS.shipments.details(), id] as const,
+    },
 };

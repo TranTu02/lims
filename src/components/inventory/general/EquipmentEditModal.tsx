@@ -20,14 +20,16 @@ export function EquipmentEditModal({ item, onClose }: { item?: LabInventory; onC
 
     const [formData, setFormData] = useState({
         labInventoryId: "",
-        labInventoryName: "",
+        labSkuId: "",
+        labSkuName: "",
+        labSkuType: "",
         labInventoryCode: "",
+        labInventorySerial: "",
         labInventoryStatus: "Ready",
         labInventoryLocation: "",
-        labInventoryManufacturer: "",
-        labInventoryModel: "",
-        labInventorySerial: "",
+        labInventoryQty: "",
         labInventoryImportDate: "",
+        labInventoryExpiryDate: "",
         labInventoryWarrantyExpiryDate: "",
         labInventoryLastCalibrationDate: "",
         labInventoryNextCalibrationDate: "",
@@ -42,14 +44,16 @@ export function EquipmentEditModal({ item, onClose }: { item?: LabInventory; onC
         if (item) {
             setFormData({
                 labInventoryId: item.labInventoryId || "",
-                labInventoryName: item.labInventoryName || "",
+                labSkuId: item.labSkuId || "",
+                labSkuName: item.labSkuName || "",
+                labSkuType: item.labSkuType || "",
                 labInventoryCode: item.labInventoryCode || "",
+                labInventorySerial: item.labInventorySerial || "",
                 labInventoryStatus: item.labInventoryStatus || "Ready",
                 labInventoryLocation: item.labInventoryLocation || "",
-                labInventoryManufacturer: item.labInventoryManufacturer || "",
-                labInventoryModel: item.labInventoryModel || "",
-                labInventorySerial: item.labInventorySerial || "",
+                labInventoryQty: item.labInventoryQty ? String(item.labInventoryQty) : "",
                 labInventoryImportDate: item.labInventoryImportDate ? item.labInventoryImportDate.split("T")[0] : "",
+                labInventoryExpiryDate: item.labInventoryExpiryDate ? item.labInventoryExpiryDate.split("T")[0] : "",
                 labInventoryWarrantyExpiryDate: item.labInventoryWarrantyExpiryDate ? item.labInventoryWarrantyExpiryDate.split("T")[0] : "",
                 labInventoryLastCalibrationDate: item.labInventoryLastCalibrationDate ? item.labInventoryLastCalibrationDate.split("T")[0] : "",
                 labInventoryNextCalibrationDate: item.labInventoryNextCalibrationDate ? item.labInventoryNextCalibrationDate.split("T")[0] : "",
@@ -97,21 +101,23 @@ export function EquipmentEditModal({ item, onClose }: { item?: LabInventory; onC
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.labInventoryId || !formData.labInventoryName) {
-            alert("Mã và Tên Thiết bị không được bỏ trống.");
+        if (!formData.labInventoryId || !formData.labSkuId) {
+            alert("Mã Kho và Mã Danh Mục (SKU) không được để trống.");
             return;
         }
 
         const payload = {
             labInventoryId: formData.labInventoryId,
-            labInventoryName: formData.labInventoryName,
+            labSkuId: formData.labSkuId,
+            labSkuName: formData.labSkuName || null,
+            labSkuType: formData.labSkuType || null,
             labInventoryCode: formData.labInventoryCode || null,
+            labInventorySerial: formData.labInventorySerial || null,
             labInventoryStatus: formData.labInventoryStatus || null,
             labInventoryLocation: formData.labInventoryLocation || null,
-            labInventoryManufacturer: formData.labInventoryManufacturer || null,
-            labInventoryModel: formData.labInventoryModel || null,
-            labInventorySerial: formData.labInventorySerial || null,
+            labInventoryQty: formData.labInventoryQty ? Number(formData.labInventoryQty) : null,
             labInventoryImportDate: formData.labInventoryImportDate || null,
+            labInventoryExpiryDate: formData.labInventoryExpiryDate || null,
             labInventoryWarrantyExpiryDate: formData.labInventoryWarrantyExpiryDate || null,
             labInventoryLastCalibrationDate: formData.labInventoryLastCalibrationDate || null,
             labInventoryNextCalibrationDate: formData.labInventoryNextCalibrationDate || null,
@@ -152,13 +158,33 @@ export function EquipmentEditModal({ item, onClose }: { item?: LabInventory; onC
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>{String(t("inventory.general.equipment.name"))} *</Label>
+                                    <Label>Mã Danh mục (SKU) *</Label>
                                     <Input
-                                        name="labInventoryName"
-                                        value={formData.labInventoryName}
+                                        name="labSkuId"
+                                        value={formData.labSkuId}
                                         onChange={handleChange}
                                         disabled={isPending}
-                                        placeholder="Agilent 1260 HPLC..."
+                                        placeholder="SKU-HPLC-1260"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Tên Danh mục (Snapshot)</Label>
+                                    <Input
+                                        name="labSkuName"
+                                        value={formData.labSkuName}
+                                        onChange={handleChange}
+                                        disabled={isPending}
+                                        placeholder="Máy HPLC Agilent..."
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Loại SKU</Label>
+                                    <Input
+                                        name="labSkuType"
+                                        value={formData.labSkuType}
+                                        onChange={handleChange}
+                                        disabled={isPending}
+                                        placeholder="Equipment / Tool / Material"
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -197,16 +223,12 @@ export function EquipmentEditModal({ item, onClose }: { item?: LabInventory; onC
                             <h3 className="font-semibold text-sm">Cấu hình & Nhận diện</h3>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label>{String(t("inventory.general.equipment.manufacturer", { defaultValue: "Hãng sản xuất" }))}</Label>
-                                    <Input name="labInventoryManufacturer" value={formData.labInventoryManufacturer} onChange={handleChange} disabled={isPending} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>{String(t("inventory.general.equipment.model", { defaultValue: "Model" }))}</Label>
-                                    <Input name="labInventoryModel" value={formData.labInventoryModel} onChange={handleChange} disabled={isPending} />
-                                </div>
-                                <div className="space-y-2">
                                     <Label>{String(t("inventory.general.equipment.serial", { defaultValue: "Số Serial" }))}</Label>
                                     <Input name="labInventorySerial" value={formData.labInventorySerial} onChange={handleChange} disabled={isPending} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Số lượng Tồn kho</Label>
+                                    <Input type="number" step="any" name="labInventoryQty" value={formData.labInventoryQty} onChange={handleChange} disabled={isPending} placeholder="Chỉ áp dụng cho vật tư/TB tính số lượng" />
                                 </div>
                             </div>
                         </div>

@@ -2,16 +2,17 @@ import { useRef, useState, useMemo, useEffect } from "react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Editor } from "@tinymce/tinymce-react";
 import { useTranslation } from "react-i18next";
-import { Printer, X, FileDown, FlaskConical, Beaker, ClipboardList, Info, Loader2, Eye } from "lucide-react";
+import { Printer, X, FileDown, FlaskConical, Beaker, ClipboardList, Info, Loader2, Eye, Mail, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import type { ReceiptDetail, ReceiptSample } from "@/types/receipt";
-import { useExportReport, receiptsGetFull } from "@/api/receipts";
+import { useExportReport, receiptsGetFull, receiptsGetFinalResultEmailForm } from "@/api/receipts";
 import { reportApi } from "@/api/reports";
 import { documentApi } from "@/api/documents";
 import { samplesGetFull } from "@/api/samples";
 import { toast } from "sonner";
+import { EmailModal } from "@/components/common/EmailModal";
 import { 
     Select, 
     SelectContent, 
@@ -347,9 +348,13 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
     const [reportLanguages, setReportLanguages] = useState<("vie" | "eng")[]>(["vie"]);
     const editorRef = useRef<any>(null);
     const exportMutation = useExportReport();
+    const [showEmailModal, setShowEmailModal] = useState(false);
+    const [lastGeneratedReport, setLastGeneratedReport] = useState<{ fileId: string; fileName: string } | null>(null);
+    const [emailData, setEmailData] = useState<{ subject: string; content: string; to: string }>({ subject: "", content: "", to: "" });
+    const [isEmailLoading, setIsEmailLoading] = useState(false);
     const queryClient = useQueryClient();
 
-    const { data: fullReceipt } = useQuery({
+    const { data: fullReceipt, refetch, isFetching } = useQuery({
         queryKey: ["receipts", "full", receipt.receiptId],
         enabled: open && !!receipt.receiptId,
         queryFn: async () => {
@@ -387,11 +392,9 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
         };
     };
 
-    const handleExport = async (preview: boolean) => {
-        if (!editorRef.current) return;
-
-        const html = editorRef.current.getContent();
-        const { headerHtml, contentHtml } = extractHtmlParts(html);
+    const handleExport = async (preview = false): Promise<any> => {
+        const content = editorRef.current?.getContent() || "";
+        const { headerHtml, contentHtml } = extractHtmlParts(content);
 
         try {
             const res = (await exportMutation.mutateAsync({
@@ -421,9 +424,16 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                     const url = URL.createObjectURL(blob);
                     setPreviewUrl(url);
                 }
+                return res;
             } else if (!preview) {
                 toast.success(t("common.toast.success", "Xuất báo cáo thành công"), { duration: 1000 });
                 
+                // Track generated report for email
+                const fileId = (res.reportId || res.documentId || res.fileId) as string;
+                if (fileId) {
+                    setLastGeneratedReport({ fileId, fileName: `Report_${selectedSample?.sampleId || receipt.receiptCode}.pdf` });
+                }
+
                 // Refresh sample/receipt data to show new report IDs
                 queryClient.invalidateQueries({ queryKey: ["receipts", "full", receipt.receiptId] });
 
@@ -467,10 +477,61 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                          toast.error("Không thể lấy đường dẫn tệp báo cáo.", { duration: 1000 });
                     }
                 }
+                return res;
             }
         } catch (err: any) {
             console.error(err);
             toast.error(err.message || t("common.toast.failed", "Thao tác thất bại"), { duration: 1000 });
+            throw err;
+        }
+    };
+
+    const handleSendEmail = async () => {
+        setIsEmailLoading(true);
+        try {
+            // Find existing report if available
+            const existingReportId = (selectedSample as any)?.reportIds?.[0];
+            let reportToAttach = lastGeneratedReport;
+            
+            if (!reportToAttach && existingReportId) {
+                reportToAttach = { fileId: existingReportId, fileName: `Report_${selectedSample?.sampleId}.pdf` };
+            }
+
+            if (!reportToAttach) {
+                // Generate one first
+                toast.info("Đang tạo tệp báo cáo để đính kèm...", { duration: 2000 });
+                const res = await handleExport(false);
+                const fileId = (res.reportId || res.documentId || res.fileId) as string;
+                if (fileId) {
+                    reportToAttach = { fileId, fileName: `Report_${selectedSample?.sampleId || receipt.receiptCode}.pdf` };
+                    setLastGeneratedReport(reportToAttach);
+                }
+            }
+
+            if (!reportToAttach) {
+                toast.error("Không thể tạo tệp đính kèm. Vui lòng thử lại.");
+                setIsEmailLoading(false);
+                return;
+            }
+
+            const res: any = await receiptsGetFinalResultEmailForm({ receiptId: receipt.receiptId });
+            const dataList = res.data ?? res;
+            if (Array.isArray(dataList) && dataList.length > 0) {
+                const data = dataList[0];
+                setEmailData({
+                    subject: data.subject,
+                    content: data.body,
+                    to: data.to,
+                });
+                setShowEmailModal(true);
+            } else {
+                 toast.error("Không thể tải mẫu email");
+            }
+        } catch (e: any) {
+            console.error("Failed to prepare email report", e);
+            toast.error(e?.message || "Không thể tải mẫu email");
+        } finally {
+            setIsEmailLoading(false);
         }
     };
 
@@ -529,11 +590,11 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                             variant="outline"
                             size="sm"
                             className="gap-1.5"
-                            onClick={() => handleExport(true)}
-                            disabled={exportMutation.isPending}
+                            onClick={handleSendEmail}
+                            disabled={exportMutation.isPending || isEmailLoading}
                         >
-                            {exportMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
-                            {t("common.preview", "Xem trước")}
+                            {isEmailLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+                            Gửi Email
                         </Button>
                         <Button
                             size="sm"
@@ -543,6 +604,15 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                         >
                             {exportMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
                             {t("reception.handover.document.exportPDF", "Xuất PDF")}
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8 ml-1"
+                            onClick={() => refetch()}
+                            disabled={isFetching}
+                        >
+                            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onOpenChange(false)} disabled={exportMutation.isPending}>
                             <X className="h-4 w-4" />
@@ -829,13 +899,27 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                         </div>
                         <div className="p-3 border-t bg-card flex justify-end gap-2">
                             <Button variant="outline" onClick={() => setPreviewUrl(null)}>Đóng</Button>
-                            <Button onClick={() => window.open(previewUrl)}>
+                            <Button onClick={() => window.open(previewUrl ?? "")}>
                                 <Printer className="h-4 w-4 mr-2" />
                                 In phiếu
                             </Button>
                         </div>
                     </div>
                 </>
+            )}
+
+            {showEmailModal && (
+                <EmailModal
+                    open={showEmailModal}
+                    onClose={() => setShowEmailModal(false)}
+                    defaultTo={emailData.to}
+                    defaultSubject={emailData.subject}
+                    defaultContent={emailData.content}
+                    attachments={lastGeneratedReport ? [lastGeneratedReport] : []}
+                    refId={activeReceipt.receiptId}
+                    refType="report"
+                    type="FINAL_RESULT"
+                />
             )}
         </>
     );

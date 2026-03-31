@@ -16,12 +16,12 @@ export interface Receipt extends BaseEntity {
     receiptNote?: string;
     receiptPriority: "Normal" | "Urgent" | "Flash";
     receiptDeliveryMethod: "HandOver" | "Post" | "Pickup";
-    receiptTrackingNo?: string;
+    shipmentId?: string;
     orderId?: string;
     order?: Partial<Order>; // Snapshot
     clientId?: string;
     client?: Partial<Client>; // Snapshot
-    trackingNumber?: string;
+    shipmentTrackingNumber?: string;
     senderInfo?: Record<string, any>;
     conditionCheck?: Record<string, any>;
     reportConfig?: ReportConfig;

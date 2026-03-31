@@ -16,15 +16,8 @@ import { MatricesEditModal } from "./MatricesEditModal";
 import { MatrixDetailPanel } from "./MatrixDetailPanel";
 
 export type ExcelFiltersState = {
-    matrixId: string[];
-    parameterId: string[];
-    parameterName: string[];
-    protocolId: string[];
-    protocolCode: string[];
     sampleTypeId: string[];
-    sampleTypeName: string[];
-    feeBeforeTax: number[];
-    feeAfterTax: number[];
+    parameterId: string[];
 };
 
 function MatricesSkeleton() {
@@ -39,61 +32,12 @@ function MatricesSkeleton() {
     );
 }
 
-function toNumberSafe(v: unknown): number | null {
-    const n = typeof v === "number" ? v : Number(v);
-    return Number.isNaN(n) ? null : n;
-}
 
-function getParameterLabel(m: Matrix): string {
-    return m.parameterName && m.parameterName.trim() ? m.parameterName.trim() : m.parameterId;
-}
-
-function getProtocolLabel(m: Matrix): string {
-    return m.protocolCode && m.protocolCode.trim() ? m.protocolCode.trim() : m.protocolId;
-}
-
-function getSampleTypeLabel(m: Matrix): string {
-    return m.sampleTypeName && m.sampleTypeName.trim() ? m.sampleTypeName.trim() : m.sampleTypeId;
-}
-
-function applyLocalFilters(items: Matrix[], f: ExcelFiltersState): Matrix[] {
-    const matchStr = (value: string, selected: string[]) => (selected.length ? selected.includes(value) : true);
-
-    const matchNum = (value: number | null, selected: number[]) => (selected.length ? value !== null && selected.includes(value) : true);
-
-    return items.filter((m) => {
-        const feeBeforeTax = toNumberSafe(m.feeBeforeTax) ?? null;
-        const feeAfterTax = toNumberSafe(m.feeAfterTax) ?? null;
-
-        const parameterLabel = getParameterLabel(m);
-        const protocolLabel = getProtocolLabel(m);
-        const sampleTypeLabel = getSampleTypeLabel(m);
-
-        return (
-            matchStr(m.matrixId, f.matrixId) &&
-            matchStr(m.parameterId, f.parameterId) &&
-            matchStr(parameterLabel, f.parameterName) &&
-            matchStr(m.protocolId, f.protocolId) &&
-            matchStr(protocolLabel, f.protocolCode) &&
-            matchStr(m.sampleTypeId, f.sampleTypeId) &&
-            matchStr(sampleTypeLabel, f.sampleTypeName) &&
-            matchNum(feeBeforeTax, f.feeBeforeTax) &&
-            matchNum(feeAfterTax, f.feeAfterTax)
-        );
-    });
-}
 
 function createEmptyFilters(): ExcelFiltersState {
     return {
-        matrixId: [],
-        parameterId: [],
-        parameterName: [],
-        protocolId: [],
-        protocolCode: [],
         sampleTypeId: [],
-        sampleTypeName: [],
-        feeBeforeTax: [],
-        feeAfterTax: [],
+        parameterId: [],
     };
 }
 
@@ -114,21 +58,25 @@ export function MatricesView() {
     const [serverTotalPages, setServerTotalPages] = useState<number | null>(null);
     const pagination = useServerPagination(serverTotalPages, 20);
 
+    const [excelFilters, setExcelFilters] = useState<ExcelFiltersState>(() => createEmptyFilters());
+
     const listInput = useMemo(
         () => ({
             query: {
                 page: pagination.currentPage,
                 itemsPerPage: pagination.itemsPerPage,
                 search: debouncedSearch.trim().length ? debouncedSearch.trim() : null,
+                "sampleTypeId[]": excelFilters.sampleTypeId.length > 0 ? excelFilters.sampleTypeId : null,
+                "parameterId[]": excelFilters.parameterId.length > 0 ? excelFilters.parameterId : null,
             },
             sort: { column: "createdAt", direction: "DESC" as const },
         }),
-        [debouncedSearch, pagination.currentPage, pagination.itemsPerPage],
+        [debouncedSearch, pagination.currentPage, pagination.itemsPerPage, excelFilters],
     );
 
     const matricesListQ = useMatricesList(listInput);
 
-    const allItems = useMemo(() => (matricesListQ.data?.data ?? []) as Matrix[], [matricesListQ.data]);
+    const pageItems = useMemo(() => (matricesListQ.data?.data ?? []) as Matrix[], [matricesListQ.data]);
 
     const serverMeta = matricesListQ.data?.meta;
     const serverTotal = serverMeta?.total ?? 0;
@@ -146,10 +94,6 @@ export function MatricesView() {
     const openCreate = () => {
         setCreateOpen(true);
     };
-
-    const [excelFilters, setExcelFilters] = useState<ExcelFiltersState>(() => createEmptyFilters());
-
-    const pageItems = useMemo(() => applyLocalFilters(allItems, excelFilters), [allItems, excelFilters]);
 
     const totalItems = serverTotal;
     const totalPages = serverPages;

@@ -14,6 +14,8 @@ Quản lý danh sách **chỉ tiêu phân tích** (Parameters). Mỗi chỉ tiê
 | `ParameterFormModal.tsx`     | Modal tạo mới/chỉnh sửa chỉ tiêu. Khi ở chế độ chỉnh sửa, hiển thị layout 2 cột với ParameterMatrixManager bên phải. |
 | `ParameterMatrixManager.tsx` | Quản lý danh sách các ma trận liên quan đến chỉ tiêu này. Tích hợp MatricesCreateModal/EditModal.                    |
 | `MatricesAccordionItem.tsx`  | Component con hiển thị từng matrix liên quan trong panel chi tiết                                                    |
+| `TechnicianAliasSelect.tsx`  | Bộ chọn vị trí phụ trách từ Enum API (`technicianAlias`)                                                             |
+| `TechnicianGroupIdSelect.tsx`| Bộ chọn nhóm thực hiện từ Identity API                                                                               |
 
 ## Luồng hoạt động
 
@@ -21,21 +23,21 @@ Quản lý danh sách **chỉ tiêu phân tích** (Parameters). Mỗi chỉ tiê
 2. **Lọc**: Filter Excel-style cho các cột: parameterId, parameterName, technicianAlias
 3. **Xem chi tiết**: Click hàng → `ParametersDetailPanel` (sidebar phải)
 4. **Tạo/Chỉnh sửa**: Click nút Add/Edit → Mở `ParameterFormModal`.
-    - **Chế độ Edit**: Modal mở rộng (80% width) với layout 2 cột.
-    - **Cột Trái**: Thông tin cơ bản của Chỉ tiêu.
-    - **Cột Phải**: Quản lý ma trận (`ParameterMatrixManager`) - cho phép thêm mới/sửa ma trận nền mẫu của chỉ tiêu này ngay tại chỗ.
-5. **Quản lý Ma trận**: `ParameterMatrixManager` sử dụng `MatricesCreateModal` và `MatricesEditModal`. Khi thêm mới từ đây, `parameterId` sẽ được khóa (locked) theo chỉ tiêu hiện tại.
+    * **Vị trí & Nhóm thực hiện**: Sử dụng `TechnicianAliasSelect` và `TechnicianGroupIdSelect` để chọn từ danh mục chuẩn thay vì nhập văn bản tự do.
+    * **Chế độ Edit**: Modal mở rộng (80% width) với layout 2 cột (Thông tin cơ bản + ParameterMatrixManager).
+5. **Quản lý Ma trận**: `ParameterMatrixManager` sử dụng `MatricesCreateModal` và `MatricesEditModal`.
 
 ## Cột Display Style
 
 Cột `displayStyle` hiển thị **2 dòng**:
 
-- Dòng 1 (chữ lớn): `displayStyleResolved.default`
-- Dòng 2 (chữ nhỏ, muted): `displayStyleResolved.eng`
-- Hỗ trợ markdown inline: `*text*` được render thành _in nghiêng_ qua `renderInlineEm`
+* Dòng 1 (chữ lớn): `displayStyleResolved.default`
+* Dòng 2 (chữ nhỏ, muted): `displayStyleResolved.eng`
+* Hỗ trợ markdown inline: `*text*` được render thành _in nghiêng_ qua `renderInlineEm`
 
 ## API Endpoints
 
-- `GET /v2/parameters/get/list` – Danh sách
-- `POST /v2/parameters/create` – Tạo mới
-- `POST /v2/parameters/filter` – Filter Excel-style
+* `GET /v2/parameters/get/list` – Danh sách
+* `POST /v2/parameters/create` – Tạo mới
+* `POST /v2/parameters/filter` – Filter Excel-style
+* `GET /v2/enum/get/list?enumType=technicianAlias` – Danh mục vị trí phụ trách

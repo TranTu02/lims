@@ -62,6 +62,7 @@ Chứa thông tin danh tính và phiên làm việc.
 | `identityPhone` | `text` | | Số điện thoại liên hệ. |
 | `identityNID` | `text` | | CMND/CCCD. |
 | `identityAddress`| `text` | | Địa chỉ thường trú. |
+| `identityDocumentIds` | `text[]` | **FK** | Danh sách ID tài liệu cá nhân (Hồ sơ năng lực, bằng cấp...) Link tới `document.documents`. |
 | `createdAt` | `timestamp` | | Thời điểm tạo. |
 | `createdById` | `text` | | Người tạo. |
 | `modifiedAt` | `timestamp` | | Thời điểm cập nhật cuối. |
@@ -399,7 +400,7 @@ Bảng trung gian quan trọng nhất, kết hợp 3 bảng trên để tạo ra
 
 | `protocolSource` | `text` | | Nguồn phương pháp. |
 
-| `protocolAccreditation` | `jsonb` | | Phạm vi được công nhận của phương pháp. |
+| `protocolAccreditation` | `jsonb` | | (Snapshot) Phạm vi được công nhận chi tiết `{ [code]: { registrationDate, expirationDate } | boolean }`. |
 
 | `parameterName` | `text` | | Tên chỉ tiêu (Nhập trực tiếp). |
 
@@ -432,7 +433,7 @@ Danh mục các tiêu chuẩn áp dụng (TCVN, ISO, ASTM...).
 
 | `protocolSource` | `text` | | Nguồn ban hành (ISO, AOAC, EPA...). |
 
-| `protocolAccreditation` | `jsonb` | | Phạm vi được công nhận của phương pháp: `{"VILAS997": true, "TDC": true}`. |
+| `protocolAccreditation` | `jsonb` | | (Snapshot) Phạm vi được công nhận chi tiết `{ [code]: { registrationDate, expirationDate } | boolean }`. |
 
 | `protocolTitle` | `text` | | Tên đầy đủ của phương pháp (VD: "Xác định hàm lượng Chì bằng AAS"). |
 
@@ -576,8 +577,6 @@ Lưu trữ thông tin giao dịch nhận mẫu. Trạng thái phiếu phản án
 
 | `receiptDeliveryMethod` | `text` | | Cách thức nhận: `HandOver`, `Post`, `Pickup`. |
 
-| `receiptTrackingNo` | `text` | | Mã vận đơn (nếu gửi qua bưu điện/ship). |
-
 | `orderId` | `text` | **FK** | Link tới đơn hàng (CRM). |
 
 | `order` | `jsonb` | | **(Snapshot)** Thông tin đơn hàng tại thời điểm nhận. |
@@ -590,13 +589,16 @@ Lưu trữ thông tin giao dịch nhận mẫu. Trạng thái phiếu phản án
 
 | `reportRecipient` | `jsonb` | | **(Snapshot)** Người nhận báo cáo: `{ receiverName, receiverPhone, receiverAddress, receiverEmail}`. |
 
-| `trackingNumber` | `text` | | Mã vận đơn (nếu gửi qua bưu điện/ship). |
+| `shipmentId` | `text` | **FK** | Link tới phiếu gửi hàng (Shipment). |
+
+| `shipmentTrackingNumber` | `text` | | Mã vận đơn (nếu gửi qua bưu điện/ship). |
 
 | `senderInfo` | `jsonb` | | **(Snapshot)** Thông tin người giao phiếu kết quả . |
 
 | `conditionCheck` | `jsonb` | | **(Snapshot)** Tình trạng mẫu khi nhận. |
 
 | `reportConfig` | `jsonb` | | **(Snapshot)** Cấu hình trả báo cáo `{language, copies, sendSoftCopy}`. |
+| `receiptMarks` | `text[]` | | **[MỚI]** Danh sách các mốc trạng thái (tags) của phiếu. |
 | `receptionistId` | `text` | **FK** | Nhân viên lễ tân/tiếp nhận thực hiện (QT-TNM-01). |
 | `isBlindCoded` | `boolean` | | `true` nếu đã áp dụng mã hóa mù - Blind Sample (QT-XLM-02). |
 | `receiptReceivedImageFileIds` | `text[]` | **FK** | Danh sách ID hình ảnh tiếp nhận mẫu (Link tới bảng `document.files`). |
@@ -714,7 +716,7 @@ Lưu trữ công việc phân tích cụ thể. Trạng thái này quan trọng 
 
 | `protocolCode` | `text` | | **(Snapshot)** Mã phương pháp (ISO/TCVN). |
 
-| `protocolAccreditation` | `jsonb` | | **(Snapshot)** Phạm vi được công nhận của phương pháp. |
+| `protocolAccreditation` | `jsonb` | | (Snapshot) Phạm vi được công nhận chi tiết `{ [code]: { registrationDate, expirationDate } | boolean }`. |
 
 | `qaReview` | `jsonb` | | **(Object)** Lịch sử duyệt `{reviewerId, comment, timestamp}`. |
 
@@ -838,29 +840,68 @@ Liên quan đến các dịch vụ ngoài và hỗ trợ.
 
 | _Audit Cols_ | ... | | |
 
-#### 2. Bảng `ShipmentOrder` (service.shipments)
+#### 2. Bảng `shipments` (service.shipments)
 
-| Column Name      | Type                       | Key    | Description                              |
-| :--------------- | :------------------------- | :----- | :--------------------------------------- |
-| `shipmentId`     | `text`                     | **PK** | ID định danh (was `id`)                  |
-| `createdAt`      | `timestamp with time zone` |        | Thời điểm tạo bản ghi                    |
-| `modifiedAt`     | `timestamp with time zone` |        | Thời điểm cập nhật (was `updatedAt`)     |
-| `createdById`    | `text`                     |        | ID người tạo (was `createdByUID`)        |
-| `sender`         | `jsonb`                    |        | Thông tin người gửi                      |
-| `receiver`       | `jsonb`                    |        | Thông tin người nhận                     |
-| `product`        | `jsonb`                    |        | Thông tin hàng hóa                       |
-| `order`          | `jsonb`                    |        | Thông tin đơn hàng (VTP)                 |
-| `items`          | `jsonb[]`                  |        | Danh sách chi tiết hàng hóa              |
-| `commonKeys`     | `text[]`                   |        | Các mã tham chiếu (was `foreignKeyUIDs`) |
-| `receiptIds`     | `text[]`                   |        | ID phiếu nhập (VTP)                      |
-| `status`         | `text`                     |        | Trạng thái vận đơn                       |
-| `trackingNumber` | `text`                     |        | Mã vận đơn (VTP)                         |
-| `shipmentDate`   | `timestamp with time zone` |        | Ngày gửi                                 |
-| `deliveryDate`   | `timestamp with time zone` |        | Ngày giao                                |
-| `fee`            | `integer`                  |        | Cước phí                                 |
-| `note`           | `text`                     |        | Ghi chú                                  |
+| Column Name              | Type                       | Key    | Description                                    |
+| :----------------------- | :------------------------- | :----- | :--------------------------------------------- |
+| `shipmentId`             | `text`                     | **PK** | ID định danh                                   |
+| `shipmentCarrier`        | `text`                     |        | **[MỚI]** Đơn vị vận chuyển (VTP, GHN, DHL...) |
+| `shipmentSender`         | `jsonb`                    |        | Snapshot Người gửi                             |
+| `shipmentReceiver`       | `jsonb`                    |        | Snapshot Người nhận                            |
+| `shipmentTrackingNumber` | `text`                     |        | Mã vận đơn theo dõi                            |
+| `shipmentStatus`         | `text`                     |        | Trạng thái vận đơn                             |
+| `shipmentProduct`        | `jsonb`                    |        | Thông tin hàng hóa chung                       |
+| `shipmentItems`          | `jsonb[]`                  |        | Danh sách chi tiết các mặt hàng                |
+| `shipmentOrder`          | `jsonb`                    |        | Thông tin đơn hàng gốc (từ API vận chuyển)     |
+| `shipmentReferenceIds`   | `text[]`                   |        | Các mã tham chiếu ngoại (was commonKeys)       |
+| `shipmentReceiptIds`     | `text[]`                   |        | Danh sách ID phiếu nhập liên quan              |
+| `shipmentDate`           | `timestamp with time zone` |        | Ngày gửi/Ngày bắt đầu vận chuyển               |
+| `shipmentDeliveryDate`   | `timestamp with time zone` |        | Ngày giao hàng dự kiến/thực tế                 |
+| `shipmentFee`            | `integer`                  |        | Cước phí vận chuyển                            |
+| `shipmentNote`           | `text`                     |        | Ghi chú vận chuyển                             |
+| `createdAt`              | `timestamp with time zone` |        | Thời điểm tạo bản ghi                          |
+| `modifiedAt`             | `timestamp with time zone` |        | Thời điểm cập nhật                             |
+| `createdById`            | `text`                     |        | ID người tạo                                   |
+| `deletedAt`              | `timestamp with time zone` |        | Thời điểm xóa bản ghi                          |
 
-#### 3. Các bảng khác (Placeholder)
+#### 3. Bảng `googleAccounts` (system.googleAccounts)
+
+| Column Name    | Type        | Key    | Description                                     |
+| :------------- | :---------- | :----- | :---------------------------------------------- |
+| `accountId`    | `text`      | **PK** | ID định danh tài khoản Google.                  |
+| `email`        | `text`      |        | Email Address.                                  |
+| `accessToken`  | `text`      |        | OAuth2 Access Token.                            |
+| `refreshToken` | `text`      |        | OAuth2 Refresh Token (Nếu có).                  |
+| `expiryDate`   | `bigint`    |        | Thời điểm token hết hạn (Unix Timestamp).       |
+| `tokenType`    | `text`      |        | Thường là `Bearer`.                             |
+| `scope`        | `text`      |        | Quyền truy cập (`https://mail.google.com/`...). |
+| `status`       | `text`      |        | `Active`, `Expired`, `Revoked`.                 |
+| `createdAt`    | `timestamp` |        |                                                 |
+| `modifiedAt`   | `timestamp` |        |                                                 |
+| `deletedAt`    | `timestamp` |        |                                                 |
+
+#### 4. Bảng `gmails` (system.gmails)
+
+| Column Name       | Type        | Key    | Description                                                |
+| :---------------- | :---------- | :----- | :--------------------------------------------------------- |
+| `gmailId`         | `text`      | **PK** | Message ID hoặc Custom ID nội bộ.                          |
+| `googleAccountId` | `text`      | **FK** | Tham chiếu đến tài khoản Google đã fetch.                  |
+| `messageId`       | `text`      |        | ID gốc của Mail trên Google.                               |
+| `threadId`        | `text`      |        | Thread ID trên Google.                                     |
+| `senderEmail`     | `text`      |        | Người gửi.                                                 |
+| `subject`         | `text`      |        | Tiêu đề email.                                             |
+| `snippet`         | `text`      |        | Trích dẫn ngắn gửi kèm.                                    |
+| `bodyText`        | `text`      |        | Nội dung text của email.                                   |
+| `bodyHtml`        | `text`      |        | Nội dung HTML của email.                                   |
+| `fileIds`         | `text[]`    | **FK** | Tham chiếu đến `document.files` (File đính kèm đã tải về). |
+| `gmailStatus`     | `text`      |        | `Pending`, `Processing`, `Processed`, `Error`.             |
+| `gmailMarks`      | `text[]`    |        | Đánh dấu bổ sung (Tags/Nhãn trạng thái).                   |
+| `internalDate`    | `bigint`    |        | Thời gian nhận mail.                                       |
+| `createdAt`       | `timestamp` |        |                                                            |
+| `modifiedAt`      | `timestamp` |        |                                                            |
+| `deletedAt`       | `timestamp` |        |                                                            |
+
+#### 5. Các bảng khác (Placeholder)
 
 - **suppliers**: Nhà cung cấp vật tư.
 
@@ -872,16 +913,16 @@ Liên quan đến các dịch vụ ngoài và hỗ trợ.
 
 #### 1. Bảng `chemicalSkus` (Danh mục Hóa chất Master)
 
-| Column Name                 | Type      | Key    | Description                                  |
-| :-------------------------- | :-------- | :----- | :------------------------------------------- |
-| `chemicalSkuId`             | `text`    | **PK** | Mã gốc hóa chất (VD: `SKU_HNO3`).            |
+| Column Name                 | Type      | Key    | Description                                           |
+| :-------------------------- | :-------- | :----- | :---------------------------------------------------- |
+| `chemicalSkuId`             | `text`    | **PK** | Mã gốc hóa chất (VD: `SKU_HNO3`).                     |
 | `chemicalSkuOldId`          | `text`    |        | **[MỚI]** ID từ hệ thống cũ (migration reference).    |
-| `chemicalName`              | `text`    |        | Tên gọi hóa chất (VD: `Axit Nitric 65%`).    |
-| `chemicalCasNumber`         | `text`    |        | Số CAS.                                      |
-| `chemicalBaseUnit`          | `text`    |        | Đơn vị lưu kho cơ bản (VD: `ml`, `g`).       |
-| `chemicalTotalAvailableQty` | `numeric` |        | Tổng tồn kho khả dụng hiện tại.              |
-| `chemicalReorderLevel`      | `numeric` |        | Mức cảnh báo tồn tối thiểu.                  |
-| `chemicalHazardClass`       | `text`    |        | Phân loại độc hại (`Flammable`, `Toxic`...). |
+| `chemicalName`              | `text`    |        | Tên gọi hóa chất (VD: `Axit Nitric 65%`).             |
+| `chemicalCasNumber`         | `text`    |        | Số CAS.                                               |
+| `chemicalBaseUnit`          | `text`    |        | Đơn vị lưu kho cơ bản (VD: `ml`, `g`).                |
+| `chemicalTotalAvailableQty` | `numeric` |        | Tổng tồn kho khả dụng hiện tại.                       |
+| `chemicalReorderLevel`      | `numeric` |        | Mức cảnh báo tồn tối thiểu.                           |
+| `chemicalHazardClass`       | `text`    |        | Phân loại độc hại (`Flammable`, `Toxic`...).          |
 | `openedExpDays`             | `int`     |        | **[MỚI]** Số ngày sử dụng tối đa sau mở nắp mặc định. |
 
 #### 2. Bảng `chemicalSuppliers` (Danh mục Nhà cung cấp)
@@ -913,28 +954,28 @@ Liên quan đến các dịch vụ ngoài và hỗ trợ.
 
 #### 4. Bảng `chemicalInventories` (Tồn kho vật lý thực tế - Từng chai)
 
-| Column Name               | Type      | Key    | Description                                                    |
-| :------------------------ | :-------- | :----- | :------------------------------------------------------------- |
-| `chemicalInventoryId`     | `text`    | **PK** | Mã Barcode trên chai (VD: `BTL_2603_001`).                     |
-| `chemicalSkuId`           | `text`    | **FK** | Mã SKU hóa chất.                                               |
-| `chemicalName`            | `text`    |        | Tên hóa chất.                                                  |
-| `chemicalBaseUnit`        | `text`    |        | Đơn vị tính cơ bản.                                            |
-| `chemicalCasNumber`       | `text`    |        | Số CAS.                                                        |
-| `chemicalSupplierId`      | `text`    | **FK** | Mua từ NCC nào.                                                |
-| `lotNumber`               | `text`    |        | Số Lô (Lot).                                                   |
-| `manufacturerName`        | `text`    |        | Hãng sản xuất.                                                 |
-| `manufacturerCountry`     | `text`    |        | Nước sản xuất.                                                 |
-| `inventoryCoaDocumentIds` | `text[]`  |        | File chứng nhận COA của lô.                                    |
+| Column Name                   | Type      | Key    | Description                                                    |
+| :---------------------------- | :-------- | :----- | :------------------------------------------------------------- |
+| `chemicalInventoryId`         | `text`    | **PK** | Mã Barcode trên chai (VD: `BTL_2603_001`).                     |
+| `chemicalSkuId`               | `text`    | **FK** | Mã SKU hóa chất.                                               |
+| `chemicalName`                | `text`    |        | Tên hóa chất.                                                  |
+| `chemicalBaseUnit`            | `text`    |        | Đơn vị tính cơ bản.                                            |
+| `chemicalCasNumber`           | `text`    |        | Số CAS.                                                        |
+| `chemicalSupplierId`          | `text`    | **FK** | Mua từ NCC nào.                                                |
+| `lotNumber`                   | `text`    |        | Số Lô (Lot).                                                   |
+| `manufacturerName`            | `text`    |        | Hãng sản xuất.                                                 |
+| `manufacturerCountry`         | `text`    |        | Nước sản xuất.                                                 |
+| `inventoryCoaDocumentIds`     | `text[]`  |        | File chứng nhận COA của lô.                                    |
 | `inventoryInvoiceDocumentIds` | `text[]`  |        | File hóa đơn của lô.                                           |
-| `currentAvailableQty`     | `numeric` |        | Số lượng khả dụng hiện tại trong lọ.                           |
-| `mfgDate`                 | `date`    |        | Ngày sản xuất.                                                 |
-| `expDate`                 | `date`    |        | Ngày hết hạn.                                                  |
-| `openedDate`              | `date`    |        | Ngày mở nắp thực tế.                                           |
-| `openedExpDays`           | `int`     |        | **[MỚI]** Số ngày sử dụng sau khi mở nắp (ghi đè từ SKU).      |
-| `openedExpDate`           | `date`    |        | Hạn sử dụng sau khi mở nắp (Hệ thống tính toán).               |
-| `chemicalInventoryStatus` | `text`    |        | `Quarantined`, `New`, `InUse`, `Empty`, `Expired`, `Disposed`. |
-| `storageBinLocation`      | `text`    |        | Vị trí lưu trữ chi tiết.                                       |
-| `storageConditions`       | `text`    |        | Điều kiện bảo quản/lưu trữ (ví dụ: nhiệt độ, ánh sáng...).     |
+| `currentAvailableQty`         | `numeric` |        | Số lượng khả dụng hiện tại trong lọ.                           |
+| `mfgDate`                     | `date`    |        | Ngày sản xuất.                                                 |
+| `expDate`                     | `date`    |        | Ngày hết hạn.                                                  |
+| `openedDate`                  | `date`    |        | Ngày mở nắp thực tế.                                           |
+| `openedExpDays`               | `int`     |        | **[MỚI]** Số ngày sử dụng sau khi mở nắp (ghi đè từ SKU).      |
+| `openedExpDate`               | `date`    |        | Hạn sử dụng sau khi mở nắp (Hệ thống tính toán).               |
+| `chemicalInventoryStatus`     | `text`    |        | `Quarantined`, `New`, `InUse`, `Empty`, `Expired`, `Disposed`. |
+| `storageBinLocation`          | `text`    |        | Vị trí lưu trữ chi tiết.                                       |
+| `storageConditions`           | `text`    |        | Điều kiện bảo quản/lưu trữ (ví dụ: nhiệt độ, ánh sáng...).     |
 
 #### 5. Bảng `chemicalTransactionBlocks` (Phiếu Giao Dịch - Header)
 
@@ -953,20 +994,20 @@ Liên quan đến các dịch vụ ngoài và hỗ trợ.
 
 _Lưu dữ liệu mà thuật toán gợi ý hoặc KTV xin xuất/nhập, nhưng CHƯA TÁC ĐỘNG VÀO KHO._
 
-| Column Name                          | Type      | Key    | Description                                  |
-| :----------------------------------- | :-------- | :----- | :------------------------------------------- |
-| `chemicalTransactionBlockDetailId`   | `text`    | **PK** | Mã dòng chi tiết tạm.                        |
-| `chemicalTransactionBlockId`         | `text`    | **FK** | Thuộc Phiếu nào.                             |
-| `transactionType`                   | `text`    |        | `IMPORT`, `EXPORT`, `ADJUSTMENT`.           |
-| `chemicalSkuId`                      | `text`    | **FK** | Mã SKU.                                      |
-| `chemicalName`                       | `text`    |        | Tên Hóa chất.                                |
-| `chemicalCasNumber`                  | `text`    |        | Số CAS.                                      |
-| `chemicalInventoryId`                | `text`    | **FK** | **Dự kiến** bốc chai/lọ nào.                 |
-| `changeQty`                          | `numeric` |        | **Dự kiến** thay đổi bao nhiêu.              |
-| `chemicalTransactionBlockDetailUnit` | `text`    |        | Đơn vị tính.                                 |
-| `parameterName`                      | `text`    |        | Xuất ra cho Phép thử nào.                    |
-| `analysisId`                         | `text`    | **FK** | Phục vụ mã chỉ tiêu thực hiện nào.           |
-| `chemicalTransactionBlockDetailNote` | `text`    |        | Ghi chú.                                     |
+| Column Name                          | Type      | Key    | Description                        |
+| :----------------------------------- | :-------- | :----- | :--------------------------------- |
+| `chemicalTransactionBlockDetailId`   | `text`    | **PK** | Mã dòng chi tiết tạm.              |
+| `chemicalTransactionBlockId`         | `text`    | **FK** | Thuộc Phiếu nào.                   |
+| `transactionType`                    | `text`    |        | `IMPORT`, `EXPORT`, `ADJUSTMENT`.  |
+| `chemicalSkuId`                      | `text`    | **FK** | Mã SKU.                            |
+| `chemicalName`                       | `text`    |        | Tên Hóa chất.                      |
+| `chemicalCasNumber`                  | `text`    |        | Số CAS.                            |
+| `chemicalInventoryId`                | `text`    | **FK** | **Dự kiến** bốc chai/lọ nào.       |
+| `changeQty`                          | `numeric` |        | **Dự kiến** thay đổi bao nhiêu.    |
+| `chemicalTransactionBlockDetailUnit` | `text`    |        | Đơn vị tính.                       |
+| `parameterName`                      | `text`    |        | Xuất ra cho Phép thử nào.          |
+| `analysisId`                         | `text`    | **FK** | Phục vụ mã chỉ tiêu thực hiện nào. |
+| `chemicalTransactionBlockDetailNote` | `text`    |        | Ghi chú.                           |
 
 #### 7. Bảng `chemicalTransactions` (Lịch sử giao dịch chính thức - LEDGER)
 
@@ -1054,23 +1095,23 @@ Chứa thông tin kho vật tư, dụng cụ, thiết bị văn phòng và quả
 
 #### Phân hệ 2: WAREHOUSE OPERATIONS
 
-#### 3. Bảng `inventoryInventories` (Tồn kho vật lý thực tế)
+#### 3. Bảng `inventoryItems` (Tồn kho vật lý thực tế)
 
-| Column Name            | Type      | Key    | Description                                  |
-| :--------------------- | :-------- | :----- | :------------------------------------------- |
-| `inventoryInventoryId` | `text`    | **PK** | Mã định danh vật phẩm (VD: `ITEM_2603_001`). |
-| `inventorySkuId`       | `text`    | **FK** | Mã SKU vật tư.                               |
-| `inventoryItemName`    | `text`    |        | Tên vật tư.                                  |
-| `inventoryBaseUnit`    | `text`    |        | Đơn vị tính.                                 |
-| `inventorySupplierId`  | `text`    | **FK** | Mua từ NCC nào.                              |
-| `serialNumber`         | `text`    |        | Số Serial (nếu có, cho thiết bị).            |
-| `lotNumber`            | `text`    |        | Số Lô sản xuất.                              |
-| `manufacturerName`     | `text`    |        | Hãng sản xuất.                               |
-| `currentQty`           | `numeric` |        | Số lượng hiện có.                            |
-| `mfgDate`              | `date`    |        | Ngày sản xuất.                               |
-| `expDate`              | `date`    |        | Ngày hết hạn (nếu có).                       |
-| `inventoryItemStatus`  | `text`    |        | `New`, `InUse`, `Broken`, `Disposed`.        |
-| `storageLocation`      | `text`    |        | Vị trí lưu trữ.                              |
+| Column Name           | Type      | Key    | Description                                  |
+| :-------------------- | :-------- | :----- | :------------------------------------------- |
+| `inventoryItemId`     | `text`    | **PK** | Mã định danh vật phẩm (VD: `ITEM_2603_001`). |
+| `inventorySkuId`      | `text`    | **FK** | Mã SKU vật tư.                               |
+| `inventoryItemName`   | `text`    |        | Tên vật tư.                                  |
+| `inventoryBaseUnit`   | `text`    |        | Đơn vị tính.                                 |
+| `inventorySupplierId` | `text`    | **FK** | Mua từ NCC nào.                              |
+| `serialNumber`        | `text`    |        | Số Serial (nếu có, cho thiết bị).            |
+| `lotNumber`           | `text`    |        | Số Lô sản xuất.                              |
+| `manufacturerName`    | `text`    |        | Hãng sản xuất.                               |
+| `currentQty`          | `numeric` |        | Số lượng hiện có.                            |
+| `mfgDate`             | `date`    |        | Ngày sản xuất.                               |
+| `expDate`             | `date`    |        | Ngày hết hạn (nếu có).                       |
+| `inventoryItemStatus` | `text`    |        | `New`, `InUse`, `Broken`, `Disposed`.        |
+| `storageLocation`     | `text`    |        | Vị trí lưu trữ.                              |
 
 #### 4. Bảng `inventoryTransactionBlocks` (Phiếu Giao Dịch Kho - Header)
 
@@ -1094,94 +1135,90 @@ Chứa thông tin kho vật tư, dụng cụ, thiết bị văn phòng và quả
 | `inventoryTxBlockId`    | `text`    | **FK** | Thuộc Phiếu nào.                      |
 | `inventorySkuId`        | `text`    | **FK** | Mã SKU.                               |
 | `inventoryItemName`     | `text`    |        | Tên vật tư.                           |
-| `inventoryInventoryId`  | `text`    | **FK** | Chai/Lọ/Cái cụ thể (nếu đã chỉ định). |
+| `inventoryItemId`       | `text`    | **FK** | Chai/Lọ/Cái cụ thể (nếu đã chỉ định). |
 | `changeQty`             | `numeric` |        | Số lượng yêu cầu.                     |
 | `inventoryUnit`         | `text`    |        | Đơn vị tính.                          |
 | `inventoryTxDetailNote` | `text`    |        | Ghi chú.                              |
 
 #### 6. Bảng `inventoryTransactions` (Sổ cái giao dịch - Ledger)
 
-| Column Name            | Type        | Key    | Description                   |
-| :--------------------- | :---------- | :----- | :---------------------------- |
-| `inventoryTxid`        | `text`      | **PK** | Mã dòng giao dịch chính thức. |
-| `inventoryTxBlockId`   | `text`      | **FK** | Nguồn gốc từ Phiếu nào.       |
-| `inventorySkuId`       | `text`      | **FK** | Mã SKU.                       |
-| `inventoryInventoryId` | `text`      | **FK** | ID vật phẩm thực tế.          |
-| `changeQty`            | `numeric`   |        | Số lượng thực tế thay đổi.    |
-| `inventoryUnit`        | `text`      |        | Đơn vị tính.                  |
-| `transactionTime`      | `timestamp` |        | Thời điểm giao dịch thực tế.  |
-
-#### Phân hệ 3: EQUIPMENT MANAGEMENT
-
-#### 7. Bảng `equipment` (Quản lý thiết bị LIMS)
-
-| Column Name              | Type     | Key    | Description                                 |
-| :----------------------- | :------- | :----- | :------------------------------------------ |
-| `equipmentId`            | `text`   | **PK** | Mã thiết bị (VD: `EQ-HPLC-01`).             |
-| `equipmentName`          | `text`   |        | Tên thiết bị.                               |
-| `equipmentCode`          | `text`   | **UQ** | Mã tài sản/Số thẻ tài sản.                  |
-| `equipmentType`          | `text`   |        | `Analytical`, `Auxiliary`, `Office`.        |
-| `inventoryInventoryId`   | `text`   | **FK** | Link tới kho (để biết nguồn gốc/vị trí).    |
-| `equipmentStatus`        | `text`   |        | `Ready`, `InUse`, `Maintenance`, `Faulty`.  |
-| `calibrationCycleMonths` | `int`    |        | Chu kỳ hiệu chuẩn (tháng).                  |
-| `lastCalibrationDate`    | `date`   |        | Ngày hiệu chuẩn gần nhất.                   |
-| `nextCalibrationDate`    | `date`   |        | Hạn hiệu chuẩn tiếp theo.                   |
-| `maintenanceLog`         | `jsonb`  |        | Lịch sử bảo trì/sửa chữa.                   |
-| `equipmentManualIds`     | `text[]` | **FK** | Link tài liệu hướng dẫn (`document.files`). |
-| _Audit Cols_             | ...      |        |                                             |
-
----
-
+| Column Name          | Type        | Key    | Description                   |
+| :------------------- | :---------- | :----- | :---------------------------- |
+| `inventoryTxid`      | `text`      | **PK** | Mã dòng giao dịch chính thức. |
+| `inventoryTxBlockId` | `text`      | **FK** | Nguồn gốc từ Phiếu nào.       |
+| `inventorySkuId`     | `text`      | **FK** | Mã SKU.                       |
+| `inventoryItemId`    | `text`      | **FK** | ID vật phẩm thực tế.          |
+| `changeQty`          | `numeric`   |        | Số lượng thực tế thay đổi.    |
+| `inventoryUnit`      | `text`      |        | Đơn vị tính.                  |
+| `transactionTime`    | `timestamp` |        | Thời điểm giao dịch thực tế.  |
 
 ### I. SCHEMA GENERAL INVENTORY (`labInventories`)
 
 _Quản lý toàn bộ vật tư, thiết bị, dụng cụ và nhật ký truy vết._
 
-#### 1. Bảng `labInventories` (Thiết bị máy móc)
+#### 1. Bảng `labSkus` (Danh mục Thiết bị & Dụng cụ)
 
-| Column Name           | Type   | Key    | Description                                |
-| :-------------------- | :----- | :----- | :----------------------------------------- |
-| `labInventoryId`      | `text` | **PK** | Mã thiết bị (VD: `EQ-HPLC-01`).            |
-| `labInventoryName`    | `text` |        | Tên thiết bị.                              |
-| `labInventoryCode`    | `text` | **UQ** | Mã tài sản/Số thẻ tài sản.                 |
-| `labInventoryStatus`  | `text` |        | `Ready`, `InUse`, `Maintenance`, `Faulty`. |
-| `labInventoryLastCalibrationDate` | `date` |        | Ngày hiệu chuẩn gần nhất.                  |
-| `labInventoryNextCalibrationDate` | `date` |        | Hạn hiệu chuẩn tiếp theo.                  |
+_Lưu trữ thông tin danh mục (Master Data) của các loại thiết bị, dụng cụ và vật tư._
 
-#### 2. Bảng `labTools` (Dụng cụ thí nghiệm)
+| Column Name            | Type      | Key    | Description                                               |
+| :--------------------- | :-------- | :----- | :-------------------------------------------------------- |
+| `labSkuId`             | `text`    | **PK** | Mã danh mục (VD: `SKU-HPLC-1260`).                        |
+| `labSkuName`           | `text`    |        | Tên danh mục (VD: `Máy HPLC Agilent 1260`).               |
+| `labSkuCode`           | `text`    | **UQ** | Mã SKU nội bộ.                                            |
+| `labSkuType`           | `text`    |        | Phân loại: `Equipment`, `Tool`, `Material`, `Chemical`... |
+| `labSkuUnit`           | `text`    |        | Đơn vị tính (`Cái`, `Bộ`, `Máy`, `Hộp`...).               |
+| `labSkuManufacturer`   | `text`    |        | Nhà sản xuất.                                             |
+| `labSkuModel`          | `text`    |        | Model/Dòng sản phẩm.                                      |
+| `labSkuSpecifications` | `jsonb`   |        | Thông số kỹ thuật chung của dòng sản phẩm.                |
+| `requiresCalibration`  | `boolean` |        | Có yêu cầu hiệu chuẩn định kỳ không.                      |
 
-| Column Name             | Type      | Key    | Description                                                 |
-| :---------------------- | :-------- | :----- | :---------------------------------------------------------- |
-| `labToolId`             | `text`    | **PK** | Mã dụng cụ (VD: `TOOL-PIP-01`).                             |
-| `labToolName`           | `text`    |        | Tên (VD: `Micropipette 100-1000µL`).                        |
-| `labToolCode`           | `text`    | **UQ** | Mã quản lý tài sản khắc trên dụng cụ.                       |
-| `labToolType`           | `text`    |        | Phân loại: `Volumetric`, `Pipette`, `Thermometer`...        |
-| `labToolSpecifications` | `jsonb`   |        | Thông số: `{ "capacity": "50ml", "tolerance": "±0.05ml" }`. |
-| `labToolStatus`         | `text`    |        | `Ready`, `InUse`, `Broken`, `Lost`.                         |
-| `requiresCalibration`   | `boolean` |        | Có yêu cầu hiệu chuẩn định kỳ không.                        |
-| `lastCalibrationDate`   | `date`    |        | Ngày hiệu chuẩn/kiểm tra độ chính xác gần nhất.             |
-| `nextCalibrationDate`   | `date`    |        | Hạn hiệu chuẩn tiếp theo.                                   |
+#### 2. Bảng `labInventories` (Vật tư - Kho - Thiết bị thực tế)
+
+_Quản lý các thực thể vật lý (Instance) hoặc lượng tồn kho trong phòng thí nghiệm._
+
+| Column Name                       | Type      | Key    | Description                                   |
+| :-------------------------------- | :-------- | :----- | :-------------------------------------------- |
+| `labInventoryId`                  | `text`    | **PK** | Mã thực thể (VD: `INV-HPL-001`).              |
+| `labSkuId`                        | `text`    | **FK** | Link tới `labSkus.labSkuId`.                  |
+| `labSkuName`                      | `text`    |        | Tên danh mục (Copy từ SKU để hiển thị).       |
+| `labSkuType`                      | `text`    |        | Phân loại: `Equipment`, `Tool`, `Material`.   |
+| `labInventoryCode`                | `text`    | **UQ** | Mã tài sản/Số thẻ tài sản riêng của máy.      |
+| `labInventorySerial`              | `text`    |        | Số serial riêng của thiết bị.                 |
+| `labInventoryStatus`              | `text`    |        | `Ready`, `InUse`, `Maintenance`, `Faulty`.    |
+| `labInventoryLocation`            | `text`    |        | Vị trí đặt thiết bị/vị trí lưu kho.           |
+| `labInventoryQty`                 | `numeric` |        | Số lượng (dùng cho vật tư/hóa chất tiêu hao). |
+| `labInventoryLastCalibrationDate` | `date`    |        | Ngày hiệu chuẩn gần nhất.                     |
+| `labInventoryNextCalibrationDate` | `date`    |        | Hạn hiệu chuẩn tiếp theo.                     |
+| `labInventoryImportDate`          | `date`    |        | Ngày nhập kho.                                |
+| `labInventoryExpiryDate`          | `date`    |        | Ngày hết hạn (dùng cho vật tư/hóa chất).      |
+| `labInventoryWarrantyExpiryDate`  | `date`    |        | Hết hạn bảo hành.                             |
+| `labInventoryDocumentIds`         | `text[]`  | **FK** | Link tài liệu cụ thể của máy (Kiểm định...).  |
+| `labInventoryNotes`               | `text`    |        | Ghi chú riêng cho thực thể này.               |
 
 #### 3. Bảng `assetActivityLogs` (Sổ cái Truy vết Tài sản)
 
-_Bảng sử dụng liên kết đa hình (Polymorphic) để log mọi hoạt động của Equipment & Lab Tools._
+_Ghi lại nhật ký sử dụng, bảo trì, hiệu chuẩn cho các thực thể trong `labInventories`._
 
-| Column Name      | Type        | Key     | Description                                                           |
-| :--------------- | :---------- | :------ | :-------------------------------------------------------------------- |
-| `logId`          | `text`      | **PK**  | ID dòng nhật ký (VD: `LOG-2603-001`).                                 |
-| `assetId`        | `text`      | **FK**  | ID tài sản (Là `equipmentId` hoặc `labToolId`).                       |
-| `assetTable`     | `text`      |         | Bảng chứa thực thể: `equipment` hoặc `labTools`.                      |
-| `logType`        | `text`      |         | Sự kiện: `Usage` (Sử dụng), `Maintenance`, `Calibration`, `Incident`. |
-| `logDescription` | `text`      |         | Mô tả (VD: "Chạy lô mẫu nước thải").                                  |
-| `logLocation`    | `text`      |         | Vị trí thực hiện.                                                    |
-| `logData`        | `jsonb`     |         | Dữ liệu đo kèm theo (Nhiệt độ, độ ẩm phòng...).                       |
-| `commonKeys`     | `text[]`    | **IDX** | Keys truy vết chéo: `["analysisId:ANA-001", "receiptId:REC-999"]`.    |
-| `actionTime`     | `timestamp` |         | Thời gian thực tế diễn ra.                                            |
-| _Audit Cols_     | ...         |         | `createdAt`, `createdById`...                                         |
+| Column Name      | Type        | Key     | Description                                                 |
+| :--------------- | :---------- | :------ | :---------------------------------------------------------- |
+| `logId`          | `text`      | **PK**  | ID dòng nhật ký (VD: `LOG-001`).                            |
+| `assetId`        | `text`      | **FK**  | ID tài sản (Là `labInventoryId`).                           |
+| `assetTable`     | `text`      |         | Bảng chứa thực thể: `labInventories`.                       |
+| `logType`        | `text`      |         | Sự kiện: `Usage`, `Maintenance`, `Calibration`, `Incident`. |
+| `logDescription` | `text`      |         | Mô tả nội dung sự kiện.                                     |
+| `logLocation`    | `text`      |         | Vị trí thực hiện.                                           |
+| `logData`        | `jsonb`     |         | Dữ liệu đo kèm theo.                                        |
+| `commonKeys`     | `text[]`    | **IDX** | Keys truy vết chéo: `["analysisId:...", "receiptId:..."]`.  |
+| `actionTime`     | `timestamp` |         | Thời gian thực tế diễn ra.                                  |
+| _Audit Cols_     | ...         |         | `createdAt`, `createdById`...                               |
+| _Audit Cols_     | ...         |         | `createdAt`, `createdById`...                               |
+
+#### 4.
 
 ---
 
 ### J. SCHEMA SYSTEM (`system`)
+
 Chứa các bảng nhật ký sự kiện nghiệp vụ và quản lý rủi ro.
 
 #### 1. Bảng `businessEvents` (Nhật ký sự kiện nghiệp vụ)

@@ -6,7 +6,7 @@ Module **Library** quản lý toàn bộ dữ liệu danh mục (catalog) của 
 
 ## Cấu trúc thư mục
 
-```
+```text
 library/
 ├── LibraryHeader.tsx          # Header chung cho tất cả trang (search, add button, title)
 ├── hooks/                     # Custom hooks dùng chung
@@ -33,70 +33,30 @@ Mỗi thư mục con (matrices, parameters, ...) tuân theo mẫu kiến trúc s
 | `*EditModal.tsx`                        | Modal chỉnh sửa (nếu tách riêng)                                    |
 | `*DeleteConfirm.tsx`                    | Dialog xác nhận xóa                                                 |
 
-## Tính năng nút Edit trên DetailPanel
+## Tính năng nổi bật gần đây
 
-Tất cả 4 DetailPanel (`ProtocolDetailPanel`, `ParameterDetailPanel`, `MatrixDetailPanel`, `SampleTypeDetailPanel`) đều hỗ trợ prop `onEdit?`:
-
-- Khi Parent View truyền callback `onEdit`, nút ✏️ (Pencil icon) hiển thị bên cạnh nút X (Close)
-- Click nút Edit → gọi `onEdit(currentData)` → Parent View mở modal chỉnh sửa
-- Nếu `onEdit` không được truyền, nút Edit ẩn (backward compatible)
+1. **Matrices (Cấu hình)**:
+    * Hỗ trợ bộ lọc **Chỉ tiêu (parameterId)** lấy trực tiếp từ danh mục (Catalog API), giúp lọc cấu hình chính xác theo tên chỉ tiêu thay vì nhập tay.
+2. **Parameters (Chỉ tiêu)**:
+    * Hệ thống hóa **Vị trí phụ trách (technicianAlias)** và **Nhóm thực hiện (technicianGroupId)** qua API Enum và Identity.
+    * Bộ chọn thông minh (Searchable Combobox) trong form tạo/sửa giúp chuẩn hóa dữ liệu nhân sự phụ trách.
+3. **Protocols (Phương pháp)**:
+    * **Phân loại tài liệu**: Tách biệt rõ ràng **Tài liệu đính kèm (PROTOCOL_DOC)** công khai và **Hồ sơ SOP (PROTOCOL_SOP)** nội bộ.
+    * **Quản lý Công nhận (Accreditation)**: Tích hợp API Enum (`protocolAccreditation`) với cấu hình chi tiết ngày cấp (registrationDate) và ngày hết hạn (expirationDate) cho từng mã hiệu (VILAS, TDC,...).
 
 ## API Layer
 
 Tất cả API calls được định nghĩa trong `src/api/library.ts`, bao gồm:
 
-- **CRUD operations**: `list`, `detail`, `full`, `create`, `update`, `delete`
-- **React Query hooks**: `useMatricesList`, `useMatrixDetail`, `useProtocolsList`, `useProtocolDetail`, ...
-- **Filter API**: `useParametersFilter`, `useSampleTypesFilter`, ...
-- **Full data endpoints**: `/v2/protocols/get/full`, `/v2/parameters/get/full`, `/v2/sampleTypes/get/full`
+* **CRUD operations**: `list`, `detail`, `full`, `create`, `update`, `delete`
+* **React Query hooks**: `useMatricesList`, `useMatrixDetail`, `useProtocolsList`, `useProtocolDetail`, ...
+* **Filter API**: `useParametersFilter`, `useSampleTypesFilter`, ...
+* **Full data endpoints**: `/v2/protocols/get/full`, `/v2/parameters/get/full`, `/v2/sampleTypes/get/full`
+* **Enum API**: Sử dụng `useEnumList` để lấy danh mục động (vị trí phụ trách, loại công nhận).
 
-## i18n Keys
+## Quy ước quan trọng
 
-### Namespace structure
-
-| Namespace                   | Mô tả                         |
-| --------------------------- | ----------------------------- |
-| `library.matrices.*`        | Labels cấu hình, bảng, detail |
-| `library.protocols.*`       | Labels phương pháp            |
-| `library.parameters.*`      | Labels chỉ tiêu               |
-| `library.sampleTypes.*`     | Labels loại mẫu               |
-| `library.parameterGroups.*` | Labels nhóm chỉ tiêu          |
-
-### Common keys dùng chung
-
-| Key                 | Mô tả             |
-| ------------------- | ----------------- |
-| `common.edit`       | "Chỉnh sửa"       |
-| `common.noData`     | "Chưa có dữ liệu" |
-| `common.loading`    | "Đang tải..."     |
-| `common.errorTitle` | "Có lỗi xảy ra"   |
-| `common.close`      | "Đóng"            |
-
-## Shared Components
-
-- **`LibraryHeader`**: Header chung với tiêu đề, ô tìm kiếm, nút thêm mới
-- **`Pagination`**: Component phân trang (từ `@/components/ui/pagination`)
-- **`MatricesAccordionItem`**: Accordion item cho hiển thị matrix trong ParameterDetailPanel, SampleTypeDetailPanel
-
-## Luồng dữ liệu (Data Flow)
-
-```
-View (state management)
-  ├── API hook (useXxxList) → React Query → Backend API
-  ├── Table (display + filter)
-  │     ├── ExcelFilterPopover (column-level filters)
-  │     └── Action buttons (Edit, Delete)
-  ├── DetailPanel (read-only detail + Edit button)
-  │     ├── Full data fetch via useXxxDetail/useXxxFull
-  │     ├── Loading/Error states
-  │     └── onEdit → opens EditModal
-  └── CreateModal / EditModal (write operations)
-```
-
-## Quy ước
-
-1. **Cột Actions**: Tất cả bảng đều có cột `Actions` ở cuối với nút Edit (và Delete nếu có)
-2. **DisplayStyle**: Các cột `displayStyle` / `displayTypeStyle` luôn render **2 dòng** (default + eng), hỗ trợ markdown inline (`*text*` → _in nghiêng_) qua `renderInlineEm`
-3. **Phân trang**: Sử dụng `useServerPagination` hook + `Pagination` component. Chỉ có 1 khối phân trang duy nhất cho mỗi bảng
-4. **Edit vs Detail**: Nút Edit mở modal chỉnh sửa (popup), click vào hàng mở panel chi tiết (sidebar). Panel chi tiết cũng có nút Edit.
-5. **Full data fetch**: DetailPanel sử dụng hook riêng (vd: `useProtocolDetail`) để fetch full data thay vì chỉ dùng list data
+1. **Cấu trúc Công nhận**: Trường `protocolAccreditation` là một JSONB có cấu trúc `{ [code]: { registrationDate, expirationDate } | boolean }`.
+2. **Tài liệu Phương pháp**: Khi đính kèm/tải lên tài liệu trong Protocol, hệ thống tự động lọc theo `documentType` để đảm bảo tài liệu được đặt đúng mục (SOP vs DOC).
+3. **DisplayStyle**: Các cột `displayStyle` / `displayTypeStyle` luôn render **2 dòng** (default + eng).
+4. **Phân trang**: Sử dụng `useServerPagination` tương tác trực tiếp với API `list` của backend.

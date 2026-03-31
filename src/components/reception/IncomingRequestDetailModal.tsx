@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { X, RefreshCw } from "lucide-react";
 import { createPortal } from "react-dom";
 
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ interface Props {
 }
 
 export function IncomingRequestDetailModal({ requestId, onClose }: Props) {
-    const { data: detailData, isLoading, isError } = useIncomingRequestDetail(requestId);
+    const { data: detailData, isLoading, isError, refetch, isFetching } = useIncomingRequestDetail(requestId);
 
     const request = (detailData?.data ?? detailData) as IncomingRequestDetail | undefined;
 
@@ -38,6 +38,16 @@ export function IncomingRequestDetailModal({ requestId, onClose }: Props) {
                                 {String(request.incomingStatus)}
                             </Badge>
                         )}
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => refetch()}
+                            disabled={isFetching}
+                            className="h-8 w-8 rounded-full"
+                            title="Làm mới"
+                        >
+                            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-full hover:bg-muted">
                             <X className="h-4 w-4" />
                         </Button>

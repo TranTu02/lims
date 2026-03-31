@@ -69,13 +69,13 @@ Authorization: Bearer {authToken}
                 "eng": "*Enterococcus faecalis*",
                 "default": "*Enterococcus faecalis*"
             },
-            "technicianAlias": null,
+            "technicianAlias": "Phòng Vi sinh",
+            "technicianGroupId": "GRP_MICRO",
             "createdAt": "2026-01-31T02:16:35.747Z",
             "createdById": null,
             "modifiedAt": null,
             "modifiedById": null,
             "deletedAt": null,
-            "technicianGroupId": null,
             "parameterSearchKeys": null,
             "parameterStatus": "Active",
             "parameterNote": null
@@ -433,9 +433,14 @@ Authorization: Bearer {authToken}
             "protocolCode": "TCVN 6189-2:1996",
             "protocolSource": "IRDOP",
             "protocolAccreditation": {
-                "TDC": true,
-                "VILAS997": false
+                "TDC": {
+                    "registrationDate": "15/01/2024",
+                    "expirationDate": "15/01/2027"
+                },
+                "VILAS997": true
             },
+            "protocolDocumentIds": ["DOC-001"],
+            "sopDocumentIds": ["SOP-001"],
             "createdAt": "2026-01-31T02:16:35.747Z"
         }
     ],
@@ -1100,5 +1105,50 @@ None
     },
     "pagination": null,
     "error": null
+}
+```
+---
+
+## 7. ENUM & UTILITY APIs
+
+### 7.1 Get Enum List
+
+**Endpoint**: `GET /v2/enum/get/list?enumType={enumType}`
+
+**Query Parameters**:
+- `enumType` (string): Loại danh mục (e.g. `technicianAlias`, `protocolAccreditation`).
+
+**Response Structure**:
+
+```json
+{
+    "success": true,
+    "statusCode": 200,
+    "data": ["VILAS997", "TDC", "ISO17025"],
+    "pagination": null,
+    "error": null
+}
+```
+
+### 7.2 Search Documents (Filtered)
+
+**Endpoint**: `GET /v2/documents/get/list`
+
+**Query Parameters**:
+- `documentType` (string): Phân loại tài liệu (`PROTOCOL_DOC`, `PROTOCOL_SOP`, `CHEMICAL_COA`,...).
+- `searchTerm` (string): Tìm kiếm theo tên/mã tài liệu.
+
+**Response Structure**:
+
+```json
+{
+    "success": true,
+    "data": [
+        {
+            "documentId": "DOC-001",
+            "documentTitle": "Hướng dẫn sử dụng máy HPLC",
+            "documentType": "PROTOCOL_DOC"
+        }
+    ]
 }
 ```

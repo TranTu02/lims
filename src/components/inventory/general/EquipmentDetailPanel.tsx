@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Loader2, X, Archive, MapPin, Tag, Wrench, Calendar, Info, FileText, Eye } from "lucide-react";
+import { Loader2, X, Archive, MapPin, Tag, Wrench, Calendar, Info, FileText, Eye, History, Activity, AlertTriangle, CheckCircle2, PenLine } from "lucide-react";
 
 import { useLabInventory } from "@/api/generalInventory";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { documentApi } from "@/api/documents";
 import { useState } from "react";
 import { DocumentPreviewModal, type PreviewType } from "@/components/document/DocumentPreviewModal";
+import { Separator } from "@/components/ui/separator";
 
 function DocumentItem({ doc }: { doc: any }) {
     const { t } = useTranslation();
@@ -48,35 +49,86 @@ function DocumentItem({ doc }: { doc: any }) {
 
     return (
         <>
-            <div className="flex flex-col p-3 rounded-md border border-border bg-muted/30 gap-2">
+            <div className="flex flex-col p-3 rounded-xl border border-border bg-muted/10 hover:bg-muted/20 transition-all gap-2 group">
                 <div className="flex items-center gap-2 min-w-0">
-                    <FileText className="h-4 w-4 text-primary shrink-0" />
-                    <span className="text-sm font-semibold text-foreground truncate" title={title}>
+                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                        <FileText className="h-4 w-4 text-primary shrink-0" />
+                    </div>
+                    <span className="text-sm font-semibold text-foreground truncate flex-1" title={title}>
                         {title}
                     </span>
-                </div>
-                {keys && keys.length > 0 && (
-                    <div className="text-xs text-muted-foreground truncate pl-6" title={keys.join(", ")}>
-                        Mã: {keys.join(", ")}
-                    </div>
-                )}
-                <div className="flex items-center justify-between pl-6 mt-1 border-t border-border pt-2.5">
-                    <div className="flex items-center gap-2">
-                        <span className="text-[10px] bg-background border text-muted-foreground px-1.5 py-0.5 rounded shadow-sm">{doc.documentId}</span>
-                        {status && (
-                            <Badge variant="outline" className="text-[10px] h-5 min-h-0 bg-background">
-                                {status}
-                            </Badge>
-                        )}
-                    </div>
-                    <Button variant="secondary" size="sm" className="h-6 text-[10px] px-2" disabled={urlLoading} onClick={handlePreview}>
-                        {urlLoading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Eye className="h-3 w-3 mr-1" />}
-                        {String(t("common.view"))}
+                    <Button variant="secondary" size="icon" className="h-7 w-7 rounded-lg shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" disabled={urlLoading} onClick={handlePreview}>
+                        {urlLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
                     </Button>
                 </div>
+                {(keys && keys.length > 0) || status ? (
+                    <div className="flex items-center justify-between pl-10">
+                        <div className="flex items-center gap-2 flex-wrap">
+                            {keys && keys.slice(0, 2).map((k: string) => (
+                                <span key={k} className="text-[10px] text-muted-foreground font-mono bg-muted px-1 rounded uppercase">{k}</span>
+                            ))}
+                            {status && (
+                                <Badge variant="outline" className="text-[9px] h-4 min-h-0 bg-background py-0 uppercase">
+                                    {status}
+                                </Badge>
+                            )}
+                        </div>
+                        <span className="text-[9px] text-muted-foreground font-mono">{doc.documentId}</span>
+                    </div>
+                ) : null}
             </div>
             <DocumentPreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} previewUrl={previewUrl} previewType={previewType} previewFileName={title} />
         </>
+    );
+}
+
+function LogItem({ log }: { log: any }) {
+    const getIcon = () => {
+        switch (log.logType) {
+            case "Usage": return <Activity className="h-3 w-3 text-blue-500" />;
+            case "Calibration": return <Wrench className="h-3 w-3 text-amber-500" />;
+            case "Maintenance": return <CheckCircle2 className="h-3 w-3 text-green-500" />;
+            case "Repair": return <AlertTriangle className="h-3 w-3 text-destructive" />;
+            default: return <History className="h-3 w-3 text-muted-foreground" />;
+        }
+    };
+
+    const getBg = () => {
+        switch (log.logType) {
+            case "Usage": return "bg-blue-500/10 border-blue-500/20";
+            case "Calibration": return "bg-amber-500/10 border-amber-500/20";
+            case "Maintenance": return "bg-green-500/10 border-green-500/20";
+            case "Repair": return "bg-destructive/10 border-destructive/20";
+            default: return "bg-muted/30 border-border";
+        }
+    };
+
+    return (
+        <div className="relative pl-6 pb-6 last:pb-0">
+            {/* Timeline Line */}
+            <div className="absolute left-[9px] top-0 bottom-0 w-[2px] bg-border last:bg-transparent" />
+            
+            {/* Timeline Dot */}
+            <div className={`absolute left-0 top-1 h-[20px] w-[20px] rounded-full border-2 flex items-center justify-center bg-background z-10 transition-colors ${getBg()}`}>
+                {getIcon()}
+            </div>
+
+            <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-foreground">{log.logType}</span>
+                    <span className="text-[10px] text-muted-foreground">{log.actionTime ? log.actionTime.split("T")[0] : ""}</span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                    {log.logDescription}
+                </p>
+                {log.logLocation && (
+                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                        <MapPin className="h-2.5 w-2.5" />
+                        {log.logLocation}
+                    </div>
+                )}
+            </div>
+        </div>
     );
 }
 
@@ -93,156 +145,198 @@ export function EquipmentDetailPanel({ labInventoryId, onClose, onEdit }: Props)
     if (!labInventoryId) return null;
 
     return (
-        <div className="w-[450px] shrink-0 bg-background border border-border rounded-lg flex flex-col overflow-hidden animate-in slide-in-from-right-4 duration-300">
-            {/* HDR */}
-            <div className="p-4 border-b border-border flex items-center justify-between bg-muted/10 shrink-0">
-                <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <Archive className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-foreground leading-none">{String(t("inventory.general.equipment.detailTitle", { defaultValue: "Chi tiết thiết bị" }))}</h3>
-                        <p className="text-xs text-muted-foreground mt-1 font-mono">{labInventoryId}</p>
-                    </div>
+        <div className="w-[450px] shrink-0 bg-background border border-border rounded-xl flex flex-col overflow-hidden shadow-2xl animate-in slide-in-from-right-8 duration-500 h-[calc(100vh-140px)] m-2 mr-0">
+            {/* Header with Background Pattern */}
+            <div className="relative overflow-hidden bg-primary/5 px-6 py-6 border-b border-border">
+                <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                    <Archive size={120} />
                 </div>
-                <Button variant="ghost" size="icon" onClick={onClose}>
-                    <X className="h-4 w-4" />
-                </Button>
+                
+                <div className="flex items-start justify-between relative z-10">
+                    <div className="space-y-3 flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                             <Badge variant={item?.labInventoryStatus === "Ready" ? "default" : "secondary"} className="rounded-full px-3">
+                                {item?.labInventoryStatus || "Ready"}
+                            </Badge>
+                            <span className="text-[10px] font-mono text-muted-foreground tracking-widest uppercase">
+                                {labInventoryId}
+                            </span>
+                        </div>
+                        <h2 className="text-2xl font-bold tracking-tight text-foreground truncate">
+                            {item?.labSkuName || "---"}
+                        </h2>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-background/80">
+                        <X className="h-4 w-4" />
+                    </Button>
+                </div>
             </div>
 
-            {/* Bdy */}
-            <div className="flex-1 overflow-y-auto p-4">
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
                 {isLoading && (
-                    <div className="flex items-center justify-center h-32">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    <div className="flex flex-col items-center justify-center h-64 gap-3 text-muted-foreground">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                        <span className="text-sm font-medium">Tải dữ liệu...</span>
                     </div>
                 )}
                 {isError && (
-                    <div className="flex items-center justify-center h-32 text-destructive">
-                        {String(t("common.error", { defaultValue: "Đã có lỗi xảy ra" }))}
+                    <div className="flex flex-col items-center justify-center h-64 gap-3 text-destructive p-6 text-center">
+                        <AlertTriangle className="h-8 w-8" />
+                        <span className="text-sm font-medium">{String(t("common.error"))}</span>
                     </div>
                 )}
+                
                 {!isLoading && !isError && item && (
-                    <div className="space-y-6">
-                        {/* Status, Name */}
-                        <div>
-                            <h2 className="text-xl font-bold text-foreground mb-2">{item.labInventoryName}</h2>
-                            <div className="flex flex-wrap gap-2">
-                                <Badge variant={item.labInventoryStatus === "Ready" ? "default" : "secondary"}>
-                                    {item.labInventoryStatus || "Ready"}
-                                </Badge>
-                                {item.labInventoryCode && (
-                                    <Badge variant="outline" className="font-mono text-muted-foreground border-dashed">
-                                        <Tag className="h-3 w-3 mr-1" />
-                                        {item.labInventoryCode}
-                                    </Badge>
+                    <div className="p-6 space-y-8">
+                        {/* Highlights Grid */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="p-4 bg-muted/20 rounded-2xl border border-border/50 space-y-2 group hover:border-primary/20 transition-all">
+                                <MapPin className="h-4 w-4 text-primary" />
+                                <div className="space-y-0.5">
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Vị trí đặt</p>
+                                    <p className="text-sm font-semibold truncate leading-tight">{item.labInventoryLocation || "Chưa xác định"}</p>
+                                </div>
+                            </div>
+                            <div className="p-4 bg-muted/20 rounded-2xl border border-border/50 space-y-2 group hover:border-primary/20 transition-all">
+                                <Tag className="h-4 w-4 text-primary" />
+                                <div className="space-y-0.5">
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Mã tài sản</p>
+                                    <p className="text-sm font-mono font-semibold truncate leading-tight">{item.labInventoryCode || "---"}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Tech Specs */}
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2">
+                                <Info className="h-4 w-4 text-primary" />
+                                <h4 className="text-sm font-bold uppercase tracking-wide">Thông tin kỹ thuật</h4>
+                            </div>
+                            <div className="grid grid-cols-1 gap-4 bg-muted/10 p-4 rounded-2xl border border-border/50">
+                                <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] text-muted-foreground font-bold uppercase">Hãng sản xuất</p>
+                                        <p className="text-xs font-medium">{item.labSkuManufacturer || "-"}</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] text-muted-foreground font-bold uppercase">Model</p>
+                                        <p className="text-xs font-mono font-medium">{item.labSkuModel || "-"}</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] text-muted-foreground font-bold uppercase">Số Serial</p>
+                                        <p className="text-xs font-mono font-medium">{item.labInventorySerial || "-"}</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] text-muted-foreground font-bold uppercase">Ngày nhập kho</p>
+                                        <p className="text-xs font-medium">{item.labInventoryImportDate ? item.labInventoryImportDate.split("T")[0] : "-"}</p>
+                                    </div>
+                                </div>
+
+                                {item.labSkuSpecifications && Object.keys(item.labSkuSpecifications).length > 0 && (
+                                    <>
+                                        <Separator className="bg-border/50" />
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {Object.entries(item.labSkuSpecifications).map(([k, v]) => (
+                                                <div key={k} className="space-y-0.5">
+                                                    <p className="text-[10px] text-muted-foreground font-bold capitalize">{k}</p>
+                                                    <p className="text-xs font-medium">{String(v)}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </>
                                 )}
                             </div>
                         </div>
 
-                        {/* Location */}
-                        {item.labInventoryLocation && (
-                            <div className="p-3 bg-muted/20 border border-border rounded-md flex items-center gap-2 text-sm">
-                                <MapPin className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-medium text-foreground">{String(t("inventory.general.equipment.location", { defaultValue: "Vị trí" }))}:</span>
-                                <span className="text-muted-foreground">{item.labInventoryLocation}</span>
+                        {/* Calibration & Maintenance */}
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2">
+                                <Wrench className="h-4 w-4 text-primary" />
+                                <h4 className="text-sm font-bold uppercase tracking-wide">Bảo trì & Hiệu chuẩn</h4>
                             </div>
-                        )}
-
-                        {/* Info list */}
-                        <div className="grid grid-cols-2 gap-4">
-                            {item.labInventoryManufacturer && (
-                                <div className="space-y-1">
-                                    <span className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1">{String(t("inventory.general.equipment.manufacturer", { defaultValue: "Hãng sản xuất" }))}</span>
-                                    <div className="text-sm text-foreground">{item.labInventoryManufacturer}</div>
-                                </div>
-                            )}
-                            {item.labInventoryModel && (
-                                <div className="space-y-1">
-                                    <span className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1">{String(t("inventory.general.equipment.model", { defaultValue: "Model" }))}</span>
-                                    <div className="text-sm text-foreground font-mono">{item.labInventoryModel}</div>
-                                </div>
-                            )}
-                            {item.labInventorySerial && (
-                                <div className="space-y-1">
-                                    <span className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1">{String(t("inventory.general.equipment.serial", { defaultValue: "Số Serial" }))}</span>
-                                    <div className="text-sm text-foreground font-mono">{item.labInventorySerial}</div>
-                                </div>
-                            )}
-                            {item.labInventoryImportDate && (
-                                <div className="space-y-1">
-                                    <span className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1">
-                                        <Calendar className="h-3 w-3" />
-                                        {String(t("inventory.general.equipment.importDate", { defaultValue: "Ngày nhập" }))}
-                                    </span>
-                                    <div className="text-sm text-foreground">{item.labInventoryImportDate.split("T")[0]}</div>
-                                </div>
-                            )}
-                            {item.labInventoryWarrantyExpiryDate && (
-                                <div className="space-y-1">
-                                    <span className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="p-4 rounded-2xl border border-border/50 bg-muted/10">
+                                    <p className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Hạn bảo hành</p>
+                                    <div className="flex items-center gap-2">
                                         <Calendar className="h-3 w-3 text-amber-500" />
-                                        {String(t("inventory.general.equipment.warrantyExpiry", { defaultValue: "Hạn bảo hành" }))}
-                                    </span>
-                                    <div className="text-sm text-foreground">{item.labInventoryWarrantyExpiryDate.split("T")[0]}</div>
+                                        <span className="text-xs font-semibold">{item.labInventoryWarrantyExpiryDate ? item.labInventoryWarrantyExpiryDate.split("T")[0] : "N/A"}</span>
+                                    </div>
                                 </div>
-                            )}
-                            {item.labInventoryLastCalibrationDate && (
-                                <div className="space-y-1">
-                                    <span className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1">
-                                        <Wrench className="h-3 w-3" />
-                                        {String(t("inventory.general.equipment.lastCal", { defaultValue: "Hiệu chuẩn lần cuối" }))}
-                                    </span>
-                                    <div className="text-sm text-foreground">{item.labInventoryLastCalibrationDate.split("T")[0]}</div>
+                                <div className="p-4 rounded-2xl border border-border/50 bg-muted/10">
+                                    <p className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Hiệu chuẩn tới</p>
+                                    <div className="flex items-center gap-2">
+                                        <Activity className="h-3 w-3 text-blue-500" />
+                                        <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">{item.labInventoryNextCalibrationDate ? item.labInventoryNextCalibrationDate.split("T")[0] : "---"}</span>
+                                    </div>
                                 </div>
-                            )}
-                            {item.labInventoryNextCalibrationDate && (
-                                <div className="space-y-1">
-                                    <span className="text-xs font-semibold text-muted-foreground uppercase flex items-center gap-1">
-                                        <Wrench className="h-3 w-3 text-blue-500" />
-                                        {String(t("inventory.general.equipment.nextCal", { defaultValue: "Hạn hiệu chuẩn" }))}
-                                    </span>
-                                    <div className="text-sm text-foreground">{item.labInventoryNextCalibrationDate.split("T")[0]}</div>
-                                </div>
-                            )}
+                            </div>
                         </div>
 
-                        {/* Specs */}
-                        {item.labInventorySpecifications && Object.keys(item.labInventorySpecifications).length > 0 && (
-                            <div className="space-y-2 pt-2 border-t">
-                                <h4 className="text-sm font-semibold text-foreground flex items-center gap-1">
-                                    <Info className="h-4 w-4 text-muted-foreground" />
-                                    {String(t("inventory.general.equipment.specifications", { defaultValue: "Thông số kỹ thuật" }))}
-                                </h4>
-                                <div className="bg-muted/10 p-3 rounded text-sm grid grid-cols-2 gap-y-2 border">
-                                    {Object.entries(item.labInventorySpecifications).map(([k, v]) => (
-                                        <div key={k} className="flex flex-col">
-                                            <span className="text-xs text-muted-foreground capitalize">{k}</span>
-                                            <span className="font-medium text-foreground">{String(v)}</span>
+                        {/* Attachments */}
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-primary" />
+                                <h4 className="text-sm font-bold uppercase tracking-wide">Tài liệu đính kèm</h4>
+                            </div>
+                            {(() => {
+                                const attachments = item.documents || item.labInventoryDocuments;
+                                if (attachments && attachments.length > 0) {
+                                    return (
+                                        <div className="grid grid-cols-1 gap-2">
+                                            {attachments.map((doc: any, idx: number) => (
+                                                <DocumentItem key={doc.documentId || idx} doc={doc} />
+                                            ))}
                                         </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                                    );
+                                }
+                                return (
+                                    <div className="p-6 rounded-2xl border border-dashed border-border bg-muted/5 text-center space-y-2">
+                                        <FileText className="h-8 w-8 text-muted-foreground/30 mx-auto" />
+                                        <p className="text-xs text-muted-foreground italic">Không có tài liệu đính kèm</p>
+                                    </div>
+                                );
+                            })()}
+                        </div>
 
-                       {/* Notes */}
-                       {item.labInventoryNotes && (
-                            <div className="space-y-2 pt-2 border-t">
-                                <h4 className="text-sm font-semibold text-foreground">{String(t("common.notes", { defaultValue: "Ghi chú" }))}</h4>
-                                <div className="text-sm text-muted-foreground bg-muted/10 p-3 rounded italic border">
+                        {/* Recent Activity Logs */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <History className="h-4 w-4 text-primary" />
+                                    <h4 className="text-sm font-bold uppercase tracking-wide">Nhật ký hoạt động</h4>
+                                </div>
+                                {item.activityLogs && item.activityLogs.length > 5 && (
+                                    <span className="text-[10px] font-bold text-primary hover:underline cursor-pointer">Xem tất cả</span>
+                                )}
+                            </div>
+                            <div className="bg-muted/10 p-5 rounded-2xl border border-border/50">
+                                {item.activityLogs && item.activityLogs.length > 0 ? (
+                                    <div className="space-y-2">
+                                        {item.activityLogs.slice(0, 5).map((log: any, idx: number) => (
+                                            <LogItem key={log.logId || idx} log={log} />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-4 space-y-2">
+                                        <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mx-auto">
+                                            <History className="h-5 w-5 text-muted-foreground" />
+                                        </div>
+                                        <p className="text-xs text-muted-foreground italic">Chưa có nhật ký hoạt động nào</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Footer Notes */}
+                        {item.labInventoryNotes && (
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2">
+                                    <PenLine className="h-4 w-4 text-primary" />
+                                    <h4 className="text-sm font-bold uppercase tracking-wide">Ghi chú bổ sung</h4>
+                                </div>
+                                <div className="p-4 rounded-2xl bg-primary/5 text-xs text-muted-foreground leading-relaxed border border-primary/10">
                                     {item.labInventoryNotes}
-                                </div>
-                            </div>
-                       )}
-
-                        {/* Docs */}
-                        {item.labInventoryDocuments && item.labInventoryDocuments.length > 0 && (
-                            <div className="space-y-2 pt-2 border-t">
-                                <h4 className="text-sm font-semibold text-foreground">{String(t("inventory.general.equipment.documents", { defaultValue: "Tài liệu đính kèm" }))} ({item.labInventoryDocuments.length})</h4>
-                                <div className="space-y-2 pt-1">
-                                    {item.labInventoryDocuments.map((doc, idx) => (
-                                        <DocumentItem key={idx} doc={doc} />
-                                    ))}
                                 </div>
                             </div>
                         )}
@@ -250,11 +344,15 @@ export function EquipmentDetailPanel({ labInventoryId, onClose, onEdit }: Props)
                 )}
             </div>
 
-            {/* Footer */}
+            {/* Sticky Actions */}
             {onEdit && item && (
-                <div className="p-4 border-t border-border bg-muted/10 shrink-0 flex justify-end">
-                    <Button variant="outline" className="w-full" onClick={() => onEdit(item)}>
-                        {String(t("common.edit", { defaultValue: "Sửa thông tin" }))}
+                <div className="p-4 border-t border-border bg-background shrink-0 shadow-[-4px_0_24px_rgba(0,0,0,0.05)]">
+                    <Button 
+                        variant="default" 
+                        className="w-full h-11 rounded-xl font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all" 
+                        onClick={() => onEdit(item)}
+                    >
+                        Chỉnh sửa thông tin
                     </Button>
                 </div>
             )}

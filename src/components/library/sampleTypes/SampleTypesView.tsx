@@ -47,16 +47,21 @@ export function SampleTypesView() {
     const [serverTotalPages, setServerTotalPages] = useState<number | null>(null);
     const pagination = useServerPagination(serverTotalPages, 20);
 
+    const [excelFilters, setExcelFilters] = useState<SampleTypesExcelFiltersState>(() => createEmptyFilters());
+
     const listInput = useMemo(
         () => ({
             query: {
                 page: pagination.currentPage,
-                itemsPerPage: 20,
+                itemsPerPage: pagination.itemsPerPage,
                 search: debouncedSearch.trim().length ? debouncedSearch.trim() : null,
+                "sampleTypeId[]": excelFilters.sampleTypeId.length > 0 ? excelFilters.sampleTypeId : null,
+                "sampleTypeName[]": excelFilters.sampleTypeName.length > 0 ? excelFilters.sampleTypeName : null,
+                "displayTypeStyle[]": excelFilters.displayTypeStyle.length > 0 ? excelFilters.displayTypeStyle : null,
             },
             sort: { column: "createdAt", direction: "DESC" as const },
         }),
-        [debouncedSearch, pagination.currentPage],
+        [debouncedSearch, pagination.currentPage, pagination.itemsPerPage, excelFilters],
     );
 
     const allQ = useSampleTypesList(listInput);
@@ -70,8 +75,6 @@ export function SampleTypesView() {
     const totalPages = serverMeta?.totalPages ?? 1;
 
     useEffect(() => setServerTotalPages(totalPages), [totalPages]);
-
-    const [excelFilters] = useState<SampleTypesExcelFiltersState>(() => createEmptyFilters());
 
     const isLoading = allQ.isLoading;
     const isError = allQ.isError;
@@ -116,7 +119,10 @@ export function SampleTypesView() {
                                 setCreateOpen(true);
                             }}
                             excelFilters={excelFilters}
-                            onExcelFiltersChange={() => {}}
+                            onExcelFiltersChange={(newFilters) => {
+                                setExcelFilters(newFilters);
+                                pagination.resetPage();
+                            }}
                         />
 
                         <div className="border-t p-3">

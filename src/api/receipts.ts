@@ -215,6 +215,53 @@ export async function receiptsExportReport(input: { body: ReceiptsExportReportBo
     });
 }
 
+export type ReceptionEmailFormResponse = {
+    from: string;
+    to: string;
+    subject: string;
+    body: string;
+    receiptId: string;
+    receiptCode: string;
+};
+
+export async function receiptsGetReceptionEmailForm(body: { receiptId: string }): Promise<ApiResponse<ReceptionEmailFormResponse>> {
+    return api.post<ReceptionEmailFormResponse>("/v2/receipts/get/receptionemailform", {
+        body,
+    });
+}
+
+export type FinalResultEmailFormItem = {
+    from: string;
+    to: string;
+    subject: string;
+    body: string;
+    attachments: string[];
+    clientName: string;
+    orderCode: string;
+};
+
+export type ReceiptsSendEmailBody = {
+    to: string;
+    cc?: string;
+    subject: string;
+    body: string;
+    attachments: string[];
+    type: "RECEPTION" | "FINAL_RESULT";
+};
+
+export async function receiptsSendEmail(body: ReceiptsSendEmailBody): Promise<ApiResponse<{ success: boolean; message?: string }>> {
+    return api.post("/v2/google/send/email", {
+        body,
+    });
+}
+
+export async function receiptsGetFinalResultEmailForm(body: { receiptId: string }): Promise<ApiResponse<FinalResultEmailFormItem[]>> {
+    return api.post<FinalResultEmailFormItem[]>("/v2/receipts/get/finalresultemailform", {
+        body,
+    });
+}
+
+
 export type ReceiptsFilterFrom = "receiptStatus" | "clientId" | "receiptCode" | "receiptDeliveryMethod" | "receiptPriority";
 
 export type ReceiptsFilterOtherFilter = {

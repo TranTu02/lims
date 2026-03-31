@@ -15,6 +15,8 @@ export type ListQuery = {
     parameterId?: string | null;
     protocolId?: string | null;
     sampleTypeId?: string | null;
+    
+    [key: string]: unknown;
 };
 
 export type ListSort = {
@@ -87,16 +89,9 @@ function stableKey(value: unknown): string {
 
 function buildListQuery(input?: { query?: ListQuery; sort?: ListSort }): Record<string, unknown> {
     const raw: Record<string, unknown> = {
-        page: input?.query?.page,
-        itemsPerPage: input?.query?.itemsPerPage,
-        search: input?.query?.search ?? undefined,
-
-        parameterId: input?.query?.parameterId ?? undefined,
-        protocolId: input?.query?.protocolId ?? undefined,
-        sampleTypeId: input?.query?.sampleTypeId ?? undefined,
-
-        sortColumn: input?.sort?.column,
-        sortDirection: input?.sort?.direction,
+        ...input?.query,
+        ...(input?.sort?.column ? { sortColumn: input?.sort?.column } : {}),
+        ...(input?.sort?.direction ? { sortDirection: input?.sort?.direction } : {}),
     };
 
     // Remove keys whose value is null or undefined so Axios does not
@@ -110,8 +105,8 @@ export type IdentityExpanded = {
     alias?: string;
 };
 
-/** Phạm vi công nhận: key là tên chứng nhận (e.g. "VILAS997", "TDC"), value là boolean */
-export type ProtocolAccreditation = Record<string, boolean>;
+/** Phạm vi công nhận: key là tên chứng nhận (e.g. "VILAS997", "TDC"), value có thể là boolean hoặc object chứa ngày cấp/hết hạn */
+export type ProtocolAccreditation = Record<string, { registrationDate?: string | null; expirationDate?: string | null } | boolean>;
 
 export type Matrix = {
     matrixId: string;
@@ -137,6 +132,11 @@ export type Matrix = {
     turnaroundTime?: number | null;
 
     technicianGroupId?: string | null;
+    
+    equipmentIds?: string[] | null;
+    equipments?: ProtocolEquipment[] | null;
+    labToolIds?: string[] | null;
+    labTools?: ProtocolLabTool[] | null;
 
     createdAt: string;
     createdBy?: IdentityExpanded | null;
@@ -311,6 +311,11 @@ export type MatrixCreateBody = {
     protocolSource?: string | null;
     sampleTypeName?: string | null;
     chemicals?: MatrixChemical[] | null;
+
+    equipmentIds?: string[] | null;
+    equipments?: ProtocolEquipment[] | null;
+    labToolIds?: string[] | null;
+    labTools?: ProtocolLabTool[] | null;
 };
 
 export type MatrixPatch = Partial<MatrixCreateBody>;
@@ -416,7 +421,7 @@ export type ParameterGroupCreateFullBody = {
     feeAfterTax: number;
 };
 
-export type ParametersFilterFrom = "parameterId" | "parameterName" | "technicianAlias" | "unit";
+export type ParametersFilterFrom = "parameterId" | "parameterName" | "technicianAlias" | "technicianGroupId" | "parameterStatus" | "unit";
 
 export type ParametersFilterOtherFilter = {
     filterFrom: ParametersFilterFrom;
@@ -874,11 +879,12 @@ export function useProtocolsAll(input?: { query?: ListQuery; sort?: ListSort }, 
     });
 }
 
-export function useParametersList(input?: { query?: ListQuery; sort?: ListSort }) {
+export function useParametersList(input?: { query?: ListQuery; sort?: ListSort }, opts?: { enabled?: boolean }) {
     return useQuery({
         queryKey: libraryKeys.parametersList(input),
         queryFn: async () => assertSuccessWithMeta(await libraryApi.parameters.list(input)),
         placeholderData: keepPreviousData,
+        enabled: opts?.enabled ?? true,
     });
 }
 
@@ -953,11 +959,12 @@ export function useParametersAll(input?: { query?: ListQuery; sort?: ListSort },
     });
 }
 
-export function useSampleTypesList(input?: { query?: ListQuery; sort?: ListSort }) {
+export function useSampleTypesList(input?: { query?: ListQuery; sort?: ListSort }, opts?: { enabled?: boolean }) {
     return useQuery({
         queryKey: libraryKeys.sampleTypesList(input),
         queryFn: async () => assertSuccessWithMeta(await libraryApi.sampleTypes.list(input)),
         placeholderData: keepPreviousData,
+        enabled: opts?.enabled ?? true,
     });
 }
 export function useCreateSampleType() {

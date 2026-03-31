@@ -23,6 +23,8 @@ import { IdentityPage } from "@/pages/IdentityPage";
 import { CRMPage } from "@/pages/crm/CRMPage";
 import { ChemicalInventoryPage } from "@/pages/inventory/chemical/ChemicalInventoryPage";
 import { GeneralInventoryPage } from "@/pages/inventory/general/GeneralInventoryPage";
+import { ShipmentPrintPage } from "@/pages/ShipmentPrintPage";
+
 
 
 // Protected Route Wrapper
@@ -75,6 +77,9 @@ function App() {
                         <Route path="/general-inventory" element={<GeneralInventoryPage />} />
                         <Route path="/hr" element={<IdentityPage />} />
                     </Route>
+
+                    {/* Print Routes */}
+                    <Route path="/print/shipment/:shipmentId" element={<ShipmentPrintPage />} />
 
                     {/* Fallback */}
                     <Route path="*" element={<Navigate to="/" replace />} />

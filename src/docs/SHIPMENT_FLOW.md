@@ -11,14 +11,14 @@ Tài liệu này mô tả chi tiết các luồng xử lý dữ liệu và logic
 ```
 BLACK/LOGISTICS/
 ├── 1_logisticsEntities.js    # Base class LogisticsEntity + Shipment entity
-├── 2_shipments.js             # Business logic (createOrder, cancel, VTP integration)
+├── 2_ShipmentOrder.js             # Business logic (createOrder, cancel, VTP integration)
 ├── 3_logistics_api_handler.js # API routes handler
 └── TEST_LOGISTICS.js          # Comprehensive test suite
 ```
 
 ### B. Database Schema
 
-**Bảng**: `service.shipments`  
+**Bảng**: `service.ShipmentOrder`  
 **Primary Key**: `shipmentId` (text)
 
 | Field                        | Type      | Description                                  |
@@ -44,7 +44,7 @@ BLACK/LOGISTICS/
 
 ## 2. Quản lý Vận đơn (`Shipment`)
 
-**File nguồn**: `BLACK/LOGISTICS/2_shipments.js`  
+**File nguồn**: `BLACK/LOGISTICS/2_ShipmentOrder.js`  
 **Kế thừa từ**: `LogisticsEntity` (`BLACK/LOGISTICS/1_logisticsEntities.js`)
 
 ### A. Tạo Vận đơn (`createOrder`)
@@ -192,7 +192,7 @@ Hàm `Shipment.createOrder` là điểm truy cập chính để tạo vận đơ
 
 **Luồng xử lý**:
 
-1. Xác thực & phân quyền: `READ` trên `service.shipments`
+1. Xác thực & phân quyền: `READ` trên `service.ShipmentOrder`
 2. Build SQL query:
     - WHERE: `deletedAt IS NULL`
     - Filter: Simple equality (VD: `status = 'CREATED'`)
@@ -277,12 +277,12 @@ Tuân thủ chặt chẽ `DOCUMENTATION/API_RULE.md`.
 
 | Action   | HTTP Method | Option   | Endpoint                          | Mô tả                           |
 | -------- | ----------- | -------- | --------------------------------- | ------------------------------- |
-| `get`    | GET         | `list`   | `/v2/shipments/get/list`          | Danh sách phân trang            |
-| `get`    | GET         | `detail` | `/v2/shipments/get/detail?id=...` | Chi tiết 1 record               |
-| `get`    | GET         | `full`   | `/v2/shipments/get/full?id=...`   | Chi tiết + Receipt snapshots    |
-| `create` | POST        | -        | `/v2/shipments/create`            | Tạo vận đơn (gọi `createOrder`) |
-| `update` | POST        | -        | `/v2/shipments/update`            | Cập nhật / Hủy đơn              |
-| `delete` | POST        | -        | `/v2/shipments/delete`            | Xóa mềm                         |
+| `get`    | GET         | `list`   | `/v2/ShipmentOrder/get/list`          | Danh sách phân trang            |
+| `get`    | GET         | `detail` | `/v2/ShipmentOrder/get/detail?id=...` | Chi tiết 1 record               |
+| `get`    | GET         | `full`   | `/v2/ShipmentOrder/get/full?id=...`   | Chi tiết + Receipt snapshots    |
+| `create` | POST        | -        | `/v2/ShipmentOrder/create`            | Tạo vận đơn (gọi `createOrder`) |
+| `update` | POST        | -        | `/v2/ShipmentOrder/update`            | Cập nhật / Hủy đơn              |
+| `delete` | POST        | -        | `/v2/ShipmentOrder/delete`            | Xóa mềm                         |
 
 ### Auth Token Extraction
 
@@ -309,7 +309,7 @@ const authToken = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : 
 ### Tạo vận đơn VTP + Cập nhật Receipt
 
 ```
-1. Frontend → POST /v2/shipments/create
+1. Frontend → POST /v2/ShipmentOrder/create
    Body: { sender, receiver, product, order, receiptIds: ["TNM26c0904"] }
 
 2. API Handler → Shipment.createOrder()

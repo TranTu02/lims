@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 
 import type { Matrix } from "@/api/library";
-import { useMatricesFilter, type MatricesFilterFrom, type MatricesFilterOtherFilter } from "@/api/library";
+import { useMatricesFilter, useSampleTypesList, useParametersList, type MatricesFilterFrom } from "@/api/library";
 
 import type { ExcelFiltersState } from "./MatricesView";
 import { formatNumberVi } from "./matrixFormat";
@@ -40,34 +40,11 @@ function getProtocolLabel(m: Matrix): string {
 }
 
 const FILTER_FROM_MAP: Record<FilterKey, MatricesFilterFrom> = {
-    matrixId: "matrixId",
-    parameterId: "parameterId",
-    parameterName: "parameterName",
-    protocolId: "protocolId",
-    protocolCode: "protocolCode",
     sampleTypeId: "sampleTypeId",
-    sampleTypeName: "sampleTypeName",
-    feeBeforeTax: "feeBeforeTax",
-    feeAfterTax: "feeAfterTax",
+    parameterId: "parameterId",
 };
 
-function buildOtherFilters(filters: ExcelFiltersState, excludeKey: FilterKey): MatricesFilterOtherFilter[] {
-    const out: MatricesFilterOtherFilter[] = [];
 
-    (Object.keys(filters) as FilterKey[]).forEach((k) => {
-        if (k === excludeKey) return;
-
-        const v = filters[k];
-        if (!Array.isArray(v) || v.length === 0) return;
-
-        out.push({
-            filterFrom: FILTER_FROM_MAP[k],
-            filterValues: v as Array<string | number>,
-        });
-    });
-
-    return out;
-}
 
 type ExcelFilterPopoverProps =
     | {
@@ -109,30 +86,77 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
             body: {
                 filterFrom,
                 textFilter: debouncedSearch.trim().length ? debouncedSearch.trim() : null,
-                otherFilters: buildOtherFilters(props.excelFilters, props.filterKey),
+                otherFilters: [],
                 limit: props.limit ?? 200,
             },
         }),
         [filterFrom, debouncedSearch, props.excelFilters, props.filterKey, props.limit],
     );
 
-    const q = useMatricesFilter(filterInput, { enabled: open });
+    const isSampleTypeFilter = props.filterKey === "sampleTypeId";
+    const isParameterFilter = props.filterKey === "parameterId";
+    const isApiFilter = isSampleTypeFilter || isParameterFilter;
+
+    const qMatrices = useMatricesFilter(filterInput, { enabled: open && !isApiFilter });
+
+    const qSampleTypes = useSampleTypesList(
+        {
+            query: {
+                page: 1,
+                itemsPerPage: 100,
+                search: debouncedSearch.trim() || undefined,
+            },
+        },
+        { enabled: open && isSampleTypeFilter },
+    );
+
+    const qParameters = useParametersList(
+        {
+            query: {
+                page: 1,
+                itemsPerPage: 100,
+                search: debouncedSearch.trim() || undefined,
+            },
+        },
+        { enabled: open && isParameterFilter },
+    );
+
+    const q = isSampleTypeFilter ? qSampleTypes : isParameterFilter ? qParameters : qMatrices;
 
     const apiOptions = useMemo((): Array<OptionWithCount<string> | OptionWithCount<number>> => {
-        const data = q.data ?? [];
+        if (isSampleTypeFilter) {
+            const data = (qSampleTypes.data?.data ?? []) as any[];
+            return data.map((st) => ({
+                value: String(st.sampleTypeId || ""),
+                label: st.sampleTypeName ? `${st.sampleTypeId} - ${st.sampleTypeName}` : st.sampleTypeId,
+                count: 0,
+            }));
+        }
+
+        if (isParameterFilter) {
+            const data = (qParameters.data?.data ?? []) as any[];
+            return data.map((p) => ({
+                value: String(p.parameterId || ""),
+                label: p.parameterName ? `${p.parameterId} - ${p.parameterName}` : p.parameterId,
+                count: 0,
+            }));
+        }
+
+        const rawBody = qMatrices.data as any;
+        const data = Array.isArray(rawBody) ? rawBody : (rawBody?.data ?? []) as any[];
 
         if (props.type === "string") {
-            return data.map((x) => ({ value: x.filterValue, count: x.count })).filter((x) => x.value.trim().length > 0);
+            return data.map((x) => ({ value: String(x?.filterValue ?? ""), count: Number(x?.count ?? 0) })).filter((x) => x.value.trim().length > 0);
         }
 
         return data
             .map((x) => {
-                const n = Number(x.filterValue);
+                const n = Number(x?.filterValue);
                 if (Number.isNaN(n)) return null;
-                return { value: n, count: x.count };
+                return { value: n, count: Number(x?.count ?? 0) };
             })
             .filter((x): x is OptionWithCount<number> => Boolean(x));
-    }, [q.data, props.type]);
+    }, [qMatrices.data, qSampleTypes.data, props.type, isSampleTypeFilter]);
 
     const filteredOptions = useMemo(() => {
         const qtext = search.trim().toLowerCase();
@@ -226,10 +250,10 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
                                                     >
                                                         {checked ? <Check className="h-3 w-3" /> : null}
                                                     </span>
-                                                    <span className="text-sm text-foreground">{key}</span>
+                                                    <span className="text-sm text-foreground break-words whitespace-normal">{(o as any).label || key}</span>
                                                 </div>
 
-                                                <span className="text-xs text-muted-foreground tabular-nums">{o.count}</span>
+                                                {!isSampleTypeFilter && !isParameterFilter && <span className="text-xs text-muted-foreground tabular-nums">{o.count}</span>}
                                             </CommandItem>
                                         );
                                     })}
@@ -260,30 +284,12 @@ export function MatricesTable(props: Props) {
         onExcelFiltersChange({ ...excelFilters, [key]: values } as ExcelFiltersState);
     };
 
-    const setNum = (key: FilterKey, values: number[]) => {
-        onExcelFiltersChange({ ...excelFilters, [key]: values } as ExcelFiltersState);
-    };
-
     return (
         <div className="overflow-x-auto">
             <table className="w-full min-w-max">
                 <thead className="bg-muted/50 border-b border-border">
                     <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                            <span className="inline-flex items-center gap-2">
-                                {String(t("library.matrices.matrixId"))}
-                                <ExcelFilterPopover
-                                    type="string"
-                                    title={String(t("library.matrices.matrixId"))}
-                                    filterKey="matrixId"
-                                    activeCount={excelFilters.matrixId.length}
-                                    selected={excelFilters.matrixId}
-                                    excelFilters={excelFilters}
-                                    onApply={(v) => setStr("matrixId", v)}
-                                    onClear={() => setStr("matrixId", [])}
-                                />
-                            </span>
-                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.matrices.matrixId"))}</th>
 
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                             <span className="inline-flex items-center gap-2">
@@ -301,21 +307,7 @@ export function MatricesTable(props: Props) {
                             </span>
                         </th>
 
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                            <span className="inline-flex items-center gap-2">
-                                {String(t("library.matrices.protocolId"))}
-                                <ExcelFilterPopover
-                                    type="string"
-                                    title={String(t("library.matrices.protocolId"))}
-                                    filterKey="protocolId"
-                                    activeCount={excelFilters.protocolId.length}
-                                    selected={excelFilters.protocolId}
-                                    excelFilters={excelFilters}
-                                    onApply={(v) => setStr("protocolId", v)}
-                                    onClear={() => setStr("protocolId", [])}
-                                />
-                            </span>
-                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.matrices.protocolId"))}</th>
 
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                             <span className="inline-flex items-center gap-2">
@@ -333,37 +325,9 @@ export function MatricesTable(props: Props) {
                             </span>
                         </th>
 
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                            <span className="inline-flex items-center gap-2">
-                                {String(t("library.matrices.feeBeforeTax"))}
-                                <ExcelFilterPopover
-                                    type="number"
-                                    title={String(t("library.matrices.feeBeforeTax"))}
-                                    filterKey="feeBeforeTax"
-                                    activeCount={excelFilters.feeBeforeTax.length}
-                                    selected={excelFilters.feeBeforeTax}
-                                    excelFilters={excelFilters}
-                                    onApply={(v) => setNum("feeBeforeTax", v)}
-                                    onClear={() => setNum("feeBeforeTax", [])}
-                                />
-                            </span>
-                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.matrices.feeBeforeTax"))}</th>
 
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                            <span className="inline-flex items-center gap-2">
-                                {String(t("library.matrices.feeAfterTax"))}
-                                <ExcelFilterPopover
-                                    type="number"
-                                    title={String(t("library.matrices.feeAfterTax"))}
-                                    filterKey="feeAfterTax"
-                                    activeCount={excelFilters.feeAfterTax.length}
-                                    selected={excelFilters.feeAfterTax}
-                                    excelFilters={excelFilters}
-                                    onApply={(v) => setNum("feeAfterTax", v)}
-                                    onClear={() => setNum("feeAfterTax", [])}
-                                />
-                            </span>
-                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.matrices.feeAfterTax"))}</th>
 
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("common.actions"))}</th>
                     </tr>

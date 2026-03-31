@@ -19,15 +19,15 @@ export function GeneralInventoryLayout() {
                 <TabsList className="w-fit">
                     <TabsTrigger value="equipment" className="flex items-center gap-2">
                         <Cpu className="h-4 w-4" />
-                        {String(t("inventory.general.tabs.equipment", { defaultValue: "Thiết bị máy móc" }))}
+                        {String(t("inventory.general.tabs.inventory", { defaultValue: "Vật tư - Kho" }))}
                     </TabsTrigger>
                     <TabsTrigger value="lab-tools" className="flex items-center gap-2">
                         <Wrench className="h-4 w-4" />
-                        {String(t("inventory.general.tabs.labTools", { defaultValue: "Dụng cụ thí nghiệm" }))}
+                        {String(t("inventory.general.tabs.skus", { defaultValue: "Danh mục thiết bị & Dụng cụ" }))}
                     </TabsTrigger>
                     <TabsTrigger value="activity-logs" className="flex items-center gap-2">
                         <Activity className="h-4 w-4" />
-                        {String(t("inventory.general.tabs.activityLogs", { defaultValue: "Sổ cái Truy vết" }))}
+                        {String(t("inventory.general.tabs.activityLogs", { defaultValue: "Sổ cái truy vết" }))}
                     </TabsTrigger>
                 </TabsList>
 

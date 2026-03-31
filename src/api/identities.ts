@@ -21,6 +21,12 @@ export type IdentityListItem = {
     identityStatus: IdentityStatus;
     createdAt: string;
     identityGroupId?: string | null;
+    identityPhone?: string | null;
+    identityNID?: string | null;
+    identityAddress?: string | null;
+
+    identityDocumentIds?: string[] | null;
+    documents?: unknown[]; // Placeholder for joined documents if any
 
     createdBy?: IdentityActor;
     createdById?: string | null;
@@ -36,6 +42,10 @@ export type IdentityListItem = {
 
 export type IdentityDetail = IdentityListItem & {
     permissions: Record<string, unknown>;
+};
+
+export type IdentityFull = IdentityDetail & {
+    // Other joined fields can go here
 };
 
 export type IdentitiesListQuery = {
@@ -57,6 +67,11 @@ export type IdentityCreateBody = {
     roles: IdentityRoles;
     permissions: Record<string, unknown>;
     identityStatus: IdentityStatus;
+    identityDocumentIds?: string[];
+    identityGroupId?: string;
+    identityPhone?: string;
+    identityNID?: string;
+    identityAddress?: string;
 };
 
 export type IdentityUpdateBody = {
@@ -65,6 +80,11 @@ export type IdentityUpdateBody = {
     roles?: IdentityRoles;
     permissions?: Record<string, unknown>;
     identityStatus?: IdentityStatus;
+    identityDocumentIds?: string[];
+    identityGroupId?: string;
+    identityPhone?: string;
+    identityNID?: string;
+    identityAddress?: string;
 };
 
 export type IdentitiesFilterFrom = "identityId" | "email" | "identityName" | "alias" | "identityStatus" | "entityType";
@@ -189,14 +209,22 @@ function sanitizeListItem(raw: unknown): IdentityListItem | null {
         email,
         identityName,
         alias,
-        roles: sanitizeRoles(raw.roles),
+        roles: sanitizeRoles(raw.identityRoles || raw.roles),
         identityStatus: sanitizeStatus(raw.identityStatus),
         createdAt,
+
+        identityGroupId: typeof raw.identityGroupId === "string" ? raw.identityGroupId : null,
+        identityPhone: typeof raw.identityPhone === "string" ? raw.identityPhone : null,
+        identityNID: typeof raw.identityNID === "string" ? raw.identityNID : null,
+        identityAddress: typeof raw.identityAddress === "string" ? raw.identityAddress : null,
 
         createdById: typeof raw.createdById === "string" ? raw.createdById : null,
         modifiedAt: typeof raw.modifiedAt === "string" ? raw.modifiedAt : null,
         modifiedById: typeof raw.modifiedById === "string" ? raw.modifiedById : null,
         deletedAt: typeof raw.deletedAt === "string" ? raw.deletedAt : null,
+
+        identityDocumentIds: Array.isArray(raw.identityDocumentIds) ? raw.identityDocumentIds : [],
+        documents: Array.isArray(raw.documents) ? raw.documents : [],
 
         entity: isObject(raw.entity)
             ? {
@@ -261,31 +289,68 @@ export async function identitiesGetList(input: { query: IdentitiesListQuery }): 
     return fail("BAD_RESPONSE_SHAPE", "Unexpected response shape (identities list)");
 }
 
-export async function identitiesGetDetail(input: { query: { identityId: string } }): Promise<ApiResponse<IdentityDetail>> {
-    const raw: unknown = await api.getRaw<unknown, { identityId: string }>("/v2/identities/get/detail", {
-        query: input.query,
-        headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
-    });
-
-    if (isApiResponseShape(raw)) {
-        const asApi = raw as ApiResponse<unknown>;
-        if (asApi.success) {
-            const d1 = sanitizeDetail(asApi.data);
-            if (d1) return ok(d1, (asApi.meta ?? null) as ApiMeta | null);
-        }
-        return asApi as ApiResponse<IdentityDetail>;
+export async function identitiesGetDetail(input: {
+  query: { identityId: string };
+}): Promise<ApiResponse<IdentityDetail>> {
+  const raw: unknown = await api.getRaw<unknown, { identityId: string }>(
+    "/v2/identities/get/detail",
+    {
+      query: { identityId: input.query.identityId },
+      headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
     }
+  );
 
-    const d1 = sanitizeDetail(raw);
-    if (d1) return ok(d1);
-
-    if (isObject(raw)) {
-        const maybeData = (raw as { data?: unknown }).data;
-        const d2 = sanitizeDetail(maybeData);
-        if (d2) return ok(d2);
+  if (isApiResponseShape(raw)) {
+    const asApi = raw as ApiResponse<unknown>;
+    if (asApi.success) {
+      const d1 = sanitizeDetail(asApi.data);
+      if (d1) return ok(d1, (asApi.meta ?? null) as ApiMeta | null);
     }
+    return asApi as ApiResponse<IdentityDetail>;
+  }
 
-    return fail("BAD_RESPONSE_SHAPE", "Unexpected response shape (identity detail)");
+  const d1 = sanitizeDetail(raw);
+  if (d1) return ok(d1);
+
+  if (isObject(raw)) {
+    const maybeData = (raw as { data?: unknown }).data;
+    const d2 = sanitizeDetail(maybeData);
+    if (d2) return ok(d2);
+  }
+
+  return fail(
+    "BAD_RESPONSE_SHAPE",
+    "Unexpected response shape (identity detail)"
+  );
+}
+
+export async function identitiesGetFull(input: {
+  query: { identityId: string };
+}): Promise<ApiResponse<IdentityFull>> {
+  const raw: unknown = await api.getRaw<unknown, { identityId: string }>(
+    "/v2/identities/get/full",
+    {
+      query: { identityId: input.query.identityId },
+      headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+    }
+  );
+
+  if (isApiResponseShape(raw)) {
+    const asApi = raw as ApiResponse<unknown>;
+    if (asApi.success) {
+      const d1 = sanitizeDetail(asApi.data);
+      if (d1) return ok(d1 as IdentityFull, (asApi.meta ?? null) as ApiMeta | null);
+    }
+    return asApi as ApiResponse<IdentityFull>;
+  }
+
+  const d1 = sanitizeDetail(raw);
+  if (d1) return ok(d1 as IdentityFull);
+
+  return fail(
+    "BAD_RESPONSE_SHAPE",
+    "Unexpected response shape (identity full)"
+  );
 }
 
 export async function identitiesCreate(input: { body: IdentityCreateBody }): Promise<ApiResponse<IdentityDetail>> {
@@ -374,6 +439,8 @@ export const identitiesKeys = {
     allList: (input: { query: IdentitiesListQuery }) => [...identitiesKeys.all, "all", stableKey(input)] as const,
 
     filter: (input: { body: IdentitiesFilterBody }) => [...identitiesKeys.all, "filter", stableKey(input)] as const,
+
+    full: (identityId: string) => [...identitiesKeys.all, "full", identityId] as const,
 };
 
 export function useIdentitiesList(input: { query: IdentitiesListQuery }, opts?: { enabled?: boolean }) {
@@ -439,6 +506,19 @@ export function useIdentitiesFilter(input: { body: IdentitiesFilterBody }, opts?
                 data: assertSuccess(res),
                 meta: res.meta ?? null,
             } satisfies IdentitiesFilterResult;
+        },
+    });
+}
+
+export function useIdentityFull(identityId: string | null, opts?: { enabled?: boolean }) {
+    return useQuery({
+        queryKey: identitiesKeys.full(identityId ?? ""),
+        enabled: (opts?.enabled ?? true) && Boolean(identityId),
+        retry: false,
+        queryFn: async () => {
+            if (!identityId) throw new Error("identityId is required");
+            const res = await identitiesGetFull({ query: { identityId } });
+            return assertSuccess(res);
         },
     });
 }

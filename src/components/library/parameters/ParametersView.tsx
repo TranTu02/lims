@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AlertCircle, X } from "lucide-react";
+import { AlertCircle, X, Check, ChevronsUpDown, Loader2 } from "lucide-react";
 
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 import { useCreateParameter, useUpdateParameter, useParametersList } from "@/api/library";
+import { useEnumList } from "@/api/chemical";
 
 import type { Parameter } from "@/types/library";
 import type { ParameterWithMatrices } from "../hooks/useLibraryData";
@@ -18,6 +22,48 @@ import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { ParametersTable, type ParametersExcelFiltersState } from "./ParametersTable";
 import { ParameterDetailPanel } from "./ParametersDetailPanel";
 import { ParameterMatrixManager } from "./ParameterMatrixManager";
+
+function TechnicianAliasSelect({ value, onChange }: { value: string; onChange: (val: string) => void }) {
+    const { t } = useTranslation();
+    const [open, setOpen] = useState(false);
+    const { data: enumList, isLoading } = useEnumList("technicianAlias", { enabled: true });
+
+    const options = useMemo(() => (Array.isArray(enumList) ? (enumList as string[]) : []), [enumList]);
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between font-normal h-9 px-3">
+                    <span className="truncate">{value || t("library.parameters.create.technicianAliasPlaceholder", { defaultValue: "Chọn vị trí..." })}</span>
+                    {isLoading ? <Loader2 className="ml-2 h-4 w-4 shrink-0 animate-spin opacity-50" /> : <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />}
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[300px] p-0" align="start">
+                <Command>
+                    <CommandInput placeholder={String(t("common.search"))} />
+                    <CommandList>
+                        <CommandEmpty>{String(t("common.noData"))}</CommandEmpty>
+                        <CommandGroup>
+                            {options.map((opt) => (
+                                <CommandItem
+                                    key={opt}
+                                    value={opt}
+                                    onSelect={() => {
+                                        onChange(opt === value ? "" : opt);
+                                        setOpen(false);
+                                    }}
+                                >
+                                    <Check className={cn("mr-2 h-4 w-4", value === opt ? "opacity-100" : "opacity-0")} />
+                                    {opt}
+                                </CommandItem>
+                            ))}
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
+    );
+}
 
 type CreateParameterForm = {
     parameterId?: string;
@@ -74,9 +120,9 @@ function toParameterWithMatrices(p: Parameter): ParameterWithMatrices {
 
 function createEmptyFilters(): ParametersExcelFiltersState {
     return {
-        parameterId: [],
-        parameterName: [],
         technicianAlias: [],
+        technicianGroupId: [],
+        parameterStatus: [],
     };
 }
 
@@ -105,16 +151,21 @@ export function ParametersView() {
     const [serverTotalPages, setServerTotalPages] = useState<number | null>(null);
     const pagination = useServerPagination(serverTotalPages, 20);
 
+    const [excelFilters, setExcelFilters] = useState<ParametersExcelFiltersState>(() => createEmptyFilters());
+
     const listInput = useMemo(
         () => ({
             query: {
                 page: pagination.currentPage,
-                itemsPerPage: 20,
+                itemsPerPage: pagination.itemsPerPage,
                 search: debouncedSearch.trim().length ? debouncedSearch.trim() : null,
+                "technicianAlias[]": excelFilters.technicianAlias.length > 0 ? excelFilters.technicianAlias : null,
+                "technicianGroupId[]": excelFilters.technicianGroupId.length > 0 ? excelFilters.technicianGroupId : null,
+                "parameterStatus[]": excelFilters.parameterStatus.length > 0 ? excelFilters.parameterStatus : null,
             },
             sort: { column: "createdAt", direction: "DESC" as const },
         }),
-        [debouncedSearch, pagination.currentPage],
+        [debouncedSearch, pagination.currentPage, pagination.itemsPerPage, excelFilters],
     );
 
     const parametersQ = useParametersList(listInput);
@@ -129,8 +180,6 @@ export function ParametersView() {
     const totalPages = serverMeta?.totalPages ?? 1;
 
     useEffect(() => setServerTotalPages(totalPages), [totalPages]);
-
-    const [excelFilters] = useState<ParametersExcelFiltersState>(() => createEmptyFilters());
 
     const createParam = useCreateParameter();
     const updateParam = useUpdateParameter();
@@ -242,7 +291,10 @@ export function ParametersView() {
                             onSelect={(p) => setSelectedParameter(p)}
                             onEdit={openEdit}
                             excelFilters={excelFilters}
-                            onExcelFiltersChange={() => {}}
+                            onExcelFiltersChange={(nextFilters) => {
+                                setExcelFilters(nextFilters);
+                                pagination.resetPage();
+                            }}
                         />
 
                         <div className="border-t p-3">
@@ -291,10 +343,9 @@ export function ParametersView() {
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <div className="text-sm font-medium text-foreground">{String(t("library.parameters.technicianAlias", { defaultValue: "Vị trí phụ trách" }))}</div>
-                                        <Input
-                                            value={createForm.technicianAlias}
-                                            onChange={(e) => setCreateForm((s) => ({ ...s, technicianAlias: e.target.value }))}
-                                            placeholder={String(t("library.parameters.create.technicianAliasPlaceholder", { defaultValue: "e.g. CHEM01" }))}
+                                        <TechnicianAliasSelect
+                                            value={createForm.technicianAlias || ""}
+                                            onChange={(val) => setCreateForm((s) => ({ ...s, technicianAlias: val }))}
                                         />
                                     </div>
                                     <div className="space-y-2">

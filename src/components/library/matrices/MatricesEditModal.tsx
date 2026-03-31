@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ExternalLink } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ExternalLink } from "lucide-react";
 
 import {
     useMatrixFull,
@@ -14,7 +14,10 @@ import {
     useCreateParameter,
     useCreateSampleType,
     useCreateProtocol,
+    useProtocolFull,
     type ProtocolChemical,
+    type ProtocolEquipment,
+    type ProtocolLabTool,
     type MatrixPatch,
     type Parameter,
     type Protocol,
@@ -23,6 +26,8 @@ import {
 
 import { SearchableSelect, type Option } from "@/components/common/SearchableSelect";
 import { ChemicalBomTable, type ChemicalBomItem } from "../shared/ChemicalBomTable";
+import { EquipmentSnapshotTable, type EquipmentSnapshotItem } from "../shared/EquipmentSnapshotTable";
+import { LabToolSnapshotTable, type LabToolSnapshotItem } from "../shared/LabToolSnapshotTable";
 import { ParameterFormModal } from "../parameters/ParameterFormModal";
 import { SampleTypeFormModal } from "../sampleTypes/SampleTypeFormModal";
 import { ProtocolFormModal } from "../protocols/ProtocolFormModal";
@@ -64,6 +69,8 @@ type FormState = {
     thresholdLimit: string;
 
     chemicals: ChemicalBomItem[];
+    equipments: EquipmentSnapshotItem[];
+    labTools: LabToolSnapshotItem[];
 };
 
 function initForm(): FormState {
@@ -85,6 +92,8 @@ function initForm(): FormState {
         LOQ: "",
         thresholdLimit: "",
         chemicals: [],
+        equipments: [],
+        labTools: [],
     };
 }
 
@@ -100,7 +109,7 @@ function parseOptionalInt(raw: string): number | null {
     return Math.trunc(n);
 }
 
-function useDebouncedValue(value: string, ms: number) {
+function useLocalDebouncedValue(value: string, ms: number) {
     const [v, setV] = useState(value);
     useEffect(() => {
         const t = window.setTimeout(() => setV(value), ms);
@@ -158,15 +167,36 @@ export function MatricesEditModal(props: Props) {
     const [createSampleTypeName, setCreateSampleTypeName] = useState<string>("");
     const [createProtocolCode, setCreateProtocolCode] = useState<string>("");
 
+    const protocolFullQ = useProtocolFull(form.protocolId);
     const [protocolSnapshotChemicals, setProtocolSnapshotChemicals] = useState<ProtocolChemical[]>([]);
+    const [protocolSnapshotEquipments, setProtocolSnapshotEquipments] = useState<ProtocolEquipment[]>([]);
+    const [protocolSnapshotLabTools, setProtocolSnapshotLabTools] = useState<ProtocolLabTool[]>([]);
 
     useEffect(() => {
-        if (!detailQ.data?.protocol?.chemicals) {
+        if (detailQ.data?.protocol?.chemicals) {
+            setProtocolSnapshotChemicals(detailQ.data.protocol.chemicals);
+        } else if (protocolFullQ.data?.chemicals) {
+            setProtocolSnapshotChemicals(protocolFullQ.data.chemicals);
+        } else {
             setProtocolSnapshotChemicals([]);
-            return;
         }
-        setProtocolSnapshotChemicals(detailQ.data.protocol.chemicals);
-    }, [detailQ.data]);
+
+        if (detailQ.data?.protocol?.equipments) {
+            setProtocolSnapshotEquipments(detailQ.data.protocol.equipments);
+        } else if (protocolFullQ.data?.equipments) {
+            setProtocolSnapshotEquipments(protocolFullQ.data.equipments);
+        } else {
+            setProtocolSnapshotEquipments([]);
+        }
+
+        if (detailQ.data?.protocol?.labTools) {
+            setProtocolSnapshotLabTools(detailQ.data.protocol.labTools);
+        } else if (protocolFullQ.data?.labTools) {
+            setProtocolSnapshotLabTools(protocolFullQ.data.labTools);
+        } else {
+            setProtocolSnapshotLabTools([]);
+        }
+    }, [detailQ.data, protocolFullQ.data]);
 
     const handleLoadChemicals = () => {
         if (protocolSnapshotChemicals.length > 0) {
@@ -176,17 +206,41 @@ export function MatricesEditModal(props: Props) {
                     chemicalSkuId: c.chemicalSkuId,
                     chemicalName: c.chemicalName,
                     consumedQty: c.consumedQty || "",
-                    unit: c.unit || "",
+                    unit: c.chemicalBaseUnit || c.unit || "",
                 })),
             }));
-        } else {
-            setForm((s) => ({ ...s, chemicals: [] }));
         }
     };
 
-    const debouncedParameterSearch = useDebouncedValue(parameterSearch, 250);
-    const debouncedProtocolSearch = useDebouncedValue(protocolSearch, 250);
-    const debouncedSampleTypeSearch = useDebouncedValue(sampleTypeSearch, 250);
+    const handleLoadEquipments = () => {
+        if (protocolSnapshotEquipments.length > 0) {
+            setForm((s) => ({
+                ...s,
+                equipments: protocolSnapshotEquipments.map((e) => ({
+                    equipmentId: e.equipmentId,
+                    equipmentName: e.equipmentName,
+                    equipmentType: e.equipmentType || null,
+                })),
+            }));
+        }
+    };
+
+    const handleLoadLabTools = () => {
+        if (protocolSnapshotLabTools.length > 0) {
+            setForm((s) => ({
+                ...s,
+                labTools: protocolSnapshotLabTools.map((l) => ({
+                    labToolId: l.labToolId,
+                    labToolName: l.labToolName,
+                    labToolType: l.labToolType || null,
+                })),
+            }));
+        }
+    };
+
+    const debouncedParameterSearch = useLocalDebouncedValue(parameterSearch, 250);
+    const debouncedProtocolSearch = useLocalDebouncedValue(protocolSearch, 250);
+    const debouncedSampleTypeSearch = useLocalDebouncedValue(sampleTypeSearch, 250);
 
     const parametersQ = useParametersList({
         query: {
@@ -219,7 +273,7 @@ export function MatricesEditModal(props: Props) {
     const parameterOptions = useMemo(() => {
         const opts = parameterItems.map(toParameterOption);
         if (form.parameterId && form.parameterName && !opts.find((x) => x.value === form.parameterId)) {
-            opts.unshift({ value: form.parameterId, label: `${form.parameterId} - ${form.parameterName}`, keywords: form.parameterName });
+            opts.unshift({ value: form.parameterId, label: `[${form.parameterId}] ${form.parameterName}`, keywords: form.parameterName });
         }
         return opts;
     }, [parameterItems, form.parameterId, form.parameterName]);
@@ -227,7 +281,7 @@ export function MatricesEditModal(props: Props) {
     const protocolOptions = useMemo(() => {
         const opts = protocolItems.map(toProtocolOption);
         if (form.protocolId && form.protocolCode && !opts.find((x) => x.value === form.protocolId)) {
-            opts.unshift({ value: form.protocolId, label: `${form.protocolId} - ${form.protocolCode}`, keywords: form.protocolSource });
+            opts.unshift({ value: form.protocolId, label: `[${form.protocolId}] ${form.protocolCode}`, keywords: form.protocolSource });
         }
         return opts;
     }, [protocolItems, form.protocolId, form.protocolCode, form.protocolSource]);
@@ -235,7 +289,7 @@ export function MatricesEditModal(props: Props) {
     const sampleTypeOptions = useMemo(() => {
         const opts = sampleTypeItems.map(toSampleTypeOption);
         if (form.sampleTypeId && form.sampleTypeName && !opts.find((x) => x.value === form.sampleTypeId)) {
-            opts.unshift({ value: form.sampleTypeId, label: `${form.sampleTypeId} - ${form.sampleTypeName}`, keywords: form.sampleTypeName });
+            opts.unshift({ value: form.sampleTypeId, label: `[${form.sampleTypeId}] ${form.sampleTypeName}`, keywords: form.sampleTypeName });
         }
         return opts;
     }, [sampleTypeItems, form.sampleTypeId, form.sampleTypeName]);
@@ -267,12 +321,13 @@ export function MatricesEditModal(props: Props) {
                       chemicalSkuId: c.chemicalSkuId,
                       chemicalName: c.chemicalName,
                       consumedQty: c.consumedQty || "",
-                      unit: c.unit || "",
+                      unit: c.chemicalBaseUnit || c.unit || "",
                   }))
                 : [],
+            equipments: Array.isArray(m.equipments) ? m.equipments : [],
+            labTools: Array.isArray(m.labTools) ? m.labTools : [],
         };
 
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setForm(next);
         setBaseline(next);
     }, [open, detailQ.data]);
@@ -293,9 +348,7 @@ export function MatricesEditModal(props: Props) {
         const computed = Math.round((feeBeforeTaxNum as number) * (1 + (taxRateNum as number) / 100));
         const next = String(computed);
 
-        // auto calc only if tax/fee changed to avoid wiping user manual input on initial load
         if (form.feeBeforeTax !== baseline.feeBeforeTax || form.taxRate !== baseline.taxRate) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
             setForm((s) => (s.feeAfterTax === next ? s : { ...s, feeAfterTax: next }));
         }
     }, [open, canAutoCalcFeeAfterTax, feeBeforeTaxNum, taxRateNum, baseline, form.feeBeforeTax, form.taxRate]);
@@ -328,7 +381,9 @@ export function MatricesEditModal(props: Props) {
             form.thresholdLimit !== baseline.thresholdLimit ||
             form.technicianGroupId !== baseline.technicianGroupId ||
             JSON.stringify(form.accreditationKeys) !== JSON.stringify(baseline.accreditationKeys) ||
-            JSON.stringify(form.chemicals) !== JSON.stringify(baseline.chemicals)
+            JSON.stringify(form.chemicals) !== JSON.stringify(baseline.chemicals) ||
+            JSON.stringify(form.equipments) !== JSON.stringify(baseline.equipments) ||
+            JSON.stringify(form.labTools) !== JSON.stringify(baseline.labTools)
         );
     }, [form, feeBeforeTaxNum, taxRateNum, matrixId, baseline]);
 
@@ -444,18 +499,28 @@ export function MatricesEditModal(props: Props) {
             chemicalSkuId: c.chemicalSkuId || "",
             chemicalName: c.chemicalName,
             consumedQty: c.consumedQty || "",
-            unit: c.unit || "",
+            chemicalBaseUnit: c.unit || "",
         }));
 
         const baselineChemicals = baseline.chemicals.map((c) => ({
             chemicalSkuId: c.chemicalSkuId || "",
             chemicalName: c.chemicalName,
             consumedQty: c.consumedQty || "",
-            unit: c.unit || "",
+            chemicalBaseUnit: c.unit || "",
         }));
 
         if (JSON.stringify(formattedChemicals) !== JSON.stringify(baselineChemicals)) {
             patch.chemicals = formattedChemicals;
+        }
+
+        if (JSON.stringify(form.equipments) !== JSON.stringify(baseline.equipments)) {
+            patch.equipments = form.equipments;
+            (patch as any).equipmentIds = form.equipments.map(e => e.equipmentId).filter(Boolean);
+        }
+
+        if (JSON.stringify(form.labTools) !== JSON.stringify(baseline.labTools)) {
+            patch.labTools = form.labTools;
+            (patch as any).labToolIds = form.labTools.map(l => l.labToolId).filter(Boolean);
         }
 
         if (Object.keys(patch).length === 0) return;
@@ -734,6 +799,24 @@ export function MatricesEditModal(props: Props) {
                                         items={form.chemicals}
                                         onChange={(newChemicals) => setForm((s) => ({ ...s, chemicals: newChemicals }))}
                                         onLoadFromProtocol={handleLoadChemicals}
+                                        disabled={updateM.isPending}
+                                    />
+                                </div>
+
+                                <div className="space-y-3 border-t border-border pt-4">
+                                    <EquipmentSnapshotTable
+                                        items={form.equipments}
+                                        onChange={(newEquipments) => setForm((s) => ({ ...s, equipments: newEquipments }))}
+                                        onLoadFromProtocol={handleLoadEquipments}
+                                        disabled={updateM.isPending}
+                                    />
+                                </div>
+
+                                <div className="space-y-3 border-t border-border pt-4">
+                                    <LabToolSnapshotTable
+                                        items={form.labTools}
+                                        onChange={(newLabTools) => setForm((s) => ({ ...s, labTools: newLabTools }))}
+                                        onLoadFromProtocol={handleLoadLabTools}
                                         disabled={updateM.isPending}
                                     />
                                 </div>

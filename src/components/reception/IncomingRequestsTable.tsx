@@ -1,14 +1,12 @@
 // src/components/reception/IncomingRequestsTable.tsx
 // Bảng hiển thị danh sách Yêu cầu tiếp nhận từ bên ngoài (crm.incomingRequests)
 
-import { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Zap, Eye, Package, FlaskConical, Filter, X } from "lucide-react";
+import { Zap, Eye, Package, FlaskConical } from "lucide-react";
 
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 
 import type { IncomingRequestListItem } from "@/types/incomingRequest";
 import type { OrderSampleItem } from "@/types/crm";
@@ -103,69 +101,15 @@ export function getIncomingStatusBadge(status: string | null | undefined, t: (k:
 interface IncomingRequestsTableProps {
     items: IncomingRequestListItem[];
     isLoading?: boolean;
-    filters?: { receiptId: string[]; paymentStatus: string[] };
-    onFiltersChange?: (next: { receiptId: string[]; paymentStatus: string[] }) => void;
     onConvert: (item: IncomingRequestListItem) => void;
     onViewDetail?: (requestId: string) => void;
     onViewReceipt?: (receiptId: string) => void;
 }
 
-// ── Simple Filter Popover ────────────────────────────────────────────────────
-interface SimpleFilterPopoverProps {
-    title: string;
-    options: { label: string; value: string }[];
-    selected: string[];
-    onApply: (values: string[]) => void;
-    onClear: () => void;
-}
 
-function SimpleFilterPopover({ title, options, selected, onApply, onClear }: SimpleFilterPopoverProps) {
-    const { t } = useTranslation();
-    const [open, setOpen] = useState(false);
-    const [localSelected, setLocalSelected] = useState<string[]>(selected);
-
-    const toggle = (v: string) => {
-        setLocalSelected((cur) => cur.includes(v) ? cur.filter(x => x !== v) : [...cur, v]);
-    };
-
-    const apply = () => { onApply(localSelected); setOpen(false); };
-    const clear = () => { onClear(); setLocalSelected([]); setOpen(false); };
-
-    return (
-        <Popover open={open} onOpenChange={(v) => { setOpen(v); if(v) setLocalSelected(selected); }}>
-            <PopoverTrigger asChild>
-                <button type="button" className="relative group/filter hover:bg-muted p-1 rounded-md cursor-pointer transition-colors" onClick={(e) => e.stopPropagation()}>
-                    <Filter className="h-3.5 w-3.5 text-muted-foreground group-hover/filter:text-foreground" />
-                    {selected.length > 0 && <span className="absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full bg-primary" />}
-                </button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-56 p-0" onClick={(e) => e.stopPropagation()}>
-                <div className="p-2 border-b text-sm font-medium flex items-center justify-between">
-                    <span>{title}</span>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setOpen(false)}><X className="h-3.5 w-3.5" /></Button>
-                </div>
-                <div className="p-2 space-y-1 max-h-60 overflow-y-auto">
-                    {options.map((opt) => {
-                        const isChecked = localSelected.includes(opt.value);
-                        return (
-                            <div key={opt.value} className="flex items-center gap-3 cursor-pointer hover:bg-muted p-2 rounded-md transition-colors" onClick={() => toggle(opt.value)}>
-                                <Checkbox checked={isChecked} onCheckedChange={() => toggle(opt.value)} className="pointer-events-none" />
-                                <span className="text-sm font-medium leading-none">{opt.label}</span>
-                            </div>
-                        );
-                    })}
-                </div>
-                <div className="p-2 border-t flex flex-col gap-2 bg-muted/20">
-                    <Button variant="outline" size="sm" className="w-full text-xs h-7" onClick={clear}>{String(t("common.clear", { defaultValue: "Xóa" }))}</Button>
-                    <Button variant="default" size="sm" className="w-full text-xs h-7" onClick={apply}>{String(t("common.apply", { defaultValue: "Áp dụng" }))}</Button>
-                </div>
-            </PopoverContent>
-        </Popover>
-    );
-}
 
 // ── Main Table ───────────────────────────────────────────────────────────────
-export function IncomingRequestsTable({ items, isLoading, filters, onFiltersChange, onConvert, onViewDetail, onViewReceipt }: IncomingRequestsTableProps) {
+export function IncomingRequestsTable({ items, isLoading, onConvert, onViewDetail, onViewReceipt }: IncomingRequestsTableProps) {
     const { t } = useTranslation();
 
     const columns = useMemo(
@@ -177,49 +121,18 @@ export function IncomingRequestsTable({ items, isLoading, filters, onFiltersChan
             { key: "orderStatus", label: String(t("reception.incomingRequests.columns.orderStatus", { defaultValue: "Đơn hàng" })), width: "10%" },
             { 
                 key: "paymentStatus", 
-                label: (
-                    <div className="flex items-center gap-1">
-                        {String(t("reception.incomingRequests.columns.paymentStatus", { defaultValue: "Thanh toán" }))}
-                        <SimpleFilterPopover
-                            title={String(t("reception.incomingRequests.columns.paymentStatus", { defaultValue: "Thanh toán" }))}
-                            options={[
-                                { label: String(t("crm.orders.paymentStatus.Unpaid", { defaultValue: "Chưa TT" })), value: "Unpaid" },
-                                { label: String(t("crm.orders.paymentStatus.Partial", { defaultValue: "TT một phần" })), value: "Partial" },
-                                { label: String(t("crm.orders.paymentStatus.Paid", { defaultValue: "Đã TT" })), value: "Paid" },
-                                { label: String(t("crm.orders.paymentStatus.Variance", { defaultValue: "Chênh lệch" })), value: "Variance" },
-                                { label: String(t("crm.orders.paymentStatus.Debt", { defaultValue: "Công nợ" })), value: "Debt" },
-                            ]}
-                            selected={filters?.paymentStatus ?? []}
-                            onApply={(v) => { if (onFiltersChange) onFiltersChange({ ...(filters ?? { receiptId: [], paymentStatus: [] }), paymentStatus: v }); }}
-                            onClear={() => { if (onFiltersChange) onFiltersChange({ ...(filters ?? { receiptId: [], paymentStatus: [] }), paymentStatus: [] }); }}
-                        />
-                    </div>
-                ),
+                label: String(t("reception.incomingRequests.columns.paymentStatus", { defaultValue: "Thanh toán" })),
                 width: "12%" 
             },
             { key: "samples", label: String(t("reception.incomingRequests.columns.sampleCount", { defaultValue: "Mẫu" })), width: "7%" },
             { key: "analyses", label: String(t("reception.incomingRequests.columns.analysisCount", { defaultValue: "Chỉ tiêu" })), width: "7%" },
             { 
                 key: "actions", 
-                label: (
-                    <div className="flex items-center gap-1">
-                        {String(t("common.actions", { defaultValue: "Thao tác" }))}
-                        <SimpleFilterPopover
-                            title={String(t("common.actions", { defaultValue: "Thao tác" }))}
-                            options={[
-                                { label: "Đã tạo phiếu", value: "IS NOT NULL" },
-                                { label: "Chưa tạo phiếu", value: "IS NULL" },
-                            ]}
-                            selected={filters?.receiptId ?? []}
-                            onApply={(v) => { if (onFiltersChange) onFiltersChange({ ...(filters ?? { receiptId: [], paymentStatus: [] }), receiptId: v }); }}
-                            onClear={() => { if (onFiltersChange) onFiltersChange({ ...(filters ?? { receiptId: [], paymentStatus: [] }), receiptId: [] }); }}
-                        />
-                    </div>
-                ),
+                label: String(t("common.actions", { defaultValue: "Thao tác" })),
                 width: "12%" 
             },
         ],
-        [t, filters, onFiltersChange],
+        [t],
     );
 
     if (isLoading) {
@@ -240,8 +153,8 @@ export function IncomingRequestsTable({ items, isLoading, filters, onFiltersChan
                 <thead className="bg-muted/50 border-b border-border">
                     <tr>
                         {columns.map((col) => (
-                            <th key={col.key} style={{ width: col.width }} className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                {col.label}
+                            <th key={col.key} style={{ width: col.width as string | number }} className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                {col.label as React.ReactNode}
                             </th>
                         ))}
                     </tr>
@@ -311,7 +224,7 @@ export function IncomingRequestsTable({ items, isLoading, filters, onFiltersChan
                                             variant="ghost"
                                             size="sm"
                                             className="h-7 w-7 p-0"
-                                            onClick={(e) => {
+                                            onClick={(e: React.MouseEvent) => {
                                                 e.stopPropagation();
                                                 if (onViewDetail) onViewDetail(item.requestId);
                                             }}
@@ -325,7 +238,7 @@ export function IncomingRequestsTable({ items, isLoading, filters, onFiltersChan
                                                 variant="default"
                                                 size="sm"
                                                 className="h-7 gap-1 text-xs px-2"
-                                                onClick={(e) => {
+                                                onClick={(e: React.MouseEvent) => {
                                                     e.stopPropagation();
                                                     onConvert(item);
                                                 }}
@@ -337,7 +250,7 @@ export function IncomingRequestsTable({ items, isLoading, filters, onFiltersChan
                                         ) : item.receiptId ? (
                                             <button
                                                 className="font-medium text-primary hover:underline text-xs"
-                                                onClick={(e) => {
+                                                onClick={(e: React.MouseEvent) => {
                                                     e.stopPropagation();
                                                     if (onViewReceipt) onViewReceipt(item.receiptId!);
                                                 }}

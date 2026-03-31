@@ -20,8 +20,10 @@ import { ProtocolDetailPanel } from "./ProtocolDetailPanel";
 import { SearchSelectPicker, type PickerItem } from "./SearchSelectPicker";
 import { DocumentUploadModal } from "@/components/document/DocumentUploadModal";
 import { ChemicalBomTable, type ChemicalBomItem } from "../shared/ChemicalBomTable";
+import { EquipmentSnapshotTable, type EquipmentSnapshotItem } from "../shared/EquipmentSnapshotTable";
+import { LabToolSnapshotTable, type LabToolSnapshotItem } from "../shared/LabToolSnapshotTable";
 import { ProtocolMatrixManager } from "./ProtocolMatrixManager";
-import { AccreditationTagInput } from "../shared/AccreditationTagInput";
+import { AccreditationTagInput, type AccreditationValue } from "../shared/AccreditationTagInput";
 
 type EditProtocolForm = {
     protocolId?: string;
@@ -29,10 +31,12 @@ type EditProtocolForm = {
     protocolTitle: string;
     protocolSource: string;
     protocolDescription: string;
-    accreditationKeys: Record<string, boolean>;
+    accreditationKeys: AccreditationValue;
     parameters: { parameterId: string; parameterName: string }[];
     sampleTypes: { sampleTypeId: string; sampleTypeName: string }[];
     chemicals: ChemicalBomItem[];
+    equipments: EquipmentSnapshotItem[];
+    labTools: LabToolSnapshotItem[];
     documentIds: string[];
     selectedDocuments: PickerItem[];
 };
@@ -51,29 +55,10 @@ function ProtocolsSkeleton() {
 
 function createEmptyFilters(): ProtocolsExcelFiltersState {
     return {
-        protocolCode: [],
-        protocolSource: [],
         accreditation: [],
     };
 }
 
-function applyLocalFilters(items: Protocol[], f: ProtocolsExcelFiltersState) {
-    const matchStr = (value: string, selected: string[]) => (selected.length ? selected.includes(value) : true);
-
-    const hasAccValue = (p: Protocol, selected: string[]) => {
-        if (selected.length === 0) return true;
-        const acc = p.protocolAccreditation ?? {};
-        const activeKeys = Object.entries(acc).filter(([, v]) => Boolean(v)).map(([k]) => k);
-        if (activeKeys.length === 0) return selected.includes("NONE");
-        return selected.some((x) => x === "NONE" ? false : activeKeys.some((k) => k.toUpperCase().includes(x.toUpperCase())));
-    };
-
-    return items.filter((p) => {
-        const code = p.protocolCode ?? "";
-        const source = p.protocolSource ?? "";
-        return matchStr(code, f.protocolCode) && matchStr(source, f.protocolSource) && hasAccValue(p, f.accreditation);
-    });
-}
 
 export function ProtocolsView() {
     const { t } = useTranslation();
@@ -94,6 +79,8 @@ export function ProtocolsView() {
         parameters: [],
         sampleTypes: [],
         chemicals: [],
+        equipments: [],
+        labTools: [],
         documentIds: [],
         selectedDocuments: [],
     };
@@ -104,21 +91,24 @@ export function ProtocolsView() {
     const [serverTotalPages, setServerTotalPages] = useState<number | null>(null);
     const pagination = useServerPagination(serverTotalPages, 20);
 
+    const [excelFilters, setExcelFilters] = useState<ProtocolsExcelFiltersState>(() => createEmptyFilters());
+
     const listInput = useMemo(
         () => ({
             query: {
                 page: pagination.currentPage,
                 itemsPerPage: pagination.itemsPerPage,
                 search: debouncedSearch.trim().length ? debouncedSearch.trim() : null,
+                "accreditation[]": excelFilters.accreditation.length > 0 ? excelFilters.accreditation : null,
             },
             sort: { column: "createdAt", direction: "DESC" as const },
         }),
-        [debouncedSearch, pagination.currentPage, pagination.itemsPerPage],
+        [debouncedSearch, pagination.currentPage, pagination.itemsPerPage, excelFilters],
     );
 
     const protocolsQ = useProtocolsList(listInput);
 
-    const allProtocols = useMemo(() => {
+    const pageItems = useMemo(() => {
         return (protocolsQ.data?.data ?? []) as Protocol[];
     }, [protocolsQ.data]);
 
@@ -127,11 +117,7 @@ export function ProtocolsView() {
     const serverPages = serverMeta?.totalPages ?? 1;
 
     useEffect(() => setServerTotalPages(serverPages), [serverPages]);
-
-    const [excelFilters, setExcelFilters] = useState<ProtocolsExcelFiltersState>(() => createEmptyFilters());
-
-    const filteredAll = useMemo(() => applyLocalFilters(allProtocols, excelFilters), [allProtocols, excelFilters]);
-    const pageItems = filteredAll;
+    
     const totalItems = serverTotal;
     const totalPages = serverPages;
 
@@ -176,10 +162,7 @@ export function ProtocolsView() {
         pagination.resetPage();
     };
 
-    const onExcelFiltersChange = (next: ProtocolsExcelFiltersState) => {
-        setExcelFilters(next);
-        pagination.resetPage();
-    };
+
 
     const openCreate = () => {
         setEditForm(EMPTY_FORM);
@@ -205,6 +188,8 @@ export function ProtocolsView() {
             parameters: p.parameters || [],
             sampleTypes: p.sampleTypes || [],
             chemicals: chemBom,
+            equipments: p.equipments || [],
+            labTools: p.labTools || [],
             documentIds: p.protocolDocumentIds || [],
             selectedDocuments: (p.protocolDocumentIds || []).map((id) => ({
                 id,
@@ -240,6 +225,10 @@ export function ProtocolsView() {
             parameters: editForm.parameters.length ? editForm.parameters : undefined,
             sampleTypes: editForm.sampleTypes.length ? editForm.sampleTypes : undefined,
             chemicals: chemicalsPayload,
+            equipmentIds: editForm.equipments.map((e) => e.equipmentId).filter(Boolean),
+            equipments: editForm.equipments.filter((e) => e.equipmentId || e.equipmentName),
+            labToolIds: editForm.labTools.map((l) => l.labToolId).filter(Boolean),
+            labTools: editForm.labTools.filter((l) => l.labToolId || l.labToolName),
             protocolDocumentIds: editForm.documentIds.length ? editForm.documentIds : undefined,
         };
 
@@ -294,7 +283,10 @@ export function ProtocolsView() {
                             onView={(p) => setSelected(p)}
                             onEdit={openEdit}
                             excelFilters={excelFilters}
-                            onExcelFiltersChange={onExcelFiltersChange}
+                            onExcelFiltersChange={(nextFilters) => {
+                                setExcelFilters(nextFilters);
+                                pagination.resetPage();
+                            }}
                         />
 
                         <div className="border-t p-3">
@@ -400,6 +392,16 @@ export function ProtocolsView() {
                                 {/* Chemical BOM Table */}
                                 <div className="mt-6 border-t pt-4">
                                     <ChemicalBomTable items={editForm.chemicals} onChange={(items) => setEditForm((s) => ({ ...s, chemicals: items }))} disabled={isPending} />
+                                </div>
+
+                                {/* Equipments Table */}
+                                <div className="mt-6 border-t pt-4">
+                                    <EquipmentSnapshotTable items={editForm.equipments} onChange={(items) => setEditForm((s) => ({ ...s, equipments: items }))} disabled={isPending} />
+                                </div>
+
+                                {/* Lab Tools Table */}
+                                <div className="mt-6 border-t pt-4">
+                                    <LabToolSnapshotTable items={editForm.labTools} onChange={(items) => setEditForm((s) => ({ ...s, labTools: items }))} disabled={isPending} />
                                 </div>
                             </div>
 

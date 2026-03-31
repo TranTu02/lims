@@ -225,8 +225,8 @@ export type ReceiptDetail = {
     receiptPriority?: ReceiptPriority | null;
     receiptDeliveryMethod?: ReceiptDeliveryMethod | null;
 
-    receiptTrackingNo?: string | null;
-    trackingNumber?: string | null;
+    shipmentId?: string | null;
+    shipmentTrackingNumber?: string | null;
 
     orderId?: string | null;
     order?: ReceiptOrderSnapshot | null;
@@ -244,6 +244,7 @@ export type ReceiptDetail = {
     receptionistId?: string | null;
     isBlindCoded?: boolean | null;
     receiptReceivedImageFileIds?: string[] | null;
+    receiptMarks?: string[] | null;
 
     createdAt?: IsoDateString | null;
     createdBy?: IdentitySnapshot | null;

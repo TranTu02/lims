@@ -1,19 +1,28 @@
-import { useState, useRef, type KeyboardEvent } from "react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { X, Plus } from "lucide-react";
+import { Check, Loader2, MinusCircle, PlusCircle } from "lucide-react";
 
+import { useEnumList } from "@/api/chemical";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 
+export interface AccreditationData {
+    registrationDate?: string | null;
+    expirationDate?: string | null;
+}
+export interface AccreditationValue {
+    [key: string]: AccreditationData | boolean;
+}
+
 /**
- * AccreditationBadges — hiển thị các key có giá trị true trong protocolAccreditation
+ * AccreditationBadges — hiển thị các key đang active trong protocolAccreditation
  */
 export function AccreditationBadges({
     value,
     emptyText,
     className,
 }: {
-    value: Record<string, boolean> | null | undefined;
+    value: Record<string, any> | null | undefined;
     emptyText?: string;
     className?: string;
 }) {
@@ -32,107 +41,144 @@ export function AccreditationBadges({
 
     return (
         <div className="flex flex-wrap gap-1.5">
-            {activeKeys.map((key) => (
-                <Badge key={key} variant="secondary" className={`text-xs font-semibold tracking-wide${className ? ` ${className}` : ""}`}>
-                    {key}
-                </Badge>
-            ))}
+            {activeKeys.map((key) => {
+                const data = value?.[key];
+                const hasDates = typeof data === "object" && data !== null && (data.registrationDate || data.expirationDate);
+                return (
+                    <Badge key={key} variant="secondary" className={`text-xs font-semibold tracking-wide flex flex-col items-start gap-0.5 px-2 py-1 h-auto${className ? ` ${className}` : ""}`}>
+                        <span className="uppercase">{key}</span>
+                        {hasDates && (
+                            <span className="text-[10px] font-normal opacity-70 italic lowercase">
+                                {data.registrationDate || "-"} / {data.expirationDate || "-"}
+                            </span>
+                        )}
+                    </Badge>
+                );
+            })}
         </div>
     );
 }
 
 /**
- * AccreditationTagInput — Tag-input để thêm/xóa các mã chứng nhận (VILAS997, TDC, ISO...)
- * onChange trả về Record<string, boolean>
+ * AccreditationTagInput — Quản lý công nhận theo danh mục Enum
+ * Hỗ trợ nhập ngày cấp/hết hạn cho từng mã
  */
 export function AccreditationTagInput({
     value,
     onChange,
     disabled,
-    placeholder,
 }: {
-    value: Record<string, boolean>;
-    onChange: (v: Record<string, boolean>) => void;
+    value: AccreditationValue;
+    onChange: (v: AccreditationValue) => void;
     disabled?: boolean;
-    placeholder?: string;
 }) {
     const { t } = useTranslation();
-    const [inputVal, setInputVal] = useState("");
-    const inputRef = useRef<HTMLInputElement>(null);
+    const { data: enumList, isLoading } = useEnumList("protocolAccreditation", { enabled: true });
 
-    const activeKeys = Object.entries(value)
-        .filter(([, v]) => Boolean(v))
-        .map(([k]) => k);
+    const possibleTypes = useMemo(() => (Array.isArray(enumList) ? (enumList as string[]) : []), [enumList]);
 
-    const addKey = (raw: string) => {
-        const key = raw.trim().toUpperCase();
-        if (!key) return;
-        onChange({ ...value, [key]: true });
-        setInputVal("");
-    };
+    const isEnabled = (key: string) => Boolean(value[key]);
 
-    const removeKey = (key: string) => {
-        const next = { ...value };
-        delete next[key];
-        onChange(next);
-    };
-
-    const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Enter" || e.key === ",") {
-            e.preventDefault();
-            addKey(inputVal);
-        } else if (e.key === "Backspace" && !inputVal && activeKeys.length > 0) {
-            removeKey(activeKeys[activeKeys.length - 1]);
+    const toggle = (key: string) => {
+        if (isEnabled(key)) {
+            const next = { ...value };
+            delete next[key];
+            onChange(next);
+        } else {
+            onChange({ ...value, [key]: { registrationDate: null, expirationDate: null } });
         }
     };
 
+    const updateDate = (key: string, field: keyof AccreditationData, val: string) => {
+        const current = value[key];
+        const data = typeof current === "object" && current !== null ? { ...current } : { registrationDate: null, expirationDate: null };
+        data[field] = val || null;
+        onChange({ ...value, [key]: data });
+    };
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center gap-2 p-3 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> {String(t("common.loading"))}
+            </div>
+        );
+    }
+
     return (
-        <div
-            className={`flex flex-wrap gap-1.5 px-2 py-1.5 min-h-[38px] border border-input rounded-md bg-background cursor-text ${disabled ? "opacity-60 pointer-events-none" : ""}`}
-            onClick={() => inputRef.current?.focus()}
-        >
-            {activeKeys.map((key) => (
-                <span
-                    key={key}
-                    className="inline-flex items-center gap-1 bg-secondary text-secondary-foreground text-xs font-semibold px-2 py-0.5 rounded-full"
-                >
-                    {key}
-                    {!disabled && (
-                        <button
-                            type="button"
-                            className="hover:text-destructive transition-colors"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                removeKey(key);
-                            }}
-                        >
-                            <X className="h-3 w-3" />
-                        </button>
-                    )}
-                </span>
-            ))}
-            {!disabled && (
-                <div className="flex items-center gap-1 flex-1 min-w-[120px]">
-                    <Input
-                        ref={inputRef}
-                        value={inputVal}
-                        onChange={(e) => setInputVal(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        onBlur={() => { if (inputVal.trim()) addKey(inputVal); }}
-                        placeholder={placeholder ?? String(t("library.protocols.protocolAccreditation.inputPlaceholder", { defaultValue: "Nhập mã (VD: VILAS997)..." }))}
-                        className="border-0 shadow-none p-0 h-6 text-sm focus-visible:ring-0 bg-transparent w-full"
-                    />
-                    {inputVal.trim() && (
-                        <button
-                            type="button"
-                            className="shrink-0 text-primary hover:text-primary/80"
-                            onClick={() => addKey(inputVal)}
-                        >
-                            <Plus className="h-3.5 w-3.5" />
-                        </button>
-                    )}
-                </div>
-            )}
+        <div className="space-y-3">
+            <div className="grid grid-cols-1 gap-2.5">
+                {possibleTypes.map((type) => {
+                    const active = isEnabled(type);
+                    const data = typeof value[type] === "object" ? (value[type] as AccreditationData) : {};
+
+                    return (
+                        <div key={type} className={`group flex flex-col md:flex-row items-start md:items-center gap-3 p-3 rounded-lg border transition-all ${active ? "bg-primary/5 border-primary/20 shadow-sm" : "bg-muted/10 border-border opacity-70"}`}>
+                            {/* Header: Label + Toggle */}
+                            <div className="flex items-center gap-3 min-w-[140px]">
+                                <button
+                                    type="button"
+                                    onClick={() => toggle(type)}
+                                    disabled={disabled}
+                                    className={`shrink-0 transition-colors ${active ? "text-primary hover:text-primary/80" : "text-muted-foreground hover:text-foreground"}`}
+                                >
+                                    {active ? <Check className="h-5 w-5 fill-primary/10" /> : <PlusCircle className="h-5 w-5" />}
+                                </button>
+                                <span className={`text-sm font-bold uppercase tracking-wide ${active ? "text-primary" : "text-muted-foreground"}`}>
+                                    {type}
+                                </span>
+                            </div>
+
+                            {/* Inputs: only shown when active */}
+                            {active && (
+                                <div className="flex flex-1 items-center gap-4 w-full">
+                                    <div className="flex flex-1 items-center gap-2">
+                                        <span className="text-[10px] text-muted-foreground uppercase whitespace-nowrap">{String(t("library.protocols.registrationDate", { defaultValue: "Cấp:" }))}</span>
+                                        <Input
+                                            type="text"
+                                            value={data.registrationDate || ""}
+                                            onChange={(e) => updateDate(type, "registrationDate", e.target.value)}
+                                            placeholder="DD/MM/YYYY"
+                                            className="h-8 text-xs bg-background border-primary/10 focus-visible:ring-primary/20"
+                                            disabled={disabled}
+                                        />
+                                    </div>
+                                    <div className="flex flex-1 items-center gap-2">
+                                        <span className="text-[10px] text-muted-foreground uppercase whitespace-nowrap">{String(t("library.protocols.expirationDate", { defaultValue: "Hết hạn:" }))}</span>
+                                        <Input
+                                            type="text"
+                                            value={data.expirationDate || ""}
+                                            onChange={(e) => updateDate(type, "expirationDate", e.target.value)}
+                                            placeholder="DD/MM/YYYY"
+                                            className="h-8 text-xs bg-background border-primary/10 focus-visible:ring-primary/20"
+                                            disabled={disabled}
+                                        />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => toggle(type)}
+                                        className="text-muted-foreground hover:text-destructive transition-colors ml-2"
+                                        title="Disable"
+                                    >
+                                        <MinusCircle className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            )}
+
+                            {!active && (
+                                <div className="text-xs text-muted-foreground italic opacity-50 flex-1">
+                                    {String(t("library.protocols.clickToEnable", { defaultValue: "Bấm để kích hoạt phạm vi này" }))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+
+                {possibleTypes.length === 0 && (
+                    <div className="p-8 text-center border-2 border-dashed rounded-lg text-muted-foreground opacity-50 italic">
+                        {String(t("common.noData"))}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

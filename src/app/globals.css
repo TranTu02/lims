@@ -272,3 +272,28 @@
 .dark *::-webkit-scrollbar-thumb:hover {
     background-color: rgba(255, 255, 255, 0.15);
 }
+/* Print Utilities */
+@media print {
+    .hide-on-print {
+        display: none !important;
+    }
+    .show-only-print {
+        display: block !important;
+        visibility: visible !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        z-index: 99999 !important;
+        background: white !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+}
+
+@media screen {
+    .show-only-print-screen {
+        /* This class shows the element on screen but we use show-only-print for the actual print media */
+    }
+}

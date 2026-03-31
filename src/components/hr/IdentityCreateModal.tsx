@@ -29,6 +29,10 @@ import {
 import { roleKeys, type RoleKey } from "@/utils/roles";
 import { unwrapOrThrow } from "@/utils/api";
 
+import { IdentityDocumentManager } from "./IdentityDocumentManager";
+import { IdentityGroupSelect } from "./IdentityGroupSelect";
+import type { PickerItem } from "@/components/shared/SearchSelectPicker";
+
 type Props = {
   open: boolean;
   onClose: () => void;
@@ -42,6 +46,10 @@ type FormState = {
   identityStatus: IdentityStatus;
   roles: Record<RoleKey, boolean>;
   permissionsJson: string;
+  identityGroupId: string;
+  identityPhone: string;
+  identityNID: string;
+  identityAddress: string;
 };
 
 function makeDefaultRoles(): Record<RoleKey, boolean> {
@@ -56,6 +64,10 @@ export function IdentityCreateModal({ open, onClose }: Props) {
   const { t } = useTranslation();
   const qc = useQueryClient();
 
+  // Document states
+  const [identityDocumentIds, setIdentityDocumentIds] = useState<string[]>([]);
+  const [selectedDocs, setSelectedDocs] = useState<PickerItem[]>([]);
+
   const [form, setForm] = useState<FormState>(() => ({
     email: "",
     identityName: "",
@@ -64,6 +76,10 @@ export function IdentityCreateModal({ open, onClose }: Props) {
     identityStatus: "active",
     roles: makeDefaultRoles(),
     permissionsJson: "{}",
+    identityGroupId: "",
+    identityPhone: "",
+    identityNID: "",
+    identityAddress: "",
   }));
 
   const canSubmit = useMemo(() => {
@@ -90,7 +106,13 @@ export function IdentityCreateModal({ open, onClose }: Props) {
         identityStatus: "active",
         roles: makeDefaultRoles(),
         permissionsJson: "{}",
+        identityGroupId: "",
+        identityPhone: "",
+        identityNID: "",
+        identityAddress: "",
       });
+      setIdentityDocumentIds([]);
+      setSelectedDocs([]);
     },
     onError: (e) => {
       toast.error(e instanceof Error ? e.message : t("common.error"));
@@ -108,15 +130,24 @@ export function IdentityCreateModal({ open, onClose }: Props) {
       return;
     }
 
+    const rolesArray = Object.entries(form.roles)
+      .filter(([, v]) => v)
+      .map(([k]) => k);
+
     const body: IdentityCreateBody = {
       email: form.email.trim(),
       identityName: form.identityName.trim(),
       alias: form.alias.trim(),
       password: form.password,
-      roles: { ...form.roles },
+      identityRoles: rolesArray,
       permissions,
       identityStatus: form.identityStatus,
-    };
+      identityDocumentIds: identityDocumentIds.length > 0 ? identityDocumentIds : undefined,
+      identityGroupId: form.identityGroupId || undefined,
+      identityPhone: form.identityPhone.trim() || undefined,
+      identityNID: form.identityNID.trim() || undefined,
+      identityAddress: form.identityAddress.trim() || undefined,
+    } as any;
 
     createM.mutate(body);
   };
@@ -128,7 +159,7 @@ export function IdentityCreateModal({ open, onClose }: Props) {
           <DialogTitle>{t("hr.create.title")}</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-1">
             <div className="text-xs text-muted-foreground">
               {t("hr.fields.email")}
@@ -152,6 +183,16 @@ export function IdentityCreateModal({ open, onClose }: Props) {
                 setForm((s) => ({ ...s, alias: e.target.value }))
               }
               placeholder={t("hr.fields.alias")}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <div className="text-xs text-muted-foreground">
+              {t("hr.fields.identityGroupId", { defaultValue: "Nhóm nhân sự" })}
+            </div>
+            <IdentityGroupSelect 
+              value={form.identityGroupId}
+              onValueChange={(v) => setForm(s => ({ ...s, identityGroupId: v }))}
             />
           </div>
 
@@ -182,6 +223,33 @@ export function IdentityCreateModal({ open, onClose }: Props) {
             />
           </div>
 
+          {/* New Personal Info Fields */}
+          <div className="space-y-1">
+            <div className="text-xs text-muted-foreground">
+              {t("hr.fields.identityPhone", { defaultValue: "Số điện thoại" })}
+            </div>
+            <Input
+              value={form.identityPhone}
+              onChange={(e) =>
+                setForm((s) => ({ ...s, identityPhone: e.target.value }))
+              }
+              placeholder="0x..."
+            />
+          </div>
+
+          <div className="space-y-1">
+            <div className="text-xs text-muted-foreground">
+              {t("hr.fields.identityNID", { defaultValue: "Số CCCD/NID" })}
+            </div>
+            <Input
+              value={form.identityNID}
+              onChange={(e) =>
+                setForm((s) => ({ ...s, identityNID: e.target.value }))
+              }
+              placeholder="12 số..."
+            />
+          </div>
+
           <div className="space-y-1">
             <div className="text-xs text-muted-foreground">
               {t("hr.fields.status")}
@@ -203,11 +271,35 @@ export function IdentityCreateModal({ open, onClose }: Props) {
             </Select>
           </div>
 
-          <div className="sm:col-span-2 border border-border rounded-lg p-3 bg-muted/20">
-            <div className="text-sm font-medium text-foreground mb-2">
-              {t("hr.fields.roles")}
+          <div className="space-y-1 sm:col-span-3">
+            <div className="text-xs text-muted-foreground">
+              {t("hr.fields.identityAddress", { defaultValue: "Địa chỉ" })}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <Input
+              value={form.identityAddress}
+              onChange={(e) =>
+                setForm((s) => ({ ...s, identityAddress: e.target.value }))
+              }
+              placeholder="Số nhà, tên đường..."
+            />
+          </div>
+
+          <div className="sm:col-span-3">
+            <IdentityDocumentManager 
+              selectedIds={identityDocumentIds}
+              selectedItems={selectedDocs}
+              onChange={(ids, items) => {
+                setIdentityDocumentIds(ids);
+                setSelectedDocs(items);
+              }}
+            />
+          </div>
+
+          <div className="sm:col-span-3 border border-border rounded-lg p-3 bg-muted/20 mt-2">
+            <div className="text-sm font-medium text-foreground mb-2">
+              {t("hr.fields.roles", { defaultValue: "Vị trí" })}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
               {roleKeys.map((k) => (
                 <label key={k} className="flex items-center gap-2 text-sm">
                   <Checkbox

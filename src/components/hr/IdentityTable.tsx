@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Edit, FileText, Trash2, Filter, X, Check } from "lucide-react";
+import { Edit, Trash2, Filter, X, Check } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,8 @@ type FilterKey = keyof IdentitiesExcelFiltersState;
 
 type Props = {
   items: IdentityListItem[];
-  onView: (identityId: string) => void;
+  selectedId: string | null;
+  onSelectRow: (identityId: string) => void;
   onEdit: (identityId: string) => void;
   onDelete: (identityId: string) => void;
 
@@ -271,7 +272,8 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
 
 export function IdentityTable({
   items,
-  onView,
+  selectedId,
+  onSelectRow,
   onEdit,
   onDelete,
   excelFilters,
@@ -335,7 +337,7 @@ export function IdentityTable({
               </th>
 
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                {t("hr.dashboard.table.role")}
+                {t("hr.dashboard.table.role", { defaultValue: "Vị trí" })}
               </th>
 
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
@@ -360,80 +362,75 @@ export function IdentityTable({
           </thead>
 
           <tbody className="divide-y divide-border">
-            {items.map((u) => (
-              <tr key={u.identityId} className="hover:bg-accent/30 transition-colors">
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarFallback className="bg-primary/15 text-primary">
-                        {getInitials(u.identityName)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="font-medium text-foreground">{u.identityName}</div>
-                  </div>
-                </td>
+             {items.map((u) => {
+              const active = selectedId === u.identityId;
+              return (
+                <tr 
+                  key={u.identityId} 
+                  onClick={() => onSelectRow(u.identityId)}
+                  className={`cursor-pointer transition-colors ${active ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-accent/30"}`}
+                >
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <Avatar className={active ? "ring-2 ring-primary/20" : ""}>
+                        <AvatarFallback className={active ? "bg-primary/20 text-primary font-bold" : "bg-primary/15 text-primary"}>
+                          {getInitials(u.identityName)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className={`font-medium ${active ? "text-primary" : "text-foreground"}`}>{u.identityName}</div>
+                    </div>
+                  </td>
 
-                <td className="px-6 py-4">
-                  <div className="text-sm text-muted-foreground">{u.email}</div>
-                </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-muted-foreground">{u.email}</div>
+                  </td>
 
-                <td className="px-6 py-4">
-                  <Badge variant="outline" className="border-border text-foreground">
-                    {u.identityId}
-                  </Badge>
-                </td>
+                  <td className="px-6 py-4">
+                    <Badge variant="outline" className={`border-border ${active ? "bg-primary/5 text-primary border-primary/20" : "text-foreground"}`}>
+                      {u.identityId}
+                    </Badge>
+                  </td>
 
-                <td className="px-6 py-4">
-                  <IdentityRoleBadges roles={u.roles ?? {}} />
-                </td>
+                  <td className="px-6 py-4">
+                    <IdentityRoleBadges roles={u.roles ?? {}} highlight={active} />
+                  </td>
 
-                <td className="px-6 py-4">
-                  <Badge variant={u.identityStatus === "active" ? "success" : "warning"}>
-                    {t(`hr.status.${u.identityStatus}`, { defaultValue: u.identityStatus })}
-                  </Badge>
-                </td>
+                  <td className="px-6 py-4">
+                    <Badge variant={u.identityStatus === "active" ? "success" : "warning"}>
+                      {t(`hr.status.${u.identityStatus}`, { defaultValue: u.identityStatus })}
+                    </Badge>
+                  </td>
 
-                <td className="px-6 py-4">
-                  <div className="flex items-center justify-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 w-8 p-0"
-                      onClick={() => onView(u.identityId)}
-                      aria-label={t("common.view")}
-                      title={t("common.view")}
-                      type="button"
-                    >
-                      <FileText className="h-4 w-4" />
-                    </Button>
+                  <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0"
+                        onClick={() => onEdit(u.identityId)}
+                        aria-label={t("common.edit")}
+                        title={t("common.edit")}
+                        type="button"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
 
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 w-8 p-0"
-                      onClick={() => onEdit(u.identityId)}
-                      aria-label={t("common.edit")}
-                      title={t("common.edit")}
-                      type="button"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 w-8 p-0 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
-                      onClick={() => onDelete(u.identityId)}
-                      aria-label={t("common.delete")}
-                      title={t("common.delete")}
-                      type="button"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                        onClick={() => onDelete(u.identityId)}
+                        aria-label={t("common.delete")}
+                        title={t("common.delete")}
+                        type="button"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
 
             {items.length === 0 ? (
               <tr>

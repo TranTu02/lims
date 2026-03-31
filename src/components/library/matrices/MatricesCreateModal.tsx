@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ExternalLink } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,11 +19,14 @@ import {
     type SampleType,
     useProtocolFull,
     type ProtocolChemical,
+    type ProtocolEquipment,
+    type ProtocolLabTool,
 } from "@/api/library";
 
 import { SearchableSelect, type Option } from "@/components/common/SearchableSelect";
 import { ChemicalBomTable, type ChemicalBomItem } from "../shared/ChemicalBomTable";
-import { ExternalLink } from "lucide-react";
+import { EquipmentSnapshotTable, type EquipmentSnapshotItem } from "../shared/EquipmentSnapshotTable";
+import { LabToolSnapshotTable, type LabToolSnapshotItem } from "../shared/LabToolSnapshotTable";
 import { ParameterFormModal } from "../parameters/ParameterFormModal";
 import { SampleTypeFormModal } from "../sampleTypes/SampleTypeFormModal";
 import { ProtocolFormModal } from "../protocols/ProtocolFormModal";
@@ -61,6 +65,8 @@ type FormState = {
     thresholdLimit: string;
 
     chemicals: ChemicalBomItem[];
+    equipments: EquipmentSnapshotItem[];
+    labTools: LabToolSnapshotItem[];
 };
 
 function initForm(props?: Props): FormState {
@@ -89,6 +95,8 @@ function initForm(props?: Props): FormState {
         thresholdLimit: "",
 
         chemicals: [],
+        equipments: [],
+        labTools: [],
     };
 }
 
@@ -104,7 +112,7 @@ function parseOptionalInt(raw: string): number | null {
     return Math.trunc(n);
 }
 
-function useDebouncedValue(value: string, ms: number) {
+function useLocalDebouncedValue(value: string, ms: number) {
     const [v, setV] = useState(value);
     useEffect(() => {
         const t = window.setTimeout(() => setV(value), ms);
@@ -159,12 +167,14 @@ export function MatricesCreateModal(props: Props) {
     const [createSampleTypeName, setCreateSampleTypeName] = useState<string>("");
     const [createProtocolCode, setCreateProtocolCode] = useState<string>("");
 
-    const debouncedParameterSearch = useDebouncedValue(parameterSearch, 250);
-    const debouncedProtocolSearch = useDebouncedValue(protocolSearch, 250);
-    const debouncedSampleTypeSearch = useDebouncedValue(sampleTypeSearch, 250);
+    const debouncedParameterSearch = useLocalDebouncedValue(parameterSearch, 250);
+    const debouncedProtocolSearch = useLocalDebouncedValue(protocolSearch, 250);
+    const debouncedSampleTypeSearch = useLocalDebouncedValue(sampleTypeSearch, 250);
 
     const protocolFullQ = useProtocolFull(form.protocolId);
     const [protocolSnapshotChemicals, setProtocolSnapshotChemicals] = useState<ProtocolChemical[]>([]);
+    const [protocolSnapshotEquipments, setProtocolSnapshotEquipments] = useState<ProtocolEquipment[]>([]);
+    const [protocolSnapshotLabTools, setProtocolSnapshotLabTools] = useState<ProtocolLabTool[]>([]);
 
     useEffect(() => {
         if (props.open) {
@@ -175,13 +185,23 @@ export function MatricesCreateModal(props: Props) {
     useEffect(() => {
         if (props.lockedProtocol?.chemicals) {
             setProtocolSnapshotChemicals(props.lockedProtocol.chemicals);
-            return;
-        }
-        if (!protocolFullQ.data?.chemicals) {
+        } else if (protocolFullQ.data?.chemicals) {
+            setProtocolSnapshotChemicals(protocolFullQ.data.chemicals);
+        } else {
             setProtocolSnapshotChemicals([]);
-            return;
         }
-        setProtocolSnapshotChemicals(protocolFullQ.data.chemicals);
+
+        if (protocolFullQ.data?.equipments) {
+            setProtocolSnapshotEquipments(protocolFullQ.data.equipments);
+        } else {
+            setProtocolSnapshotEquipments([]);
+        }
+
+        if (protocolFullQ.data?.labTools) {
+            setProtocolSnapshotLabTools(protocolFullQ.data.labTools);
+        } else {
+            setProtocolSnapshotLabTools([]);
+        }
     }, [protocolFullQ.data, props.lockedProtocol]);
 
     const handleLoadChemicals = () => {
@@ -192,7 +212,33 @@ export function MatricesCreateModal(props: Props) {
                     chemicalSkuId: c.chemicalSkuId,
                     chemicalName: c.chemicalName,
                     consumedQty: c.consumedQty || "",
-                    unit: c.unit || "",
+                    unit: c.chemicalBaseUnit || c.unit || "",
+                })),
+            }));
+        }
+    };
+
+    const handleLoadEquipments = () => {
+        if (protocolSnapshotEquipments.length > 0) {
+            setForm((s) => ({
+                ...s,
+                equipments: protocolSnapshotEquipments.map((e) => ({
+                    equipmentId: e.equipmentId,
+                    equipmentName: e.equipmentName,
+                    equipmentType: e.equipmentType || null,
+                })),
+            }));
+        }
+    };
+
+    const handleLoadLabTools = () => {
+        if (protocolSnapshotLabTools.length > 0) {
+            setForm((s) => ({
+                ...s,
+                labTools: protocolSnapshotLabTools.map((l) => ({
+                    labToolId: l.labToolId,
+                    labToolName: l.labToolName,
+                    labToolType: l.labToolType || null,
                 })),
             }));
         }
@@ -246,7 +292,6 @@ export function MatricesCreateModal(props: Props) {
         const computed = Math.round((feeBeforeTaxNum as number) * (1 + (taxRateNum as number) / 100));
         const next = String(computed);
 
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setForm((s) => (s.feeAfterTax === next ? s : { ...s, feeAfterTax: next }));
     }, [open, canAutoCalcFeeAfterTax, feeBeforeTaxNum, taxRateNum]);
 
@@ -403,8 +448,12 @@ export function MatricesCreateModal(props: Props) {
                 chemicalSkuId: c.chemicalSkuId || "",
                 chemicalName: c.chemicalName,
                 consumedQty: c.consumedQty || "",
-                unit: c.unit || "",
+                chemicalBaseUnit: c.unit || "",
             })),
+            equipmentIds: form.equipments.map(e => e.equipmentId).filter(Boolean),
+            equipments: form.equipments,
+            labToolIds: form.labTools.map(l => l.labToolId).filter(Boolean),
+            labTools: form.labTools,
         };
 
         await createM.mutateAsync({ body });
@@ -663,8 +712,34 @@ export function MatricesCreateModal(props: Props) {
 
                         <div className="space-y-1 min-w-0 flex-1 flex flex-col pt-6 border-t border-border mt-6">
                             <SectionTitle>{String(t("library.matrices.create.chemicals", { defaultValue: "Hóa chất" }))}</SectionTitle>
-                            <div className="flex-1 min-h-[300px]">
-                                <ChemicalBomTable items={form.chemicals} onChange={(chemicals) => setForm((s) => ({ ...s, chemicals }))} onLoadFromProtocol={handleLoadChemicals} />
+                            <div className="flex-1 min-h-[250px]">
+                                <ChemicalBomTable
+                                    items={form.chemicals}
+                                    onChange={(chemicals) => setForm((s) => ({ ...s, chemicals }))}
+                                    onLoadFromProtocol={handleLoadChemicals}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-1 min-w-0 flex-1 flex flex-col pt-6 border-t border-border mt-6">
+                            <SectionTitle>{String(t("library.matrices.create.equipments", { defaultValue: "Thiết bị" }))}</SectionTitle>
+                            <div className="flex-1 min-h-[250px]">
+                                <EquipmentSnapshotTable
+                                    items={form.equipments}
+                                    onChange={(equipments) => setForm((s) => ({ ...s, equipments }))}
+                                    onLoadFromProtocol={handleLoadEquipments}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-1 min-w-0 flex-1 flex flex-col pt-6 border-t border-border mt-6">
+                            <SectionTitle>{String(t("library.matrices.create.labTools", { defaultValue: "Dụng cụ" }))}</SectionTitle>
+                            <div className="flex-1 min-h-[250px]">
+                                <LabToolSnapshotTable
+                                    items={form.labTools}
+                                    onChange={(labTools) => setForm((s) => ({ ...s, labTools }))}
+                                    onLoadFromProtocol={handleLoadLabTools}
+                                />
                             </div>
                         </div>
                     </div>

@@ -14,29 +14,24 @@ Quản lý danh sách **cấu hình phân tích** (Matrices). Mỗi cấu hình 
 | `MatricesDetailModal.tsx`   | Modal hiển thị chi tiết matrix (dạng popup toàn màn hình)                                                                    |
 | `MatricesCreateModal.tsx`   | Modal tạo cấu hình mới: chọn Parameter, Protocol, Sample Type, nhập đơn giá                                                  |
 | `MatricesEditModal.tsx`     | Modal chỉnh sửa cấu hình: load dữ liệu hiện tại, cho phép cập nhật                                                           |
-| `MatricesDeleteConfirm.tsx` | Dialog xác nhận xóa matrix                                                                                                   |
-| `matrixFormat.ts`           | Helper functions: `formatNumberVi` (format số VND), `safeText` (null-safe text)                                              |
+| `ParameterSelectPicker.tsx` | Bộ chọn chỉ tiêu dựa trên danh mục chuẩn (Catalog API) để lọc dữ liệu bảng chính xác.                                        |
 
 ## Luồng hoạt động
 
 1. **Xem danh sách**: `MatricesView` gọi `useMatricesList` với phân trang server-side (20 items/page)
-2. **Lọc**: Mỗi cột header có `ExcelFilterPopover` truy vấn API `/v2/matrices/filter`
+2. **Lọc (Excel Filter)**:
+    * **parameterId**: Sử dụng `ParameterSelectPicker` để chọn tên chỉ tiêu từ danh mục Catalog. Thay vì nhập văn bản tự do, điều này đảm bảo lọc tuyệt đối chính xác theo ID của chỉ tiêu.
 3. **Xem chi tiết**: Click vào hàng → `MatrixDetailPanel` (sidebar phải) gọi `useMatrixDetail`
-4. **Chỉnh sửa**: Click nút Edit → `MatricesEditModal` (popup). State `editMatrixId` tách biệt với `selectedMatrixId` (detail panel)
+4. **Chỉnh sửa**: Click nút Edit → `MatricesEditModal` (popup).
 5. **Xóa**: Click nút Delete → `MatricesDeleteConfirm`
 6. **Tạo mới**: Click nút Add → `MatricesCreateModal`
 
 ## API Endpoints
 
-- `GET /v2/matrices/get/list` – Danh sách (có phân trang, tìm kiếm)
-- `GET /v2/matrices/get/detail` – Chi tiết theo `matrixId`
-- `POST /v2/matrices/create` – Tạo mới
-- `POST /v2/matrices/update` – Cập nhật
-- `POST /v2/matrices/delete` – Xóa
-- `POST /v2/matrices/filter` – Filter Excel-style
-
-## Lưu ý
-
-- Backend detail endpoint trả dữ liệu trực tiếp (không bọc trong `{ success, data }`).
-  `assertSuccess` trong `library.ts` đã xử lý trường hợp này.
-- Phân trang chỉ có 1 vùng duy nhất (trong cột bảng, ngay dưới bảng)
+* `GET /v2/matrices/get/list` – Danh sách (có phân trang, tìm kiếm)
+* `GET /v2/matrices/get/detail` – Chi tiết theo `matrixId`
+* `POST /v2/matrices/create` – Tạo mới
+* `POST /v2/matrices/update` – Cập nhật
+* `POST /v2/matrices/delete` – Xóa
+* `POST /v2/matrices/filter` – Filter Excel-style bổ sung cho các trường ID.
+* `GET /v2alpha/catalog` – Cung cấp danh mục chỉ tiêu cho bộ lọc.

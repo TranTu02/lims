@@ -123,12 +123,14 @@ expand_less
 {
 "success": true,
 "statusCode": 200,
-"data": { ... }, // Object (detail/full) hoặc Array (list)
+"data": { 
+    
+ }, // Object (detail/full) hoặc Array (list)
 "pagination": { // Phải có khi gọi /get/list, các trường hợp khác là null
-"page": 1,
-"itemsPerPage": 20,
-"total": 150, // Tổng số bản ghi tìm thấy
-"totalPages": 8
+    "page": 1,
+    "itemsPerPage": 20,
+    "total": 150, // Tổng số bản ghi tìm thấy
+    "totalPages": 8
 },
 "error": null // Khi success = true
 }

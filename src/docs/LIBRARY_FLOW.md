@@ -169,3 +169,18 @@ Vì các danh mục hệ thống đa phần kế thừa từ `LibraryEntity` (ho
   - Cập nhật Cache.
 
 3. **Trả về**: Success status hoặc `true`.
+---
+
+## 5. Luồng Quản lý Tài liệu Phương pháp (`Protocol Document Flow`)
+
+Hệ thống phân chia tài liệu trong Phương pháp thành hai luồng độc lập dựa trên `documentType`:
+
+1. **Luồng Tài liệu Công khai (`PROTOCOL_DOC`)**:
+    * Sử dụng cho các hướng dẫn, tiêu chuẩn, tài liệu tham khảo chung.
+    * Khi UI gọi `searchDocuments`, tham số `documentType` được set là `PROTOCOL_DOC`.
+2. **Luồng Hồ sơ SOP (`PROTOCOL_SOP`)**:
+    * Dành cho các quy trình thực hành chuẩn (SOP) nội bộ.
+    * Dữ liệu được lưu trữ riêng trong trường `sopDocumentIds`.
+    * Khi UI gọi `searchDocuments`, tham số `documentType` được set là `PROTOCOL_SOP`.
+
+Hệ thống đảm bảo tính toàn vẹn bằng cách tự động lọc tài liệu theo đúng chủng loại khi người dùng thao tác đính kèm hoặc tải lên mới từ modal.

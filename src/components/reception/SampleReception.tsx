@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, AlertCircle, Truck, Package, Plus, Inbox } from "lucide-react";
+import { Search, AlertCircle, Truck, Package, Plus, Inbox, RefreshCw } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { ReceiptDeleteModal } from "@/components/reception/ReceiptDeleteModal";
 import { IncomingRequestsTable } from "@/components/reception/IncomingRequestsTable";
 import { IncomingRequestDetailModal } from "@/components/reception/IncomingRequestDetailModal";
 import { CreateIncomingRequestFromOrderModalWrapper } from "@/components/reception/CreateIncomingRequestFromOrderModal";
+import ShipmentManagerModal from "@/components/reception/shipment/ShipmentManagerModal";
 
 import { receiptsGetFull, useReceiptsProcessing, useReceiptsList } from "@/api/receipts";
 import { useIncomingRequestsList } from "@/api/incomingRequests";
@@ -19,16 +20,8 @@ import type { ReceiptDetail, ReceiptListItem } from "@/types/receipt";
 import type { IncomingRequestListItem } from "@/types/incomingRequest";
 
 import { useServerPagination } from "@/components/library/hooks/useServerPagination";
-import { useDebouncedValue } from "@/components/library/hooks/useDebouncedValue";
 
-import { ReceiptsTable, type ReceiptExcelFiltersState, type TabKey } from "@/components/reception/ReceiptsTable";
-
-function createEmptyFilters(): ReceiptExcelFiltersState {
-    return {
-        receiptStatus: [],
-        receiptCode: [],
-    };
-}
+import { ReceiptsTable, type TabKey } from "@/components/reception/ReceiptsTable";
 
 function isOverdue(deadlineIso?: string | null): boolean {
     if (!deadlineIso) return false;
@@ -42,7 +35,7 @@ export function SampleReception() {
 
     const [activeTab, setActiveTab] = useState<TabKey>("incoming-requests");
     const [searchTerm, setSearchTerm] = useState("");
-    const debouncedSearch = useDebouncedValue(searchTerm, 300);
+    const [searchQuery, setSearchQuery] = useState("");
 
     const [selectedReceiptFull, setSelectedReceiptFull] = useState<ReceiptDetail | null>(null);
     const [isCreateReceiptModalOpen, setIsCreateReceiptModalOpen] = useState(false);
@@ -53,9 +46,8 @@ export function SampleReception() {
     const [convertingRequest, setConvertingRequest] = useState<IncomingRequestListItem | null>(null);
     const [viewingRequestId, setViewingRequestId] = useState<string | null>(null);
 
-    const [excelFilters, setExcelFilters] = useState<ReceiptExcelFiltersState>(() => createEmptyFilters());
-    const [incomingFilters, setIncomingFilters] = useState<{ receiptId: string[]; paymentStatus: string[] }>({ receiptId: [], paymentStatus: [] });
     const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);
+    const [shippingReceiptId, setShippingReceiptId] = useState<string | null>(null);
 
     const [serverTotalPages, setServerTotalPages] = useState<number | null>(null);
     const pagination = useServerPagination(serverTotalPages, 50);
@@ -68,21 +60,14 @@ export function SampleReception() {
         const query: any = {
             page: pagination.currentPage,
             itemsPerPage: pagination.itemsPerPage,
-            search: debouncedSearch.trim().length ? debouncedSearch.trim() : undefined,
+            search: searchQuery.trim().length ? searchQuery.trim() : undefined,
         };
 
-        if (incomingFilters.receiptId.length > 0) {
-            query["receiptId[]"] = incomingFilters.receiptId;
-        }
-        if (incomingFilters.paymentStatus.length > 0) {
-            query["paymentStatus[]"] = incomingFilters.paymentStatus;
-        }
-        
         return {
             query,
             sort: { column: "createdAt", direction: "DESC" as const },
         };
-    }, [pagination.currentPage, pagination.itemsPerPage, debouncedSearch, incomingFilters]);
+    }, [pagination.currentPage, pagination.itemsPerPage, searchQuery]);
 
     const incomingQ = useIncomingRequestsList(incomingInput, { enabled: isIncomingTab });
 
@@ -91,21 +76,14 @@ export function SampleReception() {
         const query: any = {
             page: pagination.currentPage,
             itemsPerPage: pagination.itemsPerPage,
-            search: debouncedSearch.trim().length ? debouncedSearch.trim() : null,
+            search: searchQuery.trim().length ? searchQuery.trim() : null,
         };
-
-        if (excelFilters.receiptStatus.length > 0) {
-            query["receiptStatus[]"] = excelFilters.receiptStatus;
-        }
-        if (excelFilters.receiptCode.length > 0) {
-            query["receiptCode[]"] = excelFilters.receiptCode;
-        }
 
         return {
             query,
             sort: { column: "createdAt", direction: "DESC" as const },
         };
-    }, [pagination.currentPage, pagination.itemsPerPage, debouncedSearch, excelFilters]);
+    }, [pagination.currentPage, pagination.itemsPerPage, searchQuery]);
 
     const receiptsProcessingQ = useReceiptsProcessing(listInput, { enabled: isProcessingTab });
     const receiptsListQ = useReceiptsList(listInput, { enabled: !isProcessingTab && !isIncomingTab });
@@ -135,14 +113,11 @@ export function SampleReception() {
     const isLoading = activeQuery.isLoading || activeQuery.isFetching;
     const isError = activeQuery.isError;
 
-    const onSearchChange = (v: string) => {
-        setSearchTerm(v);
-        pagination.resetPage();
-    };
-
-    const onExcelFiltersChange = (next: ReceiptExcelFiltersState) => {
-        setExcelFilters(next);
-        pagination.resetPage();
+    const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") {
+            setSearchQuery(searchTerm);
+            pagination.resetPage();
+        }
     };
 
     async function openReceipt(receiptId: string) {
@@ -183,6 +158,13 @@ export function SampleReception() {
 
             {/* Create Incoming Request from Order */}
             <CreateIncomingRequestFromOrderModalWrapper />
+
+            {/* Shipment Modal */}
+            <ShipmentManagerModal 
+                open={shippingReceiptId !== null} 
+                onOpenChange={(open) => !open && setShippingReceiptId(null)} 
+                receiptId={shippingReceiptId || ""} 
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="bg-card rounded-lg border border-border p-4">
@@ -256,21 +238,33 @@ export function SampleReception() {
                         <div className="relative flex-1">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
-                                placeholder={t("reception.sampleReception.search.placeholder")}
+                                placeholder={String(t("reception.sampleReception.search.placeholder", { defaultValue: "Tìm kiếm và nhấn Enter..." }))}
                                 value={searchTerm}
-                                onChange={(e) => onSearchChange(e.target.value)}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onKeyDown={handleSearchKeyDown}
                                 className="pl-10 bg-background"
                             />
                         </div>
 
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => activeQuery.refetch()}
+                            disabled={activeQuery.isFetching}
+                            className="h-9 w-9 shrink-0"
+                            title={String(t("common.refresh", { defaultValue: "Làm mới" }))}
+                        >
+                            <RefreshCw className={`h-4 w-4 ${activeQuery.isFetching ? "animate-spin" : ""}`} />
+                        </Button>
+
                         {!isIncomingTab && (
-                            <Button variant="default" className="flex items-center gap-2 px-3 text-xs" onClick={() => setIsCreateReceiptModalOpen(true)}>
+                            <Button variant="default" className="flex items-center gap-2 px-3 text-xs h-9" onClick={() => setIsCreateReceiptModalOpen(true)}>
                                 <Plus className="h-4 w-4" />
                                 {t("reception.sampleReception.actions.createReceipt")}
                             </Button>
                         )}
                         {isIncomingTab && (
-                            <Button variant="default" className="flex items-center gap-2 px-3 text-xs" onClick={() => document.dispatchEvent(new CustomEvent("open-create-incoming-from-order"))}>
+                            <Button variant="default" className="flex items-center gap-2 px-3 text-xs h-9" onClick={() => document.dispatchEvent(new CustomEvent("open-create-incoming-from-order"))}>
                                 <Plus className="h-4 w-4" />
                                 {String(t("reception.incomingRequests.createFromOrder", { defaultValue: "Từ đơn hàng" }))}
                             </Button>
@@ -303,8 +297,6 @@ export function SampleReception() {
                         <IncomingRequestsTable
                             items={incomingItems}
                             isLoading={isLoading}
-                            filters={incomingFilters}
-                            onFiltersChange={setIncomingFilters}
                             onConvert={(item) => setConvertingRequest(item)}
                             onViewDetail={(requestId) => setViewingRequestId(requestId)}
                             onViewReceipt={(id) => openReceipt(id)}
@@ -321,8 +313,7 @@ export function SampleReception() {
                             }}
                             onView={(id) => void openReceipt(id)}
                             onDelete={(id) => setDeleteReceiptId(id)}
-                            excelFilters={excelFilters}
-                            onExcelFiltersChange={onExcelFiltersChange}
+                            onOpenShipment={(id) => setShippingReceiptId(id)}
                             openingReceiptId={openingReceiptId}
                         />
                     )}

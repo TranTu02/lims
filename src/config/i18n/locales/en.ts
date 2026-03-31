@@ -203,6 +203,14 @@ export default {
             sessionDomain: "Access Domain",
         },
     },
+    shipments: {
+        title: "Shipments",
+        subtitle: "Manage sample and result delivery",
+        senderName: "INSTITUTE OF RESEARCH AND DEVELOPMENT OF NATURAL PRODUCTS",
+        senderAddress: "176 Phung Khoang, Dai Mo Ward, Hanoi, Vietnam",
+        senderPhone: "0868872578",
+        senderEmail: "quantri@irdop.org",
+    },
     crm: {
         title: "Customers",
         subtitle: "Customer relationship management",
@@ -1072,7 +1080,11 @@ export default {
             noFile: "No files yet",
 
             sampleImage: "Sample images",
+            noImage: "No images yet",
             sendMail: "Send email",
+            sendMailReception: "Reception Email",
+            sendMailResult: "Result Email",
+            manageImages: "Manage images",
             sendMailTitle: "Send email to client",
             sendMailDesc: "Compose and send an email with receipt information.",
 
@@ -1085,10 +1097,17 @@ export default {
             email: {
                 from: "From",
                 to: "To",
+                cc: "CC",
+                bcc: "BCC",
+                toPlaceholder: "Enter recipient email addresses (comma separated)...",
                 subject: "Subject",
                 content: "Content",
                 attachments: "Attachments",
-                send: "Send",
+                reportAttached: "Attached Report",
+                send: "Send Email",
+                sending: "Sending...",
+                sendSuccess: "Email sent successfully!",
+                sendError: "Failed to send email. Please try again.",
             },
         },
         sampleReception: {

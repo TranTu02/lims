@@ -6,51 +6,60 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 
-import { useCreateLabTool, useUpdateLabTool, type LabTool } from "@/api/generalInventory";
+import { useCreateLabSku, useUpdateLabSku, type LabSku } from "@/api/generalInventory";
 
-export function LabToolEditModal({ item, onClose }: { item?: LabTool; onClose: () => void }) {
+export function LabToolEditModal({ item, onClose }: { item?: LabSku; onClose: () => void }) {
     const { t } = useTranslation();
-    const createItem = useCreateLabTool();
-    const updateItem = useUpdateLabTool();
+    const createItem = useCreateLabSku();
+    const updateItem = useUpdateLabSku();
 
-    const [labToolId, setLabToolId] = useState("");
-    const [labToolName, setLabToolName] = useState("");
-    const [labToolCode, setLabToolCode] = useState("");
-    const [labToolType, setLabToolType] = useState("");
-    const [labToolStatus, setLabToolStatus] = useState("Ready");
-    const [lastCalibrationDate, setLastCalibrationDate] = useState("");
-    const [nextCalibrationDate, setNextCalibrationDate] = useState("");
+    const [formData, setFormData] = useState({
+        labSkuId: "",
+        labSkuName: "",
+        labSkuCode: "",
+        labSkuType: "Tool",
+        labSkuUnit: "",
+        labSkuManufacturer: "",
+        labSkuModel: "",
+        requiresCalibration: false,
+    });
 
     useEffect(() => {
         if (item) {
-            setLabToolId(item.labToolId || "");
-            setLabToolName(item.labToolName || "");
-            setLabToolCode(item.labToolCode || "");
-            setLabToolType(item.labToolType || "");
-            setLabToolStatus(item.labToolStatus || "Ready");
-            setLastCalibrationDate(item.lastCalibrationDate ? item.lastCalibrationDate.split("T")[0] : "");
-            setNextCalibrationDate(item.nextCalibrationDate ? item.nextCalibrationDate.split("T")[0] : "");
+            setFormData({
+                labSkuId: item.labSkuId || "",
+                labSkuName: item.labSkuName || "",
+                labSkuCode: item.labSkuCode || "",
+                labSkuType: item.labSkuType || "Tool",
+                labSkuUnit: item.labSkuUnit || "",
+                labSkuManufacturer: item.labSkuManufacturer || "",
+                labSkuModel: item.labSkuModel || "",
+                requiresCalibration: !!item.requiresCalibration,
+            });
         }
     }, [item]);
 
     const isPending = createItem.isPending || updateItem.isPending;
 
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!labToolId || !labToolName) {
-            alert("Mã và Tên Dụng cụ không được bỏ trống.");
+        if (!formData.labSkuId || !formData.labSkuName) {
+            alert("Mã và Tên Danh mục (SKU) không được để trống.");
             return;
         }
 
         const payload = {
-            labToolId,
-            labToolName,
-            labToolCode: labToolCode || null,
-            labToolType: labToolType || null,
-            labToolStatus: labToolStatus || null,
-            lastCalibrationDate: lastCalibrationDate || null,
-            nextCalibrationDate: nextCalibrationDate || null,
+            ...formData,
+            labSkuCode: formData.labSkuCode || null,
+            labSkuManufacturer: formData.labSkuManufacturer || null,
+            labSkuModel: formData.labSkuModel || null,
+            labSkuUnit: formData.labSkuUnit || null,
         };
 
         if (item) {
@@ -65,67 +74,73 @@ export function LabToolEditModal({ item, onClose }: { item?: LabTool; onClose: (
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle>
-                        {item ? String(t("inventory.general.labTools.edit", { defaultValue: "Sửa Dụng cụ" })) : String(t("inventory.general.labTools.create", { defaultValue: "Thêm Dụng cụ" }))}
+                        {item ? "Sửa Danh mục (SKU)" : "Thêm Danh mục (SKU)"}
                     </DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 pt-4">
                     <div className="space-y-2">
-                        <Label>{String(t("inventory.general.labTools.id"))} *</Label>
+                        <Label>Mã Danh mục (SKU ID) *</Label>
                         <Input
-                            value={labToolId}
-                            onChange={(e) => setLabToolId(e.target.value)}
+                            name="labSkuId"
+                            value={formData.labSkuId}
+                            onChange={handleChange}
                             disabled={!!item || isPending}
-                            placeholder="TOOL-001"
+                            placeholder="SKU-TOOL-001"
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label>{String(t("inventory.general.labTools.name"))} *</Label>
+                        <Label>Tên Danh mục *</Label>
                         <Input
-                            value={labToolName}
-                            onChange={(e) => setLabToolName(e.target.value)}
+                            name="labSkuName"
+                            value={formData.labSkuName}
+                            onChange={handleChange}
                             disabled={isPending}
-                            placeholder="Micropipette..."
+                            placeholder="Micropipette Agilent..."
                         />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>{String(t("inventory.general.labTools.code"))}</Label>
+                            <Label>Mã SKU nội bộ</Label>
                             <Input
-                                value={labToolCode}
-                                onChange={(e) => setLabToolCode(e.target.value)}
+                                name="labSkuCode"
+                                value={formData.labSkuCode}
+                                onChange={handleChange}
                                 disabled={isPending}
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label>{String(t("inventory.general.labTools.type"))}</Label>
+                            <Label>Loại</Label>
                             <Input
-                                value={labToolType}
-                                onChange={(e) => setLabToolType(e.target.value)}
+                                name="labSkuType"
+                                value={formData.labSkuType}
+                                onChange={handleChange}
                                 disabled={isPending}
-                                placeholder="Pipette..."
+                                placeholder="Tool / Equipment / Material"
                             />
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>{String(t("inventory.general.labTools.lastCal"))}</Label>
+                            <Label>Đơn vị tính</Label>
                             <Input
-                                type="date"
-                                value={lastCalibrationDate}
-                                onChange={(e) => setLastCalibrationDate(e.target.value)}
+                                name="labSkuUnit"
+                                value={formData.labSkuUnit}
+                                onChange={handleChange}
                                 disabled={isPending}
+                                placeholder="Cái, Bộ, Máy..."
                             />
                         </div>
-                        <div className="space-y-2">
-                            <Label>{String(t("inventory.general.labTools.nextCal", { defaultValue: "Hạn hiệu chuẩn" }))}</Label>
-                            <Input
-                                type="date"
-                                value={nextCalibrationDate}
-                                onChange={(e) => setNextCalibrationDate(e.target.value)}
+                        <div className="flex items-center space-x-2 pt-8">
+                            <Checkbox 
+                                id="requiresCalibration" 
+                                checked={formData.requiresCalibration}
+                                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, requiresCalibration: !!checked }))}
                                 disabled={isPending}
                             />
+                            <Label htmlFor="requiresCalibration" className="text-xs">Yêu cầu hiệu chuẩn</Label>
                         </div>
                     </div>
+                    
                     <DialogFooter className="pt-4 mt-2">
                         <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
                             {String(t("common.cancel", { defaultValue: "Hủy" }))}

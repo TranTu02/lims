@@ -114,18 +114,19 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
     const q = useSampleTypesFilter(input, { enabled: open });
 
     const options = useMemo((): Option[] => {
-        const data = q.data ?? [];
+        const rawBody = q.data as any;
+        const data = Array.isArray(rawBody) ? rawBody : (rawBody?.data ?? []) as any[];
 
         return data
             .map((x) => {
                 if (props.filterKey === "displayTypeStyle") {
                     const { label, stableKey } = normalizeDisplayStyle(i18n, x?.filterValue);
-                    return { value: label, key: stableKey, count: x?.count ?? 0 };
+                    return { value: label, key: stableKey, count: Number(x?.count ?? 0) };
                 }
 
                 const raw = x?.filterValue;
                 const value = typeof raw === "string" ? raw : raw == null ? "" : String(raw);
-                return { value, key: value, count: x?.count ?? 0 };
+                return { value, key: value, count: Number(x?.count ?? 0) };
             })
             .filter((x) => x.value.trim().length > 0)
             .sort((a, b) => a.value.localeCompare(b.value));

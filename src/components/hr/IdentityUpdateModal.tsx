@@ -30,6 +30,10 @@ import {
 } from "@/api/identities";
 import { unwrapOrThrow } from "@/utils/api";
 
+import { IdentityDocumentManager } from "./IdentityDocumentManager";
+import { IdentityGroupSelect } from "./IdentityGroupSelect";
+import type { PickerItem } from "@/components/shared/SearchSelectPicker";
+
 type Props = {
   open: boolean;
   identityId: string | null;
@@ -41,6 +45,10 @@ type FormState = {
   identityStatus: IdentityStatus;
   roles: Record<RoleKey, boolean>;
   permissionsJson: string;
+  identityGroupId: string;
+  identityPhone: string;
+  identityNID: string;
+  identityAddress: string;
 };
 
 function defaultForm(): FormState {
@@ -51,12 +59,20 @@ function defaultForm(): FormState {
     identityStatus: "active",
     roles,
     permissionsJson: "{}",
+    identityGroupId: "",
+    identityPhone: "",
+    identityNID: "",
+    identityAddress: "",
   };
 }
 
 export function IdentityUpdateModal({ open, identityId, onClose }: Props) {
   const { t } = useTranslation();
   const qc = useQueryClient();
+
+  // Document states
+  const [identityDocumentIds, setIdentityDocumentIds] = useState<string[]>([]);
+  const [selectedDocs, setSelectedDocs] = useState<PickerItem[]>([]);
 
   const detailQ = useQuery({
     queryKey: identityId
@@ -83,7 +99,28 @@ export function IdentityUpdateModal({ open, identityId, onClose }: Props) {
       identityStatus: data.identityStatus ?? "active",
       roles: pickRoles(data.roles ?? {}, roleKeys),
       permissionsJson: JSON.stringify(data.permissions ?? {}, null, 2),
+      identityGroupId: data.identityGroupId ?? "",
+      identityPhone: data.identityPhone ?? "",
+      identityNID: data.identityNID ?? "",
+      identityAddress: data.identityAddress ?? "",
     });
+
+    // Handle documents if available
+    if (Array.isArray(data.documents)) {
+      const docs = data.documents as any[];
+      setIdentityDocumentIds(docs.map(d => d.documentId));
+      setSelectedDocs(docs.map(d => ({
+        id: d.documentId,
+        label: d.documentTitle || d.documentId,
+        sublabel: d.documentId
+      })));
+    } else if (Array.isArray(data.identityDocumentIds)) {
+      setIdentityDocumentIds(data.identityDocumentIds);
+      setSelectedDocs(data.identityDocumentIds.map(id => ({ id, label: id, sublabel: id })));
+    } else {
+      setIdentityDocumentIds([]);
+      setSelectedDocs([]);
+    }
   }, [detailQ.data]);
 
   const canSubmit = useMemo(() => {
@@ -119,13 +156,22 @@ export function IdentityUpdateModal({ open, identityId, onClose }: Props) {
       return;
     }
 
+    const rolesArray = Object.entries(form.roles)
+      .filter(([, v]) => v)
+      .map(([k]) => k);
+
     const body: IdentityUpdateBody = {
       identityId,
       identityName: form.identityName.trim(),
       identityStatus: form.identityStatus,
-      roles: { ...form.roles },
+      identityRoles: rolesArray,
       permissions,
-    };
+      identityDocumentIds: identityDocumentIds.length > 0 ? identityDocumentIds : undefined,
+      identityGroupId: form.identityGroupId || undefined,
+      identityPhone: form.identityPhone.trim() || undefined,
+      identityNID: form.identityNID.trim() || undefined,
+      identityAddress: form.identityAddress.trim() || undefined,
+    } as any;
 
     updateM.mutate(body);
   };
@@ -153,17 +199,21 @@ export function IdentityUpdateModal({ open, identityId, onClose }: Props) {
             {t("common.empty")}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1 sm:col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="space-y-1">
               <div className="text-xs text-muted-foreground">
-                {t("hr.fields.name")}
+                {t("hr.fields.identityId")}
               </div>
-              <Input
-                value={form.identityName}
-                onChange={(e) =>
-                  setForm((s) => ({ ...s, identityName: e.target.value }))
-                }
-                placeholder={t("hr.fields.name")}
+              <Input value={identityId ?? ""} disabled className="bg-muted" />
+            </div>
+
+            <div className="space-y-1">
+              <div className="text-xs text-muted-foreground">
+                {t("hr.fields.identityGroupId", { defaultValue: "Nhóm nhân sự" })}
+              </div>
+              <IdentityGroupSelect 
+                value={form.identityGroupId}
+                onValueChange={(v) => setForm(s => ({ ...s, identityGroupId: v }))}
               />
             </div>
 
@@ -193,11 +243,74 @@ export function IdentityUpdateModal({ open, identityId, onClose }: Props) {
               </Select>
             </div>
 
-            <div className="sm:col-span-2 border border-border rounded-lg p-3 bg-muted/20">
-              <div className="text-sm font-medium text-foreground mb-2">
-                {t("hr.fields.roles")}
+            <div className="space-y-1 sm:col-span-3">
+              <div className="text-xs text-muted-foreground">
+                {t("hr.fields.name")}
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <Input
+                value={form.identityName}
+                onChange={(e) =>
+                  setForm((s) => ({ ...s, identityName: e.target.value }))
+                }
+                placeholder={t("hr.fields.name")}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <div className="text-xs text-muted-foreground">
+                {t("hr.fields.identityPhone", { defaultValue: "Số điện thoại" })}
+              </div>
+              <Input
+                value={form.identityPhone}
+                onChange={(e) =>
+                  setForm((s) => ({ ...s, identityPhone: e.target.value }))
+                }
+                placeholder="0x..."
+              />
+            </div>
+
+            <div className="space-y-1 sm:col-span-2">
+              <div className="text-xs text-muted-foreground">
+                {t("hr.fields.identityNID", { defaultValue: "Số CCCD/NID" })}
+              </div>
+              <Input
+                value={form.identityNID}
+                onChange={(e) =>
+                  setForm((s) => ({ ...s, identityNID: e.target.value }))
+                }
+                placeholder="12 số..."
+              />
+            </div>
+
+            <div className="space-y-1 sm:col-span-3">
+              <div className="text-xs text-muted-foreground">
+                {t("hr.fields.identityAddress", { defaultValue: "Địa chỉ" })}
+              </div>
+              <Input
+                value={form.identityAddress}
+                onChange={(e) =>
+                  setForm((s) => ({ ...s, identityAddress: e.target.value }))
+                }
+                placeholder="Số nhà, tên đường..."
+              />
+            </div>
+
+            <div className="sm:col-span-3">
+              <IdentityDocumentManager 
+                selectedIds={identityDocumentIds}
+                selectedItems={selectedDocs}
+                onChange={(ids, items) => {
+                  setIdentityDocumentIds(ids);
+                  setSelectedDocs(items);
+                }}
+              />
+            </div>
+
+            <div className="sm:col-span-3 border border-border rounded-lg p-3 bg-muted/20">
+              <div className="text-sm font-medium text-foreground mb-2">
+                {t("hr.fields.roles", { defaultValue: "Vị trí" })}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
                 {roleKeys.map((k) => (
                   <label key={k} className="flex items-center gap-2 text-sm">
                     <Checkbox

@@ -5,9 +5,10 @@ import { useTranslation } from "react-i18next";
 type Props = {
   roles: unknown;
   max?: number;
+  highlight?: boolean;
 };
 
-export function IdentityRoleBadges({ roles, max = 2 }: Props) {
+export function IdentityRoleBadges({ roles, max = 2, highlight }: Props) {
   const { t } = useTranslation();
   const keys = activeRoleKeys(roles);
 
@@ -19,7 +20,11 @@ export function IdentityRoleBadges({ roles, max = 2 }: Props) {
   return (
     <div className="flex flex-wrap gap-1">
       {shown.map((k) => (
-        <Badge key={k} variant="outline" className="border-border text-foreground">
+        <Badge 
+          key={k} 
+          variant="outline" 
+          className={`border-border ${highlight ? "bg-primary/20 text-primary border-primary/20" : "text-foreground"}`}
+        >
           {t(`hr.roles.${k}`)}
         </Badge>
       ))}

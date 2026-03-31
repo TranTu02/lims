@@ -9,6 +9,8 @@ export type ListQuery = {
     page?: number;
     itemsPerPage?: number;
     search?: string | null;
+    labSkuType?: string[] | null;
+    labInventoryStatus?: string[] | null;
 };
 
 export type ListSort = {
@@ -43,6 +45,8 @@ function buildListQuery(input?: { query?: ListQuery; sort?: ListSort }): Record<
         page: input?.query?.page,
         itemsPerPage: input?.query?.itemsPerPage,
         search: input?.query?.search ?? undefined,
+        "labSkuType[]": input?.query?.labSkuType,
+        "labInventoryStatus[]": input?.query?.labInventoryStatus,
         sortColumn: input?.sort?.column,
         sortDirection: input?.sort?.direction,
     };
@@ -50,79 +54,89 @@ function buildListQuery(input?: { query?: ListQuery; sort?: ListSort }): Record<
 }
 
 // ==========================================
-// LAB INVENTORY (EQUIPMENT)
+// LAB INVENTORY (INSTANCES)
 // ==========================================
 
 export type LabInventory = {
     labInventoryId: string;
-    labInventoryName: string;
+    labSkuId?: string | null;
     labInventoryCode?: string | null;
+    labInventorySerial?: string | null;
     labInventoryStatus?: string | null;
     labInventoryLocation?: string | null;
-    labInventorySpecifications?: Record<string, unknown> | null;
-    labInventoryDocumentIds?: string[] | null;
-    labInventoryDocuments?: any[] | null;
-    labInventoryManufacturer?: string | null;
-    labInventoryModel?: string | null;
-    labInventorySerial?: string | null;
-    labInventoryImportDate?: string | null;
-    labInventoryWarrantyExpiryDate?: string | null;
-    labInventoryNotes?: string | null;
+    labInventoryQty?: number | null;
     labInventoryLastCalibrationDate?: string | null;
     labInventoryNextCalibrationDate?: string | null;
+    labInventoryImportDate?: string | null;
+    labInventoryExpiryDate?: string | null;
+    labInventoryWarrantyExpiryDate?: string | null;
+    labInventoryDocumentIds?: string[] | null;
+    labInventoryNotes?: string | null;
     createdAt?: string;
+    // Joined columns from LabSku (Snapshot/UI usage)
+    labSkuName?: string | null;
+    labSkuType?: string | null;
+    labSkuUnit?: string | null;
+    labSkuManufacturer?: string | null;
+    labSkuModel?: string | null;
+    labSkuSpecifications?: Record<string, unknown> | null;
+    // Full Detail Relations
+    documents?: any[] | null;
+    labInventoryDocuments?: any[] | null;
+    activityLogs?: AssetActivityLog[] | null;
 };
 
 export type LabInventoryCreateBody = {
     labInventoryId: string;
-    labInventoryName: string;
+    labSkuId?: string | null;
+    labSkuName?: string | null;
+    labSkuType?: string | null;
     labInventoryCode?: string | null;
+    labInventorySerial?: string | null;
     labInventoryStatus?: string | null;
     labInventoryLocation?: string | null;
-    labInventorySpecifications?: Record<string, unknown> | null;
-    labInventoryDocumentIds?: string[] | null;
-    labInventoryManufacturer?: string | null;
-    labInventoryModel?: string | null;
-    labInventorySerial?: string | null;
-    labInventoryImportDate?: string | null;
-    labInventoryWarrantyExpiryDate?: string | null;
-    labInventoryNotes?: string | null;
+    labInventoryQty?: number | null;
     labInventoryLastCalibrationDate?: string | null;
     labInventoryNextCalibrationDate?: string | null;
+    labInventoryImportDate?: string | null;
+    labInventoryExpiryDate?: string | null;
+    labInventoryWarrantyExpiryDate?: string | null;
+    labInventoryDocumentIds?: string[] | null;
+    labInventoryNotes?: string | null;
 };
 
 export type LabInventoryUpdateBody = LabInventoryCreateBody;
 
 // ==========================================
-// LAB TOOLS
+// LAB SKUS (MASTER CATALOG)
 // ==========================================
 
-export type LabTool = {
-    labToolId: string;
-    labToolName: string;
-    labToolCode?: string | null;
-    labToolType?: string | null;
-    labToolSpecifications?: Record<string, unknown> | null;
-    labToolStatus?: string | null;
+export type LabSku = {
+    labSkuId: string;
+    labSkuName: string;
+    labSkuCode?: string | null;
+    labSkuType?: string | null;
+    labSkuUnit?: string | null;
+    labSkuManufacturer?: string | null;
+    labSkuModel?: string | null;
+    labSkuSpecifications?: Record<string, unknown> | null;
     requiresCalibration?: boolean | null;
-    lastCalibrationDate?: string | null;
-    nextCalibrationDate?: string | null;
     createdAt?: string;
 };
 
-export type LabToolCreateBody = {
-    labToolId: string;
-    labToolName: string;
-    labToolCode?: string | null;
-    labToolType?: string | null;
-    labToolSpecifications?: Record<string, unknown> | null;
-    labToolStatus?: string | null;
+export type LabSkuCreateBody = {
+    labSkuId: string;
+    labSkuName: string;
+    labSkuCode?: string | null;
+    labSkuType?: string | null;
+    labSkuUnit?: string | null;
+    labSkuManufacturer?: string | null;
+    labSkuModel?: string | null;
+    labSkuSpecifications?: Record<string, unknown> | null;
     requiresCalibration?: boolean | null;
-    lastCalibrationDate?: string | null;
-    nextCalibrationDate?: string | null;
 };
 
-export type LabToolUpdateBody = LabToolCreateBody;
+export type LabSkuUpdateBody = LabSkuCreateBody;
 
 // ==========================================
 // ASSET ACTIVITY LOGS
@@ -151,7 +165,7 @@ export type AssetActivityLogCreateBody = Omit<AssetActivityLog, "createdAt" | "c
 export const generalInventoryApi = {
     labInventories: {
         list: (input?: { query?: ListQuery; sort?: ListSort }) =>
-            api.get<LabInventory[]>("/v2/lab-inventories/get/list", buildListQuery(input)),
+            api.get<LabInventory[]>("/v2/lab-inventories/get/list", { query: buildListQuery(input) }),
         get: (input: { labInventoryId: string }) =>
             api.get<LabInventory>("/v2/lab-inventories/get/full", { query: { labInventoryId: input.labInventoryId } }),
         create: (input: { body: LabInventoryCreateBody }) =>
@@ -161,15 +175,17 @@ export const generalInventoryApi = {
         delete: (input: { labInventoryId: string }) =>
             api.delete<{ success: boolean }>(`/v2/lab-inventories/delete/${input.labInventoryId}`),
     },
-    labTools: {
+    labSkus: {
         list: (input?: { query?: ListQuery; sort?: ListSort }) =>
-            api.get<LabTool[]>("/v2/lab-tools/get/list", buildListQuery(input)),
-        create: (input: { body: LabToolCreateBody }) =>
-            api.post<LabTool>("/v2/lab-tools/create", { body: input.body }),
-        update: (input: { body: LabToolUpdateBody }) =>
-            api.put<LabTool>("/v2/lab-tools/update", { body: input.body }),
-        delete: (input: { labToolId: string }) =>
-            api.delete<{ success: boolean }>(`/v2/lab-tools/delete/${input.labToolId}`),
+            api.get<LabSku[]>("/v2/lab-skus/get/list", { query: buildListQuery(input) }),
+        get: (input: { labSkuId: string }) =>
+            api.get<LabSku>("/v2/lab-skus/get/detail", { query: { labSkuId: input.labSkuId } }),
+        create: (input: { body: LabSkuCreateBody }) =>
+            api.post<LabSku>("/v2/lab-skus/create", { body: input.body }),
+        update: (input: { body: LabSkuUpdateBody }) =>
+            api.put<LabSku>("/v2/lab-skus/update", { body: input.body }),
+        delete: (input: { labSkuId: string }) =>
+            api.delete<{ success: boolean }>(`/v2/lab-skus/delete/${input.labSkuId}`),
     },
     assetLogs: {
         list: (input?: { query?: ListQuery; sort?: ListSort; assetId?: string }) =>
@@ -241,49 +257,49 @@ export function useDeleteLabInventory() {
 }
 
 // ==========================================
-// REACT QUERY HOOKS (LAB TOOLS)
+// REACT QUERY HOOKS (LAB SKUS)
 // ==========================================
-export function useLabToolsList(input?: { query?: ListQuery; sort?: ListSort }) {
+export function useLabSkusList(input?: { query?: ListQuery; sort?: ListSort }) {
     return useQuery({
-        queryKey: ["general-labtools-list", input],
-        queryFn: async () => assertSuccessWithMeta(await generalInventoryApi.labTools.list(input)),
+        queryKey: ["general-labskus-list", input],
+        queryFn: async () => assertSuccessWithMeta(await generalInventoryApi.labSkus.list(input)),
         placeholderData: keepPreviousData,
     });
 }
 
-export function useCreateLabTool() {
+export function useCreateLabSku() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (input: { body: LabToolCreateBody }) => {
-            const res = await generalInventoryApi.labTools.create(input);
-            if ("success" in res && res.success === false) throw new Error(res.error?.message || "Lỗi tạo dụng cụ");
+        mutationFn: async (input: { body: LabSkuCreateBody }) => {
+            const res = await generalInventoryApi.labSkus.create(input);
+            if ("success" in res && res.success === false) throw new Error(res.error?.message || "Lỗi tạo danh mục");
             return res.data;
         },
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["general-labtools-list"] }),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["general-labskus-list"] }),
     });
 }
 
-export function useUpdateLabTool() {
+export function useUpdateLabSku() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (input: { body: LabToolUpdateBody }) => {
-            const res = await generalInventoryApi.labTools.update(input);
-            if ("success" in res && res.success === false) throw new Error(res.error?.message || "Lỗi cập nhật dụng cụ");
+        mutationFn: async (input: { body: LabSkuUpdateBody }) => {
+            const res = await generalInventoryApi.labSkus.update(input);
+            if ("success" in res && res.success === false) throw new Error(res.error?.message || "Lỗi cập nhật danh mục");
             return res.data;
         },
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["general-labtools-list"] }),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["general-labskus-list"] }),
     });
 }
 
-export function useDeleteLabTool() {
+export function useDeleteLabSku() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (labToolId: string) => {
-            const res = await generalInventoryApi.labTools.delete({ labToolId });
-            if ("success" in res && res.success === false) throw new Error(res.error?.message || "Lỗi xóa dụng cụ");
+        mutationFn: async (labSkuId: string) => {
+            const res = await generalInventoryApi.labSkus.delete({ labSkuId });
+            if ("success" in res && res.success === false) throw new Error(res.error?.message || "Lỗi xóa danh mục");
             return res.data;
         },
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["general-labtools-list"] }),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["general-labskus-list"] }),
     });
 }
 

@@ -1,79 +1,79 @@
-# LAB INVENTORY FLOW (EQUIPMENT & TOOLS)
+# TỔNG QUAN TÁI CẤU TRÚC PHÂN HỆ LAB INVENTORY (V2)
 
-_Tài liệu hướng dẫn luồng nghiệp vụ quản lý Thiết bị, Dụng cụ và Tài sản trong phòng thí nghiệm._
+## 1. MỤC TIÊU CẢI TIẾN
 
-## I. TỔNG QUAN HỆ THỐNG
+Phân hệ quản lý vật tư và thiết bị được tái cấu trúc từ mô hình quản lý thực thể đơn lẻ (Single Entity) sang mô hình **SKU - Inventory Tiered Model** nhằm:
 
-Phân hệ **Lab Inventory** (General Inventory) được thiết kế để quản lý:
-1. **Lab Inventories (Equipment)**: Các thiết bị máy móc có giá trị cao, mã quản lý riêng, yêu cầu hiệu chuẩn/bảo trì định kỳ.
-2. **Lab Tools**: Các dụng cụ thủy tinh, dụng cụ hỗ trợ thí nghiệm (Pipette, buret...), có thể yêu cầu hiệu chuẩn.
-3. **Asset Activity Logs**: Nhật ký hoạt động chi tiết của tài sản (Sử dụng, Hiệu chuẩn, Bảo trì, Sự cố), hỗ trợ truy vết đa chiều qua `commonKeys`.
-
----
-
-## II. CẤU TRÚC DỮ LIỆU CHÍNH
-
-### 1. Thực thể Tài sản (Asset)
-- **LabInventory (Equipment)**: `Prefix: EQ_`, Schema: `labInventories.labInventories`.
-- **LabTool**: `Prefix: TOOL_`, Schema: `labInventories.labTools`.
-
-### 2. Nhật ký Tài sản (Activity Logs)
-- **AssetActivityLog**: `Prefix: LOG_`, Schema: `labInventories.assetActivityLogs`.
-- Sử dụng quan hệ đa hình (**Polymorphic**) qua fields `assetId` và `assetTable`.
-- `commonKeys[]`: Lưu trữ các liên kết chéo (VD: `analysisId:ANA-001`, `receiptId:REC-999`) giúp tra cứu lịch sử thiết bị theo mẫu/phân tích.
+- **Tách biệt dữ liệu danh mục (Master Data)**: Quản lý thông tin dùng chung của dòng máy, hãng sản xuất, model tại bảng SKU.
+- **Quản lý thực thể vật lý (Instances)**: Theo dõi từng con máy (Serial, Asset Tag) hoặc từng lô vật tư tiêu hao (Số lượng, Vị trí).
+- **Hỗ trợ đa dạng vật tư**: Quản lý thống nhất Thiết bị (Equipment), Dụng cụ (Tools) và Vật tư tiêu hao (Consumables/Materials).
+- **Tăng cường khả năng truy vết (Traceability)**: Log chi tiết lịch sử cho từng thiết bị cụ thể.
 
 ---
 
-## III. CÁC LUỒNG NGHIỆP VỤ CHÍNH
+## 2. CẤU TRÚC DATABASE (SCHEMA: `labInventories`)
 
-### 1. Quản lý Vòng đời Thiết bị (Equipment Lifecycle)
-1. **Khai báo mới**: Sử dụng API `CREATE lab-inventories`.
-2. **Sử dụng trong thí nghiệm**:
-   - Khi chạy một phân tích mẫu, hệ thống tạo bản ghi `AssetActivityLog` với `logType="Usage"`.
-   - Gắn `analysisId` vào `commonKeys[]`.
-3. **Hiệu chuẩn & Bảo trì**:
-   - Khi đến hạn (`labInventoryNextCalibrationDate`), thực hiện hiệu chuẩn.
-   - Tạo nhật ký `AssetActivityLog` với `logType="Calibration"`.
-   - Cập nhật ngày hiệu chuẩn mới vào bảng `LabInventory`.
+### 2.1. Bảng `labSkus` (Danh mục Master)
 
-### 2. Quản lý Dụng cụ (Lab Tools)
-1. **Đăng ký dụng cụ**: Sử dụng API `CREATE lab-tools`.
-2. **Theo dõi tình trạng**:
-   - Cập nhật trạng thái `labToolStatus` (`Ready`, `Broken`, `Lost`).
-   - Nếu dụng cụ yêu cầu hiệu chuẩn (`requiresCalibration=true`), thực hiện quy trình tương tự thiết bị.
+Chứa thông tin cấu hình và thông số kỹ thuật chung.
+- **`labSkuId`**: Mã SKU (Tiền tố: `SKU_`).
+- **`labSkuType`**: Phân loại (`Equipment`, `Tool`, `Material`).
+- **Trường thông tin**: `labSkuName`, `labSkuManufacturer`, `labSkuModel`, `labSkuSpecifications` (JSONB).
 
-### 3. Truy vết Đa chiều (Traceability)
-- Tra cứu lịch sử của một thiết bị: `GET /get/list?assetId=EQ_XXXX`.
-- Tra cứu tất cả thiết bị/dụng cụ đã dùng cho một mẫu: `GET /get/list?commonKeys[]=analysisId:ANA-XXXX`.
+### 2.2. Bảng `labInventories` (Kho bãi & Thực thể)
+Liên kết tới SKU và chứa thông tin định danh riêng biệt.
+- **`labInventoryId`**: ID thực thể (Tiền tố: `INV_`).
+- **`labSkuId`**: Foreign Key liên kết tới danh mục.
+- **Đặc thù thiết bị**: `labInventorySerial`, `labInventoryCode` (Asset Card), `labInventoryStatus`.
+- **Đặc thù vật tư**: `labInventoryQty` (Số lượng), `labInventoryExpiryDate`.
+- **Bảo trì/Hiệu chuẩn**: `lastCalibrationDate`, `nextCalibrationDate`, `warrantyExpiryDate`.
 
----
-
-## IV. SƠ ĐỒ QUY TRÌNH (DIAGRAM)
-
-```mermaid
-graph TD
-    A[Khai báo Tài sản EQ/TOOL] --> B{Sử dụng tài sản?}
-    B -- Có --> C[Tạo Log: Usage]
-    C --> D[Gắn link commonKeys: analysisId, receiptId]
-    
-    A --> E{Sự kiện khác?}
-    E -- Hiệu chuẩn --> F[Tạo Log: Calibration]
-    F --> G[Cập nhật NextCalibrationDate vào Asset]
-    
-    E -- Bảo trì --> H[Tạo Log: Maintenance]
-    E -- Sự cố --> I[Tạo Log: Incident]
-    
-    D --> J[Truy vết chéo: Mẫu <-> Thiết bị]
-    G --> J
-```
+### 2.3. Bảng `assetActivityLogs` (Sổ cái truy vết)
+Sử dụng mô hình đa hình (Polymorphic) để ghi nhật ký.
+- **`assetId`**: Link tới `labInventoryId`.
+- **`assetTable`**: Cố định là `labInventories`.
+- **`commonKeys`**: Chuỗi các key truy vết chéo (ví dụ: `["analysisId:...", "receiptId:..."]`).
 
 ---
 
-## V. QUY TẮC PHÂN QUYỀN (SECURITY)
+## 3. LOGIC XỬ LÝ BACKEND (UNIT: `BLACK/LAB INVENTORIES/`)
 
-- **READ**: Cho phép xem danh sách và nhật ký tài sản.
-- **WRITE**: Khai báo mới, cập nhật thông tin hiệu chuẩn.
-- **DELETE**: Xóa mềm (Soft Delete) qua cột `deletedAt`. Mặc định các bảng Activity Logs **không** sử dụng Soft Delete để đảm bảo tính toàn vẹn của dữ liệu truy vết.
+### 3.1. Cơ chế Snapshot (`getFullById`)
+Khi gọi dữ liệu chi tiết ở mức "Full", hệ thống thực hiện:
+1. Truy vấn thông tin thực thể từ `labInventories`.
+2. Tự động Snapshot thông tin Danh mục từ bảng `labSkus`.
+3. Tự động Snapshot thông tin Tài liệu (HDSD, Kiểm định) từ bảng `documents`.
+4. Tổng hợp toàn bộ nhật ký hoạt động (`activityLogs`) từ bảng logs.
+
+### 3.2. Tìm kiếm đa cột (Multi-column Search)
+Đã triển khai thuộc tính `static get searchColumns()` trong các lớp thực thể:
+- Cho phép tìm kiếm cùng lúc trên: `ID`, `Name`, `Manufacturer`, `Model`, `Serial`...
+- Câu lệnh SQL động sử dụng `OR` để quét trên danh sách cột cấu hình.
+
+### 3.3. Bảo toàn dữ liệu (Audit & Null Handling)
+- **Audit Columns**: Luôn trả về `createdAt`, `createdById`, `modifiedAt`, `modifiedById` trong API Detail.
+- **Null Safety**: Phương thức `toDetail` đảm bảo trả về đầy đủ các cột (ngay cả khi giá trị là `null`) để client đồng bộ giao diện.
 
 ---
-_Cập nhật lần cuối: 2026-03-23_
+
+## 4. HỆ THỐNG API V2
+
+| Endpoint | Method | Chức năng | Option chính |
+| :--- | :--- | :--- | :--- |
+| `/v2/lab-skus` | GET/POST | Quản lý danh mục | `list`, `detail` |
+| `/v2/lab-inventories` | GET | Tra cứu kho | `list`, `detail`, `full` |
+| `/v2/lab-inventories` | POST | Khai báo máy/Nhập kho | `create`, `update` |
+| `/v2/asset-activity-logs` | POST | Ghi nhật ký sử dụng | `create` |
+
+---
+
+## 5. QUY CHUẨN ĐẶT MÃ (NAMING CONVENTION)
+
+1. **ID Prefix**:
+   - SKU: `SKU_` (Ví dụ: `SKU_ABC123`)
+   - Inventory: `INV_` (Ví dụ: `INV_EQ001`)
+   - Logs: `LOG_` (Ví dụ: `LOG_XY123`)
+2. **ID Length**: Sử dụng `RANDOM_SAFE_CAPS(6)` cho tính duy nhất cao.
+
+---
+_Tài liệu này đóng vai trò là hướng dẫn kỹ thuật chính cho Phân hệ Lab Inventory kể từ phiên bản 2.0._
