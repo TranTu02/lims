@@ -23,6 +23,8 @@ import { searchDocuments } from "@/api/documents";
 import { DocumentUploadModal } from "@/components/document/DocumentUploadModal";
 
 // --- Helper ---
+const generateId = () => typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2));
+
 function BlockStatusBadge({ status }: { status?: string | null }) {
     const { t } = useTranslation();
     const BLOCK_STATUS_MAP: Record<string, { label: string; cls: string }> = {
@@ -336,7 +338,7 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
     const [lineItems, setLineItems] = useState<EditLineItem[]>(() => {
         if (initialItems && initialItems.length > 0) {
             return initialItems.map((inv) => ({
-                id: crypto.randomUUID(),
+                id: generateId(),
                 inventory: inv,
                 changeQty: initialTxnData?.[inv.chemicalInventoryId]?.changeQty ?? 0,
                 totalWeight: initialTxnData?.[inv.chemicalInventoryId]?.totalWeight ?? undefined,
@@ -375,7 +377,7 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                     setLineItems((prev) => [
                         ...prev,
                         {
-                            id: crypto.randomUUID(),
+                            id: generateId(),
                             inventory: inv,
                             changeQty: 0,
                             totalWeight: undefined,
@@ -425,7 +427,7 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
             return [
                 ...prev,
                 {
-                    id: crypto.randomUUID(),
+                    id: generateId(),
                     inventory: inv,
                     changeQty: 0,
                     totalWeight: undefined,
@@ -444,7 +446,7 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
             const newArr = [...prev];
             newArr.splice(idx + 1, 0, {
                 ...item,
-                id: crypto.randomUUID(),
+                id: generateId(),
                 analysisId: "", // Reset analysis for the clone
             });
             return newArr;
