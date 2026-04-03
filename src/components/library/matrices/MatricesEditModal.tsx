@@ -31,7 +31,7 @@ import { LabToolSnapshotTable, type LabToolSnapshotItem } from "../shared/LabToo
 import { ParameterFormModal } from "../parameters/ParameterFormModal";
 import { SampleTypeFormModal } from "../sampleTypes/SampleTypeFormModal";
 import { ProtocolFormModal } from "../protocols/ProtocolFormModal";
-import { AccreditationTagInput } from "../shared/AccreditationTagInput";
+import { AccreditationTagInput, type AccreditationValue } from "../shared/AccreditationTagInput";
 
 import { toFormNumberString } from "./matrixFormat";
 
@@ -52,7 +52,7 @@ type FormState = {
     protocolCode: string;
     protocolSource: string;
 
-    accreditationKeys: Record<string, boolean>;
+    accreditationKeys: AccreditationValue;
 
     sampleTypeId: string;
     sampleTypeName: string;

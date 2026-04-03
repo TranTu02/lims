@@ -6,7 +6,8 @@ import { toast } from "sonner";
 export type ApiPagination = {
     page: number;
     itemsPerPage: number;
-    total: number;
+    total?: number;
+    totalItems?: number;
     totalPages: number;
 };
 
@@ -14,6 +15,7 @@ export type ApiMeta = {
     page?: number;
     itemsPerPage?: number;
     total?: number;
+    totalItems?: number;
     totalPages?: number;
     pagination?: ApiPagination;
     [key: string]: unknown;

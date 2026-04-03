@@ -68,6 +68,9 @@ export function AuditDetailsTab() {
                                     {String(t("inventory.chemical.auditDetails.skuId", { defaultValue: "Mã SKU" }))}
                                 </th>
                                 <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                    {String(t("inventory.chemical.auditDetails.chemicalSkuOldId", { defaultValue: "Mã cũ" }))}
+                                </th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                                     {String(t("inventory.chemical.auditDetails.inventoryId", { defaultValue: "Mã chai" }))}
                                 </th>
                                 <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground whitespace-nowrap">
@@ -88,7 +91,7 @@ export function AuditDetailsTab() {
                             {isLoading ? (
                                 Array.from({ length: 5 }).map((_, i) => (
                                     <tr key={i}>
-                                        {Array.from({ length: 8 }).map((__, j) => (
+                                        {Array.from({ length: 9 }).map((__, j) => (
                                             <td key={j} className="p-3">
                                                 <Skeleton className="h-4 w-20" />
                                             </td>
@@ -97,7 +100,7 @@ export function AuditDetailsTab() {
                                 ))
                             ) : result?.data?.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="p-6 text-center text-muted-foreground">
+                                    <td colSpan={9} className="p-6 text-center text-muted-foreground">
                                         {String(t("common.noData", { defaultValue: "Không có dữ liệu" }))}
                                     </td>
                                 </tr>
@@ -109,6 +112,7 @@ export function AuditDetailsTab() {
                                             <td className="px-3 py-2 whitespace-nowrap font-mono text-xs font-medium text-primary">{d.chemicalAuditDetailId ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap font-mono text-xs text-muted-foreground">{d.chemicalAuditBlockId ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap text-foreground">{d.chemicalSkuId ?? "-"}</td>
+                                            <td className="px-3 py-2 whitespace-nowrap text-muted-foreground font-mono text-[10px]">{d.chemicalSkuOldId ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap font-mono text-xs">{d.chemicalInventoryId ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap text-right font-mono">{d.systemAvailableQty ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap text-right font-mono font-medium">{d.actualAvailableQty ?? "-"}</td>

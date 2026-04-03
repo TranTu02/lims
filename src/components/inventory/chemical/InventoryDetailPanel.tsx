@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import type { ChemicalInventory, ChemicalTransaction, ChemicalTransactionBlockDetail } from "@/types/chemical";
 import { useChemicalInventoryFull } from "@/api/chemical";
 import { InventoryEditModal } from "./InventoryEditModal";
-import { History } from "lucide-react";
+import { InventorySeparateModal } from "./InventorySeparateModal";
+import { History, GitFork } from "lucide-react";
+import { DocumentItem } from "@/components/common/DocumentItem";
 
 type Props = {
     inventory: ChemicalInventory | null;
@@ -23,6 +25,7 @@ function StatusBadge({ status }: { status?: string | null }) {
         Empty: { label: t("inventory.chemical.inventories.status.Empty", { defaultValue: "Hết" }), cls: "bg-muted text-muted-foreground" },
         Expired: { label: t("inventory.chemical.inventories.status.Expired", { defaultValue: "Hết hạn" }), cls: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" },
         Disposed: { label: t("inventory.chemical.inventories.status.Disposed", { defaultValue: "Đã huỷ" }), cls: "bg-gray-200 text-gray-600" },
+        Pending: { label: t("inventory.chemical.inventories.status.Pending", { defaultValue: "Chờ kiểm kê" }), cls: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300" },
     };
     const s = status ? STATUS_MAP[status] : undefined;
     if (s) return <Badge className={s.cls}>{s.label}</Badge>;
@@ -46,7 +49,10 @@ function TransactionRow({ item, type }: { item: ChemicalTransaction | ChemicalTr
                         {a.transactionType || a.actionType}
                     </span>
                     <span className={`font-bold ${changeQty > 0 ? "text-green-600" : changeQty < 0 ? "text-red-600" : ""}`}>
-                        {changeQty > 0 ? "+" : ""}{changeQty} {unit}
+                        {changeQty > 0 ? "+" : ""}{changeQty} {unit} 
+                        {a.totalWeight !== undefined && a.totalWeight !== null && (
+                            <span className="text-[10px] text-muted-foreground ml-1">({a.totalWeight} KL)</span>
+                        )}
                     </span>
                 </div>
                 {a.parameterName && (
@@ -67,6 +73,7 @@ function TransactionRow({ item, type }: { item: ChemicalTransaction | ChemicalTr
 export function InventoryDetailPanel({ inventory, onClose }: Props) {
     const { t } = useTranslation();
     const [editOpen, setEditOpen] = useState(false);
+    const [separateOpen, setSeparateOpen] = useState(false);
 
     const fullInvQuery = useChemicalInventoryFull(inventory?.chemicalInventoryId || "", {
         enabled: !!inventory?.chemicalInventoryId,
@@ -91,6 +98,16 @@ export function InventoryDetailPanel({ inventory, onClose }: Props) {
                         <p className="text-xs text-muted-foreground mt-0.5 font-mono">{displayInv.chemicalInventoryId}</p>
                     </div>
                     <div className="flex items-center gap-1">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSeparateOpen(true)}
+                            type="button"
+                            title={t("inventory.chemical.inventories.separate", { defaultValue: "Tách lọ" })}
+                            disabled={displayInv.currentAvailableQty <= 0 || displayInv.chemicalInventoryStatus === "Empty"}
+                        >
+                            <GitFork className="h-4 w-4" />
+                        </Button>
                         <Button variant="ghost" size="sm" onClick={() => setEditOpen(true)} type="button" title={t("common.edit", { defaultValue: "Chỉnh sửa" })}>
                             <Pencil className="h-4 w-4" />
                         </Button>
@@ -112,8 +129,14 @@ export function InventoryDetailPanel({ inventory, onClose }: Props) {
                                 <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
                                     {t("inventory.chemical.inventories.currentAvailableQty", { defaultValue: "Tồn hiện tại" })}
                                 </div>
-                                <div className="text-xl font-bold mt-1 text-primary">
+                                <div className="text-lg font-bold mt-1 text-primary pb-1 border-b border-border/50">
                                     {displayInv.currentAvailableQty ?? 0} {sku?.chemicalBaseUnit || ""}
+                                </div>
+                                <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mt-2">
+                                    {t("inventory.chemical.inventories.totalGrossWeight", { defaultValue: "KL cả bì" })}
+                                </div>
+                                <div className="text-sm font-semibold mt-0.5 text-foreground">
+                                    {displayInv.totalGrossWeight ?? "-"}
                                 </div>
                             </div>
 
@@ -137,6 +160,9 @@ export function InventoryDetailPanel({ inventory, onClose }: Props) {
                                     <div className="flex gap-4 mt-2 text-muted-foreground text-xs">
                                         <span>
                                             CAS: <strong className="text-foreground">{(sku as any).chemicalCasNumber || sku.chemicalCASNumber || "-"}</strong>
+                                        </span>
+                                        <span>
+                                            Mã cũ: <strong className="text-foreground">{displayInv.chemicalSkuOldId || sku.chemicalSkuOldId || "-"}</strong>
                                         </span>
                                         <span>
                                             Level: <strong className="text-foreground">{sku.chemicalHazardClass || "-"}</strong>
@@ -225,33 +251,51 @@ export function InventoryDetailPanel({ inventory, onClose }: Props) {
 
                         {/* Documents */}
                         {((displayInv as any).inventoryCOADocumentIds?.length > 0 || (displayInv as any).inventoryInvoiceDocumentIds?.length > 0) && (
-                            <div className="space-y-2 border-t border-border pt-4 mt-2">
+                            <div className="space-y-4 border-t border-border pt-4 mt-2">
                                 <h3 className="text-sm font-semibold flex items-center gap-1.5 text-muted-foreground">
                                     <FileText className="h-3.5 w-3.5" />
                                     {t("inventory.chemical.inventories.documents", { defaultValue: "Tài liệu đính kèm" })}
                                 </h3>
-                                <div className="space-y-2">
-                                    {(displayInv as any).inventoryCOADocumentIds?.length > 0 && (
-                                        <div className="bg-muted/30 p-2 rounded border border-border/50 flex flex-col gap-1">
-                                            <span className="text-[10px] uppercase font-bold text-muted-foreground">COA Documents</span>
-                                            <div className="flex flex-wrap gap-2 mt-1">
-                                                {(displayInv as any).inventoryCOADocumentIds.map((id: string) => (
-                                                    <Badge key={id} variant="secondary" className="font-mono text-[9px]">{id}</Badge>
-                                                ))}
-                                            </div>
+                                
+                                {(displayInv as any).inventoryCOADocuments?.length > 0 ? (
+                                    <div className="space-y-1">
+                                        <span className="text-[10px] uppercase font-bold text-muted-foreground px-1">COA Documents</span>
+                                        <div className="grid grid-cols-1 gap-1">
+                                            {(displayInv as any).inventoryCOADocuments.map((doc: any, i: number) => (
+                                                <DocumentItem key={doc.documentId || i} doc={doc} />
+                                            ))}
                                         </div>
-                                    )}
-                                    {(displayInv as any).inventoryInvoiceDocumentIds?.length > 0 && (
-                                        <div className="bg-muted/30 p-2 rounded border border-border/50 flex flex-col gap-1">
-                                            <span className="text-[10px] uppercase font-bold text-muted-foreground">Invoice / Order Documents</span>
-                                            <div className="flex flex-wrap gap-2 mt-1">
-                                                {(displayInv as any).inventoryInvoiceDocumentIds.map((id: string) => (
-                                                    <Badge key={id} variant="secondary" className="font-mono text-[9px]">{id}</Badge>
-                                                ))}
-                                            </div>
+                                    </div>
+                                ) : (displayInv as any).inventoryCOADocumentIds?.length > 0 ? (
+                                    <div className="bg-muted/30 p-2 rounded border border-border/50 flex flex-col gap-1">
+                                        <span className="text-[10px] uppercase font-bold text-muted-foreground">COA Documents</span>
+                                        <div className="flex flex-wrap gap-2 mt-1">
+                                            {(displayInv as any).inventoryCOADocumentIds.map((id: string) => (
+                                                <Badge key={id} variant="secondary" className="font-mono text-[9px]">{id}</Badge>
+                                            ))}
                                         </div>
-                                    )}
-                                </div>
+                                    </div>
+                                ) : null}
+
+                                {(displayInv as any).inventoryInvoiceDocuments?.length > 0 ? (
+                                    <div className="space-y-1">
+                                        <span className="text-[10px] uppercase font-bold text-muted-foreground px-1">Invoice / Order Documents</span>
+                                        <div className="grid grid-cols-1 gap-1">
+                                            {(displayInv as any).inventoryInvoiceDocuments.map((doc: any, i: number) => (
+                                                <DocumentItem key={doc.documentId || i} doc={doc} />
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (displayInv as any).inventoryInvoiceDocumentIds?.length > 0 ? (
+                                    <div className="bg-muted/30 p-2 rounded border border-border/50 flex flex-col gap-1">
+                                        <span className="text-[10px] uppercase font-bold text-muted-foreground">Invoice / Order Documents</span>
+                                        <div className="flex flex-wrap gap-2 mt-1">
+                                            {(displayInv as any).inventoryInvoiceDocumentIds.map((id: string) => (
+                                                <Badge key={id} variant="secondary" className="font-mono text-[9px]">{id}</Badge>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : null}
                             </div>
                         )}
 
@@ -283,6 +327,7 @@ export function InventoryDetailPanel({ inventory, onClose }: Props) {
             </div>
 
             {editOpen && <InventoryEditModal inventory={displayInv} onClose={() => setEditOpen(false)} />}
+            {separateOpen && <InventorySeparateModal inventory={displayInv} onClose={() => setSeparateOpen(false)} />}
         </>
     );
 }

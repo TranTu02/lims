@@ -48,10 +48,6 @@ export function LabToolSnapshotTable({ items, onChange, onLoadFromProtocol, disa
         onChange(items.filter((_, i) => i !== idx));
     };
 
-    const updateField = (idx: number, field: keyof LabToolSnapshotItem, value: string) => {
-        onChange(items.map((item, i) => (i === idx ? { ...item, [field]: value } : item)));
-    };
-
     return (
         <div className="space-y-3">
             <div className="flex items-center justify-between">

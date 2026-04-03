@@ -22,13 +22,14 @@ type DetailRow = {
     chemicalAuditDetailId?: string;
     chemicalInventoryId: string;
     chemicalSkuId: string;
+    chemicalSkuOldId: string;
     systemAvailableQty: string;
     actualAvailableQty: string;
     chemicalAuditDetailNote: string;
 };
 
 function newRow(): DetailRow {
-    return { chemicalInventoryId: "", chemicalSkuId: "", systemAvailableQty: "", actualAvailableQty: "", chemicalAuditDetailNote: "" };
+    return { chemicalInventoryId: "", chemicalSkuId: "", chemicalSkuOldId: "", systemAvailableQty: "", actualAvailableQty: "", chemicalAuditDetailNote: "" };
 }
 
 export function AuditBlockEditModal({ auditBlock, onClose }: Props) {
@@ -52,6 +53,7 @@ export function AuditBlockEditModal({ auditBlock, onClose }: Props) {
             chemicalAuditDetailId: d.chemicalAuditDetailId,
             chemicalInventoryId: d.chemicalInventoryId ?? "",
             chemicalSkuId: d.chemicalSkuId ?? "",
+            chemicalSkuOldId: d.chemicalSkuOldId ?? "",
             systemAvailableQty: String(d.systemAvailableQty ?? ""),
             actualAvailableQty: String(d.actualAvailableQty ?? ""),
             chemicalAuditDetailNote: d.chemicalAuditDetailNote ?? "",
@@ -66,6 +68,7 @@ export function AuditBlockEditModal({ auditBlock, onClose }: Props) {
                     ...(d.chemicalAuditDetailId ? { chemicalAuditDetailId: d.chemicalAuditDetailId } : {}),
                     chemicalInventoryId: d.chemicalInventoryId,
                     chemicalSkuId: d.chemicalSkuId,
+                    chemicalSkuOldId: d.chemicalSkuOldId,
                     systemAvailableQty: d.systemAvailableQty !== "" ? Number(d.systemAvailableQty) : null,
                     actualAvailableQty: d.actualAvailableQty !== "" ? Number(d.actualAvailableQty) : null,
                     chemicalAuditDetailNote: d.chemicalAuditDetailNote,
@@ -130,6 +133,7 @@ export function AuditBlockEditModal({ auditBlock, onClose }: Props) {
                                 ? {
                                       ...r,
                                       chemicalSkuId: inv.chemicalSkuId || "",
+                                      chemicalSkuOldId: inv.chemicalSkuOldId || "",
                                       systemAvailableQty: String(inv.currentAvailableQty || 0),
                                   }
                                 : r,
@@ -290,10 +294,11 @@ export function AuditBlockEditModal({ auditBlock, onClose }: Props) {
                         ) : (
                             <div className="space-y-2">
                                 {/* Header */}
-                                <div className="grid grid-cols-[1fr_1fr_80px_80px_1fr_32px] gap-2 px-2">
+                                <div className="grid grid-cols-[1fr_1fr_1fr_80px_80px_1fr_32px] gap-2 px-2">
                                     {[
                                         t("inventory.chemical.audit.auditId", { defaultValue: "Mã Chai" }),
                                         t("inventory.chemical.audit.skuId", { defaultValue: "Mã SKU" }),
+                                        t("inventory.chemical.audit.chemicalSkuOldId", { defaultValue: "Mã Cũ" }),
                                         t("inventory.chemical.audit.systemQtyShort", { defaultValue: "SL Hệ thống" }),
                                         t("inventory.chemical.audit.actualQtyShort", { defaultValue: "SL Thực tế" }),
                                         t("inventory.chemical.audit.note", { defaultValue: "Ghi chú" }),
@@ -307,7 +312,7 @@ export function AuditBlockEditModal({ auditBlock, onClose }: Props) {
                                 {details.map((row, i) => {
                                     const variance = row.actualAvailableQty !== "" && row.systemAvailableQty !== "" ? Number(row.actualAvailableQty) - Number(row.systemAvailableQty) : null;
                                     return (
-                                        <div key={i} className="grid grid-cols-[1fr_1fr_80px_80px_1fr_32px] gap-2 items-center p-2 bg-muted/20 rounded-md border border-border">
+                                        <div key={i} className="grid grid-cols-[1fr_1fr_1fr_80px_80px_1fr_32px] gap-2 items-center p-2 bg-muted/20 rounded-md border border-border">
                                             <Input
                                                 value={row.chemicalInventoryId}
                                                 onChange={(e) => updateRow(i, "chemicalInventoryId", e.target.value)}
@@ -321,6 +326,13 @@ export function AuditBlockEditModal({ auditBlock, onClose }: Props) {
                                                 placeholder={t("inventory.chemical.audit.skuId", { defaultValue: "Mã SKU" })}
                                                 className="h-8 text-xs"
                                                 id={`audit-detail-sku-${i}`}
+                                            />
+                                            <Input
+                                                value={row.chemicalSkuOldId}
+                                                onChange={(e) => updateRow(i, "chemicalSkuOldId", e.target.value)}
+                                                placeholder={t("inventory.chemical.audit.chemicalSkuOldId", { defaultValue: "Mã Cũ" })}
+                                                className="h-8 text-xs font-mono text-[10px]"
+                                                id={`audit-detail-skuold-${i}`}
                                             />
                                             <Input
                                                 type="number"

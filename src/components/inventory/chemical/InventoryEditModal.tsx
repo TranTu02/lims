@@ -19,7 +19,7 @@ type Props = {
     onClose: () => void;
 };
 
-const STATUS_OPTIONS = ["New", "InUse", "Quarantined", "Empty", "Expired", "Disposed"];
+const STATUS_OPTIONS = ["New", "InUse", "Quarantined", "Pending", "Empty", "Expired", "Disposed"];
 
 export function InventoryEditModal({ inventory, onClose }: Props) {
     const { t } = useTranslation();
@@ -33,8 +33,9 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
         chemicalName: (inventory as any)?.chemicalName ?? "",
         chemicalCasNumber: (inventory as any)?.chemicalCasNumber ?? "",
         lotNumber: (inventory as any)?.lotNumber ?? "",
+        chemicalSkuOldId: (inventory as any)?.chemicalSkuOldId ?? "",
         storageBinLocation: (inventory as any)?.storageBinLocation ?? "",
-        chemicalInventoryStatus: (inventory as any)?.chemicalInventoryStatus ?? "New",
+        chemicalInventoryStatus: (inventory as any)?.chemicalInventoryStatus ?? "Pending",
         manufacturerName: (inventory as any)?.manufacturerName ?? "",
         manufacturerCountry: (inventory as any)?.manufacturerCountry ?? "",
         mfgDate: (inventory as any)?.mfgDate ? String((inventory as any).mfgDate).slice(0, 10) : "",
@@ -43,6 +44,7 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
         openedExpDays: (inventory as any)?.openedExpDays ?? 0,
         openedExpDate: (inventory as any)?.openedExpDate ? String((inventory as any).openedExpDate).slice(0, 10) : "",
         currentAvailableQty: String((inventory as any)?.currentAvailableQty ?? ""),
+        totalGrossWeight: (inventory as any)?.totalGrossWeight !== undefined && (inventory as any)?.totalGrossWeight !== null ? String((inventory as any)?.totalGrossWeight) : "",
         storageConditions: (inventory as any)?.storageConditions ?? "",
         inventoryCOADocumentIds: (inventory as any)?.inventoryCOADocumentIds ?? [],
         selectedDocuments: ((inventory as any)?.inventoryCOADocumentIds ?? []).map((id: string) => ({
@@ -58,11 +60,12 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
         })),
     });
 
+    const [cloneCount, setCloneCount] = useState(1);
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
     const [uploadInvoiceModalOpen, setUploadInvoiceModalOpen] = useState(false);
 
     const mutation = useMutation({
-        mutationFn: () => {
+        mutationFn: async () => {
             const isInUse = ["InUse", "Inuse"].includes(form.chemicalInventoryStatus);
             const payload = {
                 ...form,
@@ -70,12 +73,23 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
                 expDate: form.expDate || null,
                 openedDate: isInUse ? (form.openedDate || null) : null,
                 openedExpDate: isInUse ? (form.openedExpDate || null) : null,
+                totalGrossWeight: form.totalGrossWeight ? Number(form.totalGrossWeight) : null,
             };
             // Remove helper fields not needed by API
             delete (payload as any).selectedDocuments;
             delete (payload as any).selectedInvoiceDocuments;
 
-            return isCreate ? chemicalApi.inventories.create({ body: payload as any }) : chemicalApi.inventories.update({ body: payload as any });
+            if (isCreate) {
+                // Batch creation logic
+                const createPromises = [];
+                for (let i = 0; i < cloneCount; i++) {
+                    createPromises.push(chemicalApi.inventories.create({ body: payload as any }));
+                }
+                const results = await Promise.all(createPromises);
+                return results[0]; // Return the first result for the onSuccess handler
+            } else {
+                return chemicalApi.inventories.update({ body: payload as any });
+            }
         },
         onSuccess: (res) => {
             if (!res.success) {
@@ -185,6 +199,7 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
                                             chemicalSkuId: skuId,
                                             chemicalName: sku?.chemicalName || f.chemicalName,
                                             chemicalCasNumber: sku?.chemicalCasNumber || f.chemicalCasNumber,
+                                            chemicalSkuOldId: (sku as any)?.chemicalSkuOldId || f.chemicalSkuOldId,
                                             openedExpDays: sku?.openedExpDays ?? f.openedExpDays,
                                             openedExpDate: calculateOpenedExpDate(f.openedDate, sku?.openedExpDays ?? f.openedExpDays)
                                         }));
@@ -192,6 +207,22 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
                                     placeholder={t("inventory.chemical.skus.selectPlaceholder", { defaultValue: "Chọn mã SKU..." })}
                                 />
                             </div>
+                            {isCreate && (
+                                <div className="space-y-1">
+                                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                        {t("inventory.chemical.inventories.cloneCount", { defaultValue: "Số lượng lọ/chai" })}
+                                    </label>
+                                    <Input
+                                        type="number"
+                                        min={1}
+                                        max={50}
+                                        value={cloneCount}
+                                        onChange={(e) => setCloneCount(Math.max(1, parseInt(e.target.value) || 1))}
+                                        placeholder="Số lượng lọ..."
+                                    />
+                                    <p className="text-[10px] text-muted-foreground italic">Nhập số lượng để nhân bản thông tin sang nhiều lọ/chai khác nhau.</p>
+                                </div>
+                            )}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("inventory.chemical.skus.name", { defaultValue: "Tên hóa chất" })}</label>
@@ -258,9 +289,21 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
                             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                                 {t("inventory.chemical.inventories.currentAvailableQty", { defaultValue: "Tồn kho" })}
                             </label>
-                            <Input type="number" value={form.currentAvailableQty} onChange={(e) => set("currentAvailableQty", e.target.value)} id="edit-inv-qty" />
+                            <Input type="number" step="any" value={form.currentAvailableQty} onChange={(e) => set("currentAvailableQty", e.target.value)} id="edit-inv-qty" />
                         </div>
-
+                        <div className="space-y-1">
+                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                {t("inventory.chemical.inventories.totalGrossWeight", { defaultValue: "KL cả bì" })}
+                            </label>
+                            <Input type="number" step="any" value={form.totalGrossWeight} onChange={(e) => set("totalGrossWeight", e.target.value)} id="edit-inv-gross" />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                {t("inventory.chemical.inventories.chemicalSkuOldId", { defaultValue: "Mã cũ" })}
+                            </label>
+                            <Input value={form.chemicalSkuOldId} onChange={(e) => set("chemicalSkuOldId", e.target.value)} id="edit-inv-oldid" />
+                        </div>
+                        
                         <div className="col-span-4 space-y-1">
                             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                                 {t("inventory.chemical.inventories.storageConditions", { defaultValue: "Điều kiện lưu kho" })}

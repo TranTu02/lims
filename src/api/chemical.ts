@@ -21,6 +21,7 @@ import type {
     EstimateResponse,
     AllocateStockPayload,
     AllocateStockResponse,
+    SeparateChemicalInventoryPayload,
 } from "@/types/chemical";
 
 // Helpers
@@ -44,14 +45,22 @@ function assertSuccessWithMeta<T>(res: ApiResponse<T>): ListResult<T> {
     if (res.statusCode === 404 || !res.data) {
         return { data: [] as unknown as T, meta: null, pagination: null };
     }
+    const rawPag = res.pagination ?? (res.meta?.pagination as ApiPagination | undefined);
     const meta: ApiPagination | null =
-        res.pagination ??
-        (res.meta?.pagination as ApiPagination | undefined) ??
-        (res.meta?.total !== undefined
+        rawPag 
+            ? {
+                page: rawPag.page ?? 1,
+                itemsPerPage: rawPag.itemsPerPage ?? 20,
+                total: rawPag.total ?? rawPag.totalItems ?? 0,
+                totalItems: rawPag.totalItems ?? rawPag.total ?? 0,
+                totalPages: rawPag.totalPages ?? 1,
+              }
+            : (res.meta?.total !== undefined || res.meta?.totalItems !== undefined
             ? {
                   page: (res.meta.page as number) ?? 1,
                   itemsPerPage: (res.meta.itemsPerPage as number) ?? 20,
-                  total: res.meta.total as number,
+                  total: (res.meta.total as number) ?? (res.meta.totalItems as number) ?? 0,
+                  totalItems: (res.meta.totalItems as number) ?? (res.meta.total as number) ?? 0,
                   totalPages: (res.meta.totalPages as number) ?? 1,
               }
             : null);
@@ -102,6 +111,7 @@ export const chemicalApi = {
         delete: (input: { body: any }) => api.post<any>("/v2/chemicalinventories/delete", { body: input.body }),
         allocate: (input: { body: AllocateChemicalPayload }) => api.post<any>("/v2/chemicalinventories/allocate", { body: input.body }),
         return: (input: { body: ReturnChemicalPayload }) => api.post<any>("/v2/chemicalinventories/return", { body: input.body }),
+        separate: (input: { body: SeparateChemicalInventoryPayload }) => api.post<any>("/v2/chemicalinventories/separate", { body: input.body }),
     },
     transactionBlocks: {
         list: (input?: any) => api.post<ChemicalTransactionBlock[]>("/v2/chemicaltransactionblocks/get/list", { query: { ...DEFAULT_LIST_QUERY, ...(input?.query ?? {}) }, headers: noCacheHeaders }),
@@ -182,6 +192,38 @@ export function useChemicalAllocateMutation() {
             toast.success(String(t("common.saveSuccess")));
         },
         onError: (err: any) => toast.error(err.message || String(t("common.error"))),
+    });
+}
+
+export function useChemicalReturnInventory() {
+    const queryClient = useQueryClient();
+    const { t } = useTranslation();
+    return useMutation({
+        mutationFn: (input: { body: ReturnChemicalPayload }) => chemicalApi.inventories.return(input).then(assertSuccess),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: chemicalKeys.inventories.all() });
+            toast.success(t("inventory.chemical.inventories.returnSuccess", { defaultValue: "Hoàn trả thành công" }));
+        },
+        onError: (err: any) => {
+            toast.error(err.message || "Error");
+        },
+    });
+}
+
+export function useChemicalSeparateInventory() {
+    const queryClient = useQueryClient();
+    const { t } = useTranslation();
+    return useMutation({
+        mutationFn: (input: { body: SeparateChemicalInventoryPayload }) => chemicalApi.inventories.separate(input).then(assertSuccess),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: chemicalKeys.inventories.all() });
+            queryClient.invalidateQueries({ queryKey: chemicalKeys.transactions.all() });
+            queryClient.invalidateQueries({ queryKey: chemicalKeys.transactionBlocks.all() });
+            toast.success(t("inventory.chemical.inventories.separateSuccess", { defaultValue: "Tách lọ thành công" }));
+        },
+        onError: (err: any) => {
+            toast.error(err.message || "Error");
+        },
     });
 }
 

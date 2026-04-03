@@ -90,6 +90,11 @@ export function TransactionDetailPanel({ transaction, onClose }: Props) {
                                 {displayTxn.changeQty ?? 0}
                                 <span className="text-sm text-foreground ml-1">{displayTxn.chemicalTransactionUnit || sku?.chemicalBaseUnit || ""}</span>
                             </div>
+                            {displayTxn.totalWeight != null && (
+                                <div className="text-xs text-muted-foreground mt-1 text-right">
+                                    KL: <strong className="text-foreground">{displayTxn.totalWeight}</strong>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -111,12 +116,15 @@ export function TransactionDetailPanel({ transaction, onClose }: Props) {
                             </h3>
                             <div className="border border-border rounded-md p-3 text-sm">
                                 <div className="font-semibold">{displayTxn.chemicalName || sku.chemicalName}</div>
-                                <div className="flex gap-4 mt-2 text-muted-foreground text-xs">
+                                <div className="flex gap-4 mt-2 text-muted-foreground text-xs flex-wrap">
                                     <span>
                                         CAS: <strong className="text-foreground">{displayTxn.chemicalCasNumber || sku.chemicalCASNumber || "-"}</strong>
                                     </span>
                                     <span>
                                         {t("inventory.chemical.skus.chemicalSkuId", { defaultValue: "Mã SKU" })}: <strong className="text-foreground">{sku.chemicalSkuId || "-"}</strong>
+                                    </span>
+                                    <span>
+                                        {t("inventory.chemical.skus.chemicalSkuOldId", { defaultValue: "Mã Cũ" })}: <strong className="text-foreground">{displayTxn.chemicalSkuOldId || sku.chemicalSkuOldId || "-"}</strong>
                                     </span>
                                 </div>
                             </div>

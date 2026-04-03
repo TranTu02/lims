@@ -48,10 +48,6 @@ export function EquipmentSnapshotTable({ items, onChange, onLoadFromProtocol, di
         onChange(items.filter((_, i) => i !== idx));
     };
 
-    const updateField = (idx: number, field: keyof EquipmentSnapshotItem, value: string) => {
-        onChange(items.map((item, i) => (i === idx ? { ...item, [field]: value } : item)));
-    };
-
     return (
         <div className="space-y-3">
             <div className="flex items-center justify-between">

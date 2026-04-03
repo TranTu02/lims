@@ -46,7 +46,7 @@ export interface ChemicalSkuSupplier extends BaseEntity {
     chemicalSupplier?: ChemicalSupplier;
 }
 
-export type ChemicalInventoryStatus = "Quarantined" | "New" | "InUse" | "Empty" | "Expired" | "Disposed" | string;
+export type ChemicalInventoryStatus = "Quarantined" | "New" | "InUse" | "Empty" | "Expired" | "Disposed" | "Pending" | string;
 
 export interface ChemicalInventory extends BaseEntity {
     chemicalInventoryId: string;
@@ -59,8 +59,11 @@ export interface ChemicalInventory extends BaseEntity {
     manufacturerCountry?: string | null;
     inventoryCOADocumentIds?: string[] | null;
     inventoryInvoiceDocumentIds?: string[] | null;
+    inventoryCOADocuments?: any[] | null;
+    inventoryInvoiceDocuments?: any[] | null;
     storageConditions?: string | null;
     currentAvailableQty: number;
+    totalGrossWeight?: number | null;
     mfgDate?: string | null; // ISO Date string
     expDate?: string | null;
     openedDate?: string | null;
@@ -68,6 +71,7 @@ export interface ChemicalInventory extends BaseEntity {
     openedExpDays?: number | null;
     chemicalInventoryStatus: ChemicalInventoryStatus;
     storageBinLocation?: string | null;
+    chemicalSkuOldId?: string | null;
 
     // Virtual fields
     chemicalSku?: ChemicalSku;
@@ -82,6 +86,10 @@ export interface ChemicalTransactionBlock extends BaseEntity {
     transactionType: ChemicalTransactionType;
     chemicalTransactionBlockStatus?: ChemicalTransactionBlockStatus | null;
     referenceDocument?: string | null;
+    chemicalBlockCoaDocumentIds?: string[] | null;
+    chemicalBlockInvoiceDocumentIds?: string[] | null;
+    chemicalBlockCoaDocuments?: any[] | null;
+    chemicalBlockInvoiceDocuments?: any[] | null;
     createdBy?: string | null;
     approvedBy?: string | null;
     approvedAt?: string | null;
@@ -99,8 +107,10 @@ export interface ChemicalTransactionBlockDetail extends BaseEntity {
     chemicalSkuId?: string | null;
     chemicalName?: string | null;
     chemicalCasNumber?: string | null;
+    chemicalSkuOldId?: string | null;
     chemicalInventoryId?: string | null;
     changeQty: number;
+    totalWeight?: number | null;
     chemicalTransactionBlockDetailUnit?: string | null;
     parameterName?: string | null;
     analysisId?: string | null;
@@ -114,8 +124,10 @@ export interface ChemicalTransaction extends BaseEntity {
     chemicalSkuId?: string | null;
     chemicalName?: string | null;
     chemicalCasNumber?: string | null;
+    chemicalSkuOldId?: string | null;
     chemicalInventoryId?: string | null;
     changeQty: number;
+    totalWeight?: number | null;
     chemicalTransactionUnit?: string | null;
     parameterName?: string | null;
     analysisId?: string | null;
@@ -151,6 +163,7 @@ export interface ChemicalAuditDetail extends BaseEntity {
     chemicalAuditDetailId: string;
     chemicalAuditBlockId: string;
     chemicalSkuId?: string | null;
+    chemicalSkuOldId?: string | null;
     chemicalInventoryId?: string | null;
     systemAvailableQty?: number | null;
     systemChemicalInventoryStatus?: string | null;
@@ -258,4 +271,19 @@ export interface AllocatePickingItem {
 export interface AllocateStockResponse {
     transactionDetails: AllocateTransactionDetail[];
     pickingList: AllocatePickingItem[];
+}
+
+// POST /v2/chemicalinventories/separate
+export interface SeparateChemicalInventoryItem extends Record<string, any> {
+    currentAvailableQty: number;
+    totalGrossWeight?: number | null;
+    storageBinLocation?: string | null;
+    chemicalInventoryStatus?: string | null;
+}
+
+export interface SeparateChemicalInventoryPayload {
+    chemicalInventoryId: string;
+    note?: string | null;
+    originalTotalGrossWeight?: number | null;
+    separationChemicals: SeparateChemicalInventoryItem[];
 }

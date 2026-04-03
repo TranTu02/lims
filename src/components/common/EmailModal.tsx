@@ -24,7 +24,6 @@ interface EmailModalProps {
         fileName: string;
     }>;
     refId?: string;
-    refType?: string;
     type: "RECEPTION" | "FINAL_RESULT";
 }
 
@@ -38,7 +37,6 @@ export function EmailModal({
     defaultContent = "",
     attachments = [],
     refId,
-    refType,
     type,
 }: EmailModalProps) {
     const { t } = useTranslation();

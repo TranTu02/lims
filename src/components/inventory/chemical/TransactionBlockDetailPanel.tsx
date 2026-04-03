@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import type { ChemicalTransactionBlock, ChemicalTransactionBlockDetail, ChemicalTransaction } from "@/types/chemical";
 import { useChemicalTransactionBlockFull, useApproveTransactionBlock } from "@/api/chemical";
 import { ChemicalProposalEditor } from "@/components/technician/ChemicalProposalEditor";
+import { DocumentItem } from "@/components/common/DocumentItem";
 
 type Props = {
     block: ChemicalTransactionBlock | null;
@@ -72,8 +73,9 @@ function LineItemCard({ item, idField }: { item: ChemicalTransactionBlockDetail 
                         )}
                     </div>
                     
-                    <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-medium mb-2">
+                    <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-medium mb-2 flex-wrap">
                         <span className="bg-muted/50 px-1 rounded">SKU: {item.chemicalSkuId || "-"}</span>
+                        <span className="bg-muted/50 px-1 rounded">Mã cũ: {a.chemicalSkuOldId || "-"}</span>
                         <span>CAS: {item.chemicalCasNumber || "-"}</span>
                     </div>
 
@@ -94,6 +96,11 @@ function LineItemCard({ item, idField }: { item: ChemicalTransactionBlockDetail 
                         {item.changeQty} 
                         <span className="text-[10px] font-medium text-muted-foreground lowercase ml-0.5">{itemUnit}</span>
                     </div>
+                    {a.totalWeight !== undefined && a.totalWeight !== null && (
+                        <div className="text-[10px] font-medium text-muted-foreground flex justify-end">
+                            KL: {a.totalWeight}
+                        </div>
+                    )}
                     <div className="text-[9px] text-muted-foreground/50 font-mono mt-1 uppercase">ID: {id}</div>
                 </div>
             </div>
@@ -153,8 +160,8 @@ export function TransactionBlockDetailPanel({ block, onClose, hideApprove, onApp
     };
 
     return (
-        <div className="w-96 lg:w-[500px] shrink-0 bg-background rounded-lg border border-border overflow-y-auto max-h-[calc(100vh-140px)] sticky top-[72px]">
-            <div className="sticky top-0 bg-background/80 backdrop-blur-sm border-b border-border px-5 py-4 flex items-center justify-between z-10">
+        <div className="w-96 lg:w-[500px] shrink-0 bg-background rounded-lg border border-border flex flex-col h-full overflow-hidden">
+            <div className="bg-background/80 backdrop-blur-sm border-b border-border px-5 py-4 flex items-center justify-between z-10 shrink-0">
                 <div className="flex flex-col">
                     <h2 className="text-base font-bold text-foreground flex items-center gap-2">
                         <ListOrdered className="h-4 w-4 text-primary" />
@@ -187,10 +194,10 @@ export function TransactionBlockDetailPanel({ block, onClose, hideApprove, onApp
                         size="sm"
                         type="button"
                         onClick={() => setShowProposalEditor(true)}
-                        className="h-8 text-[11px] border-primary/30 text-primary hover:bg-primary/5 px-3"
+                        className="h-8 text-[11px] px-3"
                     >
                         <FileText className="h-3.5 w-3.5 mr-1.5" />
-                        {t("inventory.chemical.transactionBlocks.exportProposal", { defaultValue: "Trích xuất" })}
+                        {String(t("inventory.chemical.transactionBlocks.exportProposal", { defaultValue: "Trích xuất" }))}
                     </Button>
                     <Button variant="ghost" size="icon" onClick={onClose} type="button" className="h-8 w-8 rounded-full hover:bg-muted font-bold text-muted-foreground hover:text-foreground">
                         <X className="h-4 w-4" />
@@ -206,7 +213,8 @@ export function TransactionBlockDetailPanel({ block, onClose, hideApprove, onApp
                 />
             )}
 
-            {fullBlockQuery.isLoading ? (
+            <div className="flex-1 overflow-y-auto relative">
+                {fullBlockQuery.isLoading ? (
                 <div className="p-12 flex justify-center">
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
@@ -257,6 +265,55 @@ export function TransactionBlockDetailPanel({ block, onClose, hideApprove, onApp
                             </div>
                         )}
                     </div>
+
+                    {((displayBlock as any).chemicalBlockCoaDocumentIds?.length > 0 || (displayBlock as any).chemicalBlockInvoiceDocumentIds?.length > 0) && (
+                        <div className="space-y-4 pt-2">
+                            <h3 className="text-[13px] font-bold flex items-center gap-2 text-foreground/80 border-b border-border/50 pb-2">
+                                <FileText className="h-4 w-4 text-primary/70" />
+                                {t("inventory.chemical.transactionBlocks.documents", { defaultValue: "Tài liệu đính kèm" })}
+                            </h3>
+                            
+                            {(displayBlock as any).chemicalBlockCoaDocuments?.length > 0 ? (
+                                <div className="space-y-1">
+                                    <span className="text-[10px] uppercase font-bold text-muted-foreground px-1">COA Documents</span>
+                                    <div className="grid grid-cols-1 gap-1">
+                                        {(displayBlock as any).chemicalBlockCoaDocuments.map((doc: any, i: number) => (
+                                            <DocumentItem key={doc.documentId || i} doc={doc} />
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (displayBlock as any).chemicalBlockCoaDocumentIds?.length > 0 ? (
+                                <div className="bg-muted/30 p-2 rounded border border-border/50 flex flex-col gap-1">
+                                    <span className="text-[10px] uppercase font-bold text-muted-foreground">COA Documents</span>
+                                    <div className="flex flex-wrap gap-2 mt-1">
+                                        {(displayBlock as any).chemicalBlockCoaDocumentIds.map((id: string) => (
+                                            <Badge key={id} variant="secondary" className="font-mono text-[9px]">{id}</Badge>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : null}
+
+                            {(displayBlock as any).chemicalBlockInvoiceDocuments?.length > 0 ? (
+                                <div className="space-y-1">
+                                    <span className="text-[10px] uppercase font-bold text-muted-foreground px-1">Invoice / Order Documents</span>
+                                    <div className="grid grid-cols-1 gap-1">
+                                        {(displayBlock as any).chemicalBlockInvoiceDocuments.map((doc: any, i: number) => (
+                                            <DocumentItem key={doc.documentId || i} doc={doc} />
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (displayBlock as any).chemicalBlockInvoiceDocumentIds?.length > 0 ? (
+                                <div className="bg-muted/30 p-2 rounded border border-border/50 flex flex-col gap-1">
+                                    <span className="text-[10px] uppercase font-bold text-muted-foreground">Invoice / Order Documents</span>
+                                    <div className="flex flex-wrap gap-2 mt-1">
+                                        {(displayBlock as any).chemicalBlockInvoiceDocumentIds.map((id: string) => (
+                                            <Badge key={id} variant="secondary" className="font-mono text-[9px]">{id}</Badge>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : null}
+                        </div>
+                    )}
 
                     {/* Details hoặc Transactions */}
                     <div className="space-y-4">
@@ -312,6 +369,7 @@ export function TransactionBlockDetailPanel({ block, onClose, hideApprove, onApp
                     </div>
                 </div>
             )}
+            </div>
         </div>
     );
 }

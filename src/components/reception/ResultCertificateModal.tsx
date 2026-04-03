@@ -917,7 +917,6 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                     defaultContent={emailData.content}
                     attachments={lastGeneratedReport ? [lastGeneratedReport] : []}
                     refId={activeReceipt.receiptId}
-                    refType="report"
                     type="FINAL_RESULT"
                 />
             )}

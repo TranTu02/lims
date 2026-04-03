@@ -78,13 +78,13 @@ ${content}
                         </Button>
                     </DialogTitle>
                     <DialogDescription className="text-xs">
-                        {t("shipments.subtitle", "Quản lý dữ liệu logisics của mã hồ sơ:")} {receipt ? <span className="font-bold underline text-primary">{String(receipt.receiptCode ?? "")}</span> : ""}
+                        {String(t("shipments.subtitle", "Quản lý dữ liệu logisics của mã hồ sơ:"))} {receipt ? <span className="font-bold underline text-primary">{String(receipt.receiptCode ?? "")}</span> : ""}
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="flex-1 flex overflow-hidden relative">
                     {/* The Print Overlay layer - PREVIEW ONLY */}
-                    {printShipmentId && shipmentData && (
+                    {!!printShipmentId && !!shipmentData && (
                         <>
                             <div className="absolute inset-0 z-[60] bg-background/95 backdrop-blur-md flex flex-col items-center justify-center p-8 overflow-y-auto animate-in fade-in zoom-in duration-200">
                                 <div className="flex flex-col items-center gap-6 py-10 w-full max-w-2xl">

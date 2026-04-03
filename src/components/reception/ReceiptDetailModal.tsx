@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback, memo } from "react";
 import {
     X, Edit, Save, Upload, FileText, Printer, FileCheck, Mail, ChevronLeft, ChevronRight,
-    ImageOff, Camera, Search, Building2, Plus, Paperclip, Loader2, User,
+    ImageOff, Camera, Search, Building2, Plus, Loader2, User,
     ClipboardList, ShieldCheck, Package, RefreshCw,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -163,8 +163,8 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                 qc.invalidateQueries({ queryKey: receiptsKeys.detail(receipt.receiptId) }),
                 qc.invalidateQueries({ queryKey: receiptsKeys.full(receipt.receiptId) }),
             ]);
-            const fullRes = await receiptsGetFull({ receiptId: receipt.receiptId });
-            const fullData: ReceiptDetail = (fullRes as any)?.data !== undefined ? (fullRes as any).data : (fullRes as ReceiptDetail);
+            const fullRes = await receiptsGetFull({ receiptId: receipt.receiptId }) as any;
+            const fullData: ReceiptDetail = fullRes?.data !== undefined ? fullRes.data : (fullRes as ReceiptDetail);
             setEditedReceipt(fullData);
             onUpdated?.(fullData);
             toast.success(String(t("common.toast.refreshed", { defaultValue: "Đã làm mới dữ liệu" })));
@@ -809,7 +809,6 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                     defaultSubject={emailData.subject}
                     defaultContent={emailData.content}
                     refId={editedReceipt.receiptId}
-                    refType="receipt"
                     type={emailType}
                 />
             )}
@@ -883,7 +882,15 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
             )}
 
             {showAddSampleModal && (
-                <AddSampleModal receipt={editedReceipt} open={showAddSampleModal} onOpenChange={setShowAddSampleModal} onAdded={() => { }} />
+                <AddSampleModal
+                    receipt={editedReceipt}
+                    onClose={() => setShowAddSampleModal(false)}
+                    onCreated={(refreshed) => {
+                        setEditedReceipt(refreshed);
+                        onUpdated?.(refreshed);
+                        setShowAddSampleModal(false);
+                    }}
+                />
             )}
         </>
     );

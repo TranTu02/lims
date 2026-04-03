@@ -1,11 +1,9 @@
-// src/components/reception/ReceiptsTable.tsx
-import React, { useMemo, useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
-import { AlertCircle, Filter, X, Check, Truck, Clock, FlaskConical } from "lucide-react";
+import { AlertCircle, Truck, Clock, FlaskConical } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { RowActionIcons } from "@/components/common/RowActionIcons";
 import type { ReceiptListItem, ReceiptStatus, ReceiptSample, ReceiptAnalysis } from "@/types/receipt";
 
@@ -69,12 +67,7 @@ function toReceiptStatusLabelKey(status: ReceiptStatus): string {
     return "";
 }
 
-function getReceiptStatusLabel(status: string, t: (k: string, opt?: Record<string, unknown>) => unknown): string {
-    const s = status as ReceiptStatus;
-    const key = toReceiptStatusLabelKey(s);
-    if (!key) return status; // fallback
-    return String(t(key, { defaultValue: status }));
-}
+
 
 function getReceiptStatusBadge(status: ReceiptStatus, t: (k: string, opt?: Record<string, unknown>) => unknown) {
     const key = toReceiptStatusLabelKey(status);

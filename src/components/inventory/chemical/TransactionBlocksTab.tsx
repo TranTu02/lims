@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, X, Package, Printer, Scan, RefreshCw } from "lucide-react";
+import { Plus, Search, X, Package, Printer, Scan, RefreshCw, FileText, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useQrScanner } from "@/hooks/useQrScanner";
 import type { ChemicalTransactionBlock, ChemicalInventory } from "@/types/chemical";
@@ -18,6 +18,9 @@ import { PrintLabelModal } from "./PrintLabelModal";
 import { AllocateStockModal } from "./AllocateStockModal";
 import { ApproveTransactionBlockModal } from "./ApproveTransactionBlockModal";
 import { TableFilterPopover } from "./TableFilterPopover";
+import { SearchSelectPicker, type PickerItem } from "@/components/shared/SearchSelectPicker";
+import { searchDocuments } from "@/api/documents";
+import { DocumentUploadModal } from "@/components/document/DocumentUploadModal";
 
 // --- Helper ---
 function BlockStatusBadge({ status }: { status?: string | null }) {
@@ -216,6 +219,7 @@ export type EditLineItem = {
     id: string; // unique string e.g. Math.random().toString()
     inventory: ChemicalInventory;
     changeQty: number;
+    totalWeight?: number;
     analysisId: string;
     chemicalTransactionBlockDetailNote: string;
 };
@@ -223,7 +227,7 @@ export type EditLineItem = {
 type ItemCardProps = {
     item: EditLineItem;
     transactionType: string;
-    onUpdate: (field: "changeQty" | "chemicalTransactionBlockDetailNote" | "analysisId", value: any) => void;
+    onUpdate: (field: "changeQty" | "chemicalTransactionBlockDetailNote" | "analysisId" | "totalWeight", value: any) => void;
     onRemove: () => void;
     onDuplicate: () => void;
 };
@@ -259,7 +263,7 @@ function ItemCard({ item, transactionType, onUpdate, onRemove, onDuplicate }: It
                 </div>
             </div>
             {/* Fields */}
-            <div className={`grid gap-2 items-end ${transactionType === "EXPORT" ? "grid-cols-3" : "grid-cols-2"}`}>
+            <div className={`grid gap-2 items-end ${transactionType === "EXPORT" ? "grid-cols-4" : "grid-cols-3"}`}>
                 <div className="space-y-0.5">
                     <label className="text-[10px] font-medium text-muted-foreground uppercase">{t("common.quantity", { defaultValue: "Số lượng" })}</label>
                     <Input
@@ -268,6 +272,17 @@ function ItemCard({ item, transactionType, onUpdate, onRemove, onDuplicate }: It
                         placeholder="0"
                         value={item.changeQty ?? ""}
                         onChange={(e) => onUpdate("changeQty", e.target.value === "" ? "" : parseFloat(e.target.value))}
+                    />
+                </div>
+                <div className="space-y-0.5">
+                    <label className="text-[10px] font-medium text-muted-foreground uppercase">{t("inventory.dashboard.table.totalWeight", { defaultValue: "KL GD" })}</label>
+                    <Input
+                        type="number"
+                        step="any"
+                        className="h-8 text-xs"
+                        placeholder="0"
+                        value={item.totalWeight ?? ""}
+                        onChange={(e) => onUpdate("totalWeight", e.target.value === "" ? undefined : parseFloat(e.target.value))}
                     />
                 </div>
                 {transactionType === "EXPORT" && (
@@ -300,7 +315,7 @@ type CreateBlockModalProps = {
     onClose: () => void;
     initialType?: "IMPORT" | "EXPORT" | "ADJUSTMENT";
     initialItems?: ChemicalInventory[];
-    initialTxnData?: Record<string, { changeQty: number; chemicalTransactionBlockDetailNote: string; analysisId?: string }>;
+    initialTxnData?: Record<string, { changeQty: number; chemicalTransactionBlockDetailNote: string; analysisId?: string; totalWeight?: number }>;
     initialRef?: string;
 };
 
@@ -310,12 +325,21 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
     const [referenceDocument, setReferenceDocument] = useState(initialRef ?? "");
     const [viewMode, setViewMode] = useState<"DETAILS" | "SUMMARY">("DETAILS");
 
+    const [coaDocumentIds, setCoaDocumentIds] = useState<string[]>([]);
+    const [selectedCoaDocs, setSelectedCoaDocs] = useState<PickerItem[]>([]);
+    const [uploadCoaOpen, setUploadCoaOpen] = useState(false);
+
+    const [invoiceDocumentIds, setInvoiceDocumentIds] = useState<string[]>([]);
+    const [selectedInvoiceDocs, setSelectedInvoiceDocs] = useState<PickerItem[]>([]);
+    const [uploadInvoiceOpen, setUploadInvoiceOpen] = useState(false);
+
     const [lineItems, setLineItems] = useState<EditLineItem[]>(() => {
         if (initialItems && initialItems.length > 0) {
             return initialItems.map((inv) => ({
                 id: crypto.randomUUID(),
                 inventory: inv,
                 changeQty: initialTxnData?.[inv.chemicalInventoryId]?.changeQty ?? 0,
+                totalWeight: initialTxnData?.[inv.chemicalInventoryId]?.totalWeight ?? undefined,
                 analysisId: initialTxnData?.[inv.chemicalInventoryId]?.analysisId ?? "",
                 chemicalTransactionBlockDetailNote: initialTxnData?.[inv.chemicalInventoryId]?.chemicalTransactionBlockDetailNote ?? "",
             }));
@@ -354,6 +378,7 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                             id: crypto.randomUUID(),
                             inventory: inv,
                             changeQty: 0,
+                            totalWeight: undefined,
                             analysisId: "",
                             chemicalTransactionBlockDetailNote: "",
                         },
@@ -403,6 +428,7 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                     id: crypto.randomUUID(),
                     inventory: inv,
                     changeQty: 0,
+                    totalWeight: undefined,
                     analysisId: "",
                     chemicalTransactionBlockDetailNote: "",
                 },
@@ -433,7 +459,12 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
 
     const handleSubmit = async () => {
         const payload = {
-            chemicalTransactionBlock: { transactionType, referenceDocument },
+            chemicalTransactionBlock: { 
+                transactionType, 
+                referenceDocument,
+                chemicalBlockCoaDocumentIds: coaDocumentIds.length > 0 ? coaDocumentIds : undefined,
+                chemicalBlockInvoiceDocumentIds: invoiceDocumentIds.length > 0 ? invoiceDocumentIds : undefined,
+            },
             chemicalTransactions: lineItems.map((item) => {
                 const inv = item.inventory;
                 return {
@@ -442,6 +473,7 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                     chemicalName: (inv as any).chemicalSku?.chemicalName || "",
                     casNumber: (inv as any).chemicalSku?.chemicalCASNumber || "",
                     changeQty: transactionType === "EXPORT" ? -Math.abs(item.changeQty || 0) : transactionType === "IMPORT" ? Math.abs(item.changeQty || 0) : item.changeQty || 0,
+                    totalWeight: item.totalWeight ? Number(item.totalWeight) : undefined,
                     chemicalTransactionNote: item.chemicalTransactionBlockDetailNote || "",
                     chemicalTransactionBlockDetailNote: item.chemicalTransactionBlockDetailNote || "",
                     analysisId: item.analysisId || "",
@@ -512,17 +544,72 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                                 <label className="text-sm font-medium" htmlFor="ref-doc">
                                     {t("inventory.chemical.transactionBlocks.referenceCode", { defaultValue: "Số chứng từ tham chiếu" })}
                                 </label>
-                                <Input
-                                    id="ref-doc"
-                                    placeholder={t("inventory.chemical.transactionBlocks.referenceCodePlaceholder", { defaultValue: "VD: PO-2024-001, REQUEST-002..." })}
-                                    value={referenceDocument}
-                                    onChange={(e) => setReferenceDocument(e.target.value)}
+                                <div className="relative">
+                                    <Input
+                                        id="ref-doc"
+                                        placeholder={t("inventory.chemical.transactionBlocks.referenceCodePlaceholder", { defaultValue: "VD: PO-2024-001, REQUEST-002..." })}
+                                        value={referenceDocument}
+                                        onChange={(e) => setReferenceDocument(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Documents Section */}
+                        <div className="grid grid-cols-2 gap-4 border-t border-border pt-3">
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-sm font-medium flex items-center gap-1.5 text-foreground">
+                                        <FileText className="h-4 w-4 text-muted-foreground" />
+                                        {t("inventory.chemical.transactionBlocks.coaDocs", { defaultValue: "Tài liệu COA" })}
+                                    </label>
+                                    <Button type="button" variant="outline" size="sm" onClick={() => setUploadCoaOpen(true)} className="h-7 text-[10px]">
+                                        <Upload className="h-3 w-3 mr-1" /> {t("common.upload", { defaultValue: "Tải lên" })}
+                                    </Button>
+                                </div>
+                                <SearchSelectPicker
+                                    label={t("inventory.chemical.transactionBlocks.coaDocs", { defaultValue: "Tài liệu COA" })}
+                                    selected={selectedCoaDocs}
+                                    onChange={(items) => {
+                                        setSelectedCoaDocs(items);
+                                        setCoaDocumentIds(items.map(i => i.id));
+                                    }}
+                                    onSearch={async (q) => {
+                                        const res = await searchDocuments(q, "CHEMICAL_COA");
+                                        return res.map(d => ({ id: d.documentId, label: d.documentTitle || d.documentId, sublabel: d.documentId }));
+                                    }}
+                                    placeholder={t("inventory.chemical.transactionBlocks.searchDoc", { defaultValue: "Tìm tài liệu trong hệ thống..." })}
+                                />
+                            </div>
+
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-sm font-medium flex items-center gap-1.5 text-foreground">
+                                        <FileText className="h-4 w-4 text-muted-foreground" />
+                                        {t("inventory.chemical.transactionBlocks.invoiceDocs", { defaultValue: "Hóa đơn / Chứng từ" })}
+                                    </label>
+                                    <Button type="button" variant="outline" size="sm" onClick={() => setUploadInvoiceOpen(true)} className="h-7 text-[10px]">
+                                        <Upload className="h-3 w-3 mr-1" /> {t("common.upload", { defaultValue: "Tải lên" })}
+                                    </Button>
+                                </div>
+                                <SearchSelectPicker
+                                    label={t("inventory.chemical.transactionBlocks.invoiceDocs", { defaultValue: "Hóa đơn / Chứng từ" })}
+                                    selected={selectedInvoiceDocs}
+                                    onChange={(items) => {
+                                        setSelectedInvoiceDocs(items);
+                                        setInvoiceDocumentIds(items.map(i => i.id));
+                                    }}
+                                    onSearch={async (q) => {
+                                        const res = await searchDocuments(q, "CHEMICAL_INVOICE");
+                                        return res.map(d => ({ id: d.documentId, label: d.documentTitle || d.documentId, sublabel: d.documentId }));
+                                    }}
+                                    placeholder={t("inventory.chemical.transactionBlocks.searchDoc", { defaultValue: "Tìm tài liệu trong hệ thống..." })}
                                 />
                             </div>
                         </div>
 
                         {/* Item list */}
-                        <div className="space-y-3">
+                        <div className="space-y-3 pt-3 border-t border-border">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-4">
                                     <label className="text-sm font-medium flex items-center gap-1.5">
@@ -662,6 +749,8 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                         chemicalCASNumber: (sum.inventory as any).chemicalSku?.chemicalCASNumber,
                         lotNumber: sum.inventory.lotNumber,
                         manufacturerName: sum.inventory.manufacturerName,
+                        expDate: sum.inventory.expDate,
+                        qty: 1, // mặc định 1 tem mỗi mã
                     }))}
                     onClose={() => {
                         setPrintLabelOpen(false);
@@ -669,6 +758,34 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                     }}
                 />
             )}
+
+            <DocumentUploadModal
+                open={uploadCoaOpen}
+                onClose={() => setUploadCoaOpen(false)}
+                fixedDocumentType="CHEMICAL_COA"
+                onSuccess={(doc) => {
+                    if (doc?.documentId) {
+                        const newId = doc.documentId;
+                        const newItem = { id: newId, label: doc.documentTitle || newId, sublabel: newId };
+                        setCoaDocumentIds(prev => [...prev, newId]);
+                        setSelectedCoaDocs(prev => [...prev, newItem]);
+                    }
+                }}
+            />
+
+            <DocumentUploadModal
+                open={uploadInvoiceOpen}
+                onClose={() => setUploadInvoiceOpen(false)}
+                fixedDocumentType="CHEMICAL_INVOICE"
+                onSuccess={(doc) => {
+                    if (doc?.documentId) {
+                        const newId = doc.documentId;
+                        const newItem = { id: newId, label: doc.documentTitle || newId, sublabel: newId };
+                        setInvoiceDocumentIds(prev => [...prev, newId]);
+                        setSelectedInvoiceDocs(prev => [...prev, newItem]);
+                    }
+                }}
+            />
         </>
     );
 }
@@ -685,12 +802,9 @@ export function TransactionBlocksTab() {
     const [createOpen, setCreateOpen] = useState(false);
     const [allocateOpen, setAllocateOpen] = useState(false);
     const [approveOpenId, setApproveOpenId] = useState<string | null>(null);
+
     const [page, setPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(20);
-
-    const handleApproveClick = (id: string) => {
-        setApproveOpenId(id);
-    };
 
     const [filters, setFilters] = useState<{
         transactionType: string[];
@@ -703,12 +817,23 @@ export function TransactionBlocksTab() {
         error,
         refetch,
     } = useChemicalTransactionBlocksList({
-        query: { search: submittedSearch, page, itemsPerPage, sortColumn: "createdAt", sortDirection: "DESC", ...filters },
+        query: {
+            search: submittedSearch,
+            page,
+            itemsPerPage,
+            sortColumn: "createdAt",
+            sortDirection: "DESC",
+            ...filters,
+        },
     });
 
     const handleSearch = () => {
         setSubmittedSearch(search);
         setPage(1);
+    };
+
+    const handleApproveClick = (id: string) => {
+        setApproveOpenId(id);
     };
 
     if (error) {
@@ -717,31 +842,31 @@ export function TransactionBlocksTab() {
 
     return (
         <>
-            <div className="h-full flex gap-4 overflow-hidden">
-                <div className="flex flex-col flex-1 space-y-3 min-w-0 overflow-hidden">
-                    {/* Toolbar */}
-                    <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2 flex-1">
-                            <div className="relative flex-1 max-w-sm">
-                                <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                                <Input
-                                    id="blocks-search"
-                                    placeholder={t("inventory.chemical.transactionBlocks.searchPlaceholder", { defaultValue: "Tìm mã phiếu, tham chiếu..." })}
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                                    className="pl-8"
-                                />
-                            </div>
-                            <Button variant="outline" size="sm" type="button" onClick={handleSearch}>
-                                {t("common.search", { defaultValue: "Tìm kiếm" })}
-                            </Button>
+            <div className="h-full flex flex-col space-y-3 min-w-0 overflow-hidden">
+                {/* Toolbar */}
+                <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 flex-1">
+                        <div className="relative flex-1 max-w-sm">
+                            <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                                id="block-search"
+                                placeholder={t("inventory.chemical.transactionBlocks.searchPlaceholder", { defaultValue: "Tìm mã phiếu, chứng từ..." })}
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                                className="pl-8"
+                            />
                         </div>
-                        <Button variant="default" type="button" onClick={() => setCreateOpen(true)}>
-                            <Plus className="h-4 w-4 mr-2" />
-                            {t("inventory.chemical.transactionBlocks.create", { defaultValue: "Tạo phiếu Xuất/Nhập" })}
+                        <Button variant="outline" size="sm" onClick={handleSearch}>
+                            {t("common.search", { defaultValue: "Tìm kiếm" })}
                         </Button>
-                        <Button variant="secondary" type="button" onClick={() => setAllocateOpen(true)}>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            {t("inventory.chemical.transactionBlocks.create", { defaultValue: "Tạo phiếu mới" })}
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => setAllocateOpen(true)}>
                             <Package className="h-4 w-4 mr-2" />
                             {t("inventory.chemical.transactionBlocks.allocate", { defaultValue: "Cấp phát tự động (FEFO)" })}
                         </Button>
@@ -749,7 +874,10 @@ export function TransactionBlocksTab() {
                             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                         </Button>
                     </div>
+                </div>
 
+                {/* Main Content Area: Detail Panel + Table */}
+                <div className="flex-1 min-h-0 flex flex-row gap-4 relative">
                     {/* Table */}
                     <div className="bg-background border border-border rounded-lg overflow-hidden flex-1 relative flex flex-col min-w-0">
                         <div className="overflow-x-auto relative h-full flex-1">
@@ -775,16 +903,16 @@ export function TransactionBlocksTab() {
                                                 }}
                                             />
                                         </th>
-                                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap text-center">
                                             <TableFilterPopover
                                                 title={String(t("inventory.chemical.transactionBlocks.status", { defaultValue: "Trạng thái" }))}
                                                 type="enum"
                                                 value={filters.chemicalTransactionBlockStatus}
                                                 options={[
-                                                    { label: "Nháp (DRAFT)", value: "DRAFT" },
-                                                    { label: "Chờ duyệt (PENDING_APPROVAL)", value: "PENDING_APPROVAL" },
-                                                    { label: "Đã duyệt (APPROVED)", value: "APPROVED" },
-                                                    { label: "Từ chối (REJECTED)", value: "REJECTED" },
+                                                    { label: "Nháp", value: "DRAFT" },
+                                                    { label: "Chờ duyệt", value: "PENDING_APPROVAL" },
+                                                    { label: "Đã duyệt", value: "APPROVED" },
+                                                    { label: "Từ chối", value: "REJECTED" },
                                                 ]}
                                                 onChange={(v) => {
                                                     setFilters((f) => ({ ...f, chemicalTransactionBlockStatus: v }));
@@ -793,13 +921,13 @@ export function TransactionBlocksTab() {
                                             />
                                         </th>
                                         <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                            {String(t("inventory.chemical.transactionBlocks.createdAt", { defaultValue: "Ngày tạo" }))}
+                                            {String(t("common.createdAt", { defaultValue: "Ngày tạo" }))}
                                         </th>
                                         <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                            {String(t("inventory.chemical.transactionBlocks.createdBy", { defaultValue: "Người tạo" }))}
+                                            {String(t("common.createdBy", { defaultValue: "Người tạo" }))}
                                         </th>
                                         <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                            {String(t("inventory.chemical.transactionBlocks.reference", { defaultValue: "Số chứng từ" }))}
+                                            {String(t("inventory.chemical.transactionBlocks.referenceCode", { defaultValue: "Chứng từ" }))}
                                         </th>
                                     </tr>
                                 </thead>
@@ -809,29 +937,31 @@ export function TransactionBlocksTab() {
                                             <tr key={i}>
                                                 {Array.from({ length: 6 }).map((__, j) => (
                                                     <td key={j} className="p-3">
-                                                        <Skeleton className="h-4 w-24" />
+                                                        <Skeleton className="h-4 w-20" />
                                                     </td>
                                                 ))}
                                             </tr>
                                         ))
-                                    ) : result?.data?.length === 0 ? (
+                                    ) : (result?.data as any[])?.length === 0 ? (
                                         <tr>
-                                            <td colSpan={6} className="p-6 text-center text-muted-foreground">
-                                                {String(t("common.noData", { defaultValue: "Không có dữ liệu" }))}
+                                            <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                                                {t("common.noData", { defaultValue: "Không có dữ liệu" })}
                                             </td>
                                         </tr>
                                     ) : (
-                                        result?.data?.map((block: any) => (
+                                        (result?.data as any[])?.map((block: any) => (
                                             <tr
                                                 key={block.chemicalTransactionBlockId}
                                                 className={`hover:bg-muted/30 cursor-pointer transition-colors ${activeBlock?.chemicalTransactionBlockId === block.chemicalTransactionBlockId ? "bg-muted" : ""}`}
                                                 onClick={() => setActiveBlock(block)}
                                             >
-                                                <td className="px-3 py-2 whitespace-nowrap font-mono text-xs font-medium text-primary">{block.chemicalTransactionBlockId ?? "-"}</td>
+                                                <td className="px-3 py-2 whitespace-nowrap font-mono text-xs font-medium text-primary">
+                                                    {block.chemicalTransactionBlockId}
+                                                </td>
                                                 <td className="px-3 py-2 whitespace-nowrap">
                                                     <BlockBadge type={block.transactionType} />
                                                 </td>
-                                                <td className="px-3 py-2 whitespace-nowrap">
+                                                <td className="px-3 py-2 whitespace-nowrap text-center">
                                                     <BlockStatusBadge status={block.chemicalTransactionBlockStatus} />
                                                 </td>
                                                 <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{block.createdAt ? new Date(block.createdAt).toLocaleString("vi-VN") : "-"}</td>
@@ -849,7 +979,7 @@ export function TransactionBlocksTab() {
                                 currentPage={page}
                                 totalPages={result.pagination.totalPages}
                                 itemsPerPage={itemsPerPage}
-                                totalItems={result.pagination.total}
+                                totalItems={result.pagination.totalItems ?? result.pagination.total}
                                 onPageChange={(p) => setPage(p)}
                                 onItemsPerPageChange={(iper) => {
                                     setItemsPerPage(iper);
@@ -858,9 +988,10 @@ export function TransactionBlocksTab() {
                             />
                         )}
                     </div>
-                </div>
 
-                {activeBlock && <TransactionBlockDetailPanel block={activeBlock} onClose={() => setActiveBlock(null)} onApproveClick={handleApproveClick} />}
+                    {/* Right Detail Panel */}
+                    {activeBlock && <TransactionBlockDetailPanel block={activeBlock} onClose={() => setActiveBlock(null)} onApproveClick={handleApproveClick} />}
+                </div>
             </div>
 
             {createOpen && <CreateBlockModal onClose={() => setCreateOpen(false)} />}

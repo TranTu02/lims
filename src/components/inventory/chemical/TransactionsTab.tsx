@@ -121,6 +121,9 @@ export function TransactionsTab() {
                                         {t("inventory.chemical.transactions.chemicalSkuId", { defaultValue: "Mã SKU" })}
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.transactions.chemicalSkuOldId", { defaultValue: "Mã cũ" })}
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                                         {t("inventory.chemical.transactions.chemicalName", { defaultValue: "Tên hóa chất" })}
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
@@ -135,8 +138,8 @@ export function TransactionsTab() {
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                                         {t("inventory.chemical.transactions.unit", { defaultValue: "Đơn vị" })}
                                     </th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {t("inventory.chemical.transactions.analysisId", { defaultValue: "Mã chỉ tiêu" })}
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.transactions.totalWeight", { defaultValue: "Khối lượng cả bì" })}
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                                         {t("inventory.chemical.transactions.note", { defaultValue: "Ghi chú" })}
@@ -147,7 +150,7 @@ export function TransactionsTab() {
                                 {isLoading ? (
                                     Array.from({ length: 8 }).map((_, i) => (
                                         <tr key={i}>
-                                            {Array.from({ length: 11 }).map((__, j) => (
+                                            {Array.from({ length: 12 }).map((__, j) => (
                                                 <td key={j} className="p-3">
                                                     <Skeleton className="h-4 w-16" />
                                                 </td>
@@ -156,7 +159,7 @@ export function TransactionsTab() {
                                     ))
                                 ) : (result?.data as any[])?.length === 0 ? (
                                     <tr>
-                                        <td colSpan={11} className="p-8 text-center text-muted-foreground">
+                                        <td colSpan={12} className="p-8 text-center text-muted-foreground">
                                             {t("common.noData", { defaultValue: "Không có dữ liệu" })}
                                         </td>
                                     </tr>
@@ -173,16 +176,17 @@ export function TransactionsTab() {
                                                 <TransactionTypeBadge type={txn.transactionType} />
                                             </td>
                                             <td className="px-3 py-2 whitespace-nowrap text-muted-foreground font-mono text-[10px]">{txn.chemicalSkuId ?? "-"}</td>
+                                            <td className="px-3 py-2 whitespace-nowrap text-muted-foreground font-mono text-[10px]">{txn.chemicalSkuOldId ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap font-medium">{txn.chemicalName ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{txn.chemicalCasNumber ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap font-mono text-xs">{txn.chemicalInventoryId ?? "-"}</td>
-                                            <td
-                                                className={`px-3 py-2 whitespace-nowrap text-right font-bold ${txn.changeQty > 0 ? "text-green-600 dark:text-green-400" : txn.changeQty < 0 ? "text-red-600 dark:text-red-400" : ""}`}
-                                            >
-                                                {txn.changeQty > 0 ? "+" : ""}{txn.changeQty}
+                                            <td className="px-3 py-2 whitespace-nowrap text-right">
+                                                <div className={`font-bold ${txn.changeQty > 0 ? "text-green-600 dark:text-green-400" : txn.changeQty < 0 ? "text-red-600 dark:text-red-400" : ""}`}>
+                                                    {txn.changeQty > 0 ? "+" : ""}{txn.changeQty}
+                                                </div>
                                             </td>
                                             <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{txn.chemicalTransactionUnit || (txn as any).unit || "-"}</td>
-                                            <td className="px-3 py-2 whitespace-nowrap font-mono text-[10px] text-muted-foreground">{txn.analysisId ?? "-"}</td>
+                                            <td className="px-3 py-2 whitespace-nowrap text-right font-mono text-xs text-muted-foreground">{txn.totalWeight ?? "-"}</td>
                                             <td className="px-3 py-2 max-w-[160px]">
                                                 <span className="truncate block text-muted-foreground italic" title={txn.chemicalTransactionNote || (txn as any).note || undefined}>
                                                     {txn.chemicalTransactionNote || (txn as any).note || "-"}
@@ -201,7 +205,7 @@ export function TransactionsTab() {
                             currentPage={page}
                             totalPages={result.pagination.totalPages}
                             itemsPerPage={itemsPerPage}
-                            totalItems={result.pagination.total}
+                            totalItems={result.pagination.totalItems ?? result.pagination.total}
                             onPageChange={(p) => setPage(p)}
                             onItemsPerPageChange={(iper) => {
                                 setItemsPerPage(iper);

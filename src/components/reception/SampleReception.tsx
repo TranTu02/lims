@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, AlertCircle, Truck, Package, Plus, Inbox, RefreshCw } from "lucide-react";
+import { Search, AlertCircle, Truck, Package, Plus, Inbox, RefreshCw, Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
+
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -36,6 +43,7 @@ export function SampleReception() {
     const [activeTab, setActiveTab] = useState<TabKey>("incoming-requests");
     const [searchTerm, setSearchTerm] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
+    const [searchOption, setSearchOption] = useState<"normal" | "full">("normal");
 
     const [selectedReceiptFull, setSelectedReceiptFull] = useState<ReceiptDetail | null>(null);
     const [isCreateReceiptModalOpen, setIsCreateReceiptModalOpen] = useState(false);
@@ -79,17 +87,30 @@ export function SampleReception() {
             search: searchQuery.trim().length ? searchQuery.trim() : null,
         };
 
+        if (searchOption === "full") {
+            query.option = "full";
+        }
+
         return {
             query,
             sort: { column: "createdAt", direction: "DESC" as const },
         };
-    }, [pagination.currentPage, pagination.itemsPerPage, searchQuery]);
+    }, [pagination.currentPage, pagination.itemsPerPage, searchQuery, searchOption]);
 
-    const receiptsProcessingQ = useReceiptsProcessing(listInput, { enabled: isProcessingTab });
-    const receiptsListQ = useReceiptsList(listInput, { enabled: !isProcessingTab && !isIncomingTab });
+    const receiptsProcessingQ = useReceiptsProcessing(listInput, { 
+        enabled: isProcessingTab && searchOption !== "full" 
+    });
+    const receiptsListQ = useReceiptsList(listInput, { 
+        enabled: (!isProcessingTab && !isIncomingTab) || (isProcessingTab && searchOption === "full")
+    });
 
     // ── Active data ──────────────────────────────────────────────────────────
-    const activeQuery = isIncomingTab ? incomingQ : isProcessingTab ? receiptsProcessingQ : receiptsListQ;
+    // Nếu là full-search thì luôn dùng receiptsListQ (get/list) thay vì get/processing
+    const activeQuery = isIncomingTab 
+        ? incomingQ 
+        : (isProcessingTab && searchOption !== "full") 
+            ? receiptsProcessingQ 
+            : receiptsListQ;
 
     const pageItems = useMemo(() => (activeQuery.data?.data ?? []) as ReceiptListItem[], [activeQuery.data]);
     const incomingItems = useMemo(() => (incomingQ.data?.data ?? []) as IncomingRequestListItem[], [incomingQ.data]);
@@ -116,6 +137,7 @@ export function SampleReception() {
     const handleSearchKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === "Enter") {
             setSearchQuery(searchTerm);
+            setSearchOption("normal");
             pagination.resetPage();
         }
     };
@@ -197,6 +219,7 @@ export function SampleReception() {
                             size="sm"
                             onClick={() => {
                                 setActiveTab("incoming-requests");
+                                setSearchOption("normal");
                                 pagination.resetPage();
                             }}
                             className={`flex items-center gap-2 ${activeTab === "incoming-requests" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}
@@ -211,6 +234,7 @@ export function SampleReception() {
                             size="sm"
                             onClick={() => {
                                 setActiveTab("processing");
+                                setSearchOption("normal");
                                 pagination.resetPage();
                             }}
                             className={`flex items-center gap-2 ${activeTab === "processing" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}
@@ -225,6 +249,7 @@ export function SampleReception() {
                             size="sm"
                             onClick={() => {
                                 setActiveTab("return-results");
+                                setSearchOption("normal");
                                 pagination.resetPage();
                             }}
                             className={`flex items-center gap-2 ${activeTab === "return-results" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}
@@ -245,6 +270,53 @@ export function SampleReception() {
                                 className="pl-10 bg-background"
                             />
                         </div>
+
+                        {!isIncomingTab && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className={`h-9 w-9 shrink-0 transition-all ${
+                                            searchOption === "full" 
+                                                ? "border-primary/80 border-2 bg-primary/10 text-primary shadow-[0_0_0_1px_rgba(var(--primary),0.2)]" 
+                                                : "text-muted-foreground hover:text-foreground"
+                                        }`}
+                                        title={String(t("reception.sampleReception.actions.searchOptions", { defaultValue: "Lựa chọn tìm kiếm" }))}
+                                    >
+                                        <Search className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-40">
+                                    <DropdownMenuItem
+                                        onClick={() => {
+                                            setSearchOption("normal");
+                                            setSearchQuery(searchTerm);
+                                            pagination.resetPage();
+                                        }}
+                                        className="flex items-center justify-between cursor-pointer"
+                                    >
+                                        <span className="text-xs font-medium">
+                                            {String(t("reception.sampleReception.actions.searchNormal", { defaultValue: "Đang xử lý" }))}
+                                        </span>
+                                        {searchOption === "normal" && <Check className="h-3.5 w-3.5 text-primary" />}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        onClick={() => {
+                                            setSearchOption("full");
+                                            setSearchQuery(searchTerm);
+                                            pagination.resetPage();
+                                        }}
+                                        className="flex items-center justify-between cursor-pointer"
+                                    >
+                                        <span className="text-xs font-medium">
+                                            {String(t("reception.sampleReception.actions.fullSearch", { defaultValue: "Đầy đủ" }))}
+                                        </span>
+                                        {searchOption === "full" && <Check className="h-3.5 w-3.5 text-primary" />}
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
 
                         <Button
                             variant="outline"

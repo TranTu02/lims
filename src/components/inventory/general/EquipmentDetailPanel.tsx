@@ -10,7 +10,6 @@ import { DocumentPreviewModal, type PreviewType } from "@/components/document/Do
 import { Separator } from "@/components/ui/separator";
 
 function DocumentItem({ doc }: { doc: any }) {
-    const { t } = useTranslation();
     const [urlLoading, setUrlLoading] = useState(false);
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
