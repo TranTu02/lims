@@ -103,7 +103,7 @@ export function ProtocolsView() {
             query: {
                 page: pagination.currentPage,
                 itemsPerPage: pagination.itemsPerPage,
-                search: debouncedSearch.trim().length ? debouncedSearch.trim() : null,
+                search: String(debouncedSearch || "").trim().length ? String(debouncedSearch || "").trim() : null,
                 "accreditation[]": excelFilters.accreditation.length > 0 ? excelFilters.accreditation : null,
             },
             sort: { column: "createdAt", direction: "DESC" as const },
@@ -211,7 +211,7 @@ export function ProtocolsView() {
     const submitForm = async () => {
         const code = String(editForm.protocolCode || "").trim();
         const source = String(editForm.protocolSource || "").trim();
-        if (!code || !source) return;
+        if (!code) return;
 
 
         // Convert BOM items back to the protocol chemicals format
@@ -251,6 +251,7 @@ export function ProtocolsView() {
                 }
             }
             toast.success(t("common.saveSuccess", { defaultValue: "Lưu thành công" }));
+            setEditOpen(false);
         } catch (error) {
             console.error("Failed to save protocol", error);
         }
@@ -317,7 +318,7 @@ export function ProtocolsView() {
             {/* ═══ Create / Edit Modal ═══ */}
             {editOpen ? (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-background rounded-lg border border-border shadow-xl overflow-hidden flex flex-col" style={{ width: "80vw", height: "80vh", minWidth: 900, minHeight: 600 }}>
+                    <div className="bg-background rounded-lg border border-border shadow-xl overflow-hidden flex flex-col" style={{ width: "95vw", height: "95vh", minWidth: 900, minHeight: 600 }}>
                         {/* Header */}
                         <div className="px-5 py-4 border-b border-border flex items-center justify-between shrink-0">
                             <div className="text-base font-semibold text-foreground">{editForm.protocolId ? t("library.protocols.edit.title") : t("library.protocols.create.title")}</div>
@@ -473,7 +474,7 @@ export function ProtocolsView() {
                             </Button>
                             <Button
                                 onClick={() => void submitForm()}
-                                disabled={isPending || !String(editForm.protocolCode || "").trim() || !String(editForm.protocolSource || "").trim()}
+                                disabled={isPending || !String(editForm.protocolCode || "").trim()}
                                 type="button"
                             >
                                 {isPending ? t("common.saving", { defaultValue: "Đang lưu..." }) : t("common.save", { defaultValue: "Lưu" })}
@@ -486,7 +487,11 @@ export function ProtocolsView() {
             <DocumentUploadModal
                 open={uploadModalOpen}
                 onClose={() => setUploadModalOpen(false)}
-                fixedDocumentType="PROTOCOL_DOC"
+                fixedDocumentType="PROTOCOL"
+                initialTitle={editForm.protocolTitle}
+                initialCommonKeys={editForm.protocolCode ? [editForm.protocolCode] : undefined}
+                initialRefType="Protocol"
+                initialRefId={editForm.protocolId}
                 onSuccess={(doc) => {
                     if (doc?.documentId) {
                         setEditForm((s) => ({
@@ -502,6 +507,10 @@ export function ProtocolsView() {
                 open={uploadSopModalOpen}
                 onClose={() => setUploadSopModalOpen(false)}
                 fixedDocumentType="PROTOCOL_SOP"
+                initialTitle={editForm.protocolTitle}
+                initialCommonKeys={editForm.protocolCode ? [editForm.protocolCode] : undefined}
+                initialRefType="Protocol SOP"
+                initialRefId={editForm.protocolId}
                 onSuccess={(doc) => {
                     if (doc?.documentId) {
                         setEditForm((s) => ({

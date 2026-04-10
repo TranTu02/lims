@@ -26,7 +26,7 @@ export function DocumentItem({ doc }: { doc: any }) {
             const lower = url.toLowerCase().split("?")[0];
             if (lower.endsWith(".docx") || lower.endsWith(".xlsx") || lower.endsWith(".pptx") || lower.endsWith(".doc") || lower.endsWith(".xls") || lower.endsWith(".ppt")) {
                 setPreviewType("office");
-                setPreviewUrl(`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`);
+                setPreviewUrl(url);
             } else if (lower.endsWith(".pdf")) {
                 setPreviewType("pdf");
                 setPreviewUrl(url);
@@ -49,30 +49,28 @@ export function DocumentItem({ doc }: { doc: any }) {
                     <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
                         <FileText className="h-4 w-4 text-primary shrink-0" />
                     </div>
-                    <span className="text-sm font-semibold text-foreground truncate flex-1" title={title}>
+                    <span className="text-sm font-semibold text-foreground truncate flex-1" title={String(title || "")}>
                         {title}
                     </span>
                     <Button variant="secondary" size="icon" className="h-7 w-7 rounded-lg shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" disabled={urlLoading} onClick={handlePreview} type="button">
                         {urlLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
                     </Button>
                 </div>
-                {(keys && keys.length > 0) || status ? (
-                    <div className="flex items-center justify-between pl-10">
-                        <div className="flex items-center gap-2 flex-wrap">
-                            {keys && keys.slice(0, 2).map((k: string) => (
-                                <span key={k} className="text-[10px] text-muted-foreground font-mono bg-muted px-1 rounded uppercase">{k}</span>
-                            ))}
-                            {status && (
-                                <Badge variant="outline" className="text-[9px] h-4 min-h-0 bg-background py-0 uppercase">
-                                    {status}
-                                </Badge>
-                            )}
-                        </div>
-                        <span className="text-[9px] text-muted-foreground font-mono">{doc.documentId}</span>
+                <div className="flex items-center justify-between pl-10">
+                    <div className="flex items-center gap-2 flex-wrap">
+                        {keys && keys.slice(0, 2).map((k: string) => (
+                            <span key={k} className="text-[10px] text-muted-foreground font-mono bg-muted px-1 rounded uppercase">{k}</span>
+                        ))}
+                        {status && (
+                            <Badge variant="outline" className="text-[9px] h-4 min-h-0 bg-background py-0 uppercase">
+                                {status}
+                            </Badge>
+                        )}
                     </div>
-                ) : null}
+                    <span className="text-[9px] text-muted-foreground font-mono">{doc.documentId}</span>
+                </div>
             </div>
-            <DocumentPreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} previewUrl={previewUrl} previewType={previewType} previewFileName={title} />
+            <DocumentPreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} previewUrl={previewUrl} previewType={previewType} previewFileName={title} previewDoc={doc} />
         </>
     );
 }

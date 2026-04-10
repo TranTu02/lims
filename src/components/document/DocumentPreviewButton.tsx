@@ -34,7 +34,7 @@ export function DocumentPreviewButton({ documentId, variant = "ghost", size = "i
             const lower = url.toLowerCase().split("?")[0];
             if (lower.endsWith(".docx") || lower.endsWith(".xlsx") || lower.endsWith(".pptx") || lower.endsWith(".doc") || lower.endsWith(".xls") || lower.endsWith(".ppt")) {
                 setPreviewType("office");
-                setPreviewUrl(`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`);
+                setPreviewUrl(url);
             } else if (lower.endsWith(".pdf")) {
                 setPreviewType("pdf");
                 setPreviewUrl(url);

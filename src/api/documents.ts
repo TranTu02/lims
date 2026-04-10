@@ -37,6 +37,7 @@ export interface DocumentCreateRefBody {
     refId?: string;
     classifierCode?: string;
     documentType?: string;
+    documentTitle?: string;
     commonKeys?: string[];
     jsonContent?: Record<string, any>;
 }
@@ -44,6 +45,8 @@ export interface DocumentCreateRefBody {
 export interface DocumentUpdateBody {
     documentId: string;
     classifierCode?: string;
+    documentType?: string;
+    documentTitle?: string;
     commonKeys?: string[];
     jsonContent?: Record<string, any>;
 }

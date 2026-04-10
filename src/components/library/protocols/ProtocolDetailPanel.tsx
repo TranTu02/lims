@@ -41,7 +41,7 @@ function DocumentItem({ doc }: { doc: SnapshotDoc }) {
             const lower = url.toLowerCase().split("?")[0];
             if (lower.endsWith(".docx") || lower.endsWith(".xlsx") || lower.endsWith(".pptx") || lower.endsWith(".doc") || lower.endsWith(".xls") || lower.endsWith(".ppt")) {
                 setPreviewType("office");
-                setPreviewUrl(`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`);
+                setPreviewUrl(url);
             } else if (lower.endsWith(".pdf")) {
                 setPreviewType("pdf");
                 setPreviewUrl(url);
@@ -64,7 +64,7 @@ function DocumentItem({ doc }: { doc: SnapshotDoc }) {
                 {/* Dòng 1: Title */}
                 <div className="flex items-center gap-2 min-w-0">
                     <FileText className="h-4 w-4 text-primary shrink-0" />
-                    <span className="text-sm font-semibold text-foreground truncate" title={title}>
+                    <span className="text-sm font-semibold text-foreground truncate block" title={String(title || "")}>
                         {title}
                     </span>
                 </div>
@@ -93,7 +93,7 @@ function DocumentItem({ doc }: { doc: SnapshotDoc }) {
                 </div>
             </div>
 
-            <DocumentPreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} previewUrl={previewUrl} previewType={previewType} previewFileName={title} />
+            <DocumentPreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} previewUrl={previewUrl} previewType={previewType} previewFileName={title} previewDoc={doc} />
         </>
     );
 }

@@ -172,7 +172,7 @@ export function ProtocolFormModal({ onClose, protocolId, initialData, onSuccess 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
             <div
-                className={`bg-background rounded-lg border border-border w-full ${isEdit ? "max-w-6xl" : "max-w-2xl"} shadow-xl flex flex-col overflow-hidden transition-all duration-300`}
+                className={`bg-background rounded-lg border border-border w-full ${isEdit ? "max-w-[90vw] xl:max-w-7xl" : "max-w-2xl"} shadow-xl flex flex-col overflow-hidden transition-all duration-300`}
                 style={{ maxHeight: "95vh", height: "90vh" }}
             >
                 <div className="px-5 py-4 border-b border-border flex items-center justify-between shrink-0">
@@ -186,7 +186,7 @@ export function ProtocolFormModal({ onClose, protocolId, initialData, onSuccess 
 
                 <div className="flex-1 flex overflow-hidden">
                     {/* Left Form Column */}
-                    <div className={`p-5 space-y-6 overflow-y-auto ${isEdit ? "w-[55%] border-r border-border" : "w-full"}`}>
+                    <div className={`p-5 space-y-6 overflow-y-auto ${isEdit ? "w-[60%] shrink-0 border-r border-border" : "w-full shrink-0"}`}>
                         {isFetching ? (
                             <div className="flex items-center gap-2 justify-center p-8 text-muted-foreground">
                                 <Loader2 className="h-5 w-5 animate-spin" /> {String(t("common.loading"))}
@@ -305,7 +305,7 @@ export function ProtocolFormModal({ onClose, protocolId, initialData, onSuccess 
 
                     {/* Right Matrix Column */}
                     {isEdit && protocolId && (
-                        <div className="w-[45%] p-5 overflow-y-auto bg-muted/5">
+                        <div className="w-[40%] shrink-0 p-5 overflow-y-auto bg-muted/5">
                             <ProtocolMatrixManager protocolId={protocolId} />
                         </div>
                     )}
@@ -326,6 +326,10 @@ export function ProtocolFormModal({ onClose, protocolId, initialData, onSuccess 
                 open={uploadSopOpen}
                 onClose={() => setUploadSopOpen(false)}
                 fixedDocumentType="PROTOCOL_SOP"
+                initialTitle={protocolTitle}
+                initialCommonKeys={protocolCode ? [protocolCode] : undefined}
+                initialRefType="Protocol"
+                initialRefId={protocolId}
                 onSuccess={(doc) => {
                     if (doc?.documentId) {
                         const newId = doc.documentId;
@@ -340,6 +344,10 @@ export function ProtocolFormModal({ onClose, protocolId, initialData, onSuccess 
                 open={uploadDocOpen}
                 onClose={() => setUploadDocOpen(false)}
                 fixedDocumentType="PROTOCOL_DOC"
+                initialTitle={protocolTitle}
+                initialCommonKeys={protocolCode ? [protocolCode] : undefined}
+                initialRefType="Protocol"
+                initialRefId={protocolId}
                 onSuccess={(doc) => {
                     if (doc?.documentId) {
                         const newId = doc.documentId;

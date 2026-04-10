@@ -47,7 +47,7 @@ export function SearchSelectPicker({ label, selected, onChange, onSearch, onCrea
         setSearching(true);
         searchTimer.current = setTimeout(async () => {
             try {
-                const res = await onSearch(inputVal.trim());
+                const res = await onSearch(String(inputVal || "").trim());
                 setResults(res);
             } finally {
                 setSearching(false);
@@ -84,10 +84,10 @@ export function SearchSelectPicker({ label, selected, onChange, onSearch, onCrea
     const remove = (id: string) => onChange(selected.filter((s) => s.id !== id));
 
     const handleCreate = async () => {
-        if (!onCreate || !inputVal.trim()) return;
+        if (!onCreate || !String(inputVal || "").trim()) return;
         setCreating(true);
         try {
-            const item = await onCreate(inputVal.trim());
+            const item = await onCreate(String(inputVal || "").trim());
             onChange([...selected, item]);
             setInputVal("");
             // Refresh results
@@ -103,7 +103,7 @@ export function SearchSelectPicker({ label, selected, onChange, onSearch, onCrea
     const selectedInResults = results.filter((r) => isSelected(r.id));
     const ordered = [...selectedInResults, ...unselectedResults];
 
-    const canCreate = onCreate && inputVal.trim().length > 0 && !results.some((r) => r.label.toLowerCase() === inputVal.trim().toLowerCase());
+    const canCreate = onCreate && String(inputVal || "").trim().length > 0 && !results.some((r) => r.label.toLowerCase() === String(inputVal || "").trim().toLowerCase());
 
     return (
         <div className="space-y-1">

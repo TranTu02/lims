@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo } from "react";
+import React, { useRef, useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Upload, X, Check } from "lucide-react";
@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { documentApi } from "@/api/documents";
-import type { DocumentStatus, DocumentCreateRefBody } from "@/api/documents";
+import type { DocumentStatus, DocumentCreateRefBody, DocumentUpdateBody, DocumentInfo } from "@/api/documents";
 import { fileApi, buildFileUploadFormData } from "@/api/files";
 import type { FileInfo } from "@/api/files";
 import { useDebouncedValue } from "@/components/library/hooks/useDebouncedValue";
@@ -24,6 +24,11 @@ interface DocumentUploadModalProps {
     onClose: () => void;
     onSuccess?: (doc: any) => void;
     fixedDocumentType?: string; // Optional: preset and lock the document type
+    initialTitle?: string;
+    initialCommonKeys?: string[];
+    initialRefType?: string;
+    initialRefId?: string;
+    editDocument?: DocumentInfo | null;
 }
 
 const DOCUMENT_STATUS_OPTIONS: { label: string; value: DocumentStatus }[] = [
@@ -33,7 +38,7 @@ const DOCUMENT_STATUS_OPTIONS: { label: string; value: DocumentStatus }[] = [
     { label: "Cancelled (Đã huỷ)", value: "Cancelled" },
 ];
 
-export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentType }: DocumentUploadModalProps) {
+export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentType, initialTitle, initialCommonKeys, initialRefType, initialRefId, editDocument }: DocumentUploadModalProps) {
     const { t } = useTranslation();
     const qc = useQueryClient();
 
@@ -43,6 +48,7 @@ export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentTyp
     const [documentStatus, setDocumentStatus] = useState<DocumentStatus>("Issued");
     const [documentType, setDocumentType] = useState<string>(fixedDocumentType || "");
     const [refType, setRefType] = useState<string>("");
+    const [refId, setRefId] = useState<string>("");
     const [commonKeys, setCommonKeys] = useState<string>("");
 
     const [fileId, setFileId] = useState<string>("");
@@ -55,9 +61,9 @@ export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentTyp
     const debouncedFileSearch = useDebouncedValue(fileSearch, 300);
 
     const filesQuery = useQuery({
-        queryKey: ["documentCenter", "files-search", debouncedFileSearch],
+        queryKey: ["documentCenter", "files-search", String(debouncedFileSearch || "").trim()],
         queryFn: async () => {
-            const res: any = await fileApi.list({ search: debouncedFileSearch, itemsPerPage: 50, page: 1 });
+            const res: any = await fileApi.list({ search: String(debouncedFileSearch || "").trim(), itemsPerPage: 50, page: 1 });
             return (res?.data ?? []) as FileInfo[];
         },
         enabled: open,
@@ -77,6 +83,7 @@ export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentTyp
         setDocumentStatus("Issued");
         setDocumentType(fixedDocumentType || "");
         setRefType("");
+        setRefId("");
         setCommonKeys("");
         setFileId("");
         setUploadedFileName(null);
@@ -84,12 +91,26 @@ export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentTyp
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
-    // Update documentType if fixedDocumentType changes
-    React.useEffect(() => {
+    // Update documentType if fixedDocumentType changes or editDocument is provided
+    useEffect(() => {
         if (open) {
-            setDocumentType(fixedDocumentType || "");
+            if (editDocument) {
+                setDocumentTitle(editDocument.documentTitle || editDocument.jsonContent?.documentTitle || "");
+                setDocumentStatus(editDocument.documentStatus || editDocument.jsonContent?.documentStatus || "Issued");
+                setDocumentType(editDocument.documentType || "");
+                setRefType(editDocument.refType || "");
+                setRefId(editDocument.refId || "");
+                setCommonKeys((editDocument.commonKeys || editDocument.jsonContent?.commonKeys || []).join(", "));
+                setFileId(editDocument.fileId);
+            } else {
+                setDocumentType(fixedDocumentType || "");
+                if (initialTitle) setDocumentTitle(initialTitle);
+                if (initialCommonKeys?.length) setCommonKeys(initialCommonKeys.join(", "));
+                if (initialRefType) setRefType(initialRefType);
+                if (initialRefId) setRefId(initialRefId);
+            }
         }
-    }, [open, fixedDocumentType]);
+    }, [open, fixedDocumentType, initialTitle, initialCommonKeys, initialRefType, initialRefId, editDocument]);
 
     const handleClose = () => {
         resetForm();
@@ -97,13 +118,19 @@ export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentTyp
     };
 
     const createDocumentMut = useMutation({
-        mutationFn: async (body: DocumentCreateRefBody) => {
-            const res: any = await documentApi.create(body);
-            if (res?.success === false) throw new Error(res.error?.message ?? "Upload error");
-            return res;
+        mutationFn: async (body: any) => {
+            if (editDocument) {
+                const res: any = await documentApi.update(body);
+                if (res?.success === false) throw new Error(res.error?.message ?? "Update error");
+                return res;
+            } else {
+                const res: any = await documentApi.create(body);
+                if (res?.success === false) throw new Error(res.error?.message ?? "Upload error");
+                return res;
+            }
         },
         onSuccess: async (res) => {
-            toast.success(String(t("documentCenter.createSuccess", { defaultValue: "Đã tạo tài liệu thành công" })));
+            toast.success(String(t(editDocument ? "documentCenter.updateSuccess" : "documentCenter.createSuccess", { defaultValue: editDocument ? "Đã cập nhật tài liệu thành công" : "Đã tạo tài liệu thành công" })));
             await qc.invalidateQueries({ queryKey: ["documentCenter", "documents"] });
             if (onSuccess) {
                 onSuccess(res.data || res);
@@ -115,11 +142,7 @@ export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentTyp
         },
     });
 
-    const handleUploadSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = Array.from(e.target.files || []);
-        if (files.length === 0) return;
-        const file = files[0];
-
+    const processUploadFile = async (file: File) => {
         try {
             setIsUploading(true);
             const formData = buildFileUploadFormData(file, {
@@ -132,7 +155,7 @@ export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentTyp
             if (newFileId) {
                 setFileId(newFileId);
                 setUploadedFileName(file.name);
-                if (!documentTitle.trim()) {
+                if (!String(documentTitle || "").trim()) {
                     setDocumentTitle(file.name.replace(/\.[^/.]+$/, "")); // remove extension
                 }
                 toast.success(String(t("documentCenter.fileUploaded", { defaultValue: "Đã tải file lên thành công" })));
@@ -141,8 +164,29 @@ export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentTyp
             toast.error(err.message || "Failed to upload file");
         } finally {
             setIsUploading(false);
-            if (e.target) e.target.value = "";
+            if (fileInputRef.current) fileInputRef.current.value = "";
         }
+    };
+
+    const handleUploadSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+        await processUploadFile(files[0]);
+    };
+
+    const handleDrop = async (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (isUploading) return;
+        const files = Array.from(e.dataTransfer.files || []);
+        if (files.length > 0) {
+            await processUploadFile(files[0]);
+        }
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
     };
 
     const handleSave = () => {
@@ -151,33 +195,55 @@ export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentTyp
             return;
         }
 
-        if (!documentTitle.trim()) {
+        const title = String(documentTitle || "").trim();
+        const type = String(documentType || "").trim();
+
+        if (!title) {
             toast.error(String(t("documentCenter.validation.missingTitle", { defaultValue: "Vui lòng nhập tên tài liệu" })));
             return;
         }
 
-        if (!documentType) {
+        if (!type) {
             toast.error(String(t("documentCenter.validation.missingType", { defaultValue: "Vui lòng chọn phân loại tài liệu" })));
             return;
         }
 
-        const body: DocumentCreateRefBody = {
-            fileId,
-            documentType,
-            refType: refType.trim() ? refType.trim() : undefined,
-            commonKeys: commonKeys.trim()
-                ? commonKeys
-                      .split(",")
-                      .map((k) => k.trim())
-                      .filter(Boolean)
-                : [],
-            jsonContent: {
-                documentTitle: documentTitle.trim(),
-                documentStatus,
-            },
-        };
+        const commonKeysArray = String(commonKeys || "").trim()
+            ? String(commonKeys || "")
+                  .split(",")
+                  .map((k) => k.trim())
+                  .filter(Boolean)
+            : [];
 
-        createDocumentMut.mutate(body);
+        if (editDocument) {
+            const updateBody: DocumentUpdateBody = {
+                documentId: editDocument.documentId,
+                documentType: type,
+                documentTitle: title,
+                commonKeys: commonKeysArray,
+                jsonContent: {
+                    ...editDocument.jsonContent,
+                    documentTitle: title,
+                    documentStatus,
+                    commonKeys: commonKeysArray,
+                },
+            };
+            createDocumentMut.mutate(updateBody);
+        } else {
+            const createBody: DocumentCreateRefBody = {
+                fileId,
+                documentType: type,
+                documentTitle: title,
+                refType: String(refType || "").trim() ? String(refType || "").trim() : undefined,
+                refId: String(refId || "").trim() ? String(refId || "").trim() : undefined,
+                commonKeys: commonKeysArray,
+                jsonContent: {
+                    documentTitle: title,
+                    documentStatus,
+                },
+            };
+            createDocumentMut.mutate(createBody);
+        }
     };
 
     if (!open) return null;
@@ -187,8 +253,16 @@ export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentTyp
             <div className="bg-background rounded-xl border border-border w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/20">
                     <div>
-                        <h2 className="text-xl font-semibold text-foreground">{String(t("documentCenter.uploadModal.title", { defaultValue: "Tạo tài liệu mới" }))}</h2>
-                        <p className="text-sm text-muted-foreground mt-1">{String(t("documentCenter.uploadModal.desc", { defaultValue: "Nhập thông tin cơ bản và đính kèm file cho tài liệu." }))}</p>
+                        <h2 className="text-xl font-semibold text-foreground">
+                            {editDocument 
+                                ? String(t("documentCenter.uploadModal.editTitle", { defaultValue: "Chỉnh sửa tài liệu" })) 
+                                : String(t("documentCenter.uploadModal.title", { defaultValue: "Tạo tài liệu mới" }))}
+                        </h2>
+                        <p className="text-sm text-muted-foreground mt-1">
+                            {editDocument 
+                                ? String(t("documentCenter.uploadModal.editDesc", { defaultValue: "Cập nhật thông tin cho tài liệu này." })) 
+                                : String(t("documentCenter.uploadModal.desc", { defaultValue: "Nhập thông tin cơ bản và đính kèm file cho tài liệu." }))}
+                        </p>
                     </div>
                     <Button variant="ghost" size="icon" onClick={handleClose} className="rounded-full">
                         <X className="h-5 w-5" />
@@ -196,80 +270,85 @@ export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentTyp
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6 space-y-8">
-                    {/* Phần 1: Đính kèm File */}
-                    <div className="space-y-4">
-                        <div className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                            <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs">1</span>
-                            File đính kèm
-                        </div>
+                    {!editDocument && (
+                        <div className="space-y-4">
+                            <div className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                                <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs">1</span>
+                                File đính kèm
+                            </div>
 
-                        <Tabs defaultValue="upload" className="w-full">
-                            <TabsList className="grid w-full grid-cols-2">
-                                <TabsTrigger value="upload">{String(t("documentCenter.uploadModal.file"))}</TabsTrigger>
-                                <TabsTrigger value="existing">{String(t("documentCenter.uploadModal.existingFile", { defaultValue: "Chọn file đã có" }))}</TabsTrigger>
-                            </TabsList>
+                            <Tabs defaultValue="upload" className="w-full">
+                                <TabsList className="grid w-full grid-cols-2">
+                                    <TabsTrigger value="upload">{String(t("documentCenter.uploadModal.file"))}</TabsTrigger>
+                                    <TabsTrigger value="existing">{String(t("documentCenter.uploadModal.existingFile", { defaultValue: "Chọn file đã có" }))}</TabsTrigger>
+                                </TabsList>
 
-                            <TabsContent value="upload" className="pt-4">
-                                <div
-                                    className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                                        isUploading ? "border-primary/50 bg-primary/5" : "border-border hover:border-primary/50 hover:bg-muted/50 cursor-pointer"
-                                    }`}
-                                    onClick={() => !isUploading && fileInputRef.current?.click()}
-                                >
-                                    <input type="file" className="hidden" ref={fileInputRef} onChange={handleUploadSelect} disabled={isUploading} />
-                                    <div className="mx-auto w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-3">
-                                        <Upload className={`h-6 w-6 ${isUploading ? "animate-bounce" : ""}`} />
-                                    </div>
-                                    <p className="text-sm font-medium text-foreground">
-                                        {isUploading ? String(t("documentCenter.uploadModal.uploading")) : uploadedFileName || String(t("documentCenter.uploadModal.dropzone"))}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                        {String(t("documentCenter.uploadModal.supportedFormats", { defaultValue: "Hỗ trợ các định dạng: PDF, DOCX, XLSX, Ảnh..." }))}
-                                    </p>
-                                    {uploadedFileName && fileId && !isUploading && (
-                                        <div className="flex items-center justify-center gap-2 mt-4 text-success text-sm font-medium">
-                                            <Check className="h-4 w-4" /> {String(t("documentCenter.fileUploaded"))} ({fileId})
+                                <TabsContent value="upload" className="pt-4">
+                                    <div
+                                        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                                            isUploading ? "border-primary/50 bg-primary/5" : "border-border hover:border-primary/50 hover:bg-muted/50 cursor-pointer"
+                                        }`}
+                                        onClick={() => !isUploading && fileInputRef.current?.click()}
+                                        onDrop={handleDrop}
+                                        onDragOver={handleDragOver}
+                                    >
+                                        <input type="file" className="hidden" ref={fileInputRef} onChange={handleUploadSelect} disabled={isUploading} />
+                                        <div className="mx-auto w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-3">
+                                            <Upload className={`h-6 w-6 ${isUploading ? "animate-bounce" : ""}`} />
                                         </div>
-                                    )}
-                                </div>
-                            </TabsContent>
+                                        <p className="text-sm font-medium text-foreground">
+                                            {isUploading ? String(t("documentCenter.uploadModal.uploading")) : uploadedFileName || String(t("documentCenter.uploadModal.dropzone"))}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            {String(t("documentCenter.uploadModal.supportedFormats", { defaultValue: "Hỗ trợ các định dạng: PDF, DOCX, XLSX, Ảnh..." }))}
+                                        </p>
+                                        {uploadedFileName && fileId && !isUploading && (
+                                            <div className="flex items-center justify-center gap-2 mt-4 text-success text-sm font-medium">
+                                                <Check className="h-4 w-4" /> {String(t("documentCenter.fileUploaded"))} ({fileId})
+                                            </div>
+                                        )}
+                                    </div>
+                                </TabsContent>
 
-                            <TabsContent value="existing" className="pt-4">
-                                <div className="space-y-3">
-                                    <Label className="text-sm font-medium text-foreground">
-                                        {String(t("documentCenter.uploadModal.searchExisting", { defaultValue: "Tìm kiếm file đã tồn tại trên hệ thống" }))}
-                                    </Label>
-                                    <SearchableSelect
-                                        value={fileId || null}
-                                        options={fileOptions}
-                                        placeholder={String(t("documentCenter.uploadModal.searchFilePlaceholder", { defaultValue: "Tìm file theo tên hoặc ID..." }))}
-                                        searchPlaceholder={String(t("documentCenter.uploadModal.searchFileInputPlaceholder", { defaultValue: "Nhập tên file..." }))}
-                                        loading={filesQuery.isLoading}
-                                        error={filesQuery.isError}
-                                        onChange={(val) => {
-                                            setFileId(val || "");
-                                            if (val) {
-                                                const f = filesQuery.data?.find((x) => x.fileId === val);
-                                                if (f && !documentTitle.trim()) {
-                                                    setDocumentTitle(f.fileName.replace(/\.[^/.]+$/, ""));
+                                <TabsContent value="existing" className="pt-4">
+                                    <div className="space-y-3">
+                                        <Label className="text-sm font-medium text-foreground">
+                                            {String(t("documentCenter.uploadModal.searchExisting", { defaultValue: "Tìm kiếm file đã tồn tại trên hệ thống" }))}
+                                        </Label>
+                                        <SearchableSelect
+                                            value={fileId || null}
+                                            options={fileOptions}
+                                            placeholder={String(t("documentCenter.uploadModal.searchFilePlaceholder", { defaultValue: "Tìm file theo tên hoặc ID..." }))}
+                                            searchPlaceholder={String(t("documentCenter.uploadModal.searchFileInputPlaceholder", { defaultValue: "Nhập tên file..." }))}
+                                            loading={filesQuery.isLoading}
+                                            error={filesQuery.isError}
+                                            onChange={(val) => {
+                                                setFileId(val || "");
+                                                if (val) {
+                                                    const f = filesQuery.data?.find((x) => x.fileId === val);
+                                                    if (f && !String(documentTitle || "").trim()) {
+                                                        setDocumentTitle(f.fileName.replace(/\.[^/.]+$/, ""));
+                                                    }
                                                 }
-                                            }
-                                        }}
-                                        resetKey={open ? "open" : "closed"}
-                                        filterMode="server"
-                                        searchValue={fileSearch}
-                                        onSearchChange={setFileSearch}
-                                        allowCustomValue={false}
-                                    />
-                                </div>
-                            </TabsContent>
-                        </Tabs>
-                    </div>
+                                            }}
+                                            resetKey={open ? "open" : "closed"}
+                                            filterMode="server"
+                                            searchValue={fileSearch}
+                                            onSearchChange={setFileSearch}
+                                            allowCustomValue={false}
+                                        />
+                                    </div>
+                                </TabsContent>
+                            </Tabs>
+                        </div>
+                    )}
 
                     {/* Phần 2: Thông tin cơ bản */}
                     <div className="space-y-4">
                         <div className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                            <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs">2</span>
+                            <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs">
+                                {editDocument ? "1" : "2"}
+                            </span>
                             {String(t("documentCenter.uploadModal.basicInfo", { defaultValue: "Thông tin cơ bản" }))}
                         </div>
 
@@ -306,6 +385,9 @@ export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentTyp
                                         <SelectValue placeholder="Chọn..." />
                                     </SelectTrigger>
                                     <SelectContent>
+                                        {documentType && !documentTypes?.includes(documentType) && (
+                                            <SelectItem value={documentType}>{documentType}</SelectItem>
+                                        )}
                                         {documentTypes?.map((t: string) => (
                                             <SelectItem key={t} value={t}>
                                                 {t}
@@ -313,15 +395,6 @@ export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentTyp
                                         ))}
                                     </SelectContent>
                                 </Select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label className="text-sm font-medium text-foreground">{String(t("documentCenter.uploadModal.refType", { defaultValue: "Phân loại (REF TEST)" }))}</Label>
-                                <Input
-                                    placeholder={String(t("documentCenter.uploadModal.refTypePlaceholder", { defaultValue: "VD: Protocol, SOP, TCVN..." }))}
-                                    value={refType}
-                                    onChange={(e) => setRefType(e.target.value)}
-                                />
                             </div>
 
                             <div className="space-y-2 md:col-span-2">

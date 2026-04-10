@@ -133,6 +133,6 @@ Tra cứu lịch sử truy vết chéo.
 - **Equipment**: `EQ_[RANDOM_6_CAPS]` (Ví dụ: `EQ_HPL001`).
 - **Lab Tool**: `TOOL_[RANDOM_6_CAPS]` (Ví dụ: `TOOL_PIP012`).
 - **Activity Log**: `LOG_[RANDOM_6_CAPS]` (Ví dụ: `LOG_Z9Y8X7`).
-
+  
 ---
 _Cập nhật lần cuối: 2026-03-23_

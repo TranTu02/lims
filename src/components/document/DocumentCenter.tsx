@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { FileText, Upload, Download, Eye, Image as ImageIcon, File, Search, FolderOpen, Shield, Archive, Loader2, FileBarChart, X, ExternalLink, Files, FileStack } from "lucide-react";
+import { FileText, Upload, Download, Eye, Image as ImageIcon, File, Search, FolderOpen, Shield, Archive, Loader2, FileBarChart, X, ExternalLink, Files, FileStack, Edit } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,8 +73,7 @@ function assertSuccessWithMeta<T>(res: {
 /** Check if a mime type / file extension is previewable inline in the browser */
 function isPreviewable(mimeType?: string | null, fileName?: string | null): "pdf" | "image" | "office" | null {
     const mime = (mimeType ?? "").toLowerCase();
-    // Remove query parameters from fileName if it's a URL
-    const name = (fileName ?? "").split("?")[0].toLowerCase();
+    const name = String(fileName ?? "").split("?")[0].toLowerCase();
 
     if (mime === "application/pdf" || name.endsWith(".pdf")) return "pdf";
     if (mime.startsWith("image/") || /\.(png|jpe?g|gif|webp|svg|bmp)$/.test(name)) return "image";
@@ -130,9 +129,11 @@ export function DocumentCenter() {
     const [previewType, setPreviewType] = useState<"pdf" | "image" | "office" | null>(null);
     const [previewFileName, setPreviewFileName] = useState<string>("");
     const [previewLoading, setPreviewLoading] = useState(false);
+    const [previewDoc, setPreviewDoc] = useState<DocumentInfo | null>(null);
 
-    // Upload modal state
+    // Upload / Edit modal state
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
+    const [editDocument, setEditDocument] = useState<DocumentInfo | null>(null);
 
     // ─── Fetch document list ─────────────────────────────────────
     const documentsQuery = useQuery({
@@ -207,6 +208,7 @@ export function DocumentCenter() {
     const handlePreviewDocument = useCallback(
         async (doc: DocumentInfo) => {
             setSelectedDocId(doc.documentId);
+            setPreviewDoc(doc);
             setPreviewLoading(true);
             try {
                 const res = await documentApi.url(doc.documentId);
@@ -217,9 +219,7 @@ export function DocumentCenter() {
                     setPreviewType(kind);
                     setPreviewFileName(doc.documentTitle ?? doc.documentId);
                 } else if (kind === "office") {
-                    // Open Office docs via Microsoft Office Online viewer
-                    const officeUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(urlData.url)}`;
-                    setPreviewUrl(officeUrl);
+                    setPreviewUrl(urlData.url);
                     setPreviewType("office");
                     setPreviewFileName(doc.documentTitle ?? doc.documentId);
                 } else {
@@ -251,6 +251,7 @@ export function DocumentCenter() {
     const handlePreviewFile = useCallback(
         async (file: FileInfo) => {
             setSelectedFileId(file.fileId);
+            setPreviewDoc(null);
             setPreviewLoading(true);
             try {
                 const res = await fileApi.url(file.fileId);
@@ -261,8 +262,7 @@ export function DocumentCenter() {
                     setPreviewType(kind);
                     setPreviewFileName(file.fileName);
                 } else if (kind === "office") {
-                    const officeUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(urlData.url)}`;
-                    setPreviewUrl(officeUrl);
+                    setPreviewUrl(urlData.url);
                     setPreviewType("office");
                     setPreviewFileName(file.fileName);
                 } else {
@@ -294,6 +294,7 @@ export function DocumentCenter() {
         setPreviewUrl(null);
         setPreviewType(null);
         setPreviewFileName("");
+        setPreviewDoc(null);
     }, []);
 
     // ─── Tab data ────────────────────────────────────────────────
@@ -362,7 +363,10 @@ export function DocumentCenter() {
                             className="pl-10 w-64 bg-background"
                         />
                     </div>
-                    <Button className="flex items-center gap-2" onClick={() => setUploadModalOpen(true)}>
+                    <Button className="flex items-center gap-2" onClick={() => {
+                        setEditDocument(null);
+                        setUploadModalOpen(true);
+                    }}>
                         <Upload className="h-4 w-4" />
                         {String(t("documentCenter.upload", { defaultValue: "Tải lên tài liệu" }))}
                     </Button>
@@ -452,6 +456,10 @@ export function DocumentCenter() {
                             onSelect={setSelectedDocId}
                             onPreview={handlePreviewDocument}
                             onDownload={handleDownloadDocument}
+                            onEdit={(doc) => {
+                                setEditDocument(doc);
+                                setUploadModalOpen(true);
+                            }}
                             previewLoading={previewLoading}
                             t={t}
                         />
@@ -489,7 +497,7 @@ export function DocumentCenter() {
             {previewUrl &&
                 createPortal(
                     <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-md flex items-center justify-center p-6" onClick={closePreview}>
-                        <div className="bg-background rounded-xl border border-border shadow-2xl w-full max-w-6xl h-[95vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                        <div className="bg-background rounded-xl border border-border shadow-2xl w-[95vw] h-[95vh] max-w-none flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
                             {/* Modal Header */}
                             <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-muted/30">
                                 <div className="flex items-center gap-3 min-w-0">
@@ -499,7 +507,7 @@ export function DocumentCenter() {
                                     <span className="font-medium text-foreground truncate">{previewFileName}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <Button variant="ghost" size="sm" onClick={() => window.open(previewUrl, "_blank")}>
+                                    <Button variant="ghost" size="sm" onClick={() => window.open(previewType === "office" ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(previewUrl || "")}` : previewUrl || "", "_blank")}>
                                         <ExternalLink className="h-4 w-4 mr-1" />
                                         {String(
                                             t("documentCenter.preview.openNew", {
@@ -513,21 +521,73 @@ export function DocumentCenter() {
                                 </div>
                             </div>
                             {/* Modal Body */}
-                            <div className="flex-1 overflow-hidden">
-                                {previewType === "pdf" && <iframe src={previewUrl} className="w-full h-full border-0" title="PDF Preview" />}
-                                {previewType === "image" && (
-                                    <div className="w-full h-full flex items-center justify-center bg-muted/20 overflow-auto p-4">
-                                        <img src={previewUrl} alt={previewFileName} className="max-w-full max-h-full object-contain rounded-lg shadow-lg" />
+                            <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+                                {previewDoc && (
+                                    <div className="w-full md:w-[350px] shrink-0 border-b md:border-b-0 md:border-r border-border bg-muted/10 p-5 overflow-y-auto">
+                                        <h4 className="text-sm font-semibold mb-4 text-foreground uppercase tracking-wider">{String(t("documentCenter.preview.infoTitle", { defaultValue: "Thông tin bản ghi" }))}</h4>
+                                        <div className="space-y-4 text-sm">
+                                            <div>
+                                                <div className="text-xs text-muted-foreground mb-1">{String(t("documentCenter.col.id", { defaultValue: "Mã tài liệu" }))}</div>
+                                                <div className="font-mono bg-background px-2 py-1 rounded border shadow-sm text-xs break-all text-muted-foreground">{previewDoc.documentId}</div>
+                                            </div>
+                                            <div>
+                                                <div className="text-xs text-muted-foreground mb-1">{String(t("documentCenter.col.title", { defaultValue: "Tiêu đề" }))}</div>
+                                                <div className="font-medium text-foreground">{previewDoc.documentTitle || "-"}</div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <div className="text-xs text-muted-foreground mb-1">{String(t("documentCenter.col.type", { defaultValue: "Loại tài liệu" }))}</div>
+                                                    <div>{previewDoc.documentType ? <Badge variant="secondary" className="uppercase text-[10px]">{previewDoc.documentType}</Badge> : "-"}</div>
+                                                </div>
+                                                <div>
+                                                    <div className="text-xs text-muted-foreground mb-1">{String(t("documentCenter.col.status", { defaultValue: "Trạng thái" }))}</div>
+                                                    <div>{previewDoc.documentStatus ? <DocumentStatusBadge status={previewDoc.documentStatus} /> : "-"}</div>
+                                                </div>
+                                            </div>
+                                            {(previewDoc.refType || previewDoc.refId) && (
+                                                <div>
+                                                    <div className="text-xs text-muted-foreground mb-1">{String(t("documentCenter.col.ref", { defaultValue: "Tham chiếu" }))}</div>
+                                                    <Badge variant="outline">{previewDoc.refType ? `${previewDoc.refType}: ` : ""}{previewDoc.refId}</Badge>
+                                                </div>
+                                            )}
+                                            {previewDoc.commonKeys && previewDoc.commonKeys.length > 0 && (
+                                                <div>
+                                                    <div className="text-xs text-muted-foreground mb-1">{String(t("documentCenter.col.tags", { defaultValue: "Từ khóa" }))}</div>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {previewDoc.commonKeys.map(k => <Badge key={k} variant="outline" className="text-[10px] font-normal">{k}</Badge>)}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <div>
+                                                <div className="text-xs text-muted-foreground mb-1">{String(t("documentCenter.col.date", { defaultValue: "Ngày tạo" }))}</div>
+                                                <div className="text-foreground">{previewDoc.createdAt ? format(new Date(previewDoc.createdAt), DATE_FORMAT.short) : "-"}</div>
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
-                                {previewType === "office" && <iframe src={previewUrl} className="w-full h-full border-0" title="Office Preview" />}
+                                <div className="flex-1 relative bg-muted/20">
+                                    {previewType === "pdf" && <iframe src={previewUrl} className="absolute inset-0 w-full h-full border-0" title="PDF Preview" />}
+                                    {previewType === "image" && (
+                                        <div className="absolute inset-0 flex items-center justify-center p-4">
+                                            <img src={previewUrl} alt={previewFileName} className="max-w-full max-h-full object-contain rounded-lg shadow-lg" />
+                                        </div>
+                                    )}
+                                    {previewType === "office" && <iframe src={`https://docs.google.com/gview?url=${encodeURIComponent(previewUrl || "")}&embedded=true`} className="absolute inset-0 w-full h-full border-0" title="Office Preview" />}
+                                </div>
                             </div>
                         </div>
                     </div>,
                     document.body,
                 )}
 
-            <DocumentUploadModal open={uploadModalOpen} onClose={() => setUploadModalOpen(false)} />
+            <DocumentUploadModal 
+                open={uploadModalOpen} 
+                onClose={() => {
+                    setUploadModalOpen(false);
+                    setTimeout(() => setEditDocument(null), 300);
+                }} 
+                editDocument={editDocument}
+            />
         </div>
     );
 }
@@ -541,6 +601,7 @@ function DocumentsListView({
     onSelect,
     onPreview,
     onDownload,
+    onEdit,
     previewLoading,
     t,
 }: {
@@ -550,6 +611,7 @@ function DocumentsListView({
     onSelect: (id: string | null) => void;
     onPreview: (doc: DocumentInfo) => void;
     onDownload: (doc: DocumentInfo) => void;
+    onEdit: (doc: DocumentInfo) => void;
     previewLoading: boolean;
     t: (key: string, opts?: Record<string, unknown>) => unknown;
 }) {
@@ -623,10 +685,19 @@ function DocumentsListView({
 
                         {/* Ref */}
                         <div className="col-span-2">
-                            {doc.refId ? (
-                                <Badge variant="outline" className="text-xs">
-                                    {doc.refType ? `${doc.refType}:` : ""} {doc.refId}
-                                </Badge>
+                            {doc.commonKeys && doc.commonKeys.length > 0 ? (
+                                <div className="flex flex-wrap gap-1" title={doc.commonKeys.join(", ")}>
+                                    {doc.commonKeys.slice(0, 3).map((key, idx) => (
+                                        <Badge key={idx} variant="outline" className="text-[10px] uppercase font-normal">
+                                            {key}
+                                        </Badge>
+                                    ))}
+                                    {doc.commonKeys.length > 3 && (
+                                        <Badge variant="outline" className="text-[10px] text-muted-foreground bg-muted/30 font-normal">
+                                            +{doc.commonKeys.length - 3}
+                                        </Badge>
+                                    )}
+                                </div>
                             ) : (
                                 <span className="text-xs text-muted-foreground">-</span>
                             )}
@@ -653,6 +724,18 @@ function DocumentsListView({
                                 )}
                             >
                                 <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onEdit(doc);
+                                }}
+                                title={String(t("common.edit", { defaultValue: "Chỉnh sửa" }))}
+                            >
+                                <Edit className="h-4 w-4" />
                             </Button>
                             <Button
                                 size="sm"
