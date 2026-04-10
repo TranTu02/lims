@@ -100,7 +100,17 @@ export function ProtocolDetailModal(props: Props) {
     const fullProtocolQuery = useProtocolDetail({ params: { protocolId: protocol?.protocolId || "" } });
     const displayProtocol = fullProtocolQuery.data || protocol;
 
-    const docsArray = displayProtocol.documents?.length ? displayProtocol.documents : displayProtocol.protocolDocumentIds?.map((id) => ({ documentId: id })) || [];
+    const allDocs = displayProtocol.documents || [];
+
+    const sopsFromDocs = allDocs.filter((d: any) => d.documentType === "PROTOCOL_SOP");
+    const sopArray = sopsFromDocs.length > 0 
+        ? sopsFromDocs 
+        : displayProtocol.sopDocumentIds?.map((id) => ({ documentId: id })) || [];
+
+    const docsFromDocs = allDocs.filter((d: any) => d.documentType === "PROTOCOL_DOC" || !d.documentType);
+    const docsArray = docsFromDocs.length > 0 
+        ? docsFromDocs 
+        : displayProtocol.protocolDocumentIds?.map((id) => ({ documentId: id })) || [];
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -188,6 +198,20 @@ export function ProtocolDetailModal(props: Props) {
                                         : "-"}
                                 </div>
                             </div>
+                        </div>
+
+                        {/* SOP Documents */}
+                        <div className="space-y-2">
+                            <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{String(t("library.protocols.detail.sopDocuments", { defaultValue: "Hồ sơ SOP" }))}</div>
+                            {sopArray.length ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {sopArray.map((doc, idx) => (
+                                        <DocumentItem key={doc.documentId || idx} doc={doc} />
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-sm text-muted-foreground">{String(t("common.noData"))}</div>
+                            )}
                         </div>
 
                         {/* Documents */}

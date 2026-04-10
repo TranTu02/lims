@@ -230,29 +230,56 @@ export function ProtocolFormModal({ onClose, protocolId, initialData, onSuccess 
 
                                 {/* Documents Section */}
                                 <div className="space-y-4 pt-4 border-t border-border">
-                                    <div className="space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <div className="text-sm font-semibold flex items-center gap-1.5 text-foreground">
-                                                <FileText className="h-4 w-4 text-primary" />
-                                                {String(t("library.protocols.create.protocolDocuments", { defaultValue: "Tài liệu đính kèm" }))}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-3 p-3 rounded-lg border border-border bg-muted/5">
+                                            <div className="flex items-center justify-between">
+                                                <div className="text-sm font-semibold flex items-center gap-1.5 text-foreground">
+                                                    <FileText className="h-4 w-4 text-primary" />
+                                                    {String(t("library.protocols.create.protocolDocuments", { defaultValue: "Tài liệu đính kèm" }))}
+                                                </div>
+                                                <Button type="button" variant="outline" size="sm" onClick={() => setUploadDocOpen(true)} className="h-7 text-[10px]">
+                                                    <Upload className="h-3 w-3 mr-1" /> {String(t("common.upload"))}
+                                                </Button>
                                             </div>
-                                            <Button type="button" variant="outline" size="sm" onClick={() => setUploadDocOpen(true)} className="h-7 text-[10px]">
-                                                <Upload className="h-3 w-3 mr-1" /> {String(t("common.upload"))}
-                                            </Button>
+                                            <SearchSelectPicker
+                                                label=""
+                                                selected={selectedProtocolDocs}
+                                                onChange={(items) => {
+                                                    setSelectedProtocolDocs(items);
+                                                    setProtocolDocumentIds(items.map(i => i.id));
+                                                }}
+                                                onSearch={async (q) => {
+                                                    const res = await searchDocuments(q, "PROTOCOL_DOC");
+                                                    return res.map(d => ({ id: d.documentId, label: d.documentTitle || d.documentId, sublabel: d.documentId }));
+                                                }}
+                                                placeholder={String(t("library.protocols.create.searchDoc", { defaultValue: "Tìm tài liệu trong hệ thống..." }))}
+                                            />
                                         </div>
-                                        <SearchSelectPicker
-                                            label={String(t("library.protocols.create.protocolDocuments", { defaultValue: "Tài liệu đính kèm" }))}
-                                            selected={selectedProtocolDocs}
-                                            onChange={(items) => {
-                                                setSelectedProtocolDocs(items);
-                                                setProtocolDocumentIds(items.map(i => i.id));
-                                            }}
-                                            onSearch={async (q) => {
-                                                const res = await searchDocuments(q, "PROTOCOL_DOC");
-                                                return res.map(d => ({ id: d.documentId, label: d.documentTitle || d.documentId, sublabel: d.documentId }));
-                                            }}
-                                            placeholder={String(t("library.protocols.create.searchDoc", { defaultValue: "Tìm tài liệu trong hệ thống..." }))}
-                                        />
+
+                                        <div className="space-y-3 p-3 rounded-lg border border-border bg-muted/5">
+                                            <div className="flex items-center justify-between">
+                                                <div className="text-sm font-semibold flex items-center gap-1.5 text-foreground">
+                                                    <FileText className="h-4 w-4 text-muted-foreground" />
+                                                    {String(t("library.protocols.create.sopDocuments", { defaultValue: "Hồ sơ SOP (Quy trình chuẩn)" }))}
+                                                </div>
+                                                <Button type="button" variant="outline" size="sm" onClick={() => setUploadSopOpen(true)} className="h-7 text-[10px]">
+                                                    <Upload className="h-3 w-3 mr-1" /> {String(t("common.upload"))}
+                                                </Button>
+                                            </div>
+                                            <SearchSelectPicker
+                                                label=""
+                                                selected={selectedSopDocs}
+                                                onChange={(items) => {
+                                                    setSelectedSopDocs(items);
+                                                    setSopDocumentIds(items.map(i => i.id));
+                                                }}
+                                                onSearch={async (q) => {
+                                                    const res = await searchDocuments(q, "PROTOCOL_SOP");
+                                                    return res.map(d => ({ id: d.documentId, label: d.documentTitle || d.documentId, sublabel: d.documentId }));
+                                                }}
+                                                placeholder={String(t("library.protocols.create.searchSop"))}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 
@@ -271,31 +298,7 @@ export function ProtocolFormModal({ onClose, protocolId, initialData, onSuccess 
                                     </div>
                                 </div>
 
-                                {/* SOP Section (Optional/Additional) */}
-                                <div className="space-y-3 pt-4 border-t border-border">
-                                    <div className="flex items-center justify-between">
-                                        <div className="text-sm font-semibold flex items-center gap-1.5 text-foreground">
-                                            <FileText className="h-4 w-4 text-muted-foreground" />
-                                            {String(t("library.protocols.create.sopDocuments", { defaultValue: "Hồ sơ SOP (Quy trình chuẩn)" }))}
-                                        </div>
-                                        <Button type="button" variant="outline" size="sm" onClick={() => setUploadSopOpen(true)} className="h-7 text-[10px]">
-                                            <Upload className="h-3 w-3 mr-1" /> {String(t("common.upload"))}
-                                        </Button>
-                                    </div>
-                                    <SearchSelectPicker
-                                        label={String(t("library.protocols.create.sopDocuments", { defaultValue: "Hồ sơ SOP (Quy trình chuẩn)" }))}
-                                        selected={selectedSopDocs}
-                                        onChange={(items) => {
-                                            setSelectedSopDocs(items);
-                                            setSopDocumentIds(items.map(i => i.id));
-                                        }}
-                                        onSearch={async (q) => {
-                                            const res = await searchDocuments(q, "PROTOCOL_SOP");
-                                            return res.map(d => ({ id: d.documentId, label: d.documentTitle || d.documentId, sublabel: d.documentId }));
-                                        }}
-                                        placeholder={String(t("library.protocols.create.searchSop"))}
-                                    />
-                                </div>
+
                             </>
                         )}
                     </div>

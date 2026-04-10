@@ -46,8 +46,8 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
         currentAvailableQty: String((inventory as any)?.currentAvailableQty ?? ""),
         totalGrossWeight: (inventory as any)?.totalGrossWeight !== undefined && (inventory as any)?.totalGrossWeight !== null ? String((inventory as any)?.totalGrossWeight) : "",
         storageConditions: (inventory as any)?.storageConditions ?? "",
-        inventoryCOADocumentIds: (inventory as any)?.inventoryCOADocumentIds ?? [],
-        selectedDocuments: ((inventory as any)?.inventoryCOADocumentIds ?? []).map((id: string) => ({
+        inventoryCoaDocumentIds: (inventory as any)?.inventoryCoaDocumentIds ?? [],
+        selectedDocuments: ((inventory as any)?.inventoryCoaDocumentIds ?? []).map((id: string) => ({
             id,
             label: id,
             sublabel: "",
@@ -351,7 +351,7 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
                         <SearchSelectPicker
                             label={String(t("inventory.chemical.inventories.selectDocument", { defaultValue: "Chọn tài liệu đã có" }))}
                             selected={form.selectedDocuments}
-                            onChange={(items) => setForm((f) => ({ ...f, inventoryCOADocumentIds: items.map((i) => i.id), selectedDocuments: items }))}
+                            onChange={(items) => setForm((f) => ({ ...f, inventoryCoaDocumentIds: items.map((i) => i.id), selectedDocuments: items }))}
                             onSearch={searchDocumentsFn}
                             placeholder={String(t("documentCenter.headers.allDesc", { defaultValue: "Tìm tài liệu..." }))}
                         />
@@ -412,7 +412,7 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
                     if (doc?.documentId) {
                         setForm((s) => ({
                             ...s,
-                            inventoryCOADocumentIds: [...s.inventoryCOADocumentIds, doc.documentId],
+                            inventoryCoaDocumentIds: [...s.inventoryCoaDocumentIds, doc.documentId],
                             selectedDocuments: [...s.selectedDocuments, { id: doc.documentId, label: doc.documentTitle || doc.documentId, sublabel: doc.documentId }],
                         }));
                     }

@@ -57,9 +57,9 @@ export interface ChemicalInventory extends BaseEntity {
     lotNumber?: string | null;
     manufacturerName?: string | null;
     manufacturerCountry?: string | null;
-    inventoryCOADocumentIds?: string[] | null;
+    inventoryCoaDocumentIds?: string[] | null;
     inventoryInvoiceDocumentIds?: string[] | null;
-    inventoryCOADocuments?: any[] | null;
+    inventoryCoaDocuments?: any[] | null;
     inventoryInvoiceDocuments?: any[] | null;
     storageConditions?: string | null;
     currentAvailableQty: number;

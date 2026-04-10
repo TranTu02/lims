@@ -273,45 +273,33 @@ export function TransactionBlockDetailPanel({ block, onClose, hideApprove, onApp
                                 {t("inventory.chemical.transactionBlocks.documents", { defaultValue: "Tài liệu đính kèm" })}
                             </h3>
                             
-                            {(displayBlock as any).chemicalBlockCoaDocuments?.length > 0 ? (
+                            {((displayBlock as any).chemicalBlockCoaDocuments?.length > 0 || (displayBlock as any).chemicalBlockCoaDocumentIds?.length > 0) && (
                                 <div className="space-y-1">
                                     <span className="text-[10px] uppercase font-bold text-muted-foreground px-1">COA Documents</span>
                                     <div className="grid grid-cols-1 gap-1">
-                                        {(displayBlock as any).chemicalBlockCoaDocuments.map((doc: any, i: number) => (
-                                            <DocumentItem key={doc.documentId || i} doc={doc} />
+                                        {((displayBlock as any).chemicalBlockCoaDocuments?.length > 0 
+                                            ? (displayBlock as any).chemicalBlockCoaDocuments 
+                                            : (displayBlock as any).chemicalBlockCoaDocumentIds.map((id: string) => ({ documentId: id }))
+                                        ).map((doc: any, i: number) => (
+                                            <DocumentItem key={doc?.documentId || i} doc={doc} />
                                         ))}
                                     </div>
                                 </div>
-                            ) : (displayBlock as any).chemicalBlockCoaDocumentIds?.length > 0 ? (
-                                <div className="bg-muted/30 p-2 rounded border border-border/50 flex flex-col gap-1">
-                                    <span className="text-[10px] uppercase font-bold text-muted-foreground">COA Documents</span>
-                                    <div className="flex flex-wrap gap-2 mt-1">
-                                        {(displayBlock as any).chemicalBlockCoaDocumentIds.map((id: string) => (
-                                            <Badge key={id} variant="secondary" className="font-mono text-[9px]">{id}</Badge>
-                                        ))}
-                                    </div>
-                                </div>
-                            ) : null}
+                            )}
 
-                            {(displayBlock as any).chemicalBlockInvoiceDocuments?.length > 0 ? (
+                            {((displayBlock as any).chemicalBlockInvoiceDocuments?.length > 0 || (displayBlock as any).chemicalBlockInvoiceDocumentIds?.length > 0) && (
                                 <div className="space-y-1">
                                     <span className="text-[10px] uppercase font-bold text-muted-foreground px-1">Invoice / Order Documents</span>
                                     <div className="grid grid-cols-1 gap-1">
-                                        {(displayBlock as any).chemicalBlockInvoiceDocuments.map((doc: any, i: number) => (
-                                            <DocumentItem key={doc.documentId || i} doc={doc} />
+                                        {((displayBlock as any).chemicalBlockInvoiceDocuments?.length > 0 
+                                            ? (displayBlock as any).chemicalBlockInvoiceDocuments 
+                                            : (displayBlock as any).chemicalBlockInvoiceDocumentIds.map((id: string) => ({ documentId: id }))
+                                        ).map((doc: any, i: number) => (
+                                            <DocumentItem key={doc?.documentId || i} doc={doc} />
                                         ))}
                                     </div>
                                 </div>
-                            ) : (displayBlock as any).chemicalBlockInvoiceDocumentIds?.length > 0 ? (
-                                <div className="bg-muted/30 p-2 rounded border border-border/50 flex flex-col gap-1">
-                                    <span className="text-[10px] uppercase font-bold text-muted-foreground">Invoice / Order Documents</span>
-                                    <div className="flex flex-wrap gap-2 mt-1">
-                                        {(displayBlock as any).chemicalBlockInvoiceDocumentIds.map((id: string) => (
-                                            <Badge key={id} variant="secondary" className="font-mono text-[9px]">{id}</Badge>
-                                        ))}
-                                    </div>
-                                </div>
-                            ) : null}
+                            )}
                         </div>
                     )}
 

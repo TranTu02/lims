@@ -250,52 +250,40 @@ export function InventoryDetailPanel({ inventory, onClose }: Props) {
                         </div>
 
                         {/* Documents */}
-                        {((displayInv as any).inventoryCOADocumentIds?.length > 0 || (displayInv as any).inventoryInvoiceDocumentIds?.length > 0) && (
+                        {((displayInv as any).inventoryCoaDocumentIds?.length > 0 || (displayInv as any).inventoryInvoiceDocumentIds?.length > 0) && (
                             <div className="space-y-4 border-t border-border pt-4 mt-2">
                                 <h3 className="text-sm font-semibold flex items-center gap-1.5 text-muted-foreground">
                                     <FileText className="h-3.5 w-3.5" />
                                     {t("inventory.chemical.inventories.documents", { defaultValue: "Tài liệu đính kèm" })}
                                 </h3>
                                 
-                                {(displayInv as any).inventoryCOADocuments?.length > 0 ? (
+                                {((displayInv as any).inventoryCoaDocuments?.length > 0 || (displayInv as any).inventoryCoaDocumentIds?.length > 0) && (
                                     <div className="space-y-1">
                                         <span className="text-[10px] uppercase font-bold text-muted-foreground px-1">COA Documents</span>
                                         <div className="grid grid-cols-1 gap-1">
-                                            {(displayInv as any).inventoryCOADocuments.map((doc: any, i: number) => (
-                                                <DocumentItem key={doc.documentId || i} doc={doc} />
+                                            {((displayInv as any).inventoryCoaDocuments?.length > 0 
+                                                ? (displayInv as any).inventoryCoaDocuments 
+                                                : (displayInv as any).inventoryCoaDocumentIds.map((id: string) => ({ documentId: id }))
+                                            ).map((doc: any, i: number) => (
+                                                <DocumentItem key={doc?.documentId || i} doc={doc} />
                                             ))}
                                         </div>
                                     </div>
-                                ) : (displayInv as any).inventoryCOADocumentIds?.length > 0 ? (
-                                    <div className="bg-muted/30 p-2 rounded border border-border/50 flex flex-col gap-1">
-                                        <span className="text-[10px] uppercase font-bold text-muted-foreground">COA Documents</span>
-                                        <div className="flex flex-wrap gap-2 mt-1">
-                                            {(displayInv as any).inventoryCOADocumentIds.map((id: string) => (
-                                                <Badge key={id} variant="secondary" className="font-mono text-[9px]">{id}</Badge>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ) : null}
+                                )}
 
-                                {(displayInv as any).inventoryInvoiceDocuments?.length > 0 ? (
+                                {((displayInv as any).inventoryInvoiceDocuments?.length > 0 || (displayInv as any).inventoryInvoiceDocumentIds?.length > 0) && (
                                     <div className="space-y-1">
                                         <span className="text-[10px] uppercase font-bold text-muted-foreground px-1">Invoice / Order Documents</span>
                                         <div className="grid grid-cols-1 gap-1">
-                                            {(displayInv as any).inventoryInvoiceDocuments.map((doc: any, i: number) => (
-                                                <DocumentItem key={doc.documentId || i} doc={doc} />
+                                            {((displayInv as any).inventoryInvoiceDocuments?.length > 0 
+                                                ? (displayInv as any).inventoryInvoiceDocuments 
+                                                : (displayInv as any).inventoryInvoiceDocumentIds.map((id: string) => ({ documentId: id }))
+                                            ).map((doc: any, i: number) => (
+                                                <DocumentItem key={doc?.documentId || i} doc={doc} />
                                             ))}
                                         </div>
                                     </div>
-                                ) : (displayInv as any).inventoryInvoiceDocumentIds?.length > 0 ? (
-                                    <div className="bg-muted/30 p-2 rounded border border-border/50 flex flex-col gap-1">
-                                        <span className="text-[10px] uppercase font-bold text-muted-foreground">Invoice / Order Documents</span>
-                                        <div className="flex flex-wrap gap-2 mt-1">
-                                            {(displayInv as any).inventoryInvoiceDocumentIds.map((id: string) => (
-                                                <Badge key={id} variant="secondary" className="font-mono text-[9px]">{id}</Badge>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ) : null}
+                                )}
                             </div>
                         )}
 

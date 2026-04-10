@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { AlertCircle, X, Upload } from "lucide-react";
@@ -39,6 +39,8 @@ type EditProtocolForm = {
     labTools: LabToolSnapshotItem[];
     documentIds: string[];
     selectedDocuments: PickerItem[];
+    sopDocumentIds: string[];
+    selectedSopDocs: PickerItem[];
 };
 
 function ProtocolsSkeleton() {
@@ -83,10 +85,13 @@ export function ProtocolsView() {
         labTools: [],
         documentIds: [],
         selectedDocuments: [],
+        sopDocumentIds: [],
+        selectedSopDocs: [],
     };
 
     const [editForm, setEditForm] = useState<EditProtocolForm>(EMPTY_FORM);
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
+    const [uploadSopModalOpen, setUploadSopModalOpen] = useState(false);
 
     const [serverTotalPages, setServerTotalPages] = useState<number | null>(null);
     const pagination = useServerPagination(serverTotalPages, 20);
@@ -136,24 +141,21 @@ export function ProtocolsView() {
 
     // ─── Search handlers for pickers ────────────────────────────────────────
 
-    const searchDocumentsFn = useCallback(async (q: string): Promise<PickerItem[]> => {
-        try {
-            const docs = await searchDocuments(q);
-            return docs.map((d) => ({
-                id: d.documentId,
-                label: d.documentTitle || d.documentId,
-                sublabel: d.documentId,
-            }));
-        } catch {
-            return [];
-        }
-    }, []);
+
 
     const onDocumentsChange = (items: PickerItem[]) => {
         setEditForm((s) => ({
             ...s,
             documentIds: items.map((i) => i.id),
             selectedDocuments: items,
+        }));
+    };
+
+    const onSopDocumentsChange = (items: PickerItem[]) => {
+        setEditForm((s) => ({
+            ...s,
+            sopDocumentIds: items.map((i) => i.id),
+            selectedSopDocs: items,
         }));
     };
 
@@ -196,6 +198,12 @@ export function ProtocolsView() {
                 label: id,
                 sublabel: "",
             })),
+            sopDocumentIds: p.sopDocumentIds || [],
+            selectedSopDocs: (p.sopDocumentIds || []).map((id) => ({
+                id,
+                label: id,
+                sublabel: "",
+            })),
         });
         setEditOpen(true);
     };
@@ -230,6 +238,7 @@ export function ProtocolsView() {
             labToolIds: editForm.labTools.map((l) => l.labToolId).filter(Boolean),
             labTools: editForm.labTools.filter((l) => l.labToolId || l.labToolName),
             protocolDocumentIds: editForm.documentIds.length ? editForm.documentIds : undefined,
+            sopDocumentIds: editForm.sopDocumentIds.length ? editForm.sopDocumentIds : undefined,
         };
 
         try {
@@ -373,20 +382,57 @@ export function ProtocolsView() {
                                     />
                                 </div>
 
-                                {/* Documents */}
-                                <SearchSelectPicker
-                                    label={String(t("library.protocols.create.documentIds", { defaultValue: "Tài liệu đính kèm" }))}
-                                    selected={editForm.selectedDocuments}
-                                    onChange={onDocumentsChange}
-                                    onSearch={searchDocumentsFn}
-                                    placeholder={String(t("documentCenter.headers.allDesc"))}
-                                />
+                                {/* Documents & SOPs */}
+                                <div className="space-y-4 pt-4 border-t border-border">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {/* Protocol Documents */}
+                                        <div className="space-y-3 p-3 rounded-lg border border-border bg-muted/5">
+                                            <div className="flex items-center justify-between">
+                                                <div className="text-[13px] font-semibold flex items-center gap-1.5 text-foreground">
+                                                    {String(t("library.protocols.create.documentIds", { defaultValue: "Tài liệu đính kèm" }))}
+                                                </div>
+                                                <Button type="button" variant="outline" size="sm" onClick={() => setUploadModalOpen(true)} className="h-7 text-[10px]">
+                                                    <Upload className="h-3 w-3 mr-1" /> {String(t("common.upload", { defaultValue: "Tải lên" }))}
+                                                </Button>
+                                            </div>
+                                            <SearchSelectPicker
+                                                label=""
+                                                selected={editForm.selectedDocuments}
+                                                onChange={onDocumentsChange}
+                                                onSearch={async (q) => {
+                                                    try {
+                                                        const docs = await searchDocuments(q, "PROTOCOL_DOC");
+                                                        return docs.map(d => ({ id: d.documentId, label: d.documentTitle || d.documentId, sublabel: d.documentId }));
+                                                    } catch { return []; }
+                                                }}
+                                                placeholder={String(t("documentCenter.headers.allDesc", { defaultValue: "Tất cả tài liệu trong hệ thống" }))}
+                                            />
+                                        </div>
 
-                                <div className="flex items-center gap-2">
-                                    <Button type="button" variant="outline" size="sm" onClick={() => setUploadModalOpen(true)}>
-                                        <Upload className="h-4 w-4 mr-2" />
-                                        {String(t("library.protocols.create.uploadDocument", { defaultValue: "Tải lên tài liệu" }))}
-                                    </Button>
+                                        {/* SOP Documents */}
+                                        <div className="space-y-3 p-3 rounded-lg border border-border bg-muted/5">
+                                            <div className="flex items-center justify-between">
+                                                <div className="text-[13px] font-semibold flex items-center gap-1.5 text-foreground">
+                                                    {String(t("library.protocols.create.sopDocuments", { defaultValue: "Hồ sơ SOP" }))}
+                                                </div>
+                                                <Button type="button" variant="outline" size="sm" onClick={() => setUploadSopModalOpen(true)} className="h-7 text-[10px]">
+                                                    <Upload className="h-3 w-3 mr-1" /> {String(t("common.upload", { defaultValue: "Tải lên" }))}
+                                                </Button>
+                                            </div>
+                                            <SearchSelectPicker
+                                                label=""
+                                                selected={editForm.selectedSopDocs}
+                                                onChange={onSopDocumentsChange}
+                                                onSearch={async (q) => {
+                                                    try {
+                                                        const docs = await searchDocuments(q, "PROTOCOL_SOP");
+                                                        return docs.map(d => ({ id: d.documentId, label: d.documentTitle || d.documentId, sublabel: d.documentId }));
+                                                    } catch { return []; }
+                                                }}
+                                                placeholder={String(t("library.protocols.create.searchSop", { defaultValue: "Tìm hồ sơ SOP" }))}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {/* Chemical BOM Table */}
@@ -440,13 +486,28 @@ export function ProtocolsView() {
             <DocumentUploadModal
                 open={uploadModalOpen}
                 onClose={() => setUploadModalOpen(false)}
-                fixedDocumentType="SOP"
+                fixedDocumentType="PROTOCOL_DOC"
                 onSuccess={(doc) => {
                     if (doc?.documentId) {
                         setEditForm((s) => ({
                             ...s,
                             documentIds: [...s.documentIds, doc.documentId],
                             selectedDocuments: [...s.selectedDocuments, { id: doc.documentId, label: doc.documentTitle || doc.documentId, sublabel: doc.documentId }],
+                        }));
+                    }
+                }}
+            />
+
+            <DocumentUploadModal
+                open={uploadSopModalOpen}
+                onClose={() => setUploadSopModalOpen(false)}
+                fixedDocumentType="PROTOCOL_SOP"
+                onSuccess={(doc) => {
+                    if (doc?.documentId) {
+                        setEditForm((s) => ({
+                            ...s,
+                            sopDocumentIds: [...s.sopDocumentIds, doc.documentId],
+                            selectedSopDocs: [...s.selectedSopDocs, { id: doc.documentId, label: doc.documentTitle || doc.documentId, sublabel: doc.documentId }],
                         }));
                     }
                 }}
