@@ -57,6 +57,9 @@ export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentTyp
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const [fileQueue, setFileQueue] = useState<File[]>([]);
+    const [currentQueueIndex, setCurrentQueueIndex] = useState(0);
+
     const [fileSearch, setFileSearch] = useState("");
     const debouncedFileSearch = useDebouncedValue(fileSearch, 300);
 
@@ -88,6 +91,8 @@ export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentTyp
         setFileId("");
         setUploadedFileName(null);
         setFileSearch("");
+        setFileQueue([]);
+        setCurrentQueueIndex(0);
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
@@ -135,52 +140,49 @@ export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentTyp
             if (onSuccess) {
                 onSuccess(res.data || res);
             }
-            handleClose();
+            
+            setIsUploading(false); // Make sure to stop loading if it was
+            
+            // Queue logic
+            if (fileQueue.length > 0 && currentQueueIndex < fileQueue.length - 1) {
+                setCurrentQueueIndex(prev => prev + 1);
+                // The useEffect will trigger and populate the form for the next file
+            } else {
+                handleClose();
+            }
         },
         onError: (err: any) => {
+            setIsUploading(false);
             toast.error(err.message || String(t("common.toast.error")));
         },
     });
 
-    const processUploadFile = async (file: File) => {
-        try {
-            setIsUploading(true);
-            const formData = buildFileUploadFormData(file, {
-                fileTags: ["DocumentCenter", refType || "General"].filter(Boolean),
-            });
-
-            const uploadRes: any = await fileApi.upload(formData);
-            const newFileId = uploadRes?.data?.fileId ?? uploadRes?.fileId;
-
-            if (newFileId) {
-                setFileId(newFileId);
-                setUploadedFileName(file.name);
-                if (!String(documentTitle || "").trim()) {
-                    setDocumentTitle(file.name.replace(/\.[^/.]+$/, "")); // remove extension
-                }
-                toast.success(String(t("documentCenter.fileUploaded", { defaultValue: "Đã tải file lên thành công" })));
-            }
-        } catch (err: any) {
-            toast.error(err.message || "Failed to upload file");
-        } finally {
-            setIsUploading(false);
-            if (fileInputRef.current) fileInputRef.current.value = "";
+    // Watch queue index to init form
+    useEffect(() => {
+        if (fileQueue.length > 0 && currentQueueIndex < fileQueue.length) {
+            const f = fileQueue[currentQueueIndex];
+            setDocumentTitle(f.name.replace(/\.[^/.]+$/, ""));
+            setUploadedFileName(f.name);
+            setFileId(""); // ensure we upload on save
         }
-    };
+    }, [currentQueueIndex, fileQueue]);
 
-    const handleUploadSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleUploadSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         if (files.length === 0) return;
-        await processUploadFile(files[0]);
+        setFileQueue(files);
+        setCurrentQueueIndex(0);
+        if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
-    const handleDrop = async (e: React.DragEvent) => {
+    const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        if (isUploading) return;
+        if (isUploading || createDocumentMut.isPending) return;
         const files = Array.from(e.dataTransfer.files || []);
         if (files.length > 0) {
-            await processUploadFile(files[0]);
+            setFileQueue(files);
+            setCurrentQueueIndex(0);
         }
     };
 
@@ -189,8 +191,18 @@ export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentTyp
         e.stopPropagation();
     };
 
-    const handleSave = () => {
-        if (!fileId) {
+    const handleSkip = () => {
+        if (fileQueue.length > 0 && currentQueueIndex < fileQueue.length - 1) {
+            setCurrentQueueIndex(prev => prev + 1);
+        } else {
+            handleClose();
+        }
+    };
+
+    const handleSave = async () => {
+        const fileToUpload = fileQueue[0] ? fileQueue[currentQueueIndex] : null;
+
+        if (!fileId && !fileToUpload) {
             toast.error(String(t("documentCenter.validation.missingFile", { defaultValue: "Vui lòng chọn hoặc tải lên một file đính kèm" })));
             return;
         }
@@ -230,8 +242,32 @@ export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentTyp
             };
             createDocumentMut.mutate(updateBody);
         } else {
+            let actualFileId = fileId;
+            
+            // Upload the file if it's new and hasn't been uploaded
+            if (!actualFileId && fileToUpload) {
+                try {
+                    setIsUploading(true);
+                    const formData = buildFileUploadFormData(fileToUpload, {
+                        fileTags: ["DocumentCenter", refType || "General"].filter(Boolean),
+                    });
+                    const uploadRes: any = await fileApi.upload(formData);
+                    actualFileId = uploadRes?.data?.fileId ?? uploadRes?.fileId;
+                } catch (err: any) {
+                    toast.error(err.message || "Failed to upload file");
+                    setIsUploading(false);
+                    return;
+                }
+            }
+
+            if (!actualFileId) {
+                toast.error(String(t("documentCenter.validation.missingFile", { defaultValue: "Vui lòng chọn hoặc tải lên một file đính kèm" })));
+                setIsUploading(false);
+                return;
+            }
+
             const createBody: DocumentCreateRefBody = {
-                fileId,
+                fileId: actualFileId,
                 documentType: type,
                 documentTitle: title,
                 refType: String(refType || "").trim() ? String(refType || "").trim() : undefined,
@@ -292,19 +328,30 @@ export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentTyp
                                         onDrop={handleDrop}
                                         onDragOver={handleDragOver}
                                     >
-                                        <input type="file" className="hidden" ref={fileInputRef} onChange={handleUploadSelect} disabled={isUploading} />
+                                        <input type="file" multiple className="hidden" ref={fileInputRef} onChange={handleUploadSelect} disabled={isUploading || createDocumentMut.isPending} />
                                         <div className="mx-auto w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-3">
                                             <Upload className={`h-6 w-6 ${isUploading ? "animate-bounce" : ""}`} />
                                         </div>
                                         <p className="text-sm font-medium text-foreground">
-                                            {isUploading ? String(t("documentCenter.uploadModal.uploading")) : uploadedFileName || String(t("documentCenter.uploadModal.dropzone"))}
+                                            {isUploading 
+                                                ? String(t("documentCenter.uploadModal.uploading")) 
+                                                : fileQueue.length > 0 && fileQueue[currentQueueIndex]
+                                                    ? `Đã chọn: ${fileQueue[currentQueueIndex].name}`
+                                                    : uploadedFileName || String(t("documentCenter.uploadModal.dropzone"))}
                                         </p>
                                         <p className="text-xs text-muted-foreground mt-1">
                                             {String(t("documentCenter.uploadModal.supportedFormats", { defaultValue: "Hỗ trợ các định dạng: PDF, DOCX, XLSX, Ảnh..." }))}
                                         </p>
+                                        
                                         {uploadedFileName && fileId && !isUploading && (
                                             <div className="flex items-center justify-center gap-2 mt-4 text-success text-sm font-medium">
                                                 <Check className="h-4 w-4" /> {String(t("documentCenter.fileUploaded"))} ({fileId})
+                                            </div>
+                                        )}
+                                        
+                                        {fileQueue.length > 1 && !isUploading && (
+                                            <div className="flex items-center justify-center gap-2 mt-2 text-muted-foreground text-xs font-medium">
+                                                Hàng đợi: {currentQueueIndex + 1} / {fileQueue.length} file (Xác nhận hoặc Bỏ qua để chuyển file)
                                             </div>
                                         )}
                                     </div>
@@ -405,13 +452,24 @@ export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentTyp
                     </div>
                 </div>
 
-                <div className="flex items-center justify-end px-6 py-4 border-t border-border bg-muted/20 gap-3">
-                    <Button variant="outline" onClick={handleClose} type="button">
-                        {String(t("common.cancel", { defaultValue: "Hủy" }))}
-                    </Button>
-                    <Button onClick={handleSave} disabled={createDocumentMut.isPending || isUploading || !fileId} type="button">
-                        {createDocumentMut.isPending ? String(t("documentCenter.uploadModal.saving")) : String(t("common.save"))}
-                    </Button>
+                <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-muted/20">
+                    <div className="text-sm font-medium text-muted-foreground">
+                        {fileQueue.length > 1 ? `Đang xử lý ${currentQueueIndex + 1} / ${fileQueue.length} file` : ""}
+                    </div>
+                    <div className="flex items-center gap-3">
+                        {fileQueue.length > 1 && currentQueueIndex < fileQueue.length - 1 && (
+                            <Button variant="secondary" onClick={handleSkip} disabled={createDocumentMut.isPending || isUploading} type="button">
+                                Bỏ qua
+                            </Button>
+                        )}
+                        <Button variant="outline" onClick={handleClose} type="button">
+                            {String(t("common.cancel", { defaultValue: "Hủy" }))}
+                        </Button>
+                        <Button onClick={handleSave} disabled={createDocumentMut.isPending || isUploading || (!fileId && !fileQueue[currentQueueIndex])} type="button">
+                            {createDocumentMut.isPending || isUploading ? <Upload className="mr-2 h-4 w-4 animate-spin" /> : null}
+                            {fileQueue.length > 1 && currentQueueIndex < fileQueue.length - 1 ? "Lưu và Tiếp tục" : String(t("common.save"))}
+                        </Button>
+                    </div>
                 </div>
             </div>
         </div>
