@@ -5,24 +5,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Search, RefreshCw } from "lucide-react";
+import { Search, RefreshCw, FileDown } from "lucide-react";
 import { TableFilterPopover } from "./TableFilterPopover";
 import type { ChemicalTransaction } from "@/types/chemical";
 import { TransactionDetailPanel } from "./TransactionDetailPanel";
 import { Pagination } from "@/components/ui/pagination";
+import { ChemicalTransactionReportEditor } from "./ChemicalTransactionReportEditor";
 
 function TransactionTypeBadge({ type }: { type?: string | null }) {
     const { t } = useTranslation();
-    const TRANSACTION_TYPE_MAP: Record<string, { label: string; cls: string }> = {
-        IMPORT: { label: t("inventory.chemical.transactions.actionTypeLabels.IMPORT", { defaultValue: "Nhập kho" }), cls: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" },
-        EXPORT: { label: t("inventory.chemical.transactions.actionTypeLabels.EXPORT", { defaultValue: "Xuất kho" }), cls: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" },
+    const TRANSACTION_TYPE_MAP: Record<string, { label: string; variant: "success" | "destructive" | "secondary" }> = {
+        IMPORT: { label: t("inventory.chemical.transactions.actionTypeLabels.IMPORT", { defaultValue: "Nhập kho" }), variant: "success" },
+        EXPORT: { label: t("inventory.chemical.transactions.actionTypeLabels.EXPORT", { defaultValue: "Xuất kho" }), variant: "destructive" },
         ADJUSTMENT: {
             label: t("inventory.chemical.transactions.actionTypeLabels.ADJUSTMENT", { defaultValue: "Điều chỉnh" }),
-            cls: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+            variant: "secondary",
         },
     };
     const s = type ? TRANSACTION_TYPE_MAP[type] : undefined;
-    if (s) return <Badge className={s.cls}>{s.label}</Badge>;
+    if (s) return <Badge variant={s.variant}>{s.label}</Badge>;
     return <Badge variant="outline">{type ?? "-"}</Badge>;
 }
 
@@ -33,10 +34,12 @@ export function TransactionsTab() {
     const [activeTxn, setActiveTxn] = useState<ChemicalTransaction | null>(null);
     const [page, setPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(20);
+    const [isReportOpen, setIsReportOpen] = useState(false);
 
     const [filters, setFilters] = useState<{
         transactionType: string[];
-    }>({ transactionType: [] });
+        createdAt: string[];
+    }>({ transactionType: [], createdAt: [] });
 
     const {
         data: result,
@@ -50,7 +53,8 @@ export function TransactionsTab() {
             itemsPerPage,
             sortColumn: "createdAt",
             sortDirection: "DESC",
-            ...filters,
+            ...(filters.transactionType.length > 0 ? { transactionType: filters.transactionType } : {}),
+            ...(filters.createdAt.length > 0 ? { "createdAt[]": filters.createdAt } : {}),
         },
     });
 
@@ -83,8 +87,20 @@ export function TransactionsTab() {
                         <Button variant="outline" size="sm" type="button" onClick={handleSearch}>
                             {t("common.search", { defaultValue: "Tìm kiếm" })}
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => refetch()} title="Tải lại">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => refetch()} title={String(t("common.refresh", { defaultValue: "Tải lại" }))}>
                             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                        </Button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button 
+                            variant="default" 
+                            size="sm" 
+                            onClick={() => setIsReportOpen(true)}
+                            disabled={isLoading || !result?.data || (result?.data as any[]).length === 0}
+                            className="h-8 px-3 shadow-sm active:scale-95 transition-all"
+                        >
+                            <FileDown className="h-3.5 w-3.5 mr-1.5" />
+                            {t("inventory.chemical.transactions.exportReport", { defaultValue: "Xuất báo cáo" })}
                         </Button>
                     </div>
                 </div>
@@ -103,13 +119,24 @@ export function TransactionsTab() {
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                                         <TableFilterPopover
+                                            title={t("common.createdAt", { defaultValue: "Ngày" })}
+                                            type="date"
+                                            value={filters.createdAt}
+                                            onChange={(v) => {
+                                                setFilters((f) => ({ ...f, createdAt: v }));
+                                                setPage(1);
+                                            }}
+                                        />
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        <TableFilterPopover
                                             title={t("inventory.chemical.transactions.transactionType", { defaultValue: "Hành động" })}
                                             type="enum"
                                             value={filters.transactionType}
                                             options={[
-                                                { label: "Nhập kho (IMPORT)", value: "IMPORT" },
-                                                { label: "Xuất kho (EXPORT)", value: "EXPORT" },
-                                                { label: "Điều chỉnh (ADJUSTMENT)", value: "ADJUSTMENT" },
+                                                { label: t("inventory.chemical.transactionBlocks.types.INBOUND"), value: "IMPORT" },
+                                                { label: t("inventory.chemical.transactionBlocks.types.OUTBOUND"), value: "EXPORT" },
+                                                { label: t("inventory.chemical.transactionBlocks.types.ADJUSTMENT"), value: "ADJUSTMENT" },
                                             ]}
                                             onChange={(v) => {
                                                 setFilters((f) => ({ ...f, transactionType: v }));
@@ -150,7 +177,7 @@ export function TransactionsTab() {
                                 {isLoading ? (
                                     Array.from({ length: 8 }).map((_, i) => (
                                         <tr key={i}>
-                                            {Array.from({ length: 12 }).map((__, j) => (
+                                            {Array.from({ length: 13 }).map((__, j) => (
                                                 <td key={j} className="p-3">
                                                     <Skeleton className="h-4 w-16" />
                                                 </td>
@@ -159,7 +186,7 @@ export function TransactionsTab() {
                                     ))
                                 ) : (result?.data as any[])?.length === 0 ? (
                                     <tr>
-                                        <td colSpan={12} className="p-8 text-center text-muted-foreground">
+                                        <td colSpan={13} className="p-8 text-center text-muted-foreground">
                                             {t("common.noData", { defaultValue: "Không có dữ liệu" })}
                                         </td>
                                     </tr>
@@ -172,6 +199,15 @@ export function TransactionsTab() {
                                         >
                                             <td className="px-3 py-2 whitespace-nowrap font-mono text-xs font-medium text-primary">{txn.chemicalTransactionId ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap font-mono text-xs text-muted-foreground">{txn.chemicalTransactionBlockId ?? "-"}</td>
+                                            <td className="px-3 py-2 whitespace-nowrap text-xs text-muted-foreground">
+                                                {txn.createdAt
+                                                    ? new Date(txn.createdAt).toLocaleDateString("vi-VN", {
+                                                          day: "2-digit",
+                                                          month: "2-digit",
+                                                          year: "numeric",
+                                                      })
+                                                    : "-"}
+                                            </td>
                                             <td className="px-3 py-2 whitespace-nowrap">
                                                 <TransactionTypeBadge type={txn.transactionType} />
                                             </td>
@@ -181,7 +217,7 @@ export function TransactionsTab() {
                                             <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{txn.chemicalCasNumber ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap font-mono text-xs">{txn.chemicalInventoryId ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap text-right">
-                                                <div className={`font-bold ${txn.changeQty > 0 ? "text-green-600 dark:text-green-400" : txn.changeQty < 0 ? "text-red-600 dark:text-red-400" : ""}`}>
+                                                <div className={`font-bold ${txn.changeQty > 0 ? "text-success" : txn.changeQty < 0 ? "text-destructive" : ""}`}>
                                                     {txn.changeQty > 0 ? "+" : ""}{txn.changeQty}
                                                 </div>
                                             </td>
@@ -217,6 +253,14 @@ export function TransactionsTab() {
             </div>
 
             {activeTxn && <TransactionDetailPanel transaction={activeTxn} onClose={() => setActiveTxn(null)} />}
+            
+            {isReportOpen && result?.data && (
+                <ChemicalTransactionReportEditor 
+                    open={isReportOpen} 
+                    onOpenChange={setIsReportOpen} 
+                    data={result.data as ChemicalTransaction[]} 
+                />
+            )}
         </div>
     );
 }

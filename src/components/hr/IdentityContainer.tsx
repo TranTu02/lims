@@ -41,10 +41,8 @@ type Props = {
 
 function createEmptyFilters(): IdentitiesExcelFiltersState {
   return {
-    identityName: [],
-    email: [],
-    identityId: [],
     identityStatus: [],
+    identityRoles: [],
   };
 }
 
@@ -55,7 +53,7 @@ export function IdentityContainer({ className }: Props) {
   const [search, setSearch] = useState("");
 
   const [page, setPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
 
   const [detailId, setDetailId] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
@@ -74,8 +72,10 @@ export function IdentityContainer({ className }: Props) {
       sortDirection: "DESC",
       search: search.trim().length > 0 ? search.trim() : null,
       entityType: activeTab === "all" ? null : activeTab,
+      identityStatus: excelFilters.identityStatus.length > 0 ? excelFilters.identityStatus : undefined,
+      identityRoles: excelFilters.identityRoles.length > 0 ? excelFilters.identityRoles : undefined,
     }),
-    [activeTab, itemsPerPage, page, search]
+    [activeTab, excelFilters.identityRoles, excelFilters.identityStatus, itemsPerPage, page, search]
   );
 
   const listQ = useQuery({

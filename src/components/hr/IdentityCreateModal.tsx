@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { Shield } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -7,7 +8,6 @@ import {
   Dialog,
   DialogContent,
   DialogFooter,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -154,13 +154,14 @@ export function IdentityCreateModal({ open, onClose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(v) => (!v ? onClose() : undefined)}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="w-[80vw] !max-w-[1240px] min-w-[400px] h-[90vh] max-h-[90vh] flex flex-col p-0">
+        <div className="px-6 py-4 border-b border-border flex-none">
           <DialogTitle>{t("hr.create.title")}</DialogTitle>
-        </DialogHeader>
+        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="space-y-1">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="space-y-1">
             <div className="text-xs text-muted-foreground">
               {t("hr.fields.email")}
             </div>
@@ -188,7 +189,7 @@ export function IdentityCreateModal({ open, onClose }: Props) {
 
           <div className="space-y-1">
             <div className="text-xs text-muted-foreground">
-              {t("hr.fields.identityGroupId", { defaultValue: "Nhóm nhân sự" })}
+              {t("hr.fields.identityGroup")}
             </div>
             <IdentityGroupSelect 
               value={form.identityGroupId}
@@ -226,7 +227,7 @@ export function IdentityCreateModal({ open, onClose }: Props) {
           {/* New Personal Info Fields */}
           <div className="space-y-1">
             <div className="text-xs text-muted-foreground">
-              {t("hr.fields.identityPhone", { defaultValue: "Số điện thoại" })}
+              {t("hr.fields.identityPhone")}
             </div>
             <Input
               value={form.identityPhone}
@@ -239,7 +240,7 @@ export function IdentityCreateModal({ open, onClose }: Props) {
 
           <div className="space-y-1">
             <div className="text-xs text-muted-foreground">
-              {t("hr.fields.identityNID", { defaultValue: "Số CCCD/NID" })}
+              {t("hr.fields.identityNID")}
             </div>
             <Input
               value={form.identityNID}
@@ -264,16 +265,15 @@ export function IdentityCreateModal({ open, onClose }: Props) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="active">{t("hr.status.active")}</SelectItem>
-                <SelectItem value="inactive">
-                  {t("hr.status.inactive")}
-                </SelectItem>
+                <SelectItem value="inactive">{t("hr.status.inactive")}</SelectItem>
+                <SelectItem value="blocked">{t("hr.status.blocked")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-1 sm:col-span-3">
             <div className="text-xs text-muted-foreground">
-              {t("hr.fields.identityAddress", { defaultValue: "Địa chỉ" })}
+              {t("hr.fields.identityAddress")}
             </div>
             <Input
               value={form.identityAddress}
@@ -295,11 +295,12 @@ export function IdentityCreateModal({ open, onClose }: Props) {
             />
           </div>
 
-          <div className="sm:col-span-3 border border-border rounded-lg p-3 bg-muted/20 mt-2">
-            <div className="text-sm font-medium text-foreground mb-2">
-              {t("hr.fields.roles", { defaultValue: "Vị trí" })}
+          <div className="sm:col-span-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Shield className="h-4 w-4 text-primary" />
+              <div className="font-medium text-sm">{t("hr.fields.roles")}</div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 border border-border rounded-md p-4 bg-muted/20 gap-y-3">
               {roleKeys.map((k) => (
                 <label key={k} className="flex items-center gap-2 text-sm">
                   <Checkbox
@@ -315,18 +316,20 @@ export function IdentityCreateModal({ open, onClose }: Props) {
                 </label>
               ))}
             </div>
+            </div>
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="px-6 py-4 border-t border-border flex-none">
           <Button
             variant="outline"
+            type="button"
             onClick={onClose}
             disabled={createM.isPending}>
             {t("common.cancel")}
           </Button>
           <Button onClick={submit} disabled={!canSubmit || createM.isPending}>
-            {t("common.create")}
+            {createM.isPending ? t("common.toast.processing") : t("common.save")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -31,9 +31,10 @@ function toInfoRows(v: unknown): InfoRow[] {
     if (!Array.isArray(v)) return [];
     return v
         .map((x) => {
-            const item = x as { label?: unknown; value?: unknown };
-            const label = typeof item.label === "string" ? item.label : "";
-            const valueRaw = item.value;
+            const item = x as { label?: unknown; value?: unknown; fname?: unknown; fvalue?: unknown };
+            const labelRaw = item.label ?? item.fname;
+            const valueRaw = item.value ?? item.fvalue;
+            const label = typeof labelRaw === "string" ? labelRaw : "";
             const value = valueRaw == null ? "" : String(valueRaw);
             return { label, value };
         })
@@ -173,9 +174,9 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
 
     return createPortal(
         <>
-            <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-[80] transition-all duration-300" onClick={onClose} />
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[1100] transition-all duration-300" onClick={onClose} />
 
-            <div className="fixed inset-4 bg-background rounded-lg shadow-2xl z-[80] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="fixed inset-4 bg-background rounded-lg shadow-2xl z-[1101] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                     <div>
                         <h2 className="text-lg font-semibold text-foreground">{String(t("reception.sampleDetail.title", { code: sample.sampleId }))}</h2>
@@ -238,22 +239,9 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
                         </div>
 
                         <div className="md:col-span-2 bg-muted/30 p-4 rounded-lg border border-border">
-                            <h3 className="text-sm font-semibold text-foreground mb-3">{String(t("lab.samples.sampleName"))}</h3>
+                            <h3 className="text-sm font-semibold text-foreground mb-3">{String(t("lab.samples.sampleHeader", { defaultValue: "Thông tin chung" }))}</h3>
 
                             <div className="grid grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-6">
-                                <div>
-                                    <Label className="text-xs text-muted-foreground">{String(t("lab.samples.sampleName"))}</Label>
-                                    {isEditing ? (
-                                        <Input
-                                            value={editedSample.sampleClientInfo ?? ""}
-                                            onChange={(e) => setEditedSample({ ...editedSample, sampleClientInfo: e.target.value })}
-                                            className="mt-1 h-8 text-sm bg-background"
-                                        />
-                                    ) : (
-                                        <div className="text-sm font-medium text-foreground mt-1">{sample.sampleClientInfo ?? "-"}</div>
-                                    )}
-                                </div>
-
                                 <div>
                                     <Label className="text-xs text-muted-foreground">{String(t("lab.samples.sampleTypeName"))}</Label>
                                     {isEditing ? (
@@ -275,59 +263,6 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
                                 </div>
 
                                 <div>
-                                    <Label className="text-xs text-muted-foreground">{String(t("lab.samples.samplePreservation"))}</Label>
-                                    {isEditing ? (
-                                        <Input
-                                            value={editedSample.samplePreservation ?? ""}
-                                            onChange={(e) => setEditedSample({ ...editedSample, samplePreservation: e.target.value })}
-                                            className="mt-1 h-8 text-sm bg-background"
-                                        />
-                                    ) : (
-                                        <div className="text-sm text-foreground mt-1">{sample.samplePreservation ?? "-"}</div>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <Label className="text-xs text-muted-foreground">{String(t("lab.samples.physicalState", { defaultValue: "Trạng thái vật lý" }))}</Label>
-                                    {isEditing ? (
-                                        <Input
-                                            value={editedSample.physicalState ?? ""}
-                                            onChange={(e) => setEditedSample({ ...editedSample, physicalState: e.target.value })}
-                                            className="mt-1 h-8 text-sm bg-background"
-                                        />
-                                    ) : (
-                                        <div className="text-sm font-medium text-foreground mt-1">{sample.physicalState ?? "-"}</div>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <Label className="text-xs text-muted-foreground">{String(t("lab.samples.sampleVolume", { defaultValue: "Lượng mẫu" }))}</Label>
-                                    {isEditing ? (
-                                        <Input
-                                            value={editedSample.sampleVolume ?? ""}
-                                            onChange={(e) => setEditedSample({ ...editedSample, sampleVolume: e.target.value })}
-                                            className="mt-1 h-8 text-sm bg-background"
-                                        />
-                                    ) : (
-                                        <div className="text-sm font-medium text-foreground mt-1">{sample.sampleVolume ?? "-"}</div>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <Label className="text-xs text-muted-foreground">{String(t("lab.samples.sampleWeight", { defaultValue: "Khối lượng (g)" }))}</Label>
-                                    {isEditing ? (
-                                        <Input
-                                            type="number"
-                                            value={editedSample.sampleWeight ?? ""}
-                                            onChange={(e) => setEditedSample({ ...editedSample, sampleWeight: e.target.value })}
-                                            className="mt-1 h-8 text-sm bg-background"
-                                        />
-                                    ) : (
-                                        <div className="text-sm font-medium text-foreground mt-1">{sample.sampleWeight ?? "-"}</div>
-                                    )}
-                                </div>
-
-                                <div>
                                     <Label className="text-xs text-muted-foreground">{String(t("lab.samples.sampleStorageLoc", { defaultValue: "Vị trí lưu kho" }))}</Label>
                                     {isEditing ? (
                                         <Input
@@ -337,47 +272,6 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
                                         />
                                     ) : (
                                         <div className="text-sm font-medium text-foreground mt-1">{sample.sampleStorageLoc ?? "-"}</div>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <Label className="text-xs text-muted-foreground">{String(t("lab.samples.sampleRetentionDate", { defaultValue: "Hạn lưu mẫu" }))}</Label>
-                                    {isEditing ? (
-                                        <Input
-                                            type="date"
-                                            value={editedSample.sampleRetentionDate ? new Date(editedSample.sampleRetentionDate).toISOString().split("T")[0] : ""}
-                                            onChange={(e) => setEditedSample({ ...editedSample, sampleRetentionDate: e.target.value })}
-                                            className="mt-1 h-8 text-sm bg-background"
-                                        />
-                                    ) : (
-                                        <div className="text-sm font-medium text-foreground mt-1">{sample.sampleRetentionDate ? new Date(sample.sampleRetentionDate).toLocaleDateString() : "-"}</div>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <Label className="text-xs text-muted-foreground">{String(t("lab.samples.sampleDisposalDate", { defaultValue: "Ngày hủy mẫu" }))}</Label>
-                                    {isEditing ? (
-                                        <Input
-                                            type="date"
-                                            value={editedSample.sampleDisposalDate ? new Date(editedSample.sampleDisposalDate).toISOString().split("T")[0] : ""}
-                                            onChange={(e) => setEditedSample({ ...editedSample, sampleDisposalDate: e.target.value })}
-                                            className="mt-1 h-8 text-sm bg-background"
-                                        />
-                                    ) : (
-                                        <div className="text-sm font-medium text-foreground mt-1">{sample.sampleDisposalDate ? new Date(sample.sampleDisposalDate).toLocaleDateString() : "-"}</div>
-                                    )}
-                                </div>
-
-                                <div className="col-span-1 md:col-span-2 lg:col-span-3">
-                                    <Label className="text-xs text-muted-foreground">{String(t("lab.samples.sampleNote", { defaultValue: "Ghi chú mẫu" }))}</Label>
-                                    {isEditing ? (
-                                        <Input
-                                            value={String(editedSample.sampleNote ?? "")}
-                                            onChange={(e) => setEditedSample({ ...editedSample, sampleNote: e.target.value })}
-                                            className="mt-1 h-8 text-sm bg-background"
-                                        />
-                                    ) : (
-                                        <div className="text-sm font-medium text-foreground mt-1">{String(sample.sampleNote ?? "-")}</div>
                                     )}
                                 </div>
                             </div>

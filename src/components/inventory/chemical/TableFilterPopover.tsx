@@ -22,20 +22,19 @@ export function TableFilterPopover({ title, type, options, value, onChange }: Ta
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     
-    // Internal state for dates (so we can apply on confirmation)
+    // Internal state for dates (type=date input yields YYYY-MM-DD natively)
     const [dateFrom, setDateFrom] = useState("");
     const [dateTo, setDateTo] = useState("");
 
-    // Read date from initial value on open
+    // Read date from existing BETWEEN filter value on open
     React.useEffect(() => {
         if (open && type === "date" && value.length === 1 && value[0].startsWith("BETWEEN")) {
             // value is like: "BETWEEN 'YYYY-MM-DD 00:00:00' AND 'YYYY-MM-DD 23:59:59'"
             const match = value[0].match(/BETWEEN\s+'([^']+)'\s+AND\s+'([^']+)'/i);
             if (match) {
-                const fD = match[1].split(" ")[0].split("-").reverse().join("-"); // Format to DD-MM-YYYY for input
-                const tD = match[2].split(" ")[0].split("-").reverse().join("-"); // Format to DD-MM-YYYY for input
-                setDateFrom(fD);
-                setDateTo(tD);
+                // date part is already YYYY-MM-DD — matches input[type=date] format
+                setDateFrom(match[1].split(" ")[0]);
+                setDateTo(match[2].split(" ")[0]);
             }
         }
     }, [open, type, value]);
@@ -54,16 +53,10 @@ export function TableFilterPopover({ title, type, options, value, onChange }: Ta
             setOpen(false);
             return;
         }
-
-        // Parse DD-MM-YYYY to YYYY-MM-DD
-        const [fd, fm, fy] = (dateFrom || dateTo).split("-");
-        const [td, tm, ty] = (dateTo || dateFrom).split("-");
-
-        // Format to standard YYYY-MM-DD
-        const formattedFrom = `${fy}-${fm}-${fd}`;
-        const formattedTo = `${ty}-${tm}-${td}`;
-
-        const q = `BETWEEN '${formattedFrom} 00:00:00' AND '${formattedTo} 23:59:59'`;
+        // Auto-fill missing side with the other side
+        const from = dateFrom || dateTo;
+        const to = dateTo || dateFrom;
+        const q = `BETWEEN '${from} 00:00:00' AND '${to} 23:59:59'`;
         onChange([q]);
         setOpen(false);
     };
@@ -118,22 +111,28 @@ export function TableFilterPopover({ title, type, options, value, onChange }: Ta
 
                 {type === "date" && (
                     <div className="space-y-3">
-                        <div className="font-medium text-sm text-muted-foreground mb-1">{t("common.filterDate", { defaultValue: "Lọc theo khoảng ngày (DD-MM-YYYY):" })}</div>
+                        <div className="font-medium text-sm text-muted-foreground mb-1">
+                            {t("common.filterDate", { defaultValue: "Lọc theo khoảng ngày:" })}
+                        </div>
                         <div className="space-y-2">
                             <div>
-                                <label className="text-xs text-muted-foreground mb-1 block">Từ ngày (DD-MM-YYYY):</label>
+                                <label className="text-xs text-muted-foreground mb-1 block">
+                                    {t("common.from", { defaultValue: "Từ ngày" })}:
+                                </label>
                                 <Input
+                                    type="date"
                                     value={dateFrom}
-                                    placeholder="VD: 10-03-2026"
                                     onChange={(e) => setDateFrom(e.target.value)}
                                     className="h-8 text-sm"
                                 />
                             </div>
                             <div>
-                                <label className="text-xs text-muted-foreground mb-1 block">Đến ngày (DD-MM-YYYY):</label>
+                                <label className="text-xs text-muted-foreground mb-1 block">
+                                    {t("common.to", { defaultValue: "Đến ngày" })}:
+                                </label>
                                 <Input
+                                    type="date"
                                     value={dateTo}
-                                    placeholder="VD: 20-03-2026"
                                     onChange={(e) => setDateTo(e.target.value)}
                                     className="h-8 text-sm"
                                 />

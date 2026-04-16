@@ -14,6 +14,9 @@ export const reportApi = {
     
     getBySample: (sampleId: string) => 
         api.get<string[]>("/v2/reports/get/by-sample", { query: { sampleId } }),
+
+    getDetail: (reportId: string) =>
+        api.get<any>("/v2/reports/get/detail", { query: { reportId } }),
 };
 
 function assertSuccess<T>(res: ApiResponse<T>): T {

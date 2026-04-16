@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
+import { roleKeys } from "@/utils/roles";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Command,
@@ -26,10 +27,8 @@ import { useDebouncedValue } from "@/components/library/hooks/useDebouncedValue"
 import { IdentityRoleBadges } from "./IdentityRoleBadges";
 
 export type IdentitiesExcelFiltersState = {
-  identityName: string[];
-  email: string[];
-  identityId: string[];
   identityStatus: string[];
+  identityRoles: string[];
 };
 
 type FilterKey = keyof IdentitiesExcelFiltersState;
@@ -56,10 +55,8 @@ type OptionWithCount<T extends string> = { value: T; count: number };
 type ApiFilterKey = FilterKey;
 
 const FILTER_FROM_MAP: Record<ApiFilterKey, IdentitiesFilterFrom> = {
-  identityName: "identityName",
-  email: "email",
-  identityId: "identityId",
   identityStatus: "identityStatus",
+  identityRoles: "identityStatus" as any, // Only needed for type compilation
 };
 
 function buildOtherFiltersForApi(
@@ -83,10 +80,8 @@ function buildOtherFiltersForApi(
 }
 
 function pickValueForFilterKey(item: IdentityListItem, key: ApiFilterKey): string {
-  if (key === "identityName") return item.identityName ?? "";
-  if (key === "email") return item.email ?? "";
-  if (key === "identityId") return item.identityId ?? "";
   if (key === "identityStatus") return item.identityStatus ?? "";
+  if (key === "identityRoles") return Object.keys(item.roles ?? {}).join(",");
   return "";
 }
 
@@ -100,6 +95,7 @@ type ExcelFilterPopoverProps = {
   onClear: () => void;
 
   itemsPerPage?: number;
+  staticOptions?: string[];
 };
 
 function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
@@ -124,9 +120,16 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
     [filterFrom, debouncedSearch, props.excelFilters, props.filterKey, props.itemsPerPage]
   );
 
-  const q = useIdentitiesFilter(input, { enabled: open });
+  const q = useIdentitiesFilter(input, { enabled: open && !props.staticOptions });
 
   const options = useMemo((): OptionWithCount<string>[] => {
+    if (props.staticOptions) {
+      const s = debouncedSearch.toLowerCase().trim();
+      return props.staticOptions
+        .filter((x) => t(`hr.roles.${x}`, { defaultValue: x }).toLowerCase().includes(s) || x.toLowerCase().includes(s))
+        .map((x) => ({ value: x, count: 0 }));
+    }
+
     const list = q.data?.data ?? [];
     const counts = new Map<string, number>();
 
@@ -140,7 +143,7 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
     return Array.from(counts.entries())
       .map(([value, count]) => ({ value, count }))
       .sort((a, b) => a.value.localeCompare(b.value));
-  }, [q.data, props.filterKey]);
+  }, [q.data, props.filterKey, props.staticOptions, debouncedSearch, t]);
 
   const toggle = (v: string) => {
     setLocalSelected((cur) => (cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v]));
@@ -183,7 +186,11 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent align="end" className="w-72 p-0">
+      <PopoverContent
+        align="end"
+        className="w-72 p-0"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <div className="px-3 py-2 border-b border-border flex items-center justify-between">
           <div className="text-sm font-medium text-foreground">{props.title}</div>
           <Button variant="ghost" size="icon" type="button" onClick={() => setOpen(false)}>
@@ -222,7 +229,7 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
                         onSelect={() => toggle(o.value)}
                         className="flex items-start justify-between gap-3"
                       >
-                        <div className="flex items-start gap-2 min-w-0">
+                        <div className="flex items-start gap-2 min-w-0 flex-1">
                           <span
                             className={[
                               "inline-flex h-4 w-4 min-w-4 flex-none shrink-0 items-center justify-center rounded-sm border border-border",
@@ -235,13 +242,13 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
                           <span className="text-sm text-foreground break-words whitespace-normal">
                             {props.filterKey === "identityStatus"
                               ? t(`hr.status.${o.value}`, { defaultValue: o.value })
+                              : props.filterKey === "identityRoles"
+                              ? t(`hr.roles.${o.value}`, { defaultValue: o.value })
                               : o.value}
                           </span>
                         </div>
 
-                        <span className="text-xs text-muted-foreground tabular-nums shrink-0">
-                          {o.count}
-                        </span>
+                        {!props.staticOptions && <span className="text-xs text-muted-foreground tabular-nums shrink-0">{o.count}</span>}
                       </CommandItem>
                     );
                   })}
@@ -294,50 +301,35 @@ export function IdentityTable({
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                 <span className="inline-flex items-center gap-2">
                   {t("hr.dashboard.table.identity")}
-                  <ExcelFilterPopover
-                    title={t("hr.dashboard.table.identity")}
-                    filterKey="identityName"
-                    activeCount={excelFilters.identityName.length}
-                    selected={excelFilters.identityName}
-                    excelFilters={excelFilters}
-                    onApply={(v) => setStr("identityName", v)}
-                    onClear={() => setStr("identityName", [])}
-                  />
                 </span>
               </th>
 
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                 <span className="inline-flex items-center gap-2">
                   {t("hr.dashboard.table.email")}
-                  <ExcelFilterPopover
-                    title={t("hr.dashboard.table.email")}
-                    filterKey="email"
-                    activeCount={excelFilters.email.length}
-                    selected={excelFilters.email}
-                    excelFilters={excelFilters}
-                    onApply={(v) => setStr("email", v)}
-                    onClear={() => setStr("email", [])}
-                  />
                 </span>
               </th>
 
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                 <span className="inline-flex items-center gap-2">
                   {t("hr.dashboard.table.code")}
-                  <ExcelFilterPopover
-                    title={t("hr.dashboard.table.code")}
-                    filterKey="identityId"
-                    activeCount={excelFilters.identityId.length}
-                    selected={excelFilters.identityId}
-                    excelFilters={excelFilters}
-                    onApply={(v) => setStr("identityId", v)}
-                    onClear={() => setStr("identityId", [])}
-                  />
                 </span>
               </th>
 
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                {t("hr.dashboard.table.role", { defaultValue: "Vị trí" })}
+                <span className="inline-flex items-center gap-2">
+                  {t("hr.dashboard.table.role")}
+                  <ExcelFilterPopover
+                    title={t("hr.dashboard.table.role")}
+                    filterKey="identityRoles"
+                    activeCount={excelFilters.identityRoles.length}
+                    selected={excelFilters.identityRoles}
+                    excelFilters={excelFilters}
+                    onApply={(v) => setStr("identityRoles", v)}
+                    onClear={() => setStr("identityRoles", [])}
+                    staticOptions={[...roleKeys]}
+                  />
+                </span>
               </th>
 
               <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
@@ -351,6 +343,7 @@ export function IdentityTable({
                     excelFilters={excelFilters}
                     onApply={(v) => setStr("identityStatus", v)}
                     onClear={() => setStr("identityStatus", [])}
+                    staticOptions={["active", "inactive", "blocked", "deleted"]}
                   />
                 </span>
               </th>

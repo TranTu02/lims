@@ -276,9 +276,9 @@ ${content}
 
     return createPortal(
         <>
-            <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-[80] transition-all duration-300" onClick={onClose} aria-hidden="true" />
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[1100] transition-all duration-300" onClick={onClose} aria-hidden="true" />
             <div
-                className="fixed inset-x-4 top-1/2 -translate-y-1/2 mx-auto bg-background rounded-xl shadow-2xl z-[80] border border-border flex flex-col animate-in fade-in zoom-in-95 duration-200"
+                className="fixed inset-x-4 top-1/2 -translate-y-1/2 mx-auto bg-background rounded-xl shadow-2xl z-[1101] border border-border flex flex-col animate-in fade-in zoom-in-95 duration-200"
                 style={{ width: "850px", height: "80vh" }}
                 onClick={(e) => e.stopPropagation()}
             >

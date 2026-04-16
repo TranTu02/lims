@@ -77,6 +77,8 @@ export type IdentityCreateBody = {
 export type IdentityUpdateBody = {
     identityId: string;
     identityName?: string;
+    email?: string;
+    password?: string;
     roles?: IdentityRoles;
     permissions?: Record<string, unknown>;
     identityStatus?: IdentityStatus;
@@ -260,7 +262,8 @@ export async function identitiesGetList(input: { query: IdentitiesListQuery }): 
                 const s = sanitizeListItem(it);
                 if (s) items.push(s);
             }
-            return ok(items, (asApi.meta ?? null) as ApiMeta | null);
+            const meta = (asApi as any).pagination ?? asApi.meta ?? null;
+            return ok(items, meta as ApiMeta | null);
         }
 
         return asApi as ApiResponse<IdentityListItem[]>;
@@ -401,7 +404,8 @@ export async function identitiesFilter(input: { body: IdentitiesFilterBody }): P
                 const s = sanitizeListItem(it);
                 if (s) items.push(s);
             }
-            return ok(items, (asApi.meta ?? null) as ApiMeta | null);
+            const meta = (asApi as any).pagination ?? asApi.meta ?? null;
+            return ok(items, meta as ApiMeta | null);
         }
 
         return asApi as ApiResponse<IdentityListItem[]>;

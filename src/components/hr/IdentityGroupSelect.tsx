@@ -21,7 +21,7 @@ export function IdentityGroupSelect({ value, onValueChange, placeholder, disable
     return (
         <Select value={value} onValueChange={onValueChange} disabled={disabled || isLoading}>
             <SelectTrigger className="w-full">
-                <SelectValue placeholder={placeholder || String(t("hr.fields.identityGroup", { defaultValue: "Nhóm nhân sự" }))}>
+                <SelectValue placeholder={placeholder || String(t("hr.fields.identityGroup"))}>
                     {isLoading ? (
                         <div className="flex items-center gap-2">
                             <Loader2 className="h-3 w-3 animate-spin" />

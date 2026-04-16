@@ -82,13 +82,14 @@ const CONTENT_STYLE = `
   }
   .grid-container {
     display: grid;
-    grid-template-columns: 27% 23% 30% 20%;
+    grid-template-columns: 33.33% 66.67%;
     gap: 0;
   }
   .grid-item {
     font-size: 12px;
     line-height: 1.2;
     text-align: left;
+    padding: 2px 0;
   }
   h2 { font-size: 18px; margin-bottom: 10px; text-transform: uppercase; text-align: center; }
   .info-table td { border: none !important; padding: 2px 0 !important; }
@@ -152,32 +153,28 @@ function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail,
            </div>`
         : "";
 
+    const renderInfoRows = (list: any[] | null | undefined) => {
+        if (!list || !Array.isArray(list)) return "";
+        return list
+            .map((item) => {
+                const label = item.label || item.fname || "";
+                const value = item.value || item.fvalue || "--";
+                if (!label) return "";
+                return `
+                    <div class="grid-container">
+                        <div class="grid-item"><strong>${label}</strong></div>
+                        <div class="grid-item">${value}</div>
+                    </div>
+                `;
+            })
+            .join("");
+    };
+
     const refCode = `${tVi("testReport.draft")} / ${tEn("testReport.draft")}`;
     const dateStr = new Date().toLocaleDateString("vi-VN");
 
-    // Helper to find value by label in sampleInfo/sampleReceiptInfo
-    const getInfo = (list: any[] | null | undefined, labelSearch: string) => {
-        if (!list) return "--";
-        const item = list.find(it => it.label?.toLowerCase().includes(labelSearch.toLowerCase()));
-        return item?.value || "--";
-    };
-
-    // Customer Provided Info
-    const sampleName = getInfo(sample.sampleInfo, "Tên mẫu") || sample.sampleName;
-    const lotNo = getInfo(sample.sampleInfo, "Số lô") || getInfo(sample.sampleInfo, "Lot");
-    const origin = getInfo(sample.sampleInfo, "Nơi sản xuất");
-    const mfgDate = getInfo(sample.sampleInfo, "Ngày sản xuất") || getInfo(sample.sampleInfo, "MFG");
-    const expDate = getInfo(sample.sampleInfo, "Hạn sử dụng") || getInfo(sample.sampleInfo, "EXP");
-    const appearance = getInfo(sample.sampleInfo, "Trạng thái") || getInfo(sample.sampleInfo, "ngoại quan");
-
-    // Receipt Info
-    const receiptDateStr = getInfo(sample.sampleReceiptInfo, "Ngày tiếp nhận") !== "--" 
-        ? getInfo(sample.sampleReceiptInfo, "Ngày tiếp nhận")
-        : (receipt.receiptDate ? new Date(receipt.receiptDate).toLocaleDateString("vi-VN") : "--");
-    const storageInfo = getInfo(sample.sampleReceiptInfo, "Mẫu lưu");
-    const testTime = getInfo(sample.sampleReceiptInfo, "Thời gian thực hiện");
-    const description = getInfo(sample.sampleReceiptInfo, "Mô tả");
-    const condition = getInfo(sample.sampleReceiptInfo, "Điều kiện mẫu") || getInfo(sample.sampleReceiptInfo, "Tình trạng");
+    const sampleInfoHtml = renderInfoRows(sample.sampleInfo);
+    const receiptInfoHtml = renderInfoRows(sample.sampleReceiptInfo);
 
     return `
         <table class="print-wrapper">
@@ -229,57 +226,21 @@ function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail,
                                 <p style="margin: 0; font-size: 12px;">${receipt.client?.clientAddress || "-"}</p>
                             </div>
                         </div>
-
+ 
                         <div id="sample-section" class="info-box">
                             <div style="display: flex; justify-content: space-between; border-bottom: 0.5px solid #000; margin-bottom: 4px; padding-bottom: 2px;">
                                 <p style="font-size: 11px; margin: 0;">${tVi("testReport.sampleInfo")} / ${tEn("testReport.sampleInfo")}</p>
                                 <p style="font-size: 11px; margin: 0;"><strong>${sample.sampleId ?? "-"}</strong></p>
                             </div>
-
+ 
                             <div style="margin-bottom: 6px;">
                                 <p style="font-size: 10px; font-style: italic; margin-bottom: 2px; color: #555;">Thông tin khách hàng cung cấp / Information provided by client:</p>
-                                <div class="grid-container">
-                                    <div class="grid-item"><strong>${tVi("testReport.sampleLabels.name")}</strong> / Name</div>
-                                    <div class="grid-item" style="grid-column: span 3;"><strong>${sampleName}</strong></div>
-                                </div>
-                                <div class="grid-container">
-                                    <div class="grid-item"><strong>Số lô</strong> / LOT no.</div>
-                                    <div class="grid-item">${lotNo}</div>
-                                    <div class="grid-item"><strong>Nơi sản xuất</strong> / Origin</div>
-                                    <div class="grid-item">${origin}</div>
-                                </div>
-                                <div class="grid-container">
-                                    <div class="grid-item"><strong>Ngày SX</strong> / MFG date</div>
-                                    <div class="grid-item">${mfgDate}</div>
-                                    <div class="grid-item"><strong>Hạn dùng</strong> / EXP date</div>
-                                    <div class="grid-item">${expDate}</div>
-                                </div>
-                                <div class="grid-container">
-                                    <div class="grid-item"><strong>Trạng thái</strong> / Appearance</div>
-                                    <div class="grid-item" style="grid-column: span 3;">${appearance}</div>
-                                </div>
+                                ${sampleInfoHtml || `<div class="grid-container"><div class="grid-item"><strong>Tên mẫu</strong></div><div class="grid-item" style="grid-column: span 3;">${sample.sampleName || "--"}</div></div>`}
                             </div>
-
+ 
                             <div style="border-top: 0.5px dashed #ccc; padding-top: 4px;">
                                 <p style="font-size: 10px; font-style: italic; margin-bottom: 2px; color: #555;">Thông tin tiếp nhận / Receipt information:</p>
-                                <div class="grid-container">
-                                    <div class="grid-item"><strong>Ngày tiếp nhận</strong> / Receipt date</div>
-                                    <div class="grid-item">${receiptDateStr}</div>
-                                    <div class="grid-item"><strong>Mẫu lưu</strong> / Retention</div>
-                                    <div class="grid-item">${storageInfo}</div>
-                                </div>
-                                <div class="grid-container">
-                                    <div class="grid-item"><strong>Thời gian thử</strong> / Testing time</div>
-                                    <div class="grid-item" style="grid-column: span 3;">${testTime}</div>
-                                </div>
-                                <div class="grid-container">
-                                    <div class="grid-item"><strong>Mô tả mẫu</strong> / Description</div>
-                                    <div class="grid-item" style="grid-column: span 3;">${description}</div>
-                                </div>
-                                <div class="grid-container">
-                                    <div class="grid-item"><strong>Tình trạng mẫu</strong> / Condition</div>
-                                    <div class="grid-item" style="grid-column: span 3;">${condition}</div>
-                                </div>
+                                ${receiptInfoHtml || `<div class="grid-container"><div class="grid-item"><strong>Ngày tiếp nhận</strong></div><div class="grid-item">${receipt.receiptDate ? new Date(receipt.receiptDate).toLocaleDateString("vi-VN") : "--"}</div><div class="grid-item"></div><div class="grid-item"></div></div>`}
                             </div>
                         </div>
 
@@ -345,6 +306,7 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
     const [activeSampleId, setActiveSampleId] = useState(samples[0]?.sampleId ?? "");
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [replacingReportId, setReplacingReportId] = useState<string | null>(null);
+    const [selectedPastReport, setSelectedPastReport] = useState<{ reportId: string, header?: string, content?: string } | null>(null);
     const [reportLanguages, setReportLanguages] = useState<("vie" | "eng")[]>(["vie"]);
     const editorRef = useRef<any>(null);
     const exportMutation = useExportReport();
@@ -372,9 +334,19 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
     // Update editor content when replacement report or sample changes
     useEffect(() => {
         if (selectedSample && editorRef.current) {
-            editorRef.current.setContent(generateSampleResultHtml(selectedSample, activeReceipt, tVi, tEn, replacingReportId, reportLanguages));
+            if (selectedPastReport) {
+                editorRef.current.setContent(`
+                    <style>${CONTENT_STYLE}</style>
+                    <table class="print-wrapper">
+                        <thead><tr><td>${selectedPastReport.header || ""}</td></tr></thead>
+                        <tbody><tr><td>${selectedPastReport.content || ""}</td></tr></tbody>
+                    </table>
+                `);
+            } else {
+                editorRef.current.setContent(generateSampleResultHtml(selectedSample, activeReceipt, tVi, tEn, replacingReportId, reportLanguages));
+            }
         }
-    }, [replacingReportId, selectedSample?.sampleId, activeReceipt, tVi, tEn, reportLanguages]);
+    }, [replacingReportId, selectedSample?.sampleId, activeReceipt, tVi, tEn, reportLanguages, selectedPastReport]);
 
     const extractHtmlParts = (html: string) => {
         const parser = new DOMParser();
@@ -490,7 +462,7 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
         setIsEmailLoading(true);
         try {
             // Find existing report if available
-            const existingReportId = (selectedSample as any)?.reportIds?.[0];
+            const existingReportId = (selectedSample as any)?.reports?.[0]?.reportId || (selectedSample as any)?.reportIds?.[0];
             let reportToAttach = lastGeneratedReport;
             
             if (!reportToAttach && existingReportId) {
@@ -551,6 +523,32 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
         }
     };
 
+    const handleLoadPastReport = async (reportId: string) => {
+        try {
+            const toastId = toast.loading("Đang tải nội dung báo cáo...");
+            const res = await reportApi.getDetail(reportId);
+            const data = res.data || res;
+            if (data) {
+                setSelectedPastReport({
+                    reportId,
+                    header: data.header,
+                    content: data.content,
+                });
+                toast.success("Đã tải dữ liệu báo cáo.", { id: toastId, duration: 1000 });
+            } else {
+                toast.error("Không tìm thấy nội dung báo cáo.", { id: toastId, duration: 1000 });
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Lỗi khi tải báo cáo.", { duration: 1000 });
+        }
+    };
+
+    const handleRefreshEditor = () => {
+        setSelectedPastReport(null);
+        refetch();
+    };
+
     const { data: receiptDocs } = useQuery({
         queryKey: ["documents", "list", { receiptId: receipt.receiptId }],
         queryFn: async () => {
@@ -577,8 +575,8 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
 
     return (
         <>
-            <div className="fixed inset-0 bg-black/60 z-[80]" onClick={() => onOpenChange(false)} />
-            <div className="fixed inset-4 bg-background rounded-lg shadow-2xl z-[80] flex flex-col border border-border overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="fixed inset-0 bg-black/60 z-[1100]" onClick={() => onOpenChange(false)} />
+            <div className="fixed inset-4 bg-background rounded-lg shadow-2xl z-[1101] flex flex-col border border-border overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0 bg-card">
                     <div>
@@ -609,8 +607,9 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                             variant="outline"
                             size="icon"
                             className="h-8 w-8 ml-1"
-                            onClick={() => refetch()}
+                            onClick={handleRefreshEditor}
                             disabled={isFetching}
+                            title="Làm mới trình sửa văn bản (hủy tải mẫu cũ)"
                         >
                             <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
                         </Button>
@@ -687,14 +686,24 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                             </div>
                         </div>
 
-                        {/* Column 2: Editor (Center) */}
                         <div className="flex-1 border-r border-border bg-muted/5 p-4 overflow-hidden flex flex-col min-w-[800px]">
                             {selectedSample && (
                                 <div className="flex-1 bg-background rounded-lg border border-border shadow-sm overflow-hidden relative">
                                     <Editor
                                         tinymceScriptSrc="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js"
                                         onInit={(_evt, editor) => (editorRef.current = editor)}
-                                        initialValue={generateSampleResultHtml(selectedSample, activeReceipt, tVi, tEn, replacingReportId, reportLanguages)}
+                                        initialValue={(() => {
+                                            if (selectedPastReport) {
+                                                return `
+                                                    <style>${CONTENT_STYLE}</style>
+                                                    <table class="print-wrapper">
+                                                        <thead><tr><td>${selectedPastReport.header || ""}</td></tr></thead>
+                                                        <tbody><tr><td>${selectedPastReport.content || ""}</td></tr></tbody>
+                                                    </table>
+                                                `;
+                                            }
+                                            return generateSampleResultHtml(selectedSample, activeReceipt, tVi, tEn, replacingReportId, reportLanguages);
+                                        })()}
                                         init={{
                                             height: "100%",
                                             menubar: false,
@@ -776,7 +785,7 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                                                         <SelectTrigger className="h-8 text-xs bg-background">
                                                             <SelectValue placeholder="Chọn báo cáo để thay thế" />
                                                         </SelectTrigger>
-                                                        <SelectContent className="z-[100]">
+                                                        <SelectContent className="z-[1200]">
                                                             <SelectItem value="none">Không thay thế</SelectItem>
                                                             {(() => {
                                                                 const list = selectedSample.reports
@@ -823,20 +832,35 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                                                     if (list.length === 0) return null;
                                                     return (
                                                         <div className="pt-2 border-t mt-2">
-                                                            <span className="text-[11px] font-semibold mb-1 block">Báo cáo đã xuất:</span>
+                                                            <div className="flex items-center justify-between mb-1">
+                                                                <span className="text-[11px] font-semibold block">Báo cáo đã xuất:</span>
+                                                                {selectedPastReport && (
+                                                                    <Button 
+                                                                        variant="ghost" 
+                                                                        size="sm" 
+                                                                        className="h-6 text-[10px] text-primary px-1 hover:bg-primary/10"
+                                                                        onClick={handleRefreshEditor}
+                                                                    >
+                                                                        <RefreshCw className="h-3 w-3 mr-1" />
+                                                                        Dùng dữ liệu hiện tại
+                                                                    </Button>
+                                                                )}
+                                                            </div>
                                                             <div className="flex flex-col gap-1">
                                                                 {list.map((rid: string) => (
-                                                                    <div key={rid} className="flex items-center justify-between bg-background p-1.5 px-2 rounded border text-[11px]">
-                                                                        <span className="font-medium">{rid}</span>
-                                                                        <Button 
-                                                                            variant="ghost" 
-                                                                            size="icon" 
-                                                                            className="h-6 w-6" 
-                                                                            onClick={() => handlePreviewReport(rid)}
-                                                                            title="Xem báo cáo"
-                                                                        >
-                                                                            <Eye className="h-3 w-3" />
-                                                                        </Button>
+                                                                    <div key={rid} className="flex items-center justify-between bg-background p-1.5 px-2 rounded border text-[11px] group cursor-pointer hover:border-primary/50" onClick={() => handleLoadPastReport(rid)}>
+                                                                        <span className="font-medium group-hover:text-primary transition-colors">{rid}</span>
+                                                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                            <Button 
+                                                                                variant="ghost" 
+                                                                                size="icon" 
+                                                                                className="h-6 w-6" 
+                                                                                onClick={(e) => { e.stopPropagation(); handlePreviewReport(rid); }}
+                                                                                title="Xem trước PDF gốc"
+                                                                            >
+                                                                                <Eye className="h-3 w-3" />
+                                                                            </Button>
+                                                                        </div>
                                                                     </div>
                                                                 ))}
                                                             </div>

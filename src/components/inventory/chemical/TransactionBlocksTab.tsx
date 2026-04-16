@@ -224,24 +224,28 @@ export type EditLineItem = {
     totalWeight?: number;
     analysisId: string;
     chemicalTransactionBlockDetailNote: string;
+    transactionCoaDocumentIds?: string[];
 };
 
 type ItemCardProps = {
     item: EditLineItem;
     transactionType: string;
-    onUpdate: (field: "changeQty" | "chemicalTransactionBlockDetailNote" | "analysisId" | "totalWeight", value: any) => void;
+    onUpdate: (field: "changeQty" | "chemicalTransactionBlockDetailNote" | "analysisId" | "totalWeight" | "transactionCoaDocumentIds", value: any) => void;
     onRemove: () => void;
     onDuplicate: () => void;
+    onUploadCoa: () => void;
 };
 
-function ItemCard({ item, transactionType, onUpdate, onRemove, onDuplicate }: ItemCardProps) {
+function ItemCard({ item, transactionType, onUpdate, onRemove, onDuplicate, onUploadCoa }: ItemCardProps) {
     const { t } = useTranslation();
     const inv = item.inventory;
+    const coaCount = item.transactionCoaDocumentIds?.length || 0;
+
     return (
-        <div className="border border-border rounded-lg p-3 bg-background space-y-2 relative group">
+        <div className="border border-border rounded-lg p-3 bg-background space-y-2 relative group flex flex-col">
             {/* Header */}
             <div className="flex items-start justify-between">
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                     <div className="font-medium text-sm truncate">{inv.chemicalSkuId ?? "Unknown SKU"}</div>
                     <div className="text-[10px] font-mono text-muted-foreground">
                         ID: {inv.chemicalInventoryId} | {t("inventory.chemical.inventories.lotNumber", { defaultValue: "Lô" })}: {inv.lotNumber ?? "-"}
@@ -264,7 +268,8 @@ function ItemCard({ item, transactionType, onUpdate, onRemove, onDuplicate }: It
                     </button>
                 </div>
             </div>
-            {/* Fields */}
+
+            {/* Fields Grid */}
             <div className={`grid gap-2 items-end ${transactionType === "EXPORT" ? "grid-cols-4" : "grid-cols-3"}`}>
                 <div className="space-y-0.5">
                     <label className="text-[10px] font-medium text-muted-foreground uppercase">{t("common.quantity", { defaultValue: "Số lượng" })}</label>
@@ -308,6 +313,44 @@ function ItemCard({ item, transactionType, onUpdate, onRemove, onDuplicate }: It
                     />
                 </div>
             </div>
+
+            {/* COA Upload for Import Case */}
+            {transactionType === "IMPORT" && (
+                <div className="pt-2 border-t border-dashed border-border flex items-center justify-between">
+                    <div className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+                        <FileText className="h-3 w-3" />
+                        <span>{t("inventory.chemical.transactionBlocks.coaDocs", { defaultValue: "Tài liệu COA" })}</span>
+                        {coaCount > 0 && (
+                            <Badge variant="secondary" className="h-4 px-1 text-[9px] rounded-sm bg-primary/10 text-primary border-none">
+                                {coaCount} {t("common.file", { defaultValue: "file" })}
+                            </Badge>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                        {coaCount > 0 && (
+                            <Button 
+                                type="button" 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => onUpdate("transactionCoaDocumentIds", [])}
+                                className="h-6 px-2 text-[9px] text-destructive hover:bg-destructive/10"
+                            >
+                                {t("common.clear", { defaultValue: "Xóa" })}
+                            </Button>
+                        )}
+                        <Button 
+                            type="button" 
+                            variant="secondary" 
+                            size="sm" 
+                            onClick={onUploadCoa} 
+                            className="h-6 px-2 text-[9px] flex items-center gap-1"
+                        >
+                            <Upload className="h-2.5 w-2.5" />
+                            {coaCount > 0 ? t("common.add", { defaultValue: "Thêm" }) : t("common.upload", { defaultValue: "Tải COA" })}
+                        </Button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -352,6 +395,9 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
     const [pickerOpen, setPickerOpen] = useState(false);
     const [printLabelOpen, setPrintLabelOpen] = useState(false);
     const [isScanning, setIsScanning] = useState(false);
+
+    // Individual item COA upload
+    const [uploadingCoaItemId, setUploadingCoaItemId] = useState<string | null>(null);
 
     const summaryItems = useMemo(() => {
         const map = new Map<string, { inventory: ChemicalInventory; totalQty: number; analyses: Set<string> }>();
@@ -469,19 +515,37 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
             },
             chemicalTransactions: lineItems.map((item) => {
                 const inv = item.inventory;
+                // Ưu tiên snapshot trên inventory, fallback sang nested chemicalSku
+                const chemicalName =
+                    inv.chemicalName ||
+                    (inv as any).chemicalSku?.chemicalName ||
+                    "";
+                const casNumber =
+                    inv.chemicalCasNumber ||
+                    (inv as any).chemicalSku?.chemicalCasNumber ||
+                    (inv as any).chemicalSku?.chemicalCASNumber ||
+                    "";
+                const unit =
+                    (inv as any).chemicalBaseUnit ||
+                    (inv as any).unit ||
+                    (inv as any).chemicalSku?.chemicalBaseUnit ||
+                    (inv as any).chemicalSku?.unit ||
+                    "";
                 return {
                     chemicalInventoryId: inv.chemicalInventoryId,
                     chemicalSkuId: inv.chemicalSkuId,
-                    chemicalName: (inv as any).chemicalSku?.chemicalName || "",
-                    casNumber: (inv as any).chemicalSku?.chemicalCASNumber || "",
+                    chemicalName,
+                    casNumber,
+                    lotNumber: inv.lotNumber || "",
                     changeQty: transactionType === "EXPORT" ? -Math.abs(item.changeQty || 0) : transactionType === "IMPORT" ? Math.abs(item.changeQty || 0) : item.changeQty || 0,
                     totalWeight: item.totalWeight ? Number(item.totalWeight) : undefined,
                     chemicalTransactionNote: item.chemicalTransactionBlockDetailNote || "",
                     chemicalTransactionBlockDetailNote: item.chemicalTransactionBlockDetailNote || "",
                     analysisId: item.analysisId || "",
-                    chemicalTransactionUnit: (inv as any).chemicalSku?.chemicalBaseUnit || "",
-                    chemicalTransactionBlockDetailUnit: (inv as any).chemicalSku?.chemicalBaseUnit || "",
+                    chemicalTransactionUnit: unit,
+                    chemicalTransactionBlockDetailUnit: unit,
                     transactionType: transactionType,
+                    transactionCoaDocumentIds: item.transactionCoaDocumentIds,
                 };
             }),
         };
@@ -666,7 +730,7 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
 
                             {lineItems.length > 0 ? (
                                 viewMode === "DETAILS" ? (
-                                    <div className="grid grid-cols-1 2xl:grid-cols-2 gap-3 max-h-[calc(100vh-380px)] overflow-y-auto pr-1">
+                                    <div className={`grid gap-4 ${lineItems.length > 2 ? "grid-cols-2" : "grid-cols-1"}`}>
                                         {lineItems.map((item) => (
                                             <ItemCard
                                                 key={item.id}
@@ -675,6 +739,7 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                                                 onUpdate={(field, value) => updateLineItem(item.id, field, value)}
                                                 onRemove={() => removeLineItem(item.id)}
                                                 onDuplicate={() => duplicateItem(item.id)}
+                                                onUploadCoa={() => setUploadingCoaItemId(item.id)}
                                             />
                                         ))}
                                     </div>
@@ -771,6 +836,20 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                         const newItem = { id: newId, label: doc.documentTitle || newId, sublabel: newId };
                         setCoaDocumentIds(prev => [...prev, newId]);
                         setSelectedCoaDocs(prev => [...prev, newItem]);
+                    }
+                }}
+            />
+
+            <DocumentUploadModal
+                open={Boolean(uploadingCoaItemId)}
+                onClose={() => setUploadingCoaItemId(null)}
+                fixedDocumentType="CHEMICAL_COA"
+                onSuccess={(doc) => {
+                    if (doc?.documentId && uploadingCoaItemId) {
+                        const currentItem = lineItems.find(i => i.id === uploadingCoaItemId);
+                        const existingIds = currentItem?.transactionCoaDocumentIds || [];
+                        updateLineItem(uploadingCoaItemId, "transactionCoaDocumentIds", [...existingIds, doc.documentId]);
+                        setUploadingCoaItemId(null);
                     }
                 }}
             />
