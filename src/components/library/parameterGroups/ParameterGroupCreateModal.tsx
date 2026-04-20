@@ -8,23 +8,32 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 
-import { useCreateParameterGroupFull, useSampleTypesList, useMatricesList, type SampleType, type Matrix } from "@/api/library";
+import {
+    useCreateParameterGroup,
+    useUpdateParameterGroup,
+    useSampleTypesList,
+    useSampleTypeFull,
+    useMatricesList,
+    useParameterGroupFull,
+    type SampleType,
+    type Matrix,
+    type ParameterGroup,
+} from "@/api/library";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 
 type Props = {
     onClose: () => void;
+    group?: ParameterGroup | null;
 };
 
 type FormState = {
     groupName: string;
     sampleTypeId: string;
     matrixIds: string[];
+    matrices: Matrix[];
     groupNote: string;
-
-    feeBeforeTaxAndDiscount: string;
     discountRate: string;
-    feeBeforeTax: string;
     taxRate: string;
-    feeAfterTax: string;
 };
 
 type MultiSelectOption = {
@@ -55,10 +64,18 @@ function MultiSelectChips(props: {
     unselectAllLabel: string;
 
     disabled?: boolean;
+    onSearchChange?: (val: string) => void;
+    isLoading?: boolean;
 }) {
-    const { value, options, onChange, label, placeholder, searchPlaceholder, unselectAllLabel, disabled } = props;
+    const { t } = useTranslation();
+    const { value, options, onChange, label, placeholder, searchPlaceholder, unselectAllLabel, disabled, onSearchChange, isLoading } = props;
 
     const [open, setOpen] = useState(false);
+    const [search, setSearch] = useState("");
+
+    useEffect(() => {
+        onSearchChange?.(search);
+    }, [search, onSearchChange]);
 
     const optionsByValue = useMemo(() => {
         const map = new Map<string, MultiSelectOption>();
@@ -97,16 +114,16 @@ function MultiSelectChips(props: {
                                             <Badge
                                                 key={o.value}
                                                 variant="secondary"
-                                                className="gap-1"
+                                                className="gap-1 px-2 py-0.5"
                                                 onClick={(e) => {
                                                     e.preventDefault();
                                                     e.stopPropagation();
                                                 }}
                                             >
-                                                <span className="max-w-fit truncate">{o.label}</span>
+                                                <span className="max-w-[200px] truncate">{o.label}</span>
                                                 <button
                                                     type="button"
-                                                    className="ml-1 inline-flex items-center"
+                                                    className="ml-1 hover:text-destructive transition-colors shrink-0"
                                                     onClick={(e) => {
                                                         e.preventDefault();
                                                         e.stopPropagation();
@@ -114,7 +131,7 @@ function MultiSelectChips(props: {
                                                     }}
                                                     aria-label={unselectAllLabel}
                                                 >
-                                                    <X className="h-3.5 w-3.5" />
+                                                    <X className="h-3 w-3" />
                                                 </button>
                                             </Badge>
                                         ))}
@@ -122,7 +139,7 @@ function MultiSelectChips(props: {
                                 )}
                             </div>
 
-                            <div className="flex items-center gap-2 text-muted-foreground">
+                            <div className="flex items-center gap-2 text-muted-foreground pt-0.5">
                                 <Search className="h-4 w-4" />
                                 <ChevronDown className="h-4 w-4" />
                             </div>
@@ -131,20 +148,22 @@ function MultiSelectChips(props: {
                 </PopoverTrigger>
 
                 <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
-                    <Command>
+                    <Command shouldFilter={!onSearchChange}>
                         <div className="border-b border-border">
-                            <CommandInput placeholder={searchPlaceholder} />
+                            <CommandInput placeholder={searchPlaceholder} value={search} onValueChange={setSearch} />
                         </div>
 
                         <CommandGroup>
                             <div className="max-h-64 overflow-auto">
+                                {isLoading && <div className="p-4 text-center text-sm text-muted-foreground">{String(t("common.loading"))}</div>}
+                                {!isLoading && options.length === 0 && <div className="p-4 text-center text-sm text-muted-foreground">{String(t("common.noData"))}</div>}
                                 {options.map((o) => {
                                     const checked = value.includes(o.value);
                                     return (
                                         <CommandItem key={o.value} value={`${o.label} ${o.subLabel ?? ""} ${o.value}`} onSelect={() => toggle(o.value)}>
-                                            <div className="flex w-full items-start justify-between gap-3">
+                                            <div className="flex w-full items-start justify-between gap-3 p-1">
                                                 <div className="min-w-0">
-                                                    <div className="text-sm text-foreground truncate">{o.label}</div>
+                                                    <div className="text-sm font-medium text-foreground truncate">{o.label}</div>
                                                     {o.subLabel ? <div className="text-xs text-muted-foreground truncate">{o.subLabel}</div> : null}
                                                 </div>
 
@@ -162,111 +181,252 @@ function MultiSelectChips(props: {
     );
 }
 
-export function ParameterGroupCreateModal(props: Props) {
+function SampleTypeSearchSelect(props: { value: string; onChange: (value: string) => void; label: string; placeholder: string }) {
     const { t } = useTranslation();
-    const { onClose } = props;
+    const { value, onChange, label, placeholder } = props;
 
-    const create = useCreateParameterGroupFull();
+    const [open, setOpen] = useState(false);
+    const [search, setSearch] = useState("");
+    const debouncedSearch = useDebouncedValue(search, 300);
+
+    const q = useSampleTypesList(
+        {
+            query: {
+                page: 1,
+                itemsPerPage: 50,
+                search: debouncedSearch.trim() || undefined,
+            },
+        },
+        { enabled: open },
+    );
+
+    const qSelected = useSampleTypeFull(value);
+
+    const options = (q.data?.data ?? []) as SampleType[];
+    const selectedFromList = options.find((st) => st.sampleTypeId === value);
+    const selected = (selectedFromList || qSelected.data) as SampleType | undefined;
+
+    return (
+        <div className="space-y-2">
+            <div className="text-sm font-medium text-foreground">{label}</div>
+
+            <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                    <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between font-normal">
+                        <span className="truncate">{value ? selected?.sampleTypeName || value : placeholder}</span>
+                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
+                    <Command shouldFilter={false}>
+                        <div className="flex items-center border-b px-3">
+                            <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                            <input
+                                className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                                placeholder={String(t("common.search"))}
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                            />
+                        </div>
+
+                        <CommandGroup>
+                            <div className="max-h-64 overflow-auto">
+                                {q.isLoading ? (
+                                    <div className="p-4 text-center text-sm text-muted-foreground">{String(t("common.loading"))}</div>
+                                ) : options.length === 0 ? (
+                                    <div className="p-4 text-center text-sm text-muted-foreground">{String(t("common.noData"))}</div>
+                                ) : (
+                                    options.map((st) => (
+                                        <CommandItem
+                                            key={st.sampleTypeId}
+                                            value={st.sampleTypeId}
+                                            onSelect={() => {
+                                                onChange(st.sampleTypeId);
+                                                setOpen(false);
+                                            }}
+                                        >
+                                            <div className="flex items-center justify-between w-full">
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm">{st.sampleTypeName}</span>
+                                                    <span className="text-xs text-muted-foreground">{st.sampleTypeId}</span>
+                                                </div>
+                                                {value === st.sampleTypeId && <Check className="h-4 w-4 text-primary" />}
+                                            </div>
+                                        </CommandItem>
+                                    ))
+                                )}
+                            </div>
+                        </CommandGroup>
+                    </Command>
+                </PopoverContent>
+            </Popover>
+        </div>
+    );
+}
+
+export function ParameterGroupCreateModal(props: Props) {
+    const { t, i18n } = useTranslation();
+    const { onClose, group } = props;
+    const isEdit = Boolean(group?.groupId);
+    const locale = i18n.language;
+
+    const create = useCreateParameterGroup();
+    const update = useUpdateParameterGroup();
+
+    const [form, setForm] = useState<FormState>({
+        groupName: group?.groupName ?? "",
+        sampleTypeId: group?.sampleTypeId ?? "",
+        matrixIds: group?.matrixIds ?? [],
+        matrices: [],
+        groupNote: group?.groupNote ?? "",
+        discountRate: String(group?.discountRate ?? "0"),
+        taxRate: String(group?.taxRate ?? "0"),
+    });
+
+    const [matrixSearch, setMatrixSearch] = useState("");
+    const debouncedMatrixSearch = useDebouncedValue(matrixSearch, 300);
+
+    const qSelectedSampleType = useSampleTypeFull(form.sampleTypeId);
+    const selectedSampleTypeName = (qSelectedSampleType.data as any)?.sampleTypeName;
 
     const listInput = useMemo(
         () => ({
-            query: { page: 1, itemsPerPage: 2000, search: null },
+            query: {
+                page: 1,
+                itemsPerPage: 50,
+                search: debouncedMatrixSearch.trim() || undefined,
+                sampleTypeName: selectedSampleTypeName ? [selectedSampleTypeName] : undefined,
+            },
             sort: { column: "createdAt", direction: "DESC" as const },
         }),
-        [],
+        [debouncedMatrixSearch, selectedSampleTypeName],
     );
 
-    const sampleTypesQ = useSampleTypesList(listInput);
     const matricesQ = useMatricesList(listInput);
+    const searchResultMatrices = (matricesQ.data?.data ?? []) as Matrix[];
 
-    const sampleTypes = (sampleTypesQ.data?.data ?? []) as SampleType[];
-    const matrices = (matricesQ.data?.data ?? []) as Matrix[];
-
-    const [form, setForm] = useState<FormState>({
-        groupName: "",
-        sampleTypeId: "",
-        matrixIds: [],
-        groupNote: "",
-
-        feeBeforeTaxAndDiscount: "0",
-        discountRate: "0",
-        feeBeforeTax: "0",
-        taxRate: "0",
-        feeAfterTax: "0",
+    // Tải chi tiết gói (bao gồm snapshot matrices) khi edit
+    const fullQ = useParameterGroupFull(group?.groupId ?? "", {
+        enabled: Boolean(isEdit && group?.groupId),
     });
 
-    const matrixSampleTypeMap = useMemo(() => {
-        const map = new Map<string, string>();
-        for (const m of matrices) map.set(m.matrixId, m.sampleTypeId);
-        return map;
-    }, [matrices]);
+    useEffect(() => {
+        const full = fullQ.data as any;
+        if (full?.matrices) {
+            setForm((s) => ({
+                ...s,
+                matrixIds: full.matrixIds || s.matrixIds,
+                matrices: full.matrices,
+            }));
+        }
+    }, [fullQ.data]);
 
     useEffect(() => {
         if (!form.sampleTypeId) return;
 
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setForm((s) => {
             if (s.matrixIds.length === 0) return s;
+            const nextMatrices = s.matrices.filter((m) => m.sampleTypeId === s.sampleTypeId);
+            const nextIds = nextMatrices.map((m) => m.matrixId);
 
-            const next = s.matrixIds.filter((id) => matrixSampleTypeMap.get(id) === s.sampleTypeId);
-
-            if (next.length === s.matrixIds.length) return s;
-            return { ...s, matrixIds: next };
+            if (nextIds.length === s.matrixIds.length) return s;
+            return { ...s, matrixIds: nextIds, matrices: nextMatrices };
         });
-    }, [form.sampleTypeId, matrixSampleTypeMap]);
+    }, [form.sampleTypeId]);
 
     const matrixOptions = useMemo<MultiSelectOption[]>(() => {
-        const source = form.sampleTypeId ? matrices.filter((m) => m.sampleTypeId === form.sampleTypeId) : matrices;
+        // Gộp kết quả tìm kiếm và các ma trận đã chọn để hiển thị label
+        const combined = [...searchResultMatrices];
+        const combinedIds = new Set(combined.map((x) => x.matrixId));
+        for (const m of form.matrices) {
+            if (!combinedIds.has(m.matrixId)) combined.push(m);
+        }
 
-        return source.map((m) => ({
+        return combined.map((m) => ({
             value: m.matrixId,
-            label: `${m.matrixId} — ${m.parameterName ?? String(t("common.noData", { defaultValue: "Chưa có dữ liệu" }))}`,
-            subLabel: `${m.sampleTypeName ?? m.sampleTypeId} — ${m.protocolCode ?? String(t("common.noData", { defaultValue: "Chưa có dữ liệu" }))}`,
+            label: `${m.matrixId} — ${m.parameterName ?? String(t("common.noData"))}`,
+            subLabel: `${m.sampleTypeName ?? m.sampleTypeId} — ${m.protocolCode ?? String(t("common.noData"))}`,
         }));
-    }, [matrices, form.sampleTypeId, t]);
+    }, [searchResultMatrices, form.matrices, t]);
+
+    const onMatricesChange = (nextIds: string[]) => {
+        setForm((s) => {
+            const addedIds = nextIds.filter((id) => !s.matrixIds.includes(id));
+            const removedIds = s.matrixIds.filter((id) => !nextIds.includes(id));
+
+            let nextMatrices = [...s.matrices];
+
+            if (addedIds.length > 0) {
+                const added = searchResultMatrices.filter((m) => addedIds.includes(m.matrixId));
+                // Tránh trùng lặp nếu somehow nó đã có trong nextMatrices
+                const existingIds = new Set(nextMatrices.map((m) => m.matrixId));
+                const uniqueAdded = added.filter((m) => !existingIds.has(m.matrixId));
+                nextMatrices = [...nextMatrices, ...uniqueAdded];
+            }
+
+            if (removedIds.length > 0) {
+                nextMatrices = nextMatrices.filter((m) => !removedIds.includes(m.matrixId));
+            }
+
+            // Đảm bảo thứ tự theo nextIds nếu cần, nhưng quan trọng là đủ dữ liệu
+            return { ...s, matrixIds: nextIds, matrices: nextMatrices };
+        });
+    };
+
+    const selectedMatrices = form.matrices;
+
+    const totalRawFee = useMemo(() => {
+        return selectedMatrices.reduce((acc, m) => acc + Number(m.feeBeforeTax || 0), 0);
+    }, [selectedMatrices]);
+
+    const discountValue = (totalRawFee * Number(form.discountRate)) / 100;
+    const feeBeforeTax = totalRawFee - discountValue;
+    const taxValue = (feeBeforeTax * Number(form.taxRate)) / 100;
+    const feeAfterTax = feeBeforeTax + taxValue;
+
     const submit = async () => {
         const groupName = form.groupName.trim();
         const sampleTypeId = form.sampleTypeId.trim();
         if (!groupName || !sampleTypeId) return;
         if (form.matrixIds.length === 0) return;
 
-        const feeBeforeTaxAndDiscount = parseFiniteNumber(form.feeBeforeTaxAndDiscount);
-        const discountRate = parseFiniteNumber(form.discountRate);
-        const feeBeforeTax = parseFiniteNumber(form.feeBeforeTax);
-        const taxRate = parseFiniteNumber(form.taxRate);
-        const feeAfterTax = parseFiniteNumber(form.feeAfterTax);
+        const discountRate = parseFiniteNumber(form.discountRate) ?? 0;
+        const taxRate = parseFiniteNumber(form.taxRate) ?? 0;
 
-        if (feeBeforeTaxAndDiscount === null || discountRate === null || feeBeforeTax === null || taxRate === null || feeAfterTax === null) {
-            return;
+        const body = {
+            groupName,
+            sampleTypeId,
+            sampleTypeName: selectedSampleTypeName,
+            matrixIds: form.matrixIds,
+            groupNote: form.groupNote.trim().length ? form.groupNote.trim() : undefined,
+            discountRate,
+            taxRate,
+        };
+
+        if (isEdit && group?.groupId) {
+            await update.mutateAsync({
+                body: {
+                    groupId: group.groupId,
+                    ...body,
+                },
+            });
+        } else {
+            await create.mutateAsync({
+                body,
+            });
         }
-
-        const st = sampleTypes.find((x) => x.sampleTypeId === sampleTypeId);
-
-        await create.mutateAsync({
-            body: {
-                groupName,
-                sampleTypeId,
-                sampleTypeName: st?.sampleTypeName,
-                matrixIds: form.matrixIds,
-                groupNote: form.groupNote.trim().length ? form.groupNote.trim() : null,
-                feeBeforeTaxAndDiscount,
-                discountRate,
-                feeBeforeTax,
-                taxRate,
-                feeAfterTax,
-            },
-        });
 
         onClose();
     };
 
-    const canSubmit = form.groupName.trim().length > 0 && form.sampleTypeId.trim().length > 0 && form.matrixIds.length > 0 && !create.isPending;
+    const isPending = create.isPending || update.isPending;
+    const canSubmit = form.groupName.trim().length > 0 && form.sampleTypeId.trim().length > 0 && form.matrixIds.length > 0 && !isPending;
 
     return (
         <div className="fixed inset-0 bg-foreground/50 flex items-center justify-center z-50 p-4">
             <div className="bg-background rounded-lg border border-border w-full max-w-3xl shadow-xl">
                 <div className="px-5 py-4 border-b border-border flex items-center justify-between">
-                    <div className="text-base font-semibold text-foreground">{String(t("library.parameterGroups.create.title"))}</div>
+                    <div className="text-base font-semibold text-foreground">{isEdit ? t("library.parameterGroups.edit.title") : t("library.parameterGroups.create.title")}</div>
                     <Button variant="ghost" size="sm" onClick={onClose} type="button">
                         {String(t("common.close"))}
                     </Button>
@@ -283,38 +443,20 @@ export function ParameterGroupCreateModal(props: Props) {
                             />
                         </div>
 
-                        <div className="space-y-2 min-w-0">
-                            <div className="text-sm font-medium text-foreground">{String(t("library.parameterGroups.create.sampleType"))}</div>
-
-                            <select
-                                value={form.sampleTypeId}
-                                onChange={(e) => setForm((s) => ({ ...s, sampleTypeId: e.target.value }))}
-                                className={[
-                                    "w-full min-w-0 max-w-full",
-                                    "px-3 py-2 border rounded-lg text-sm",
-                                    "bg-background text-foreground border-border",
-                                    "focus:outline-none focus:ring-2 focus:ring-ring",
-                                    "overflow-hidden text-ellipsis whitespace-nowrap",
-                                ].join(" ")}
-                                title={sampleTypes.find((x) => x.sampleTypeId === form.sampleTypeId)?.sampleTypeName ?? ""}
-                            >
-                                <option value="">{String(t("common.select"))}</option>
-                                {sampleTypes.map((st) => (
-                                    <option key={st.sampleTypeId} value={st.sampleTypeId}>
-                                        {st.sampleTypeName}
-                                    </option>
-                                ))}
-                            </select>
-
-                            {sampleTypesQ.isLoading ? <div className="text-xs text-muted-foreground">{String(t("common.loading"))}</div> : null}
-                            {sampleTypesQ.isError ? <div className="text-xs text-destructive">{String(t("library.parameterGroups.create.sampleTypesLoadError"))}</div> : null}
-                        </div>
+                        <SampleTypeSearchSelect
+                            value={form.sampleTypeId}
+                            onChange={(v) => setForm((s) => ({ ...s, sampleTypeId: v }))}
+                            label={String(t("library.parameterGroups.create.sampleType"))}
+                            placeholder={String(t("common.select"))}
+                        />
                     </div>
                     <MultiSelectChips
                         value={form.matrixIds}
                         options={matrixOptions}
-                        onChange={(next) => setForm((s) => ({ ...s, matrixIds: next }))}
-                        disabled={matricesQ.isLoading || matricesQ.isError}
+                        onChange={onMatricesChange}
+                        onSearchChange={setMatrixSearch}
+                        isLoading={matricesQ.isLoading}
+                        disabled={matricesQ.isError}
                         label={String(t("library.parameterGroups.create.matrices"))}
                         placeholder={String(t("library.parameterGroups.create.matricesPlaceholder"))}
                         searchPlaceholder={String(t("library.parameterGroups.create.matricesSearchPlaceholder"))}
@@ -322,38 +464,25 @@ export function ParameterGroupCreateModal(props: Props) {
                         unselectAllLabel={""}
                     />
 
-                    <div className="grid grid-cols-5 gap-3">
+                    <div className="grid grid-cols-4 gap-3 bg-muted/30 p-3 rounded-lg">
                         <div className="space-y-1">
-                            <div className="text-xs text-muted-foreground">{String(t("library.parameterGroups.create.feeBeforeTaxAndDiscount"))}</div>
-                            <Input
-                                value={form.feeBeforeTaxAndDiscount}
-                                onChange={(e) =>
-                                    setForm((s) => ({
-                                        ...s,
-                                        feeBeforeTaxAndDiscount: e.target.value,
-                                    }))
-                                }
-                            />
+                            <div className="text-[10px] uppercase font-semibold text-muted-foreground">{String(t("library.parameterGroups.create.feeBeforeTaxAndDiscount"))}</div>
+                            <div className="text-sm font-medium tabular-nums">{new Intl.NumberFormat(locale, { style: "currency", currency: "VND" }).format(totalRawFee)}</div>
                         </div>
 
                         <div className="space-y-1">
-                            <div className="text-xs text-muted-foreground">{String(t("library.parameterGroups.create.discountRate"))}</div>
-                            <Input value={form.discountRate} onChange={(e) => setForm((s) => ({ ...s, discountRate: e.target.value }))} />
+                            <div className="text-[10px] uppercase font-semibold text-muted-foreground">{String(t("library.parameterGroups.create.discountRate"))} (%)</div>
+                            <Input value={form.discountRate} onChange={(e) => setForm((s) => ({ ...s, discountRate: e.target.value }))} className="h-8 text-sm" type="number" min="0" max="100" />
                         </div>
 
                         <div className="space-y-1">
-                            <div className="text-xs text-muted-foreground">{String(t("library.parameterGroups.create.feeBeforeTax"))}</div>
-                            <Input value={form.feeBeforeTax} onChange={(e) => setForm((s) => ({ ...s, feeBeforeTax: e.target.value }))} />
+                            <div className="text-[10px] uppercase font-semibold text-muted-foreground">{String(t("library.parameterGroups.create.taxRate"))} (%)</div>
+                            <Input value={form.taxRate} onChange={(e) => setForm((s) => ({ ...s, taxRate: e.target.value }))} className="h-8 text-sm" type="number" min="0" />
                         </div>
 
                         <div className="space-y-1">
-                            <div className="text-xs text-muted-foreground">{String(t("library.parameterGroups.create.taxRate"))}</div>
-                            <Input value={form.taxRate} onChange={(e) => setForm((s) => ({ ...s, taxRate: e.target.value }))} />
-                        </div>
-
-                        <div className="space-y-1">
-                            <div className="text-xs text-muted-foreground">{String(t("library.parameterGroups.create.feeAfterTax"))}</div>
-                            <Input value={form.feeAfterTax} onChange={(e) => setForm((s) => ({ ...s, feeAfterTax: e.target.value }))} />
+                            <div className="text-[10px] uppercase font-semibold text-muted-foreground">{String(t("library.parameterGroups.create.feeAfterTax"))} (Est.)</div>
+                            <div className="text-sm font-bold text-primary tabular-nums">{new Intl.NumberFormat(locale, { style: "currency", currency: "VND" }).format(feeAfterTax)}</div>
                         </div>
                     </div>
 
@@ -371,11 +500,11 @@ export function ParameterGroupCreateModal(props: Props) {
                             {String(t("common.cancel"))}
                         </Button>
                         <Button onClick={() => void submit()} disabled={!canSubmit} type="button">
-                            {create.isPending ? String(t("common.saving", { defaultValue: "Đang lưu..." })) : String(t("common.save", { defaultValue: "Lưu" }))}
+                            {isPending ? String(t("common.saving", { defaultValue: "Đang lưu..." })) : String(t("common.save", { defaultValue: "Lưu" }))}
                         </Button>
                     </div>
 
-                    {create.isError ? <div className="text-sm text-destructive">{String(t("library.parameterGroups.create.error"))}</div> : null}
+                    {create.isError || update.isError ? <div className="text-sm text-destructive">{String(t("library.parameterGroups.create.error"))}</div> : null}
                 </div>
             </div>
         </div>

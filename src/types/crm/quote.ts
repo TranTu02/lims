@@ -1,108 +1,109 @@
 import type { EntityInfo, MaybeMoney, MaybeNumber } from "../common";
 
 export type QuoteClientInfo = {
-  taxCode: string | null;
-  taxName: string | null;
-  taxAddress: string | null;
-  [key: string]: unknown;
+    taxCode: string | null;
+    taxName: string | null;
+    taxAddress: string | null;
+    [key: string]: unknown;
 };
 
 export type QuoteContactPerson = {
-  contactName: string | null;
-  contactEmail: string | null;
-  contactPhone: string | null;
-  contactPosition: string | null;
-  [key: string]: unknown;
+    contactName: string | null;
+    contactEmail: string | null;
+    contactPhone: string | null;
+    contactPosition: string | null;
+    [key: string]: unknown;
 };
 
 export type QuoteSalePerson = Record<string, unknown>;
 
 export type QuoteBase = {
-  entity: EntityInfo;
+    entity: EntityInfo;
 
-  quoteId: string;
+    quoteId: string;
 
-  clientId: string | null;
+    clientId: string | null;
 
-  createdAt: string;
-  createdById: string | null;
+    createdAt: string;
+    createdById: string | null;
 
-  modifiedAt: string;
-  modifiedById: string | null;
+    modifiedAt: string;
+    modifiedById: string | null;
 
-  deletedAt: string | null;
+    deletedAt: string | null;
 };
 
 export type QuoteDetail = QuoteBase & {
-  quoteCode: string | null;
+    quoteCode: string | null;
 
-  client: QuoteClientInfo | null;
+    client: QuoteClientInfo | null;
 
-  salePersonId: string | null;
-  salePerson: QuoteSalePerson | null;
+    salePersonId: string | null;
+    salePerson: QuoteSalePerson | null;
+    quoteScope?: string | null;
 
-  contactPerson: QuoteContactPerson | null;
+    contactPerson: QuoteContactPerson | null;
 
-  samples: unknown[] | null;
+    samples: unknown[] | null;
 
-  totalFeeBeforeTax: MaybeMoney;
-  totalFeeBeforeTaxAndDiscount: MaybeMoney;
-  totalTaxValue: MaybeMoney;
-  totalDiscountValue: MaybeMoney;
+    totalFeeBeforeTax: MaybeMoney;
+    totalFeeBeforeTaxAndDiscount: MaybeMoney;
+    totalTaxValue: MaybeMoney;
+    totalDiscountValue: MaybeMoney;
 
-  taxRate: MaybeNumber;
-  discount: MaybeNumber;
+    taxRate: MaybeNumber;
+    discount: MaybeNumber;
 
-  totalAmount: MaybeMoney;
+    totalAmount: MaybeMoney;
 
-  quoteStatus: string | null;
+    quoteStatus: string | null;
 };
 
 export type QuoteListItem = QuoteDetail & {
-  total_count: string;
+    total_count: string;
 };
 
 export type QuoteUpsertFields = {
-  quoteCode?: string | null;
+    quoteCode?: string | null;
 
-  clientId?: string | null;
-  client?: QuoteClientInfo | null;
+    clientId?: string | null;
+    client?: QuoteClientInfo | null;
 
-  salePersonId?: string | null;
-  salePerson?: QuoteSalePerson | null;
+    salePersonId?: string | null;
+    salePerson?: QuoteSalePerson | null;
+    quoteScope?: string | null;
 
-  contactPerson?: QuoteContactPerson | null;
+    contactPerson?: QuoteContactPerson | null;
 
-  samples?: unknown[] | null;
+    samples?: unknown[] | null;
 
-  totalFeeBeforeTax?: MaybeMoney;
-  totalFeeBeforeTaxAndDiscount?: MaybeMoney;
-  totalTaxValue?: MaybeMoney;
-  totalDiscountValue?: MaybeMoney;
+    totalFeeBeforeTax?: MaybeMoney;
+    totalFeeBeforeTaxAndDiscount?: MaybeMoney;
+    totalTaxValue?: MaybeMoney;
+    totalDiscountValue?: MaybeMoney;
 
-  taxRate?: MaybeNumber;
-  discount?: MaybeNumber;
+    taxRate?: MaybeNumber;
+    discount?: MaybeNumber;
 
-  totalAmount?: MaybeMoney;
-  quoteStatus?: string | null;
+    totalAmount?: MaybeMoney;
+    quoteStatus?: string | null;
 
-  createdAt?: string;
-  createdById?: string | null;
-  modifiedAt?: string;
-  modifiedById?: string | null;
-  deletedAt?: string | null;
+    createdAt?: string;
+    createdById?: string | null;
+    modifiedAt?: string;
+    modifiedById?: string | null;
+    deletedAt?: string | null;
 };
 
 export type QuotesCreateBody = {
-  entity: EntityInfo;
+    entity: EntityInfo;
 
-  quoteId: string;
+    quoteId: string;
 } & QuoteUpsertFields;
 
-
 export type QuotesUpdateBody = {
-  entity: EntityInfo;
-  quoteId: string;
+    entity: EntityInfo;
+    quoteId: string;
 } & QuoteUpsertFields;
 
 export type QuoteFormFields = QuoteUpsertFields;

@@ -11,6 +11,7 @@ import type { ChemicalTransaction } from "@/types/chemical";
 import { TransactionDetailPanel } from "./TransactionDetailPanel";
 import { Pagination } from "@/components/ui/pagination";
 import { ChemicalTransactionReportEditor } from "./ChemicalTransactionReportEditor";
+import { HelpBubble } from "./HelpBubble";
 
 function TransactionTypeBadge({ type }: { type?: string | null }) {
     const { t } = useTranslation();
@@ -88,13 +89,13 @@ export function TransactionsTab() {
                             {t("common.search", { defaultValue: "Tìm kiếm" })}
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => refetch()} title={String(t("common.refresh", { defaultValue: "Tải lại" }))}>
-                            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
                         </Button>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button 
-                            variant="default" 
-                            size="sm" 
+                        <Button
+                            variant="default"
+                            size="sm"
                             onClick={() => setIsReportOpen(true)}
                             disabled={isLoading || !result?.data || (result?.data as any[]).length === 0}
                             className="h-8 px-3 shadow-sm active:scale-95 transition-all"
@@ -159,12 +160,16 @@ export function TransactionsTab() {
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                                         {t("inventory.chemical.transactions.chemicalInventoryId", { defaultValue: "Mã lọ/chai" })}
                                     </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.transactions.lotNumber", { defaultValue: "Số lô" })}
+                                    </th>
                                     <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground whitespace-nowrap">
                                         {t("inventory.chemical.transactions.changeQty", { defaultValue: "Số lượng" })}
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                                         {t("inventory.chemical.transactions.unit", { defaultValue: "Đơn vị" })}
                                     </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">Analysis ID</th>
                                     <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground whitespace-nowrap">
                                         {t("inventory.chemical.transactions.totalWeight", { defaultValue: "Khối lượng cả bì" })}
                                     </th>
@@ -177,7 +182,7 @@ export function TransactionsTab() {
                                 {isLoading ? (
                                     Array.from({ length: 8 }).map((_, i) => (
                                         <tr key={i}>
-                                            {Array.from({ length: 13 }).map((__, j) => (
+                                            {Array.from({ length: 15 }).map((__, j) => (
                                                 <td key={j} className="p-3">
                                                     <Skeleton className="h-4 w-16" />
                                                 </td>
@@ -186,7 +191,7 @@ export function TransactionsTab() {
                                     ))
                                 ) : (result?.data as any[])?.length === 0 ? (
                                     <tr>
-                                        <td colSpan={13} className="p-8 text-center text-muted-foreground">
+                                        <td colSpan={15} className="p-8 text-center text-muted-foreground">
                                             {t("common.noData", { defaultValue: "Không có dữ liệu" })}
                                         </td>
                                     </tr>
@@ -216,12 +221,15 @@ export function TransactionsTab() {
                                             <td className="px-3 py-2 whitespace-nowrap font-medium">{txn.chemicalName ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{txn.chemicalCasNumber ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap font-mono text-xs">{txn.chemicalInventoryId ?? "-"}</td>
+                                            <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{txn.lotNumber ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap text-right">
                                                 <div className={`font-bold ${txn.changeQty > 0 ? "text-success" : txn.changeQty < 0 ? "text-destructive" : ""}`}>
-                                                    {txn.changeQty > 0 ? "+" : ""}{txn.changeQty}
+                                                    {txn.changeQty > 0 ? "+" : ""}
+                                                    {txn.changeQty}
                                                 </div>
                                             </td>
                                             <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{txn.chemicalTransactionUnit || (txn as any).unit || "-"}</td>
+                                            <td className="px-3 py-2 whitespace-nowrap font-mono text-xs text-muted-foreground">{txn.analysisId ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap text-right font-mono text-xs text-muted-foreground">{txn.totalWeight ?? "-"}</td>
                                             <td className="px-3 py-2 max-w-[160px]">
                                                 <span className="truncate block text-muted-foreground italic" title={txn.chemicalTransactionNote || (txn as any).note || undefined}>
@@ -253,14 +261,10 @@ export function TransactionsTab() {
             </div>
 
             {activeTxn && <TransactionDetailPanel transaction={activeTxn} onClose={() => setActiveTxn(null)} />}
-            
-            {isReportOpen && result?.data && (
-                <ChemicalTransactionReportEditor 
-                    open={isReportOpen} 
-                    onOpenChange={setIsReportOpen} 
-                    data={result.data as ChemicalTransaction[]} 
-                />
-            )}
+
+            {isReportOpen && result?.data && <ChemicalTransactionReportEditor open={isReportOpen} onOpenChange={setIsReportOpen} data={result.data as ChemicalTransaction[]} />}
+
+            <HelpBubble guidePath="guide-transactions.html" label="Hướng dẫn: Lịch sử Giao dịch" />
         </div>
     );
 }

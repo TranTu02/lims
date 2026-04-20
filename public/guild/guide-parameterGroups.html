@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="vi">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Hướng Dẫn Sử Dụng - Quản lý Gói kiểm (Parameter Groups)</title>
+        <style>
+            :root {
+                --primary: #2563eb;
+                --primary-light: #eff6ff;
+                --accent: #f59e0b;
+                --text-main: #1e293b;
+                --text-muted: #64748b;
+                --bg-body: #f8fafc;
+                --bg-card: #ffffff;
+                --border-color: #e2e8f0;
+                --success: #10b981;
+            }
+
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            }
+
+            body {
+                background-color: var(--bg-body);
+                color: var(--text-main);
+                line-height: 1.5;
+                padding: 1.5rem;
+                height: 100vh;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+            }
+
+            .guide-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                background: var(--bg-card);
+                padding: 1rem 1.5rem;
+                border-radius: 12px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+                margin-bottom: 1rem;
+                flex-shrink: 0;
+                border: 1px solid var(--border-color);
+            }
+
+            .header-title-wrapper h1 {
+                font-size: 1.25rem;
+                color: var(--primary);
+                font-weight: 700;
+            }
+
+            .header-title-wrapper p {
+                font-size: 0.85rem;
+                color: var(--text-muted);
+                margin-top: 0.25rem;
+            }
+
+            .guide-content {
+                flex: 1;
+                background: var(--bg-card);
+                border-radius: 12px;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                position: relative;
+                overflow: hidden;
+                border: 1px solid var(--border-color);
+                display: flex;
+                flex-direction: column;
+            }
+
+            .mockup-container {
+                width: 100%;
+                height: 100%;
+                position: absolute;
+                top: 0;
+                left: 0;
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.3s ease;
+                background: #f1f5f9;
+                display: flex;
+                flex-direction: column;
+                padding: 1rem;
+            }
+
+            .mockup-container.active {
+                opacity: 1;
+                visibility: visible;
+            }
+
+            .mock-app {
+                display: flex;
+                flex: 1;
+                background: #fff;
+                border-radius: 8px;
+                overflow: hidden;
+                border: 1px solid var(--border-color);
+            }
+
+            .mock-sidebar {
+                width: 200px;
+                background: #f8fafc;
+                border-right: 1px solid var(--border-color);
+                padding: 1rem;
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .mock-nav-item {
+                font-size: 0.75rem;
+                padding: 0.5rem;
+                border-radius: 4px;
+                color: var(--text-muted);
+            }
+
+            .mock-nav-item.active {
+                background: var(--primary-light);
+                color: var(--primary);
+                font-weight: 600;
+            }
+
+            .mock-main {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
+
+            .mock-toolbar {
+                padding: 0.75rem 1rem;
+                border-bottom: 1px solid var(--border-color);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                background: #fff;
+            }
+
+            .mock-btn {
+                background: var(--primary);
+                color: #fff;
+                border: none;
+                padding: 0.4rem 0.8rem;
+                border-radius: 4px;
+                font-size: 0.75rem;
+                font-weight: 600;
+                cursor: pointer;
+            }
+
+            .mock-table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 0.75rem;
+            }
+
+            .mock-table th {
+                background: #f8fafc;
+                text-align: left;
+                padding: 0.75rem;
+                border-bottom: 1px solid var(--border-color);
+                color: var(--text-muted);
+            }
+
+            .mock-table td {
+                padding: 0.75rem;
+                border-bottom: 1px solid #f1f5f9;
+            }
+
+            .mock-modal-overlay {
+                position: absolute;
+                inset: 0;
+                background: rgba(15, 23, 42, 0.4);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 50;
+            }
+
+            .mock-modal {
+                background: #fff;
+                width: 80%;
+                max-width: 600px;
+                border-radius: 8px;
+                display: flex;
+                flex-direction: column;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            }
+
+            .mock-modal-header {
+                padding: 1rem;
+                border-bottom: 1px solid var(--border-color);
+                font-weight: 700;
+            }
+
+            .mock-modal-body {
+                padding: 1rem;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+            }
+
+            .mock-field {
+                display: flex;
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+
+            .mock-field label {
+                font-size: 0.7rem;
+                font-weight: 600;
+                color: var(--text-muted);
+            }
+
+            .mock-field input,
+            .mock-field select {
+                padding: 0.4rem;
+                border: 1px solid var(--border-color);
+                border-radius: 4px;
+                font-size: 0.75rem;
+            }
+
+            .mock-modal-footer {
+                padding: 1rem;
+                border-top: 1px solid var(--border-color);
+                display: flex;
+                justify-content: flex-end;
+                gap: 0.5rem;
+            }
+
+            .hotspot {
+                position: absolute;
+                width: 24px;
+                height: 24px;
+                background: var(--accent);
+                border-radius: 50%;
+                cursor: pointer;
+                z-index: 100;
+                box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.3);
+            }
+
+            .hotspot::after {
+                content: "";
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 8px;
+                height: 8px;
+                background: white;
+                border-radius: 50%;
+            }
+
+            .tooltip-box {
+                position: absolute;
+                background: #1e293b;
+                color: white;
+                padding: 0.75rem;
+                border-radius: 6px;
+                width: 220px;
+                font-size: 0.8rem;
+                opacity: 0;
+                visibility: hidden;
+                transition: all 0.2s;
+                pointer-events: none;
+                z-index: 110;
+            }
+
+            .hotspot:hover .tooltip-box {
+                opacity: 1;
+                visibility: visible;
+            }
+
+            .tooltip-left {
+                right: 30px;
+                top: 50%;
+                transform: translateY(-50%);
+            }
+            .tooltip-right {
+                left: 30px;
+                top: 50%;
+                transform: translateY(-50%);
+            }
+            .tooltip-bottom {
+                top: 30px;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+
+            .guide-footer {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                background: var(--bg-card);
+                padding: 1rem 1.5rem;
+                border-radius: 12px;
+                box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.05);
+                margin-top: 1rem;
+                flex-shrink: 0;
+                border: 1px solid var(--border-color);
+            }
+
+            .nav-btn {
+                padding: 0.5rem 1rem;
+                border-radius: 6px;
+                border: 1px solid var(--border-color);
+                background: var(--bg-card);
+                cursor: pointer;
+                font-weight: 600;
+                font-size: 0.85rem;
+            }
+
+            .nav-btn.primary {
+                background: var(--primary);
+                color: #fff;
+                border: none;
+            }
+
+            .step-dots {
+                display: flex;
+                gap: 0.5rem;
+            }
+
+            .dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: #cbd5e1;
+            }
+
+            .dot.active {
+                background: var(--primary);
+                transform: scale(1.2);
+            }
+
+            .price-preview {
+                grid-column: span 2;
+                background: var(--primary-light);
+                padding: 0.75rem;
+                border-radius: 8px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="guide-header">
+            <div class="header-title-wrapper">
+                <h1 id="slide-title">1. Quản lý Gói kiểm (Parameter Groups)</h1>
+                <p id="slide-desc">Gói kiểm giúp gom nhóm nhiều chỉ tiêu lại để báo giá nhanh và áp dụng chính sách giảm giá riêng.</p>
+            </div>
+        </div>
+
+        <div class="guide-content">
+            <!-- Slide 1: List -->
+            <div class="mockup-container active" id="slide-1">
+                <div class="mock-app">
+                    <div class="mock-sidebar">
+                        <div class="mock-nav-item">Thư viện</div>
+                        <div class="mock-nav-item">Chỉ tiêu</div>
+                        <div class="mock-nav-item active">Gói kiểm</div>
+                    </div>
+                    <div class="mock-main">
+                        <div class="mock-toolbar">
+                            <span style="font-weight: 700; font-size: 0.9rem">Danh sách gói kiểm</span>
+                            <button class="mock-btn">+ Thêm gói mới</button>
+                        </div>
+                        <table class="mock-table">
+                            <thead>
+                                <tr>
+                                    <th>Tên gói</th>
+                                    <th>Loại mẫu</th>
+                                    <th>Mã Ma trận</th>
+                                    <th>Giảm giá</th>
+                                    <th>Thuế</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="background: var(--primary-light)">
+                                    <td>Gói vi sinh nước</td>
+                                    <td>Nước ăn uống</td>
+                                    <td><span style="color: var(--primary)">MAT001, MAT002...</span></td>
+                                    <td>15%</td>
+                                    <td>8%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="hotspot" style="top: 25px; right: 25px">
+                    <div class="tooltip-box tooltip-left"><b>Thêm gói mới:</b> Bắt đầu tạo một combo các chỉ tiêu thường đi cùng nhau.</div>
+                </div>
+                <div class="hotspot" style="top: 150px; left: 450px">
+                    <div class="tooltip-box tooltip-bottom"><b>Ưu đãi linh hoạt:</b> Mỗi gói có thể thiết lập mức % giảm giá và thuế suất VAT riêng biệt.</div>
+                </div>
+            </div>
+
+            <!-- Slide 2: Create/Edit -->
+            <div class="mockup-container" id="slide-2">
+                <div class="mock-modal-overlay">
+                    <div class="mock-modal">
+                        <div class="mock-modal-header">Thiết lập Gói kiểm</div>
+                        <div class="mock-modal-body">
+                            <div class="mock-field"><label>Tên gói *</label><input value="Gói vi sinh nước" /></div>
+                            <div class="mock-field">
+                                <label>Loại mẫu *</label>
+                                <select>
+                                    <option>Nước ăn uống</option>
+                                </select>
+                            </div>
+                            <div class="mock-field" style="grid-column: span 2">
+                                <label>Chọn Ma trận chỉ tiêu *</label>
+                                <div style="border: 1px solid #ddd; padding: 0.5rem; border-radius: 4px; font-size: 0.7rem">[x] MAT001 - Coliform | [x] MAT002 - E.coli</div>
+                            </div>
+                            <div class="mock-field"><label>Giảm giá (%)</label><input value="15" /></div>
+                            <div class="mock-field"><label>Thuế VAT (%)</label><input value="8" /></div>
+                            <div class="price-preview">
+                                <span style="font-size: 0.75rem; color: var(--text-muted)">Tổng dự tính:</span>
+                                <span style="font-weight: 700; color: var(--primary)">1.250.000 VNĐ</span>
+                            </div>
+                        </div>
+                        <div class="mock-modal-footer">
+                            <button class="nav-btn">Đóng</button>
+                            <button class="nav-btn primary">Lưu gói</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="hotspot" style="top: 45%; left: 50%">
+                    <div class="tooltip-box tooltip-right"><b>Đa chọn Ma trận:</b> Bạn có thể chọn nhiều ma trận (chỉ tiêu + phương pháp) đã định nghĩa trước đó vào gói này.</div>
+                </div>
+                <div class="hotspot" style="bottom: 80px; left: 30%">
+                    <div class="tooltip-box tooltip-bottom"><b>Xem trước giá:</b> Hệ thống tự tính toán tổng tiền dựa trên các ma trận đã chọn và tỷ lệ giảm giá.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="guide-footer">
+            <button class="nav-btn" id="btn-prev" disabled>← Quay lại</button>
+            <div class="step-dots">
+                <div class="dot active"></div>
+                <div class="dot"></div>
+            </div>
+            <button class="nav-btn primary" id="btn-next">Tiếp theo →</button>
+        </div>
+
+        <script>
+            const slides = document.querySelectorAll(".mockup-container");
+            const dots = document.querySelectorAll(".dot");
+            const btnPrev = document.getElementById("btn-prev");
+            const btnNext = document.getElementById("btn-next");
+            const titleEl = document.getElementById("slide-title");
+            const descEl = document.getElementById("slide-desc");
+
+            let current = 0;
+            const info = [
+                { title: "1. Quản lý Gói kiểm (Parameter Groups)", desc: "Gói kiểm giúp gom nhóm nhiều chỉ tiêu lại để báo giá nhanh và áp dụng chính sách giảm giá riêng." },
+                { title: "2. Thiết lập combo & Giá", desc: "Chọn các ma trận chỉ tiêu cần thiết, thiết lập % giảm giá và thuế để hệ thống tự động tính giá gói." },
+            ];
+
+            function update() {
+                slides.forEach((s, i) => s.classList.toggle("active", i === current));
+                dots.forEach((d, i) => d.classList.toggle("active", i === current));
+                titleEl.textContent = info[current].title;
+                descEl.textContent = info[current].desc;
+                btnPrev.disabled = current === 0;
+                btnNext.textContent = current === slides.length - 1 ? "Hoàn thành ✓" : "Tiếp theo →";
+            }
+
+            btnNext.onclick = () => {
+                if (current < slides.length - 1) {
+                    current++;
+                    update();
+                } else {
+                    window.parent.postMessage("close-guide", "*");
+                }
+            };
+            btnPrev.onclick = () => {
+                if (current > 0) {
+                    current--;
+                    update();
+                }
+            };
+        </script>
+    </body>
+</html>

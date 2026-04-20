@@ -60,8 +60,8 @@ type FormState = {
     feeAfterTax: string;
 
     turnaroundTime: string;
-    LOD: string;
-    LOQ: string;
+    methodLOD: string;
+    methodLOQ: string;
     thresholdLimit: string;
 
     chemicals: ChemicalBomItem[];
@@ -90,8 +90,8 @@ function initForm(props?: Props): FormState {
         feeAfterTax: "",
 
         turnaroundTime: "",
-        LOD: "",
-        LOQ: "",
+        methodLOD: "",
+        methodLOQ: "",
         thresholdLimit: "",
 
         chemicals: [],
@@ -296,19 +296,19 @@ export function MatricesCreateModal(props: Props) {
     }, [open, canAutoCalcFeeAfterTax, feeBeforeTaxNum, taxRateNum]);
 
     const canSave = useMemo(() => {
-        if (!form.parameterId.trim()) return false;
-        if (!form.protocolId.trim()) return false;
-        if (!form.sampleTypeId.trim()) return false;
+        if (!(form.parameterId || "").trim()) return false;
+        if (!(form.protocolId || "").trim()) return false;
+        if (!(form.sampleTypeId || "").trim()) return false;
 
         if (feeBeforeTaxNum === null || feeBeforeTaxNum < 0) return false;
 
-        const hasTaxRate = form.taxRate.trim().length > 0;
+        const hasTaxRate = (form.taxRate || "").trim().length > 0;
         if (hasTaxRate && (taxRateNum === null || taxRateNum < 0)) return false;
 
         const feeAfterTax = parseFiniteNumber(form.feeAfterTax);
         if (feeAfterTax === null || feeAfterTax < 0) return false;
 
-        const turnaroundTime = parseOptionalInt(form.turnaroundTime);
+        const turnaroundTime = parseOptionalInt(form.turnaroundTime || "");
         if (turnaroundTime !== null && turnaroundTime < 0) return false;
 
         return true;
@@ -423,22 +423,22 @@ export function MatricesCreateModal(props: Props) {
         const turnaroundTime = parseOptionalInt(form.turnaroundTime);
 
         const body: MatrixCreateBody = {
-            parameterId: form.parameterId.trim(),
-            protocolId: form.protocolId.trim(),
-            sampleTypeId: form.sampleTypeId.trim(),
+            parameterId: (form.parameterId || "").trim(),
+            protocolId: (form.protocolId || "").trim(),
+            sampleTypeId: (form.sampleTypeId || "").trim(),
 
-            parameterName: form.parameterName.trim().length ? form.parameterName.trim() : null,
-            sampleTypeName: form.sampleTypeName.trim().length ? form.sampleTypeName.trim() : null,
-            protocolCode: form.protocolCode.trim().length ? form.protocolCode.trim() : null,
-            protocolSource: form.protocolSource.trim().length ? form.protocolSource.trim() : null,
+            parameterName: (form.parameterName || "").trim().length ? (form.parameterName || "").trim() : null,
+            sampleTypeName: (form.sampleTypeName || "").trim().length ? (form.sampleTypeName || "").trim() : null,
+            protocolCode: (form.protocolCode || "").trim().length ? (form.protocolCode || "").trim() : null,
+            protocolSource: (form.protocolSource || "").trim().length ? (form.protocolSource || "").trim() : null,
 
             feeBeforeTax,
             taxRate: taxRate ?? undefined,
             feeAfterTax,
 
             turnaroundTime: turnaroundTime,
-            LOD: form.LOD.trim() || undefined,
-            LOQ: form.LOQ.trim() || undefined,
+            methodLOD: form.methodLOD.trim() || undefined,
+            methodLOQ: form.methodLOQ.trim() || undefined,
             thresholdLimit: form.thresholdLimit.trim() || undefined,
 
             technicianGroupId: form.technicianGroupId.trim() || undefined,
@@ -450,9 +450,9 @@ export function MatricesCreateModal(props: Props) {
                 consumedQty: c.consumedQty || "",
                 chemicalBaseUnit: c.unit || "",
             })),
-            equipmentIds: form.equipments.map(e => e.equipmentId).filter(Boolean),
+            equipmentIds: form.equipments.map((e) => e.equipmentId).filter(Boolean),
             equipments: form.equipments,
-            labToolIds: form.labTools.map(l => l.labToolId).filter(Boolean),
+            labToolIds: form.labTools.map((l) => l.labToolId).filter(Boolean),
             labTools: form.labTools,
         };
 
@@ -504,12 +504,12 @@ export function MatricesCreateModal(props: Props) {
                             <SectionTitle>{String(t("library.matrices.create.limits"))}</SectionTitle>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-1 min-w-0">
-                                    <FieldLabel>{String(t("library.matrices.LOD"))}</FieldLabel>
-                                    <Input value={form.LOD} onChange={(e) => setForm((s) => ({ ...s, LOD: e.target.value }))} disabled={createM.isPending} />
+                                    <FieldLabel>{String(t("library.matrices.methodLOD"))}</FieldLabel>
+                                    <Input value={form.methodLOD} onChange={(e) => setForm((s) => ({ ...s, methodLOD: e.target.value }))} disabled={createM.isPending} />
                                 </div>
                                 <div className="space-y-1 min-w-0">
-                                    <FieldLabel>{String(t("library.matrices.LOQ"))}</FieldLabel>
-                                    <Input value={form.LOQ} onChange={(e) => setForm((s) => ({ ...s, LOQ: e.target.value }))} disabled={createM.isPending} />
+                                    <FieldLabel>{String(t("library.matrices.methodLOQ"))}</FieldLabel>
+                                    <Input value={form.methodLOQ} onChange={(e) => setForm((s) => ({ ...s, methodLOQ: e.target.value }))} disabled={createM.isPending} />
                                 </div>
                                 <div className="space-y-1 min-w-0 md:col-span-2">
                                     <FieldLabel>{String(t("library.matrices.thresholdLimit"))}</FieldLabel>
@@ -528,11 +528,7 @@ export function MatricesCreateModal(props: Props) {
 
                         <div className="space-y-3 pt-6 border-t border-border mt-6">
                             <SectionTitle>{String(t("library.matrices.protocolAccreditation", { defaultValue: "Phạm vi công nhận" }))}</SectionTitle>
-                            <AccreditationTagInput
-                                value={form.accreditationKeys}
-                                onChange={(v) => setForm((s) => ({ ...s, accreditationKeys: v }))}
-                                disabled={createM.isPending}
-                            />
+                            <AccreditationTagInput value={form.accreditationKeys} onChange={(v) => setForm((s) => ({ ...s, accreditationKeys: v }))} disabled={createM.isPending} />
                         </div>
                     </div>
 
@@ -713,33 +709,21 @@ export function MatricesCreateModal(props: Props) {
                         <div className="space-y-1 min-w-0 flex-1 flex flex-col pt-6 border-t border-border mt-6">
                             <SectionTitle>{String(t("library.matrices.create.chemicals", { defaultValue: "Hóa chất" }))}</SectionTitle>
                             <div className="flex-1 min-h-[250px]">
-                                <ChemicalBomTable
-                                    items={form.chemicals}
-                                    onChange={(chemicals) => setForm((s) => ({ ...s, chemicals }))}
-                                    onLoadFromProtocol={handleLoadChemicals}
-                                />
+                                <ChemicalBomTable items={form.chemicals} onChange={(chemicals) => setForm((s) => ({ ...s, chemicals }))} onLoadFromProtocol={handleLoadChemicals} />
                             </div>
                         </div>
 
                         <div className="space-y-1 min-w-0 flex-1 flex flex-col pt-6 border-t border-border mt-6">
                             <SectionTitle>{String(t("library.matrices.create.equipments", { defaultValue: "Thiết bị" }))}</SectionTitle>
                             <div className="flex-1 min-h-[250px]">
-                                <EquipmentSnapshotTable
-                                    items={form.equipments}
-                                    onChange={(equipments) => setForm((s) => ({ ...s, equipments }))}
-                                    onLoadFromProtocol={handleLoadEquipments}
-                                />
+                                <EquipmentSnapshotTable items={form.equipments} onChange={(equipments) => setForm((s) => ({ ...s, equipments }))} onLoadFromProtocol={handleLoadEquipments} />
                             </div>
                         </div>
 
                         <div className="space-y-1 min-w-0 flex-1 flex flex-col pt-6 border-t border-border mt-6">
                             <SectionTitle>{String(t("library.matrices.create.labTools", { defaultValue: "Dụng cụ" }))}</SectionTitle>
                             <div className="flex-1 min-h-[250px]">
-                                <LabToolSnapshotTable
-                                    items={form.labTools}
-                                    onChange={(labTools) => setForm((s) => ({ ...s, labTools }))}
-                                    onLoadFromProtocol={handleLoadLabTools}
-                                />
+                                <LabToolSnapshotTable items={form.labTools} onChange={(labTools) => setForm((s) => ({ ...s, labTools }))} onLoadFromProtocol={handleLoadLabTools} />
                             </div>
                         </div>
                     </div>

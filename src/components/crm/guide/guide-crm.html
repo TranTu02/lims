@@ -1,0 +1,914 @@
+<!doctype html>
+<html lang="vi">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Hướng Dẫn Sử Dụng - Quản lý CRM</title>
+        <style>
+            :root {
+                --primary: #2563eb;
+                --primary-light: #eff6ff;
+                --accent: #f59e0b;
+                --text-main: #1e293b;
+                --text-muted: #64748b;
+                --bg-body: #f8fafc;
+                --bg-card: #ffffff;
+                --border-color: #e2e8f0;
+                --success: #10b981;
+            }
+
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            }
+
+            body {
+                background-color: var(--bg-body);
+                color: var(--text-main);
+                line-height: 1.5;
+                padding: 1.5rem;
+                height: 100vh;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+            }
+
+            .guide-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                background: var(--bg-card);
+                padding: 1rem 1.5rem;
+                border-radius: 12px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+                margin-bottom: 1rem;
+                flex-shrink: 0;
+                border: 1px solid var(--border-color);
+            }
+
+            .header-title-wrapper h1 {
+                font-size: 1.25rem;
+                color: var(--primary);
+                font-weight: 700;
+            }
+
+            .header-title-wrapper p {
+                font-size: 0.85rem;
+                color: var(--text-muted);
+                margin-top: 0.25rem;
+            }
+
+            .guide-content {
+                flex: 1;
+                background: var(--bg-card);
+                border-radius: 12px;
+                box-shadow:
+                    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+                    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                position: relative;
+                overflow: hidden;
+                border: 1px solid var(--border-color);
+                display: flex;
+                flex-direction: column;
+            }
+
+            .mockup-container {
+                width: 100%;
+                height: 100%;
+                position: absolute;
+                top: 0;
+                left: 0;
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.3s ease;
+                background: #f1f5f9;
+                display: flex;
+                flex-direction: column;
+                padding: 1rem;
+            }
+
+            .mockup-container.active {
+                opacity: 1;
+                visibility: visible;
+            }
+
+            .guide-footer {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                background: var(--bg-card);
+                padding: 1rem 1.5rem;
+                border-radius: 12px;
+                box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.05);
+                margin-top: 1rem;
+                flex-shrink: 0;
+                border: 1px solid var(--border-color);
+            }
+
+            .step-indicators {
+                display: flex;
+                gap: 8px;
+            }
+            .step-dot {
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                background: #cbd5e1;
+                transition: all 0.3s;
+            }
+            .step-dot.active {
+                background: var(--primary);
+                transform: scale(1.3);
+            }
+
+            .nav-btn {
+                padding: 0.5rem 1.25rem;
+                border: none;
+                border-radius: 6px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            .btn-prev {
+                background: #f1f5f9;
+                color: #475569;
+            }
+            .btn-prev:hover {
+                background: #e2e8f0;
+            }
+            .btn-next {
+                background: var(--primary);
+                color: white;
+            }
+            .btn-next:hover {
+                background: #1d4ed8;
+            }
+            .btn-prev:disabled,
+            .btn-next:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+
+            /* MU Styles */
+            .mu {
+                font-family: "Segoe UI", sans-serif;
+                font-size: 12px;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                background: #f8fafc;
+            }
+            .mu-header {
+                padding: 20px;
+                background: #fff;
+                border-bottom: 1px solid #e2e8f0;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                border-radius: 8px 8px 0 0;
+            }
+            .mu-title {
+                font-size: 18px;
+                font-weight: 600;
+                color: #0f172a;
+            }
+            .mu-subtitle {
+                font-size: 12px;
+                color: #64748b;
+                margin-top: 4px;
+            }
+
+            .mu-controls {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 16px;
+                background: #fff;
+                border-bottom: 1px solid #e2e8f0;
+                border-radius: 8px;
+                margin-bottom: 16px;
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            }
+            .mu-tabs {
+                display: flex;
+                gap: 8px;
+                background: #f1f5f9;
+                padding: 4px;
+                border-radius: 8px;
+            }
+            .mu-tab {
+                padding: 6px 16px;
+                font-size: 13px;
+                font-weight: 600;
+                color: #64748b;
+                cursor: pointer;
+                border-radius: 6px;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+            .mu-tab.active {
+                color: #0f172a;
+                background: #fff;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            }
+
+            .mu-search {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .mu-search input {
+                border: 1px solid #e2e8f0;
+                border-radius: 6px;
+                padding: 8px 12px 8px 32px;
+                width: 250px;
+                background: #fff;
+                outline: none;
+            }
+            .mu-btn {
+                padding: 8px 16px;
+                background: #fff;
+                border: 1px solid #e2e8f0;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 13px;
+                font-weight: 600;
+                color: #334155;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                margin: 0;
+            }
+            .mu-btn.primary {
+                background: #0f172a;
+                color: #fff;
+                border-color: #0f172a;
+            }
+
+            .mu-table-container {
+                flex: 1;
+                padding: 0;
+                overflow: auto;
+                background: #fff;
+                border-radius: 8px;
+                border: 1px solid #e2e8f0;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            }
+            .mu-table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            .mu-table th {
+                padding: 12px 16px;
+                background: #f8fafc;
+                font-size: 11px;
+                font-weight: 600;
+                color: #64748b;
+                border-bottom: 1px solid #e2e8f0;
+                text-transform: uppercase;
+                text-align: left;
+            }
+            .mu-table td {
+                padding: 16px;
+                border-bottom: 1px solid #f1f5f9;
+                font-size: 13px;
+                color: #334155;
+            }
+            .mu-table tr:hover {
+                background: #f8fafc;
+            }
+
+            .mu-badge {
+                display: inline-block;
+                padding: 4px 8px;
+                border-radius: 6px;
+                font-size: 11px;
+                font-weight: 600;
+            }
+            .mu-badge.danger {
+                background: #fee2e2;
+                color: #b91c1c;
+            }
+            .mu-badge.success {
+                background: #dcfce7;
+                color: #15803d;
+            }
+            .mu-badge.warning {
+                background: #fef9c3;
+                color: #a16207;
+            }
+            .mu-badge.info {
+                background: #e0f2fe;
+                color: #0369a1;
+            }
+            .mu-badge.outline {
+                border: 1px solid #e2e8f0;
+                color: #64748b;
+                background: #fff;
+            }
+
+            /* Modal overlay styles */
+            .mock-modal-overlay {
+                position: absolute;
+                inset: 0;
+                background: rgba(15, 23, 42, 0.4);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 2rem;
+                z-index: 50;
+            }
+            .mock-modal {
+                background: #f8fafc;
+                border-radius: 12px;
+                width: 100%;
+                max-width: 900px;
+                height: 90%;
+                display: flex;
+                flex-direction: column;
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+                overflow: hidden;
+            }
+            .mock-modal-header {
+                background: #fff;
+                padding: 1.5rem;
+                border-bottom: 1px solid #e2e8f0;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .mock-modal-body {
+                padding: 1.5rem;
+                flex: 1;
+                overflow-y: auto;
+                display: flex;
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+
+            .mock-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+            }
+            .mock-card {
+                background: #fff;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                padding: 1.25rem;
+            }
+            .mock-card-title {
+                font-size: 12px;
+                font-weight: 700;
+                color: #64748b;
+                text-transform: uppercase;
+                margin-bottom: 1rem;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                border-bottom: 1px solid #f1f5f9;
+                padding-bottom: 8px;
+            }
+
+            .mock-field {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                margin-bottom: 12px;
+            }
+            .mock-label {
+                font-size: 11px;
+                color: #64748b;
+            }
+            .mock-value {
+                font-size: 13px;
+                font-weight: 500;
+                color: #0f172a;
+            }
+
+            .hotspot {
+                position: absolute;
+                width: 24px;
+                height: 24px;
+                background: var(--accent);
+                border-radius: 50%;
+                cursor: pointer;
+                z-index: 20;
+                box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.3);
+                animation: pulse-ring 2s infinite;
+            }
+            @keyframes pulse-ring {
+                0% {
+                    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6);
+                }
+                70% {
+                    box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+                }
+                100% {
+                    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+                }
+            }
+            .hotspot::after {
+                content: "";
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 8px;
+                height: 8px;
+                background: white;
+                border-radius: 50%;
+            }
+            .tooltip-box {
+                position: absolute;
+                background: #1e293b;
+                color: white;
+                padding: 1rem;
+                border-radius: 8px;
+                width: 280px;
+                font-size: 0.9rem;
+                z-index: 30;
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+                opacity: 0;
+                visibility: hidden;
+                transition: all 0.2s;
+                pointer-events: none;
+                line-height: 1.4;
+            }
+            .hotspot:hover .tooltip-box {
+                opacity: 1;
+                visibility: visible;
+            }
+            .tooltip-box h4 {
+                color: #38bdf8;
+                margin-bottom: 0.5rem;
+                font-size: 1rem;
+                border-bottom: 1px solid #334155;
+                padding-bottom: 0.3rem;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="guide-header">
+            <div class="header-title-wrapper">
+                <h1 id="slide-title">1. Tab Khách hàng</h1>
+                <p id="slide-desc">Giao diện quản lý danh sách pháp nhân, đại diện.</p>
+            </div>
+        </div>
+        <div class="guide-content">
+            <!-- SLIDE 1 -->
+            <div class="mockup-container active" id="slide-1">
+                <div class="mu">
+                    <div class="mu-header" style="border-radius: 8px">
+                        <div class="mu-title">CRM Doanh nghiệp</div>
+                        <div class="mu-subtitle">Quản lý Khách hàng, Đơn hàng và Báo giá thử nghiệm.</div>
+                    </div>
+
+                    <div class="mu-controls">
+                        <div class="mu-tabs">
+                            <div class="mu-tab active">👥 Khách hàng</div>
+                            <div class="mu-tab">🧾 Đơn hàng</div>
+                            <div class="mu-tab">📄 Báo giá</div>
+                        </div>
+                    </div>
+
+                    <div class="mu-table-container">
+                        <table class="mu-table">
+                            <thead>
+                                <tr>
+                                    <th>Mã KH</th>
+                                    <th>Tên khách hàng</th>
+                                    <th>MST/CMND</th>
+                                    <th>Tên xuất hóa đơn</th>
+                                    <th>Liên hệ chính</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <div style="font-weight: 600; color: #2563eb">CL_BVRGHLGPLV</div>
+                                        <div class="mu-badge outline" style="margin-top: 4px">public</div>
+                                    </td>
+                                    <td>
+                                        <div style="font-weight: 600; color: #0f172a">CTY CỔ PHẦN PHARMACEUTICAL</div>
+                                        <div style="color: #64748b; font-size: 11px; margin-top: 2px">085444333 • pharma@gmail.com</div>
+                                    </td>
+                                    <td style="font-family: monospace">0108999333</td>
+                                    <td>CTY CỔ PHẦN PHARMACEUTICAL VIỆT NAM</td>
+                                    <td>
+                                        <span style="border: 1px solid #e2e8f0; padding: 2px 8px; border-radius: 12px; font-size: 11px">Nguyễn Văn A</span>
+                                    </td>
+                                    <td style="font-size: 16px"><span style="color: #64748b; cursor: pointer">👁️ ✏️ 🗑️</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="hotspot" style="top: 250px; left: 80px">
+                    <div class="tooltip-box tooltip-right">
+                        <h4>Mã Khách Hàng</h4>
+                        Định danh duy nhất lấy ra từ hệ thống. Phía dưới là Scope quy định áp dụng bảng giá dành cho đại lý hay bán lẻ.
+                    </div>
+                </div>
+            </div>
+
+            <!-- SLIDE 2 -->
+            <div class="mockup-container" id="slide-2">
+                <div class="mock-modal-overlay">
+                    <div class="mock-modal">
+                        <div class="mock-modal-header">
+                            <div>
+                                <span style="font-weight: 700; font-size: 18px; color: #0f172a">CTY CỔ PHẦN PHARMACEUTICAL</span>
+                                <span class="mu-badge info" style="margin-left: 8px">Đang hoạt động</span>
+                            </div>
+                            <button style="border: none; background: transparent; font-size: 20px; cursor: pointer; color: #64748b">×</button>
+                        </div>
+                        <div class="mock-modal-body">
+                            <div class="mock-grid">
+                                <div class="mock-card">
+                                    <div class="mock-card-title">📖 Thông tin chung</div>
+                                    <div style="display: flex; justify-content: space-between">
+                                        <div class="mock-field"><span class="mock-label">Mã khách hàng</span><span class="mock-value" style="color: #2563eb">CL_BVRGHLGPLV</span></div>
+                                        <div class="mock-field"><span class="mock-label">Sale phụ trách</span><span class="mock-value">SAD_VND899</span></div>
+                                    </div>
+                                    <div class="mock-field"><span class="mock-label">Phạm vi</span><span class="mu-badge outline" style="width: fit-content; margin-top: 2px">public</span></div>
+                                </div>
+
+                                <div class="mock-card">
+                                    <div class="mock-card-title">🏢 Công ty / Hóa đơn</div>
+                                    <div style="display: flex; justify-content: space-between">
+                                        <div class="mock-field"><span class="mock-label">Tên xuất hóa đơn</span><span class="mock-value">CTY CỔ PHẦN PHARMACEUTICAL VIỆT NAM</span></div>
+                                        <div class="mock-field"><span class="mock-label">Mã số thuế</span><span class="mock-value">0108999333</span></div>
+                                    </div>
+                                    <div class="mock-field"><span class="mock-label">Email HĐ</span><span class="mock-value">pharma-ketoan@gmail.com</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SLIDE 3 -->
+            <div class="mockup-container" id="slide-3">
+                <div class="mu">
+                    <div class="mu-header" style="border-radius: 8px">
+                        <div class="mu-title">CRM Doanh nghiệp</div>
+                    </div>
+
+                    <div class="mu-controls">
+                        <div class="mu-tabs">
+                            <div class="mu-tab">👥 Khách hàng</div>
+                            <div class="mu-tab active">🧾 Đơn hàng</div>
+                            <div class="mu-tab">📄 Báo giá</div>
+                        </div>
+                        <div class="mu-search">
+                            <button class="mu-btn primary">+ Tạo Đơn hàng</button>
+                        </div>
+                    </div>
+
+                    <div class="mu-table-container">
+                        <table class="mu-table">
+                            <thead>
+                                <tr>
+                                    <th>Mã đơn hàng</th>
+                                    <th>Mã báo giá</th>
+                                    <th>Mã khách hàng</th>
+                                    <th style="text-align: right">Tổng tiền</th>
+                                    <th style="text-align: center">Trạng thái đơn</th>
+                                    <th style="text-align: center">Trạng thái TT</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><div style="font-weight: 600; color: #1e293b">DH26F0569</div></td>
+                                    <td>-</td>
+                                    <td><div style="font-weight: 500; color: #2563eb">CL_BVRGHLGPLV</div></td>
+                                    <td style="text-align: right; font-weight: 600">1,500,000 đ</td>
+                                    <td style="text-align: center"><span class="mu-badge warning">Processing</span></td>
+                                    <td style="text-align: center"><span class="mu-badge outline">Unpaid</span></td>
+                                    <td style="font-size: 16px"><span style="color: #64748b; cursor: pointer">👁️ ✏️ 🗑️</span></td>
+                                </tr>
+                                <tr>
+                                    <td><div style="font-weight: 600; color: #1e293b">DH26F0570</div></td>
+                                    <td><div style="color: #64748b">QTE_88912</div></td>
+                                    <td><div style="font-weight: 500; color: #2563eb">CL_XYZ88990</div></td>
+                                    <td style="text-align: right; font-weight: 600">8,250,000 đ</td>
+                                    <td style="text-align: center"><span class="mu-badge success">Completed</span></td>
+                                    <td style="text-align: center"><span class="mu-badge outline">Paid</span></td>
+                                    <td style="font-size: 16px"><span style="color: #64748b; cursor: pointer">👁️ ✏️ 🗑️</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="hotspot" style="top: 250px; left: 620px">
+                    <div class="tooltip-box tooltip-bottom">
+                        <h4>Trạng thái thanh toán & Lọc</h4>
+                        Mỗi đơn hàng quản lý trạng thái riêng biệt cho Tiến trình phân tích (Processing, Completed) và Thanh toán (Paid, Unpaid). Nhấp vào Icon Phễu ở mỗi tiêu đề cột để lọc dữ liệu.
+                    </div>
+                </div>
+            </div>
+
+            <!-- SLIDE 4 -->
+            <div class="mockup-container" id="slide-4">
+                <div class="mock-modal-overlay">
+                    <div class="mock-modal">
+                        <div class="mock-modal-header" style="background: #f8fafc">
+                            <div>
+                                <span style="font-weight: 700; font-size: 18px; color: #0f172a">Chi tiết Đơn hàng: DH26F0569</span>
+                                <span class="mu-badge warning" style="margin-left: 8px">Processing</span>
+                            </div>
+                            <button style="border: none; background: transparent; font-size: 20px; cursor: pointer; color: #64748b">×</button>
+                        </div>
+                        <div class="mock-modal-body bg-white">
+                            <div class="mock-grid">
+                                <div class="mock-card">
+                                    <div class="mock-card-title">📇 Thông tin chung (Đơn hàng)</div>
+                                    <div style="display: flex; justify-content: space-between">
+                                        <div class="mock-field"><span class="mock-label">Khách hàng</span><span class="mock-value" style="color: #2563eb">CTY CỔ PHẦN PHARMA</span></div>
+                                        <div class="mock-field"><span class="mock-label">Mã Báo giá lk</span><span class="mock-value">-</span></div>
+                                    </div>
+                                </div>
+
+                                <div class="mock-card" style="background: #f8fafc; border: 1px dashed #cbd5e1">
+                                    <div class="mock-card-title">💰 Thông tin chi phí</div>
+                                    <div style="display: flex; justify-content: space-between">
+                                        <div class="mock-field"><span class="mock-label">Thành tiền (Niêm yết)</span><span class="mock-value">1,500,000 đ</span></div>
+                                        <div class="mock-field">
+                                            <span class="mock-label" style="text-align: right">Tổng cộng thanh toán</span
+                                            ><span class="mock-value font-bold" style="color: #1da1f2; font-size: 16px">1,417,500 đ</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mock-card">
+                                <div class="mock-card-title" style="background: #e0f2fe; color: #0369a1; padding: 8px; border-radius: 6px; border: 1px solid #bae6fd">🧪 Danh sách phân tích mẫu</div>
+                                <div style="border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden">
+                                    <div style="padding: 12px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-weight: 600; color: #0f172a">S1776669307451 - Mẫu Nước sinh hoạt</div>
+                                    <table class="mu-table" style="width: 100%">
+                                        <thead>
+                                            <tr>
+                                                <th style="padding: 8px">Chỉ tiêu (Parameter)</th>
+                                                <th style="padding: 8px">Chiết khấu</th>
+                                                <th style="padding: 8px">Thuế</th>
+                                                <th style="padding: 8px">Đơn giá</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td style="padding: 8px; font-weight: 600">Độ dẫn điện</td>
+                                                <td style="padding: 8px">0%</td>
+                                                <td style="padding: 8px">5%</td>
+                                                <td style="padding: 8px; font-weight: 600">715,000 đ</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hotspot" style="top: 440px; left: 480px">
+                    <div class="tooltip-box tooltip-left">
+                        <h4>Bảng Giá & Thuế Suất</h4>
+                        Dữ liệu giá tiền tự động tính % chiết khấu từng chỉ tiêu, sau đó cộng thuế suất thành khoản thanh toán chính xác.
+                    </div>
+                </div>
+            </div>
+
+            <!-- SLIDE 5 -->
+            <div class="mockup-container" id="slide-5">
+                <div class="mu">
+                    <div class="mu-header" style="border-radius: 8px">
+                        <div class="mu-title">CRM Doanh nghiệp</div>
+                    </div>
+
+                    <div class="mu-controls">
+                        <div class="mu-tabs">
+                            <div class="mu-tab">👥 Khách hàng</div>
+                            <div class="mu-tab">🧾 Đơn hàng</div>
+                            <div class="mu-tab active">📄 Báo giá</div>
+                        </div>
+                    </div>
+
+                    <div class="mu-table-container">
+                        <table class="mu-table">
+                            <thead>
+                                <tr>
+                                    <th>Mã báo giá</th>
+                                    <th>Mã khách hàng</th>
+                                    <th style="text-align: right">Tổng tiền</th>
+                                    <th style="text-align: center">Trạng thái Báo giá</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><div style="font-weight: 600; color: #1e293b">QTE_88912</div></td>
+                                    <td><div style="font-weight: 500; color: #2563eb">CL_XYZ88990</div></td>
+                                    <td style="text-align: right; font-weight: 600">8,250,000 đ</td>
+                                    <td style="text-align: center"><span class="mu-badge success">Approved</span></td>
+                                    <td style="font-size: 16px"><span style="color: #64748b; cursor: pointer">👁️ ✏️ 🗑️</span></td>
+                                </tr>
+                                <tr>
+                                    <td><div style="font-weight: 600; color: #1e293b">QTE_88913</div></td>
+                                    <td><div style="font-weight: 500; color: #2563eb">CL_BVRGHLGPLV</div></td>
+                                    <td style="text-align: right; font-weight: 600">450,000 đ</td>
+                                    <td style="text-align: center"><span class="mu-badge outline">Draft</span></td>
+                                    <td style="font-size: 16px"><span style="color: #64748b; cursor: pointer">👁️ ✏️ 🗑️</span></td>
+                                </tr>
+                                <tr>
+                                    <td><div style="font-weight: 600; color: #1e293b">QTE_99500</div></td>
+                                    <td><div style="font-weight: 500; color: #2563eb">CL_OPX123</div></td>
+                                    <td style="text-align: right; font-weight: 600">12,400,000 đ</td>
+                                    <td style="text-align: center"><span class="mu-badge warning">Sent</span></td>
+                                    <td style="font-size: 16px"><span style="color: #64748b; cursor: pointer">👁️ ✏️ 🗑️</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="hotspot" style="top: 250px; left: 620px">
+                    <div class="tooltip-box tooltip-bottom">
+                        <h4>Quản lý dòng đời Báo Giá (Quote)</h4>
+                        Báo giá khởi tạo mặc định là Nháp (Draft), sau khi gửi đi (Sent) và chốt ký duyệt (Approved), trạng thái sẽ thay đổi. Một khi báo giá đã Approved, bạn có thể tạo Đơn hàng từ
+                        đó.
+                    </div>
+                </div>
+            </div>
+
+            <!-- SLIDE 6 -->
+            <div class="mockup-container" id="slide-6">
+                <div class="mock-modal-overlay">
+                    <div class="mock-modal">
+                        <div class="mock-modal-header" style="background: #f8fafc">
+                            <div>
+                                <span style="font-weight: 700; font-size: 18px; color: #0f172a">Chi tiết Báo giá: QTE_99500</span>
+                                <span class="mu-badge warning" style="margin-left: 8px">Sent</span>
+                            </div>
+                            <button style="border: none; background: transparent; font-size: 20px; cursor: pointer; color: #64748b">×</button>
+                        </div>
+                        <div class="mock-modal-body bg-white">
+                            <div class="mock-grid">
+                                <div class="mock-card">
+                                    <div class="mock-card-title">📇 Thông tin chung (Báo giá)</div>
+                                    <div style="display: flex; justify-content: space-between">
+                                        <div class="mock-field"><span class="mock-label">Khách hàng</span><span class="mock-value" style="color: #2563eb">CL_OPX123</span></div>
+                                        <div class="mock-field"><span class="mock-label">Sale phụ trách</span><span class="mock-value">SAD_VND899</span></div>
+                                    </div>
+                                </div>
+
+                                <div class="mock-card" style="background: #fcf8ff; border: 1px dashed #d8b4fe">
+                                    <div class="mock-card-title">💰 Thông tin chi phí</div>
+                                    <div style="display: flex; justify-content: space-between">
+                                        <div class="mock-field"><span class="mock-label">Thành tiền (Niêm yết)</span><span class="mock-value">12,400,000 đ</span></div>
+                                        <div class="mock-field">
+                                            <span class="mock-label text-right">Tổng thanh toán</span><span class="mock-value font-bold" style="color: #9333ea; font-size: 16px">12,000,000 đ</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mock-card">
+                                <div class="mock-card-title" style="background: #f3e8ff; color: #7e22ce; padding: 8px; border-radius: 6px; border: 1px solid #e9d5ff">
+                                    📚 Bảng danh sách các mẫu trong bảng chào giá
+                                </div>
+                                <div style="border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden">
+                                    <div style="padding: 12px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-weight: 600; color: #0f172a">S1993333333 - Mẫu Phân bón</div>
+                                    <table class="mu-table" style="width: 100%">
+                                        <thead>
+                                            <tr>
+                                                <th style="padding: 8px">Chỉ tiêu (Parameter)</th>
+                                                <th style="padding: 8px">Phương pháp</th>
+                                                <th style="padding: 8px">Dự kiến</th>
+                                                <th style="padding: 8px">Đơn giá</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td style="padding: 8px; font-weight: 600">Đạm tổng số</td>
+                                                <td style="padding: 8px">ISO 4443:2000</td>
+                                                <td style="padding: 8px">3 ngày</td>
+                                                <td style="padding: 8px; font-weight: 600">715,000 đ</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 8px; font-weight: 600">Kali</td>
+                                                <td style="padding: 8px">TCVN 888:2020</td>
+                                                <td style="padding: 8px">2 ngày</td>
+                                                <td style="padding: 8px; font-weight: 600">550,000 đ</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="guide-footer">
+            <button class="nav-btn btn-prev" id="btn-prev" disabled>← Quay lại</button>
+            <div class="step-indicators" id="step-indicators">
+                <div class="step-dot active"></div>
+                <div class="step-dot"></div>
+                <div class="step-dot"></div>
+                <div class="step-dot"></div>
+                <div class="step-dot"></div>
+                <div class="step-dot"></div>
+            </div>
+            <button class="nav-btn btn-next" id="btn-next">Tiếp theo →</button>
+        </div>
+        <script>
+            const slides = document.querySelectorAll(".mockup-container");
+            const dots = document.querySelectorAll(".step-dot");
+            const btnPrev = document.getElementById("btn-prev");
+            const btnNext = document.getElementById("btn-next");
+            const titleEl = document.getElementById("slide-title");
+            const descEl = document.getElementById("slide-desc");
+
+            let currentSlide = 0;
+
+            const slideInfo = [
+                {
+                    title: "1. Tab Khách hàng",
+                    desc: "Giao diện quản lý danh sách pháp nhân, đại diện. Sử dụng thanh filter để lọc nhanh các cấu trúc dữ liệu.",
+                },
+                {
+                    title: "2. Chi tiết Khách hàng",
+                    desc: "Xem toàn cảnh thông tin khách hàng, chi tiết tài chính / hóa đơn. Modal có thể tra cứu nhanh các liên kết hệ thống.",
+                },
+                {
+                    title: "3. Tab Đơn hàng",
+                    desc: "Danh sách trạng thái Order. Hệ thống hiển thị cả trạng thái Thanh toán (Payment) và Tiến trình (Processing).",
+                },
+                {
+                    title: "4. Chi tiết Đơn hàng",
+                    desc: "Hóa đơn phân tách chi tiết từng khoản Giảm giá, số tiền sau Thuế. Đặc biệt, theo dõi toàn bộ Mẫu và Chỉ tiêu yêu cầu kiểm tra.",
+                },
+                {
+                    title: "5. Tab Báo giá",
+                    desc: "Quản lý luồng gửi Báo giá (Quote) - từ Draft -> Sent -> Approved. Tạo nền tảng để tự động hóa đơn hàng mà không cần gõ lại.",
+                },
+                {
+                    title: "6. Chi tiết Báo giá",
+                    desc: "Phân cấp các mẫu, thiết lập thuế, chiết khấu và theo dõi dự báo chi phí báo cho Khách hàng một cách rõ ràng và minh bạch.",
+                },
+            ];
+
+            function updateSlide(index) {
+                slides.forEach((s) => s.classList.remove("active"));
+                dots.forEach((d) => d.classList.remove("active"));
+
+                slides[index].classList.add("active");
+                dots[index].classList.add("active");
+
+                titleEl.textContent = slideInfo[index].title;
+                descEl.textContent = slideInfo[index].desc;
+
+                btnPrev.disabled = index === 0;
+
+                if (index === slides.length - 1) {
+                    btnNext.textContent = "Hoàn thành ✓";
+                    btnNext.style.backgroundColor = "#10b981";
+                } else {
+                    btnNext.textContent = "Tiếp theo →";
+                    btnNext.style.backgroundColor = "";
+                }
+            }
+
+            btnNext.addEventListener("click", () => {
+                if (currentSlide < slides.length - 1) {
+                    currentSlide++;
+                    updateSlide(currentSlide);
+                }
+            });
+
+            btnPrev.addEventListener("click", () => {
+                if (currentSlide > 0) {
+                    currentSlide--;
+                    updateSlide(currentSlide);
+                }
+            });
+
+            dots.forEach((dot, index) => {
+                dot.addEventListener("click", () => {
+                    currentSlide = index;
+                    updateSlide(currentSlide);
+                });
+            });
+        </script>
+    </body>
+</html>

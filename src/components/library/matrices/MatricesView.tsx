@@ -14,6 +14,7 @@ import { MatricesCreateModal } from "./MatricesCreateModal";
 import { MatricesDeleteConfirm } from "./MatricesDeleteConfirm";
 import { MatricesEditModal } from "./MatricesEditModal";
 import { MatrixDetailPanel } from "./MatrixDetailPanel";
+import { HelpBubble } from "@/components/inventory/chemical/HelpBubble";
 
 export type ExcelFiltersState = {
     sampleTypeId: string[];
@@ -31,8 +32,6 @@ function MatricesSkeleton() {
         </div>
     );
 }
-
-
 
 function createEmptyFilters(): ExcelFiltersState {
     return {
@@ -197,6 +196,7 @@ export function MatricesView() {
             ) : null}
 
             <MatricesCreateModal open={createOpen} onClose={() => setCreateOpen(false)} />
+            <HelpBubble guidePath="guide-matrices.html" />
         </div>
     );
 }

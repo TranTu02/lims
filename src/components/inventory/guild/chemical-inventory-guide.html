@@ -1,0 +1,1346 @@
+<!doctype html>
+<html lang="vi">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Hướng dẫn sử dụng - Module Quản lý Kho Hóa Chất (LIMS)</title>
+        <style>
+            :root {
+                --primary: #2563eb;
+                --primary-light: #eff6ff;
+                --success: #16a34a;
+                --warning: #d97706;
+                --danger: #dc2626;
+                --muted: #6b7280;
+                --border: #e5e7eb;
+                --bg: #f9fafb;
+                --card: #ffffff;
+                --text: #111827;
+                --text-muted: #6b7280;
+            }
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+            body {
+                font-family: "Segoe UI", system-ui, sans-serif;
+                background: var(--bg);
+                color: var(--text);
+                line-height: 1.6;
+            }
+            a {
+                color: var(--primary);
+                text-decoration: none;
+            }
+
+            /* Layout */
+            .layout {
+                display: flex;
+                min-height: 100vh;
+            }
+            .sidebar {
+                width: 270px;
+                min-width: 270px;
+                background: var(--card);
+                border-right: 1px solid var(--border);
+                position: sticky;
+                top: 0;
+                height: 100vh;
+                overflow-y: auto;
+                padding: 20px 0;
+            }
+            .sidebar-logo {
+                padding: 0 20px 16px;
+                border-bottom: 1px solid var(--border);
+                margin-bottom: 12px;
+            }
+            .sidebar-logo h1 {
+                font-size: 14px;
+                font-weight: 700;
+                color: var(--primary);
+            }
+            .sidebar-logo p {
+                font-size: 11px;
+                color: var(--text-muted);
+                margin-top: 2px;
+            }
+            .sidebar-section {
+                padding: 6px 20px;
+                font-size: 10px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                color: var(--text-muted);
+                margin-top: 12px;
+            }
+            .sidebar a {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 7px 20px;
+                font-size: 13px;
+                color: var(--text);
+                border-left: 3px solid transparent;
+                transition: all 0.15s;
+            }
+            .sidebar a:hover,
+            .sidebar a.active {
+                color: var(--primary);
+                border-left-color: var(--primary);
+                background: var(--primary-light);
+            }
+            .sidebar a .icon {
+                font-size: 15px;
+                width: 18px;
+                text-align: center;
+            }
+
+            .main {
+                flex: 1;
+                padding: 32px 40px;
+                max-width: 1100px;
+            }
+
+            /* Hero */
+            .hero {
+                background: linear-gradient(135deg, #1e40af, #2563eb, #0ea5e9);
+                color: white;
+                border-radius: 16px;
+                padding: 36px 40px;
+                margin-bottom: 40px;
+            }
+            .hero h1 {
+                font-size: 26px;
+                font-weight: 800;
+                margin-bottom: 8px;
+            }
+            .hero p {
+                font-size: 14px;
+                opacity: 0.88;
+                max-width: 560px;
+            }
+            .hero .tags {
+                display: flex;
+                gap: 8px;
+                flex-wrap: wrap;
+                margin-top: 16px;
+            }
+            .hero .tag {
+                background: rgba(255, 255, 255, 0.2);
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                border-radius: 999px;
+                padding: 3px 12px;
+                font-size: 11px;
+                font-weight: 600;
+            }
+
+            /* Tab nav overview */
+            .tab-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+                gap: 12px;
+                margin-bottom: 40px;
+            }
+            .tab-card {
+                background: var(--card);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 16px;
+                text-align: center;
+                transition: box-shadow 0.2s;
+            }
+            .tab-card:hover {
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+            }
+            .tab-card .emoji {
+                font-size: 26px;
+                margin-bottom: 8px;
+            }
+            .tab-card h3 {
+                font-size: 13px;
+                font-weight: 700;
+                margin-bottom: 4px;
+            }
+            .tab-card p {
+                font-size: 11px;
+                color: var(--text-muted);
+            }
+
+            /* Section */
+            .section {
+                background: var(--card);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 28px 32px;
+                margin-bottom: 28px;
+            }
+            .section-header {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 20px;
+                padding-bottom: 16px;
+                border-bottom: 1px solid var(--border);
+            }
+            .section-icon {
+                width: 36px;
+                height: 36px;
+                border-radius: 10px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 18px;
+                flex-shrink: 0;
+            }
+            .section-icon.blue {
+                background: #eff6ff;
+            }
+            .section-icon.green {
+                background: #f0fdf4;
+            }
+            .section-icon.orange {
+                background: #fff7ed;
+            }
+            .section-icon.red {
+                background: #fef2f2;
+            }
+            .section-icon.purple {
+                background: #faf5ff;
+            }
+            .section-icon.teal {
+                background: #f0fdfa;
+            }
+            .section-icon.yellow {
+                background: #fefce8;
+            }
+            .section h2 {
+                font-size: 18px;
+                font-weight: 700;
+            }
+            .section .sub {
+                font-size: 12px;
+                color: var(--text-muted);
+                margin-top: 2px;
+            }
+
+            /* Steps */
+            .steps {
+                list-style: none;
+                counter-reset: step;
+            }
+            .steps li {
+                counter-increment: step;
+                display: flex;
+                gap: 14px;
+                margin-bottom: 18px;
+                align-items: flex-start;
+            }
+            .steps li::before {
+                content: counter(step);
+                min-width: 26px;
+                height: 26px;
+                border-radius: 50%;
+                background: var(--primary);
+                color: white;
+                font-size: 12px;
+                font-weight: 700;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                margin-top: 1px;
+            }
+            .steps li div {
+                flex: 1;
+            }
+            .steps li strong {
+                display: block;
+                font-size: 14px;
+                margin-bottom: 3px;
+            }
+            .steps li p {
+                font-size: 13px;
+                color: var(--text-muted);
+            }
+
+            /* Badges */
+            .badge-list {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                margin-top: 10px;
+            }
+            .badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 4px 10px;
+                border-radius: 999px;
+                font-size: 11px;
+                font-weight: 600;
+                border: 1px solid;
+            }
+            .badge.green {
+                background: #dcfce7;
+                color: #15803d;
+                border-color: #bbf7d0;
+            }
+            .badge.blue {
+                background: #dbeafe;
+                color: #1d4ed8;
+                border-color: #bfdbfe;
+            }
+            .badge.red {
+                background: #fee2e2;
+                color: #b91c1c;
+                border-color: #fecaca;
+            }
+            .badge.yellow {
+                background: #fef9c3;
+                color: #854d0e;
+                border-color: #fef08a;
+            }
+            .badge.gray {
+                background: #f3f4f6;
+                color: #374151;
+                border-color: #e5e7eb;
+            }
+            .badge.orange {
+                background: #fff7ed;
+                color: #c2410c;
+                border-color: #fed7aa;
+            }
+
+            /* Info boxes */
+            .info-box {
+                display: flex;
+                gap: 12px;
+                padding: 14px 16px;
+                border-radius: 10px;
+                margin-bottom: 14px;
+            }
+            .info-box.tip {
+                background: #f0fdf4;
+                border: 1px solid #bbf7d0;
+            }
+            .info-box.warn {
+                background: #fffbeb;
+                border: 1px solid #fde68a;
+            }
+            .info-box.info {
+                background: #eff6ff;
+                border: 1px solid #bfdbfe;
+            }
+            .info-box.danger {
+                background: #fef2f2;
+                border: 1px solid #fecaca;
+            }
+            .info-box .ib-icon {
+                font-size: 18px;
+                line-height: 1;
+                flex-shrink: 0;
+            }
+            .info-box .ib-body strong {
+                font-size: 13px;
+                display: block;
+                margin-bottom: 3px;
+            }
+            .info-box .ib-body p {
+                font-size: 12px;
+                color: var(--text-muted);
+            }
+
+            /* Table */
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 13px;
+                margin: 12px 0;
+            }
+            th {
+                background: var(--bg);
+                text-align: left;
+                padding: 8px 12px;
+                font-size: 11px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.04em;
+                color: var(--text-muted);
+                border-bottom: 2px solid var(--border);
+            }
+            td {
+                padding: 9px 12px;
+                border-bottom: 1px solid var(--border);
+                vertical-align: top;
+            }
+            tr:last-child td {
+                border-bottom: none;
+            }
+            tr:hover td {
+                background: var(--bg);
+            }
+            code {
+                font-family: monospace;
+                font-size: 11px;
+                background: #f3f4f6;
+                border: 1px solid #e5e7eb;
+                padding: 1px 6px;
+                border-radius: 4px;
+                color: #374151;
+            }
+
+            /* Feature list */
+            .feature-list {
+                list-style: none;
+            }
+            .feature-list li {
+                display: flex;
+                align-items: flex-start;
+                gap: 8px;
+                padding: 6px 0;
+                font-size: 13px;
+                border-bottom: 1px solid var(--border);
+            }
+            .feature-list li:last-child {
+                border-bottom: none;
+            }
+            .feature-list .dot {
+                color: var(--primary);
+                font-size: 16px;
+                line-height: 1.3;
+                flex-shrink: 0;
+            }
+
+            /* Workflow */
+            .workflow {
+                display: flex;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 6px;
+                margin: 16px 0;
+            }
+            .wf-step {
+                background: var(--primary-light);
+                color: var(--primary);
+                border: 1px solid #bfdbfe;
+                border-radius: 8px;
+                padding: 8px 14px;
+                font-size: 12px;
+                font-weight: 600;
+            }
+            .wf-arrow {
+                color: var(--text-muted);
+                font-size: 16px;
+            }
+
+            /* Tip bar */
+            .tip-bar {
+                background: linear-gradient(90deg, #eff6ff, #f0fdf4);
+                border: 1px solid #bfdbfe;
+                border-radius: 10px;
+                padding: 12px 16px;
+                font-size: 12px;
+            }
+            .tip-bar strong {
+                color: var(--primary);
+            }
+
+            /* Anchor scroll offset */
+            [id] {
+                scroll-margin-top: 24px;
+            }
+
+            @media (max-width: 900px) {
+                .sidebar {
+                    display: none;
+                }
+                .main {
+                    padding: 20px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="layout">
+            <!-- SIDEBAR -->
+            <nav class="sidebar">
+                <div class="sidebar-logo">
+                    <h1>🧪 LIMS - Kho Hóa Chất</h1>
+                    <p>User Guide v1.0 · 2026</p>
+                </div>
+                <div class="sidebar-section">Tổng quan</div>
+                <a href="#overview"><span class="icon">🗺️</span> Kiến trúc Module</a>
+                <a href="#tabs-overview"><span class="icon">📑</span> Hệ thống 7 Tab</a>
+                <div class="sidebar-section">Chức năng chính</div>
+                <a href="#inventories"><span class="icon">🧴</span> Quản lý Lọ/Chai</a>
+                <a href="#skus"><span class="icon">🏷️</span> Danh mục Hóa chất</a>
+                <a href="#suppliers"><span class="icon">🏭</span> Nhà Cung Cấp</a>
+                <a href="#transaction-blocks"><span class="icon">📋</span> Phiếu Xuất/Nhập</a>
+                <a href="#transactions"><span class="icon">📜</span> Lịch sử Giao dịch</a>
+                <a href="#audit-blocks"><span class="icon">🔍</span> Phiếu Kiểm Kê</a>
+                <a href="#audit-details"><span class="icon">📊</span> Chi tiết Kiểm Kê</a>
+                <div class="sidebar-section">Tính năng đặc biệt</div>
+                <a href="#allocate"><span class="icon">⚡</span> Cấp phát FEFO</a>
+                <a href="#print-label"><span class="icon">🖨️</span> In Tem QR</a>
+                <a href="#separate"><span class="icon">✂️</span> Tách Lọ Hóa chất</a>
+                <a href="#approve"><span class="icon">✅</span> Duyệt Phiếu</a>
+                <a href="#qr-scan"><span class="icon">📷</span> Quét QR Code</a>
+                <div class="sidebar-section">Tham chiếu</div>
+                <a href="#status-reference"><span class="icon">🔖</span> Tra cứu Trạng thái</a>
+                <a href="#tips"><span class="icon">💡</span> Mẹo sử dụng</a>
+            </nav>
+
+            <!-- MAIN CONTENT -->
+            <main class="main">
+                <!-- HERO -->
+                <div class="hero">
+                    <h1>📦 Module Quản lý Kho Hóa Chất</h1>
+                    <p>Hệ thống quản lý toàn diện vòng đời hóa chất trong phòng thí nghiệm: từ nhập kho, xuất kho, kiểm kê định kỳ đến cấp phát tự động theo chuẩn FEFO.</p>
+                    <div class="tags">
+                        <span class="tag">React + TypeScript</span>
+                        <span class="tag">7 Tab điều hướng</span>
+                        <span class="tag">QR Code Scanner</span>
+                        <span class="tag">FEFO Auto-Allocate</span>
+                        <span class="tag">In tem 50×22mm</span>
+                    </div>
+                </div>
+
+                <!-- OVERVIEW -->
+                <div class="section" id="overview">
+                    <div class="section-header">
+                        <div class="section-icon blue">🗺️</div>
+                        <div>
+                            <h2>Kiến trúc Module</h2>
+                            <p class="sub">ChemicalInventoryLayout.tsx — Bố cục và điều hướng tổng thể</p>
+                        </div>
+                    </div>
+                    <p style="font-size: 13px; margin-bottom: 16px">
+                        Module Kho Hóa Chất được truy cập từ menu <strong>Inventory → Hóa Chất</strong>. Giao diện chia theo hệ thống <strong>Tab ngang</strong> ở đầu trang — mỗi tab đại diện cho một
+                        nhóm dữ liệu độc lập.
+                    </p>
+                    <div class="tab-grid" id="tabs-overview">
+                        <div class="tab-card">
+                            <div class="emoji">🧴</div>
+                            <h3>Quản lý Lọ/Chai</h3>
+                            <p>Tồn kho vật lý từng chai</p>
+                        </div>
+                        <div class="tab-card">
+                            <div class="emoji">🏷️</div>
+                            <h3>Danh mục Hóa chất</h3>
+                            <p>SKU hóa chất tổng hợp</p>
+                        </div>
+                        <div class="tab-card">
+                            <div class="emoji">🏭</div>
+                            <h3>Nhà Cung Cấp</h3>
+                            <p>Quản lý NCC & catalog</p>
+                        </div>
+                        <div class="tab-card">
+                            <div class="emoji">📋</div>
+                            <h3>Phiếu Xuất/Nhập</h3>
+                            <p>Header phiếu giao dịch</p>
+                        </div>
+                        <div class="tab-card">
+                            <div class="emoji">📜</div>
+                            <h3>Lịch sử GD</h3>
+                            <p>Log chi tiết từng dòng</p>
+                        </div>
+                        <div class="tab-card">
+                            <div class="emoji">🔍</div>
+                            <h3>Phiếu Kiểm Kê</h3>
+                            <p>Header đợt kiểm kê</p>
+                        </div>
+                        <div class="tab-card">
+                            <div class="emoji">📊</div>
+                            <h3>Chi tiết Kiểm Kê</h3>
+                            <p>Log kiểm đếm từng chai</p>
+                        </div>
+                    </div>
+                    <div class="info-box info">
+                        <span class="ib-icon">ℹ️</span>
+                        <div class="ib-body">
+                            <strong>Mặc định tab hiển thị</strong>
+                            <p>Khi vào module, hệ thống mặc định hiển thị tab <strong>Quản lý Lọ/Chai</strong> (Inventories) — đây là tab thường dùng nhất cho công việc hàng ngày.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 1: INVENTORIES -->
+                <div class="section" id="inventories">
+                    <div class="section-header">
+                        <div class="section-icon green">🧴</div>
+                        <div>
+                            <h2>Tab: Quản lý Lọ/Chai (Inventories)</h2>
+                            <p class="sub">InventoriesTab.tsx — Tồn kho vật lý từng chai/lọ hóa chất</p>
+                        </div>
+                    </div>
+
+                    <h3 style="font-size: 14px; margin-bottom: 10px">📋 Thông tin hiển thị trong bảng</h3>
+                    <table>
+                        <tr>
+                            <th>Cột</th>
+                            <th>Mô tả</th>
+                            <th>Ví dụ</th>
+                        </tr>
+                        <tr>
+                            <td><code>Barcode / Item ID</code></td>
+                            <td>Mã barcode duy nhất của chai, dạng <code>BTL-xxx</code></td>
+                            <td>BTL-00123</td>
+                        </tr>
+                        <tr>
+                            <td>Tên hóa chất</td>
+                            <td>Tên đầy đủ từ SKU</td>
+                            <td>Hydrochloric Acid</td>
+                        </tr>
+                        <tr>
+                            <td>Số CAS</td>
+                            <td>Mã CAS quốc tế</td>
+                            <td>7647-01-0</td>
+                        </tr>
+                        <tr>
+                            <td>Mã SKU</td>
+                            <td>Liên kết tới danh mục</td>
+                            <td>SKU-CHEM-001</td>
+                        </tr>
+                        <tr>
+                            <td>Số Lô</td>
+                            <td>Lot number sản xuất</td>
+                            <td>LOT-2024-05</td>
+                        </tr>
+                        <tr>
+                            <td>Vị trí</td>
+                            <td>Tủ/kệ lưu trữ</td>
+                            <td>A2-S3</td>
+                        </tr>
+                        <tr>
+                            <td>Lượng còn lại</td>
+                            <td>Số lượng hiện tại trong chai</td>
+                            <td>250</td>
+                        </tr>
+                        <tr>
+                            <td>Lượng cả bì</td>
+                            <td>Khối lượng kể cả vỏ chai</td>
+                            <td>450g</td>
+                        </tr>
+                        <tr>
+                            <td>Trạng thái</td>
+                            <td>Tình trạng hiện tại của chai</td>
+                            <td><span class="badge blue">Đang dùng</span></td>
+                        </tr>
+                        <tr>
+                            <td>Hạn sử dụng</td>
+                            <td>Ngày hết hạn in trên vỏ</td>
+                            <td>31/12/2025</td>
+                        </tr>
+                        <tr>
+                            <td>Ngày mở nắp</td>
+                            <td>Ngày mở chai lần đầu</td>
+                            <td>01/03/2025</td>
+                        </tr>
+                        <tr>
+                            <td>Hạn sau mở (ngày)</td>
+                            <td>Số ngày còn lại sau khi mở</td>
+                            <td>90</td>
+                        </tr>
+                    </table>
+
+                    <h3 style="font-size: 14px; margin: 20px 0 10px">🔧 Các chức năng</h3>
+                    <ul class="feature-list">
+                        <li>
+                            <span class="dot">▸</span>
+                            <div><strong>Tìm kiếm</strong> — Nhập barcode, mã SKU, số lô vào ô search → nhấn <kbd>Enter</kbd> hoặc nút <strong>Tìm kiếm</strong></div>
+                        </li>
+                        <li>
+                            <span class="dot">▸</span>
+                            <div><strong>Lọc nâng cao</strong> — Click icon 🔽 trên cột <em>Trạng thái / Hạn sử dụng / Ngày mở</em> để lọc theo giá trị cụ thể</div>
+                        </li>
+                        <li>
+                            <span class="dot">▸</span>
+                            <div><strong>Xem chi tiết</strong> — Click vào bất kỳ hàng nào → panel chi tiết trượt ra bên phải</div>
+                        </li>
+                        <li>
+                            <span class="dot">▸</span>
+                            <div><strong>Thêm lọ mới</strong> — Nhấn nút <strong>+ Nhập Lọ Mới</strong> → mở form tạo mới</div>
+                        </li>
+                        <li>
+                            <span class="dot">▸</span>
+                            <div><strong>Tải lại dữ liệu</strong> — Nhấn icon 🔄 để refresh bảng</div>
+                        </li>
+                        <li>
+                            <span class="dot">▸</span>
+                            <div><strong>In tem nhãn</strong> — Xem hướng dẫn tại mục <a href="#print-label">In Tem QR Code</a></div>
+                        </li>
+                    </ul>
+
+                    <div class="info-box tip">
+                        <span class="ib-icon">✅</span>
+                        <div class="ib-body">
+                            <strong>Chế độ chọn nhiều để in tem</strong>
+                            <p>Nhấn nút <strong>In Tem</strong> lần đầu → vào chế độ chọn (checkbox hiện ra). Tick chọn các chai cần in → nhấn lại <strong>In Tem (N)</strong> để mở cửa sổ in.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: SKUS -->
+                <div class="section" id="skus">
+                    <div class="section-header">
+                        <div class="section-icon blue">🏷️</div>
+                        <div>
+                            <h2>Tab: Danh mục Hóa chất (SKUs)</h2>
+                            <p class="sub">SkusTab.tsx — Danh mục phân loại hóa chất cấp tổng hợp</p>
+                        </div>
+                    </div>
+                    <p style="font-size: 13px; margin-bottom: 14px">
+                        Mỗi <strong>SKU</strong> đại diện cho một loại hóa chất (không phân biệt chai cụ thể). Ví dụ: "HCl 37%" là 1 SKU, có thể có nhiều chai trong kho.
+                    </p>
+                    <table>
+                        <tr>
+                            <th>Trường</th>
+                            <th>Mô tả</th>
+                        </tr>
+                        <tr>
+                            <td><code>chemicalSkuId</code></td>
+                            <td>Mã định danh dạng <code>SKU-CHEM-xxx</code></td>
+                        </tr>
+                        <tr>
+                            <td>Tên hóa chất</td>
+                            <td>Tên đầy đủ theo tiêu chuẩn</td>
+                        </tr>
+                        <tr>
+                            <td>Số CAS</td>
+                            <td>Chemical Abstracts Service number</td>
+                        </tr>
+                        <tr>
+                            <td>Đơn vị</td>
+                            <td>ml, g, L, bottle...</td>
+                        </tr>
+                        <tr>
+                            <td>Tồn kho tổng</td>
+                            <td>Tổng lượng tồn từ tất cả chai đang active</td>
+                        </tr>
+                        <tr>
+                            <td>Ngưỡng tối thiểu</td>
+                            <td>Reorder level — cảnh báo khi tồn thấp hơn ngưỡng này</td>
+                        </tr>
+                        <tr>
+                            <td>Phân loại nguy hiểm</td>
+                            <td>Toxic, Flammable, Corrosive...</td>
+                        </tr>
+                    </table>
+                    <div class="info-box info">
+                        <span class="ib-icon">ℹ️</span>
+                        <div class="ib-body">
+                            <strong>Xem chi tiết SKU</strong>
+                            <p>Click vào hàng → panel bên phải hiển thị <strong>toàn bộ danh sách chai</strong> và <strong>nhà cung cấp</strong> liên quan đến SKU đó.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: SUPPLIERS -->
+                <div class="section" id="suppliers">
+                    <div class="section-header">
+                        <div class="section-icon orange">🏭</div>
+                        <div>
+                            <h2>Tab: Nhà Cung Cấp & Catalog</h2>
+                            <p class="sub">SuppliersTab.tsx — Quản lý thông tin nhà cung cấp hóa chất</p>
+                        </div>
+                    </div>
+                    <table>
+                        <tr>
+                            <th>Trường</th>
+                            <th>Mô tả</th>
+                        </tr>
+                        <tr>
+                            <td>Tên nhà cung cấp</td>
+                            <td>Tên công ty/đơn vị cung cấp</td>
+                        </tr>
+                        <tr>
+                            <td>Mã số thuế</td>
+                            <td>Tax code định danh pháp lý</td>
+                        </tr>
+                        <tr>
+                            <td>Trạng thái</td>
+                            <td><span class="badge green">Đang hoạt động</span> <span class="badge gray">Ngừng</span> <span class="badge red">Danh sách đen</span></td>
+                        </tr>
+                        <tr>
+                            <td>Điểm đánh giá</td>
+                            <td>Điểm NCC từ 0–100</td>
+                        </tr>
+                        <tr>
+                            <td>Người liên hệ</td>
+                            <td>Danh sách contact (tên, email, phone)</td>
+                        </tr>
+                        <tr>
+                            <td>Chứng chỉ ISO</td>
+                            <td>ISO 9001, ISO 17025...</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- TAB 4: TRANSACTION BLOCKS -->
+                <div class="section" id="transaction-blocks">
+                    <div class="section-header">
+                        <div class="section-icon red">📋</div>
+                        <div>
+                            <h2>Tab: Phiếu Xuất/Nhập Kho</h2>
+                            <p class="sub">TransactionBlocksTab.tsx — Tạo và quản lý phiếu giao dịch kho</p>
+                        </div>
+                    </div>
+
+                    <h3 style="font-size: 14px; margin-bottom: 10px">Loại phiếu</h3>
+                    <div class="badge-list" style="margin-bottom: 18px">
+                        <span class="badge green">📥 IMPORT — Nhập kho</span>
+                        <span class="badge red">📤 EXPORT — Xuất kho</span>
+                        <span class="badge blue">🔧 ADJUSTMENT — Điều chỉnh</span>
+                    </div>
+
+                    <h3 style="font-size: 14px; margin-bottom: 10px">Trạng thái phiếu</h3>
+                    <div class="badge-list" style="margin-bottom: 20px">
+                        <span class="badge gray">📝 DRAFT — Nháp</span>
+                        <span class="badge yellow">⏳ PENDING_APPROVAL — Chờ duyệt</span>
+                        <span class="badge green">✅ APPROVED — Đã duyệt</span>
+                        <span class="badge red">❌ REJECTED — Từ chối</span>
+                    </div>
+
+                    <h3 style="font-size: 14px; margin-bottom: 14px">📝 Quy trình tạo phiếu mới</h3>
+                    <ol class="steps">
+                        <li>
+                            <div>
+                                <strong>Mở form tạo phiếu</strong>
+                                <p>Nhấn nút <strong>+ Tạo phiếu</strong> ở góc trên phải màn hình.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div>
+                                <strong>Chọn loại phiếu</strong>
+                                <p>Click vào một trong 3 loại: <em>Nhập kho / Xuất kho / Điều chỉnh</em>. Loại phiếu ảnh hưởng đến dấu của changeQty.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div>
+                                <strong>Nhập số chứng từ tham chiếu</strong>
+                                <p>Điền mã PO, Request số..., ví dụ: <code>PO-2024-001</code>. Trường này để tra soát sau này.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div>
+                                <strong>Đính kèm tài liệu COA / Hóa đơn</strong>
+                                <p>Tìm tài liệu trong hệ thống hoặc nhấn <strong>Tải lên</strong> để upload file mới. Áp dụng cho toàn bộ phiếu.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div>
+                                <strong>Thêm hóa chất vào phiếu</strong>
+                                <p>Có 2 cách: (1) Nhấn <strong>Chọn từ kho</strong> → chọn thủ công trong popup; (2) Quét barcode QR code trực tiếp bằng máy quét — hệ thống tự nhận diện.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div>
+                                <strong>Điền thông tin từng dòng (Line Item)</strong>
+                                <p>Mỗi item card có: <em>Số lượng, Khối lượng GD, Mã chỉ tiêu (nếu EXPORT), Ghi chú</em>. Có thể upload COA riêng cho từng item (phiếu Nhập).</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div>
+                                <strong>Kiểm tra bằng tab Tổng hợp</strong>
+                                <p>Chuyển sang view <strong>Tổng hợp</strong> để xem group by chai — xem tổng số lượng và danh sách chỉ tiêu liên quan.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div>
+                                <strong>Submit phiếu</strong>
+                                <p>Nhấn <strong>Tạo phiếu &amp; Giao dịch</strong>. Với phiếu Nhập → tự động mở cửa sổ in tem sau khi tạo thành công.</p>
+                            </div>
+                        </li>
+                    </ol>
+
+                    <div class="info-box warn">
+                        <span class="ib-icon">⚠️</span>
+                        <div class="ib-body">
+                            <strong>Quy tắc về số lượng (changeQty)</strong>
+                            <p>EXPORT: hệ thống tự chuyển thành số âm. IMPORT: số dương. ADJUSTMENT: người dùng tự nhập, có thể âm hoặc dương.</p>
+                        </div>
+                    </div>
+
+                    <h3 style="font-size: 14px; margin: 20px 0 10px">💡 Tính năng Duplicate Line Item</h3>
+                    <p style="font-size: 13px">
+                        Khi cùng một chai cần xuất cho nhiều chỉ tiêu khác nhau (ví dụ: xuất 50ml cho ANL-101 và 30ml cho ANL-102 từ cùng chai BTL-001): nhấn icon <strong>+</strong> (Duplicate) trên
+                        item card → tạo dòng mới kế tiếp với cùng chai, mã chỉ tiêu trống để điền análisisId khác.
+                    </p>
+                </div>
+
+                <!-- TAB 5: TRANSACTIONS -->
+                <div class="section" id="transactions">
+                    <div class="section-header">
+                        <div class="section-icon purple">📜</div>
+                        <div>
+                            <h2>Tab: Lịch sử Giao dịch</h2>
+                            <p class="sub">TransactionsTab.tsx — Log chi tiết từng dòng giao dịch</p>
+                        </div>
+                    </div>
+                    <p style="font-size: 13px; margin-bottom: 14px">
+                        Tab này hiển thị toàn bộ lịch sử giao dịch ở mức <strong>line-item</strong>, không phân biệt phiếu. Dùng để truy xuất nguồn gốc và audit trail.
+                    </p>
+                    <table>
+                        <tr>
+                            <th>Loại hành động (ActionType)</th>
+                            <th>Màu</th>
+                            <th>Ý nghĩa</th>
+                        </tr>
+                        <tr>
+                            <td>INITIAL_ISSUE</td>
+                            <td><span class="badge red">Xuất ban đầu</span></td>
+                            <td>Xuất lần đầu cho phép thử</td>
+                        </tr>
+                        <tr>
+                            <td>SUPPLEMENTAL</td>
+                            <td><span class="badge orange">Bổ sung</span></td>
+                            <td>Xuất bổ sung thêm</td>
+                        </tr>
+                        <tr>
+                            <td>RETURN</td>
+                            <td><span class="badge blue">Hoàn trả</span></td>
+                            <td>Trả lại vào kho</td>
+                        </tr>
+                        <tr>
+                            <td>WASTE</td>
+                            <td><span class="badge gray">Thải bỏ</span></td>
+                            <td>Hóa chất bị thải</td>
+                        </tr>
+                        <tr>
+                            <td>IMPORT</td>
+                            <td><span class="badge green">Nhập kho</span></td>
+                            <td>Nhập mới vào kho</td>
+                        </tr>
+                        <tr>
+                            <td>ADJUSTMENT</td>
+                            <td><span class="badge blue">Điều chỉnh</span></td>
+                            <td>Cân chỉnh số lượng</td>
+                        </tr>
+                    </table>
+                    <div class="tip-bar"><strong>💡 Tip:</strong> Cột <strong>changeQty</strong> hiển thị màu xanh (+) khi số dương, đỏ (-) khi số âm — giúp nhận biết nhanh hướng thay đổi kho.</div>
+                </div>
+
+                <!-- TAB 6: AUDIT BLOCKS -->
+                <div class="section" id="audit-blocks">
+                    <div class="section-header">
+                        <div class="section-icon teal">🔍</div>
+                        <div>
+                            <h2>Tab: Phiếu Kiểm Kê</h2>
+                            <p class="sub">AuditBlocksTab.tsx — Quản lý các đợt kiểm kê định kỳ</p>
+                        </div>
+                    </div>
+
+                    <h3 style="font-size: 14px; margin-bottom: 10px">Trạng thái đợt kiểm kê</h3>
+                    <div class="badge-list" style="margin-bottom: 18px">
+                        <span class="badge gray">📝 DRAFT</span>
+                        <span class="badge blue">🔄 IN_PROGRESS</span>
+                        <span class="badge yellow">⏳ PENDING_APPROVAL</span>
+                        <span class="badge green">✅ COMPLETED</span>
+                        <span class="badge red">❌ CANCELLED</span>
+                    </div>
+
+                    <h3 style="font-size: 14px; margin-bottom: 14px">📝 Quy trình tạo đợt kiểm kê</h3>
+                    <ol class="steps">
+                        <li>
+                            <div>
+                                <strong>Tạo đợt kiểm kê</strong>
+                                <p>Nhấn <strong>+ Tạo Đợt Kiểm Kê</strong> → điền Tên đợt, Phạm vi (ALL/SKU/LOCATION/CATEGORY), Người thực hiện.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div>
+                                <strong>Thêm chai vào danh sách kiểm đếm</strong>
+                                <p>Nhấn <strong>Thêm dòng</strong> thủ công hoặc <strong>quét QR</strong> — hệ thống tự điền SKU và Số lượng hệ thống.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div>
+                                <strong>Nhập số lượng thực tế</strong>
+                                <p>Điền cột <em>SL Thực tế</em> — hệ thống tính tự động chênh lệch (màu xanh = thừa, đỏ = thiếu).</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div>
+                                <strong>Lưu phiếu</strong>
+                                <p>Nhấn <strong>Lưu thay đổi</strong>. Chuyển trạng thái sang PENDING_APPROVAL để gửi duyệt.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div>
+                                <strong>Duyệt và điều chỉnh kho</strong>
+                                <p>Trong panel chi tiết → nhấn <strong>Duyệt</strong>. Hệ thống tạo phiếu ADJUSTMENT tự động cho các chai có chênh lệch ≠ 0.</p>
+                            </div>
+                        </li>
+                    </ol>
+
+                    <div class="info-box warn">
+                        <span class="ib-icon">⚠️</span>
+                        <div class="ib-body">
+                            <strong>Chống trùng lặp mã chai</strong>
+                            <p>Mỗi mã chai (<code>chemicalInventoryId</code>) chỉ được xuất hiện <strong>1 lần duy nhất</strong> trong 1 phiếu kiểm kê. Hệ thống sẽ cảnh báo và từ chối nếu trùng.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 7: AUDIT DETAILS -->
+                <div class="section" id="audit-details">
+                    <div class="section-header">
+                        <div class="section-icon yellow">📊</div>
+                        <div>
+                            <h2>Tab: Chi tiết Kiểm Kê</h2>
+                            <p class="sub">AuditDetailsTab.tsx — Log kiểm đếm từng chai, xem theo lịch sử</p>
+                        </div>
+                    </div>
+                    <p style="font-size: 13px">Tab này cho phép xem toàn bộ dữ liệu kiểm đếm chi tiết từ nhiều đợt kiểm kê, có thể lọc và tra cứu theo mã chai hoặc đợt kiểm kê.</p>
+                </div>
+
+                <!-- FEATURE: ALLOCATE STOCK -->
+                <div class="section" id="allocate">
+                    <div class="section-header">
+                        <div class="section-icon blue">⚡</div>
+                        <div>
+                            <h2>Tính năng: Cấp phát Hóa chất Tự động (FEFO)</h2>
+                            <p class="sub">AllocateStockModal.tsx — First Expired, First Out</p>
+                        </div>
+                    </div>
+                    <p style="font-size: 13px; margin-bottom: 16px">
+                        Tính năng cấp phát tự động theo nguyên tắc <strong>FEFO</strong> (First Expired, First Out) — ưu tiên dùng các chai gần hết hạn nhất. Quy trình 3 bước:
+                    </p>
+                    <div class="workflow">
+                        <div class="wf-step">① Nhập mã Phép thử</div>
+                        <div class="wf-arrow">→</div>
+                        <div class="wf-step">② Dự toán hao hụt (BOM)</div>
+                        <div class="wf-arrow">→</div>
+                        <div class="wf-step">③ Tạo Picking List</div>
+                    </div>
+                    <ol class="steps" style="margin-top: 16px">
+                        <li>
+                            <div>
+                                <strong>Bước 1 — Nhập danh sách Mẫu</strong>
+                                <p>Nhập mã Analysis ID (ví dụ: <code>ANL-001</code>) → nhấn <kbd>Enter</kbd> hoặc nút <strong>Thêm</strong>. Thêm nhiều ID để tính tổng nhu cầu.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div>
+                                <strong>Bước 2 — Xem Dự toán (BOM)</strong>
+                                <p>Hệ thống tự tra cứu định mức hao hụt từ thư viện phương pháp → hiển thị bảng BOM: SKU cần, tổng lượng, chỉ tiêu liên quan.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div>
+                                <strong>Bước 3 — Tạo Phiếu Xuất Tự động</strong>
+                                <p>
+                                    Hệ thống chọn chai theo FEFO, hiển thị Picking List — danh sách chai cần lấy kèm số lượng. Nhấn <strong>Xác nhận xuất kho &amp; Gán chỉ tiêu</strong> để hoàn tất.
+                                </p>
+                            </div>
+                        </li>
+                    </ol>
+                </div>
+
+                <!-- FEATURE: PRINT LABEL -->
+                <div class="section" id="print-label">
+                    <div class="section-header">
+                        <div class="section-icon orange">🖨️</div>
+                        <div>
+                            <h2>Tính năng: In Tem QR Code</h2>
+                            <p class="sub">PrintLabelModal.tsx — In tem nhãn 50×22mm, 2 tem/hàng</p>
+                        </div>
+                    </div>
+                    <p style="font-size: 13px; margin-bottom: 14px">
+                        In tem dán lên vỏ chai với QR code để quét nhanh bằng máy quét sau này. Spec tem: <strong>50×22mm</strong>, 2 tem trên tờ 100×22mm.
+                    </p>
+                    <h3 style="font-size: 13px; margin-bottom: 10px">Nội dung mỗi tem:</h3>
+                    <ul class="feature-list">
+                        <li>
+                            <span class="dot">▸</span>
+                            <div><strong>Phần trái (35mm):</strong> Tên hóa chất, số CAS, số lô, nhà sản xuất, NSX-HSD</div>
+                        </li>
+                        <li>
+                            <span class="dot">▸</span>
+                            <div><strong>Phần phải (12mm):</strong> Mã SKU rút gọn + QR Code + Item ID rút gọn</div>
+                        </li>
+                    </ul>
+                    <h3 style="font-size: 13px; margin: 14px 0 10px">Cách in tem từ Tab Lọ/Chai:</h3>
+                    <ol class="steps">
+                        <li>
+                            <div>
+                                <strong>Vào chế độ chọn</strong>
+                                <p>Nhấn nút <strong>🖨 In Tem</strong> — bảng hiện thêm cột checkbox.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div>
+                                <strong>Chọn các chai cần in</strong>
+                                <p>Tick từng hàng hoặc tick ô checkbox ở header để chọn tất cả.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div>
+                                <strong>Mở cửa sổ in</strong>
+                                <p>Nhấn lại <strong>In Tem (N)</strong> — popup in hiện ra với xem trước bản in.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div>
+                                <strong>Chỉnh số lượng tem</strong>
+                                <p>Mỗi chai có thể tùy chỉnh số lượng tem cần in (1–100 tem/chai).</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div>
+                                <strong>In</strong>
+                                <p>Nhấn <strong>🖨 In</strong> → mở cửa sổ in hệ thống.</p>
+                            </div>
+                        </li>
+                    </ol>
+                    <div class="info-box tip">
+                        <span class="ib-icon">✅</span>
+                        <div class="ib-body">
+                            <strong>Tự động mở in tem sau nhập kho</strong>
+                            <p>Khi tạo phiếu Nhập kho thành công → hệ thống <strong>tự động mở</strong> cửa sổ in tem cho các chai vừa nhập.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FEATURE: SEPARATE -->
+                <div class="section" id="separate">
+                    <div class="section-header">
+                        <div class="section-icon purple">✂️</div>
+                        <div>
+                            <h2>Tính năng: Tách Lọ Hóa chất</h2>
+                            <p class="sub">InventorySeparateModal.tsx — Chia 1 chai thành nhiều chai nhỏ</p>
+                        </div>
+                    </div>
+                    <p style="font-size: 13px; margin-bottom: 14px">
+                        Khi cần chia một chai lớn thành nhiều chai nhỏ để thuận tiện quản lý. Chai gốc bị giảm tương ứng, các chai mới được tạo tự động với barcode mới.
+                    </p>
+                    <h3 style="font-size: 13px; margin-bottom: 10px">Quy tắc tách:</h3>
+                    <ul class="feature-list">
+                        <li>
+                            <span class="dot">▸</span>
+                            <div>Tối thiểu phải tách thành <strong>2 lọ</strong> trở lên</div>
+                        </li>
+                        <li>
+                            <span class="dot">▸</span>
+                            <div>Tổng lượng tách ra <strong>không được vượt</strong> lượng hiện có của chai gốc</div>
+                        </li>
+                        <li>
+                            <span class="dot">▸</span>
+                            <div>Mỗi lọ mới phải có số lượng <strong>&gt; 0</strong></div>
+                        </li>
+                        <li>
+                            <span class="dot">▸</span>
+                            <div>Cần nhập: số lượng, khối lượng cả bì, vị trí lưu trữ cho từng lọ mới</div>
+                        </li>
+                    </ul>
+                    <div class="info-box info">
+                        <span class="ib-icon">ℹ️</span>
+                        <div class="ib-body">
+                            <strong>Thanh tóm tắt</strong>
+                            <p>Cuối form hiển thị thanh màu: xanh khi tổng lượng tách hợp lệ, đỏ khi vượt giới hạn — kiểm tra trực quan trước khi submit.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FEATURE: APPROVE BLOCK -->
+                <div class="section" id="approve">
+                    <div class="section-header">
+                        <div class="section-icon green">✅</div>
+                        <div>
+                            <h2>Tính năng: Duyệt Phiếu Xuất/Nhập</h2>
+                            <p class="sub">ApproveTransactionBlockModal.tsx — Xác nhận và phân bổ kho</p>
+                        </div>
+                    </div>
+                    <p style="font-size: 13px; margin-bottom: 14px">
+                        Khi phiếu ở trạng thái <strong>PENDING_APPROVAL</strong>, người có quyền duyệt mở modal Duyệt để xem xét và xác nhận phân bổ chai.
+                    </p>
+                    <h3 style="font-size: 13px; margin-bottom: 14px">Giao diện duyệt phiếu có 2 tab:</h3>
+                    <ul class="feature-list">
+                        <li>
+                            <span class="dot">▸</span>
+                            <div><strong>Tab "Chi tiết Line Items"</strong> — Xem từng dòng hóa chất, số lượng, chỉ tiêu liên quan, chai được phân bổ</div>
+                        </li>
+                        <li>
+                            <span class="dot">▸</span>
+                            <div><strong>Tab "Picking List"</strong> — Xem tổng hợp theo chai: có thể thay đổi chai phân bổ thủ công (InventorySelect dropdown)</div>
+                        </li>
+                    </ul>
+                    <h3 style="font-size: 13px; margin: 14px 0 10px">Các nút hành động:</h3>
+                    <table>
+                        <tr>
+                            <th>Nút</th>
+                            <th>Chức năng</th>
+                        </tr>
+                        <tr>
+                            <td>🔄 Tính toán lại</td>
+                            <td>Chạy lại thuật toán phân bổ FEFO với lựa chọn thủ công hiện tại</td>
+                        </tr>
+                        <tr>
+                            <td>💾 Lưu phân bổ</td>
+                            <td>Lưu cấu hình chai đã chọn nhưng chưa duyệt</td>
+                        </tr>
+                        <tr>
+                            <td>✅ Duyệt phiếu</td>
+                            <td>Xác nhận duyệt — trừ kho thực tế, chuyển trạng thái sang APPROVED</td>
+                        </tr>
+                    </table>
+                    <div class="info-box warn">
+                        <span class="ib-icon">⚠️</span>
+                        <div class="ib-body">
+                            <strong>Cảnh báo thay đổi chưa lưu</strong>
+                            <p>Nếu bạn thay đổi chai phân bổ nhưng chưa <em>Lưu phân bổ</em> mà nhấn <em>Duyệt</em>, hệ thống sẽ hỏi xác nhận: lưu rồi duyệt hay hủy.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FEATURE: QR SCAN -->
+                <div class="section" id="qr-scan">
+                    <div class="section-header">
+                        <div class="section-icon teal">📷</div>
+                        <div>
+                            <h2>Tính năng: Quét QR Code (Global Scanner)</h2>
+                            <p class="sub">useQrScanner hook — Quét toàn cục, không cần focus ô input</p>
+                        </div>
+                    </div>
+                    <p style="font-size: 13px; margin-bottom: 14px">
+                        Hệ thống hỗ trợ <strong>quét QR toàn cục</strong> — máy quét barcode loại USB HID gõ nhanh vào bàn phím, hệ thống tự nhận diện chuỗi ký tự và xử lý.
+                    </p>
+                    <h3 style="font-size: 13px; margin-bottom: 10px">Scanner hoạt động tại:</h3>
+                    <table>
+                        <tr>
+                            <th>Màn hình/Modal</th>
+                            <th>Kết quả khi quét</th>
+                        </tr>
+                        <tr>
+                            <td>Form tạo phiếu (CreateBlockModal)</td>
+                            <td>Tự thêm chai vào danh sách line items</td>
+                        </tr>
+                        <tr>
+                            <td>Popup chọn từ kho (InventoryPickerModal)</td>
+                            <td>Tự tick chọn chai trong danh sách</td>
+                        </tr>
+                        <tr>
+                            <td>Form kiểm kê (AuditBlockEditModal)</td>
+                            <td>Tự thêm dòng mới + auto-fill SKU và SL hệ thống</td>
+                        </tr>
+                    </table>
+                    <div class="info-box tip">
+                        <span class="ib-icon">✅</span>
+                        <div class="ib-body">
+                            <strong>Chỉ báo trạng thái Scan</strong>
+                            <p>Góc phải có badge <strong>"Sẵn sàng quét QR"</strong> (mờ) hoặc <strong>"Đang xử lý..."</strong> (animation) — theo dõi để biết hệ thống đang nhận dữ liệu.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STATUS REFERENCE -->
+                <div class="section" id="status-reference">
+                    <div class="section-header">
+                        <div class="section-icon blue">🔖</div>
+                        <div>
+                            <h2>Tra cứu Trạng thái</h2>
+                            <p class="sub">Tổng hợp tất cả badge màu trong module</p>
+                        </div>
+                    </div>
+                    <h3 style="font-size: 13px; margin-bottom: 8px">Trạng thái Lọ/Chai (inventoryStatus)</h3>
+                    <div class="badge-list" style="margin-bottom: 16px">
+                        <span class="badge green">New — Mới</span>
+                        <span class="badge blue">InUse — Đang dùng</span>
+                        <span class="badge yellow">Quarantined — Kiểm dịch</span>
+                        <span class="badge orange">Pending — Chờ kiểm kê</span>
+                        <span class="badge gray">Empty — Hết</span>
+                        <span class="badge red">Expired — Hết hạn</span>
+                        <span class="badge gray">Disposed — Đã hủy</span>
+                    </div>
+                    <h3 style="font-size: 13px; margin-bottom: 8px">Loại Phiếu GD (transactionType)</h3>
+                    <div class="badge-list" style="margin-bottom: 16px">
+                        <span class="badge green">IMPORT — Nhập kho</span>
+                        <span class="badge red">EXPORT — Xuất kho</span>
+                        <span class="badge blue">ADJUSTMENT — Điều chỉnh</span>
+                    </div>
+                    <h3 style="font-size: 13px; margin-bottom: 8px">Trạng thái Phiếu (blockStatus)</h3>
+                    <div class="badge-list" style="margin-bottom: 16px">
+                        <span class="badge gray">DRAFT — Nháp</span>
+                        <span class="badge yellow">PENDING_APPROVAL — Chờ duyệt</span>
+                        <span class="badge green">APPROVED — Đã duyệt</span>
+                        <span class="badge red">REJECTED — Từ chối</span>
+                    </div>
+                    <h3 style="font-size: 13px; margin-bottom: 8px">Trạng thái Kiểm kê (auditStatus)</h3>
+                    <div class="badge-list">
+                        <span class="badge gray">DRAFT</span>
+                        <span class="badge blue">IN_PROGRESS</span>
+                        <span class="badge yellow">PENDING_APPROVAL</span>
+                        <span class="badge green">COMPLETED</span>
+                        <span class="badge red">CANCELLED</span>
+                    </div>
+                </div>
+
+                <!-- TIPS -->
+                <div class="section" id="tips">
+                    <div class="section-header">
+                        <div class="section-icon green">💡</div>
+                        <div><h2>Mẹo sử dụng hiệu quả</h2></div>
+                    </div>
+                    <div class="info-box tip">
+                        <span class="ib-icon">🔄</span>
+                        <div class="ib-body">
+                            <strong>Phân trang mượt mà</strong>
+                            <p>Tất cả table đều dùng <code>keepPreviousData</code> — dữ liệu cũ hiển thị khi chuyển trang, không bị giật/trắng màn hình.</p>
+                        </div>
+                    </div>
+                    <div class="info-box tip">
+                        <span class="ib-icon">⌨️</span>
+                        <div class="ib-body">
+                            <strong>Tìm kiếm bằng Enter</strong>
+                            <p>Gõ từ khóa vào ô search → nhấn <kbd>Enter</kbd> để tìm kiếm mà không cần nhấn nút. Dữ liệu chỉ fetch lại khi bạn submit tìm kiếm.</p>
+                        </div>
+                    </div>
+                    <div class="info-box tip">
+                        <span class="ib-icon">📊</span>
+                        <div class="ib-body">
+                            <strong>Số hàng trên trang</strong>
+                            <p>Mỗi tab có selector số hàng/trang: 10, 20, 50, 100. Thay đổi số hàng sẽ tự reset về trang 1.</p>
+                        </div>
+                    </div>
+                    <div class="info-box tip">
+                        <span class="ib-icon">🖱️</span>
+                        <div class="ib-body">
+                            <strong>Panel chi tiết</strong>
+                            <p>Click vào bất kỳ hàng nào trong bảng → panel chi tiết trượt ra bên phải. Click vào hàng khác để xem chi tiết của hàng đó.</p>
+                        </div>
+                    </div>
+                    <div class="info-box warn">
+                        <span class="ib-icon">🔒</span>
+                        <div class="ib-body">
+                            <strong>Phiếu sau khi APPROVED không thể sửa</strong>
+                            <p>Khi phiếu đã được duyệt (APPROVED), kho đã bị trừ/cộng thực tế. Nếu cần điều chỉnh, tạo phiếu ADJUSTMENT mới.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="text-align: center; padding: 24px 0; color: var(--text-muted); font-size: 12px; border-top: 1px solid var(--border); margin-top: 16px">
+                    LIMS Chemical Inventory Module · User Guide v1.0 · Cập nhật: 04/2026 · Được tạo tự động từ source code
+                </div>
+            </main>
+        </div>
+
+        <script>
+            // Active sidebar highlight on scroll
+            const sections = document.querySelectorAll("[id]");
+            const navLinks = document.querySelectorAll(".sidebar a");
+            function onScroll() {
+                let current = "";
+                sections.forEach((s) => {
+                    if (window.scrollY >= s.offsetTop - 60) current = s.id;
+                });
+                navLinks.forEach((l) => {
+                    l.classList.remove("active");
+                    if (l.getAttribute("href") === "#" + current) l.classList.add("active");
+                });
+            }
+            window.addEventListener("scroll", onScroll);
+            onScroll();
+        </script>
+    </body>
+</html>

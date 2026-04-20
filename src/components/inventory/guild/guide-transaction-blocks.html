@@ -1,0 +1,1011 @@
+<!doctype html>
+<html lang="vi">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Hướng dẫn - Phiếu Xuất/Nhập Kho</title>
+        <style>
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+            body {
+                font-family: "Segoe UI", sans-serif;
+                background: #0f172a;
+                color: #1e293b;
+                height: 100vh;
+                display: flex;
+                flex-direction: column;
+            }
+            .top-bar {
+                background: #1e293b;
+                color: #fff;
+                padding: 10px 20px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                flex-shrink: 0;
+            }
+            .top-bar h1 {
+                font-size: 14px;
+                font-weight: 700;
+            }
+            .slide-counter {
+                font-size: 12px;
+                color: #94a3b8;
+            }
+            .progress {
+                height: 3px;
+                background: #0f172a;
+            }
+            .progress-bar {
+                height: 100%;
+                background: linear-gradient(90deg, #dc2626, #f97316);
+                transition: width 0.4s;
+            }
+            .main {
+                flex: 1;
+                display: flex;
+                overflow: hidden;
+            }
+            .sidebar {
+                width: 215px;
+                background: #1e293b;
+                overflow-y: auto;
+                padding: 12px 0;
+                flex-shrink: 0;
+            }
+            .sidebar-item {
+                padding: 8px 16px;
+                cursor: pointer;
+                border-left: 3px solid transparent;
+                font-size: 11px;
+                color: #94a3b8;
+                transition: all 0.2s;
+            }
+            .sidebar-item:hover {
+                background: #0f172a;
+                color: #e2e8f0;
+            }
+            .sidebar-item.active {
+                border-left-color: #dc2626;
+                color: #fca5a5;
+                background: #0f172a;
+                font-weight: 700;
+            }
+            .sidebar-item .si-num {
+                display: inline-block;
+                width: 18px;
+                height: 18px;
+                border-radius: 50%;
+                background: #334155;
+                color: #94a3b8;
+                font-size: 9px;
+                font-weight: 700;
+                text-align: center;
+                line-height: 18px;
+                margin-right: 6px;
+            }
+            .sidebar-item.active .si-num {
+                background: #dc2626;
+                color: #fff;
+            }
+            .content {
+                flex: 1;
+                overflow-y: auto;
+                padding: 20px;
+                display: flex;
+                gap: 20px;
+            }
+            .slide-area {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+            }
+            .slide-header {
+                color: #fff;
+            }
+            .slide-header .step-label {
+                font-size: 10px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                color: #fca5a5;
+                margin-bottom: 4px;
+            }
+            .slide-header h2 {
+                font-size: 20px;
+                font-weight: 800;
+                margin-bottom: 4px;
+            }
+            .slide-header p {
+                font-size: 13px;
+                color: #94a3b8;
+            }
+            .ui-frame {
+                background: #fff;
+                border-radius: 10px;
+                overflow: hidden;
+                position: relative;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            }
+            .hotspot {
+                position: absolute;
+                width: 26px;
+                height: 26px;
+                border-radius: 50%;
+                background: #ef4444;
+                color: #fff;
+                font-size: 11px;
+                font-weight: 800;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                z-index: 10;
+                box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.3);
+                animation: pulse 2s infinite;
+            }
+            .hotspot.blue {
+                background: #2563eb;
+                box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.3);
+            }
+            .hotspot.green {
+                background: #059669;
+                box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.3);
+            }
+            .hotspot.orange {
+                background: #d97706;
+                box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.3);
+            }
+            .hotspot.purple {
+                background: #7c3aed;
+                box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.3);
+            }
+            @keyframes pulse {
+                0%,
+                100% {
+                    opacity: 1;
+                }
+                50% {
+                    opacity: 0.7;
+                }
+            }
+            .callout-panel {
+                width: 270px;
+                flex-shrink: 0;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                overflow-y: auto;
+            }
+            .callout-card {
+                background: #1e293b;
+                border-radius: 10px;
+                padding: 12px 14px;
+                border-left: 3px solid #ef4444;
+            }
+            .callout-card.blue {
+                border-left-color: #2563eb;
+            }
+            .callout-card.green {
+                border-left-color: #059669;
+            }
+            .callout-card.orange {
+                border-left-color: #d97706;
+            }
+            .callout-card.purple {
+                border-left-color: #7c3aed;
+            }
+            .callout-card.info {
+                border-left-color: #475569;
+            }
+            .callout-num {
+                display: inline-flex;
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                background: #ef4444;
+                color: #fff;
+                font-size: 10px;
+                font-weight: 800;
+                align-items: center;
+                justify-content: center;
+                margin-bottom: 6px;
+            }
+            .callout-num.blue {
+                background: #2563eb;
+            }
+            .callout-num.green {
+                background: #059669;
+            }
+            .callout-num.orange {
+                background: #d97706;
+            }
+            .callout-num.purple {
+                background: #7c3aed;
+            }
+            .callout-title {
+                font-size: 12px;
+                font-weight: 700;
+                color: #e2e8f0;
+                margin-bottom: 3px;
+            }
+            .callout-desc {
+                font-size: 11px;
+                color: #94a3b8;
+                line-height: 1.5;
+            }
+            .callout-action {
+                margin-top: 6px;
+                padding: 4px 8px;
+                background: #0f172a;
+                border-radius: 5px;
+                font-size: 10px;
+                color: #fca5a5;
+                font-weight: 600;
+            }
+            .nav-footer {
+                background: #1e293b;
+                padding: 12px 20px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                flex-shrink: 0;
+            }
+            .nav-btn {
+                padding: 7px 18px;
+                border-radius: 8px;
+                font-size: 13px;
+                font-weight: 700;
+                cursor: pointer;
+                border: none;
+                transition: all 0.2s;
+            }
+            .nav-btn.prev {
+                background: #334155;
+                color: #e2e8f0;
+            }
+            .nav-btn.next {
+                background: #dc2626;
+                color: #fff;
+            }
+            .nav-btn:disabled {
+                opacity: 0.35;
+                cursor: not-allowed;
+            }
+            .mu {
+                font-size: 12px;
+            }
+            .mu-bar {
+                background: #f8fafc;
+                border-bottom: 1px solid #e2e8f0;
+                padding: 8px 12px;
+                display: flex;
+                gap: 6px;
+                flex-wrap: wrap;
+            }
+            .mu-tab {
+                padding: 5px 11px;
+                border-radius: 5px;
+                font-size: 11px;
+                font-weight: 600;
+                color: #64748b;
+            }
+            .mu-tab.a {
+                background: #2563eb;
+                color: #fff;
+            }
+            .mu-tb {
+                padding: 8px 12px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                border-bottom: 1px solid #f1f5f9;
+                gap: 8px;
+            }
+            .mu-sr {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                background: #f8fafc;
+                border: 1px solid #e2e8f0;
+                border-radius: 7px;
+                padding: 4px 10px;
+                min-width: 180px;
+                font-size: 11px;
+                color: #94a3b8;
+            }
+            .btn {
+                padding: 4px 10px;
+                border-radius: 6px;
+                font-size: 11px;
+                font-weight: 600;
+                border: 1px solid #e2e8f0;
+                background: #fff;
+                color: #374151;
+                cursor: pointer;
+            }
+            .btn.p {
+                background: #2563eb;
+                color: #fff;
+                border-color: #2563eb;
+            }
+            .btn.g {
+                background: #059669;
+                color: #fff;
+                border-color: #059669;
+            }
+            .btn.r {
+                background: #dc2626;
+                color: #fff;
+                border-color: #dc2626;
+            }
+            .tbl {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 11px;
+            }
+            .tbl th {
+                background: #f8fafc;
+                padding: 6px 10px;
+                text-align: left;
+                font-size: 9px;
+                font-weight: 700;
+                text-transform: uppercase;
+                color: #64748b;
+                border-bottom: 2px solid #e2e8f0;
+                white-space: nowrap;
+            }
+            .tbl td {
+                padding: 7px 10px;
+                border-bottom: 1px solid #f8fafc;
+                white-space: nowrap;
+            }
+            .tbl tr.sel td {
+                background: #eff6ff;
+            }
+            .tbl tr:hover td {
+                background: #f8fafc;
+            }
+            .mono {
+                font-family: monospace;
+                font-size: 10px;
+                color: #2563eb;
+                font-weight: 700;
+            }
+            .muted {
+                color: #94a3b8;
+            }
+            .bdg {
+                display: inline-flex;
+                padding: 2px 7px;
+                border-radius: 999px;
+                font-size: 9px;
+                font-weight: 700;
+                border: 1px solid;
+            }
+            .bdg.g {
+                background: #dcfce7;
+                color: #15803d;
+                border-color: #bbf7d0;
+            }
+            .bdg.b {
+                background: #dbeafe;
+                color: #1d4ed8;
+                border-color: #bfdbfe;
+            }
+            .bdg.r {
+                background: #fee2e2;
+                color: #b91c1c;
+                border-color: #fecaca;
+            }
+            .bdg.y {
+                background: #fef9c3;
+                color: #854d0e;
+                border-color: #fde047;
+            }
+            .bdg.gray {
+                background: #f1f5f9;
+                color: #475569;
+                border-color: #e2e8f0;
+            }
+            .bdg.o {
+                background: #fff7ed;
+                color: #c2410c;
+                border-color: #fed7aa;
+            }
+            .modal {
+                background: #fff;
+                border-radius: 10px;
+                overflow: hidden;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            }
+            .mh {
+                padding: 10px 14px;
+                border-bottom: 1px solid #e2e8f0;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+            .mf {
+                padding: 10px 14px;
+                border-top: 1px solid #e2e8f0;
+                display: flex;
+                justify-content: flex-end;
+                gap: 6px;
+            }
+            .mb {
+                padding: 14px;
+            }
+            .fl {
+                font-size: 9px;
+                font-weight: 700;
+                text-transform: uppercase;
+                color: #94a3b8;
+                margin-bottom: 2px;
+            }
+            .tc {
+                flex: 1;
+                border: 2px solid #e2e8f0;
+                border-radius: 9px;
+                padding: 10px;
+                cursor: pointer;
+                text-align: center;
+            }
+            .tc.s {
+                border-color: #2563eb;
+                background: #eff6ff;
+            }
+            .ic {
+                background: #f8fafc;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                padding: 10px;
+                margin-bottom: 7px;
+            }
+            .vt {
+                display: flex;
+                gap: 3px;
+                background: #f1f5f9;
+                border-radius: 6px;
+                padding: 2px;
+                width: fit-content;
+                margin-bottom: 8px;
+            }
+            .vt-tab {
+                padding: 3px 10px;
+                border-radius: 4px;
+                font-size: 10px;
+                font-weight: 600;
+                cursor: pointer;
+                color: #64748b;
+            }
+            .vt-tab.a {
+                background: #fff;
+                color: #2563eb;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            }
+            .pg {
+                padding: 5px 12px;
+                background: #fafafa;
+                border-top: 1px solid #f1f5f9;
+                display: flex;
+                align-items: center;
+                gap: 3px;
+            }
+            .pgb {
+                width: 22px;
+                height: 22px;
+                border-radius: 4px;
+                border: 1px solid #e2e8f0;
+                background: #fff;
+                font-size: 10px;
+                cursor: pointer;
+                font-weight: 700;
+            }
+            .pgb.a {
+                background: #2563eb;
+                color: #fff;
+                border-color: #2563eb;
+            }
+            .inp {
+                border: 1px solid #e2e8f0;
+                border-radius: 5px;
+                padding: 4px 7px;
+                font-size: 11px;
+                width: 100%;
+            }
+            .g2 {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 7px;
+            }
+            .g3 {
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 7px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="top-bar">
+            <h1>📋 Hướng dẫn · Phiếu Xuất/Nhập Kho (Transaction Blocks)</h1>
+            <span class="slide-counter" id="ctr">Slide 1 / 11</span>
+        </div>
+        <div class="progress"><div class="progress-bar" id="pb" style="width: 11.1%"></div></div>
+        <div class="main">
+            <div class="sidebar" id="sb"></div>
+            <div class="content">
+                <div class="slide-area">
+                    <div class="slide-header">
+                        <div class="step-label" id="sl"></div>
+                        <h2 id="sh"></h2>
+                        <p id="sp"></p>
+                    </div>
+                    <div class="ui-frame" id="uf"></div>
+                </div>
+                <div class="callout-panel" id="cp"></div>
+            </div>
+        </div>
+        <div class="nav-footer">
+            <button class="nav-btn prev" id="pB" onclick="go(-1)" disabled>&#8592; Trước</button>
+            <div style="display: flex; gap: 6px" id="dots"></div>
+            <button class="nav-btn next" id="nB" onclick="go(1)">Tiếp theo &#8594;</button>
+        </div>
+        <script>
+            const S = [
+                {
+                    l: "[1] Màn hình chính",
+                    t: "Giao diện Tab Phiếu Xuất/Nhập",
+                    d: "Bảng liệt kê tất cả phiếu giao dịch. Lọc nhanh theo Loại phiếu và Trạng thái.",
+                    ui: `<div class="mu"><div class="mu-bar">
+<div class="mu-tab">Lọ/Chai</div><div class="mu-tab">Danh mục</div><div class="mu-tab">NCC</div>
+<div class="mu-tab a">Phiếu Xuất/Nhập</div><div class="mu-tab">Lịch sử GD</div><div class="mu-tab">Kiểm kê</div>
+</div>
+<div class="mu-tb"><div style="display:flex;gap:5px;align-items:center">
+<div class="mu-sr">&#128269; Tìm mã phiếu, chứng từ...</div>
+<button class="btn">Tìm kiếm</button><button class="btn">&#8635;</button></div>
+<div style="display:flex;gap:5px">
+<button class="btn" style="border-color:#7c3aed;color:#7c3aed">&#9889; Cấp phát FEFO</button>
+<button class="btn p">+ Tạo phiếu</button></div></div>
+<table class="tbl"><thead><tr>
+<th>Mã Phiếu</th>
+<th><span style="display:inline-flex;gap:3px;padding:2px 6px;border:1px solid #2563eb;border-radius:4px;background:#eff6ff;color:#2563eb;font-size:9px">Loại phiếu &#9660;</span></th>
+<th><span style="display:inline-flex;gap:3px;padding:2px 6px;border:1px solid #2563eb;border-radius:4px;background:#eff6ff;color:#2563eb;font-size:9px">Trạng thái &#9660;</span></th>
+<th>Số chứng từ</th><th>Người tạo</th><th>Ngày tạo</th>
+</tr></thead><tbody>
+<tr class="sel"><td class="mono">TRB-2025-001</td><td><span class="bdg r">EXPORT</span></td><td><span class="bdg g">APPROVED</span></td><td class="muted">REQ-LAB-042</td><td class="muted">Nguyễn A</td><td class="muted">15/04</td></tr>
+<tr><td class="mono">TRB-2025-002</td><td><span class="bdg g">IMPORT</span></td><td><span class="bdg y">PENDING</span></td><td class="muted">PO-2025-018</td><td class="muted">Lê C</td><td class="muted">16/04</td></tr>
+<tr><td class="mono">TRB-2025-003</td><td><span class="bdg b">ADJUSTMENT</span></td><td><span class="bdg gray">DRAFT</span></td><td class="muted">AUDIT-Q1</td><td class="muted">Nguyễn A</td><td class="muted">17/04</td></tr>
+</tbody></table>
+<div class="pg"><button class="pgb a">1</button><button class="pgb">2</button><span style="margin-left:auto;font-size:10px;color:#94a3b8">1-20/87</span></div></div>`,
+                    hs: [
+                        ["35px", "430px", "1", "purple"],
+                        ["35px", "490px", "2", ""],
+                        ["20px", "185px", "3", "blue"],
+                        ["20px", "260px", "4", "blue"],
+                    ],
+                    cs: [
+                        [
+                            "purple",
+                            "1",
+                            "Nút &#9889; Cấp phát FEFO",
+                            "Tự động tạo phiếu xuất kho theo Analysis ID — hệ thống chọn chai ưu tiên hết hạn trước (FEFO).",
+                            "&#128070; Dùng khi có Analysis cần hóa chất",
+                        ],
+                        ["", "2", "Nút + Tạo phiếu", "Tạo phiếu thủ công. Click để mở form nhập liệu.", "&#128070; Click để tạo phiếu mới"],
+                        ["blue", "3", "Lọc Loại phiếu", "Click tiêu đề cột → chọn IMPORT / EXPORT / ADJUSTMENT.", "&#128070; Click tiêu đề cột để lọc"],
+                        ["blue", "4", "Lọc Trạng thái", "Click tiêu đề cột → chọn DRAFT / PENDING / APPROVED / REJECTED.", "&#128070; Click tiêu đề cột để lọc"],
+                    ],
+                },
+
+                {
+                    l: "[2] Chọn loại phiếu",
+                    t: "Tạo phiếu: Chọn loại giao dịch",
+                    d: "Click '+ Tạo phiếu'. Bước đầu: chọn loại — IMPORT, EXPORT hoặc ADJUSTMENT. Loại ảnh hưởng đến dấu changeQty.",
+                    ui: `<div class="mu"><div class="mu-bar"><div class="mu-tab a">Phiếu Xuất/Nhập</div></div>
+<div class="mu-tb"><div class="mu-sr">&#128269; Tìm...</div><button class="btn p">+ Tạo phiếu</button></div>
+<div style="padding:10px;background:rgba(0,0,0,.4)"><div class="modal">
+<div class="mh"><span style="font-weight:700;font-size:13px">Tạo phiếu giao dịch kho</span><button style="border:none;background:none;color:#94a3b8">&#10005;</button></div>
+<div class="mb">
+<div class="fl" style="margin-bottom:8px">CHỌN LOẠI PHIẾU</div>
+<div style="display:flex;gap:8px;margin-bottom:14px">
+<div class="tc"><div style="font-size:22px;margin-bottom:5px">&#128229;</div><div style="font-weight:700;font-size:12px">Nhập kho</div><div style="font-size:10px;color:#64748b">IMPORT</div></div>
+<div class="tc s"><div style="font-size:22px;margin-bottom:5px">&#128228;</div><div style="font-weight:700;font-size:12px;color:#2563eb">Xuất kho</div><div style="font-size:10px;color:#2563eb">EXPORT — đang chọn</div></div>
+<div class="tc"><div style="font-size:22px;margin-bottom:5px">&#128295;</div><div style="font-weight:700;font-size:12px">Điều chỉnh</div><div style="font-size:10px;color:#64748b">ADJUSTMENT</div></div>
+</div>
+<div class="g2">
+<div><div class="fl">Số chứng từ tham chiếu</div><input class="inp" value="REQ-LAB-2025-050" readonly></div>
+<div><div class="fl">Tài liệu COA / Hóa đơn cấp phiếu</div><select class="inp"><option>&#128206; Chọn tài liệu...</option></select></div>
+</div></div>
+<div class="mf"><button class="btn">Hủy</button><button class="btn p">Tiếp theo &#8594;</button>
+</div></div></div></div>`,
+                    hs: [
+                        ["78px", "83px", "1", ""],
+                        ["78px", "240px", "2", "blue"],
+                        ["78px", "395px", "3", "green"],
+                        ["148px", "190px", "4", "orange"],
+                        ["148px", "440px", "5", "purple"],
+                    ],
+                    cs: [
+                        ["", "1", "Card IMPORT", "changeQty ghi DƯƠNG (+). Sau khi tạo → tự động mở in tem QR cho các chai mới.", "&#128070; Click để chọn Nhập kho"],
+                        ["blue", "2", "Card EXPORT (đang chọn)", "changeQty tự động ÂM (-) khi ghi vào ledger. Cần điền Analysis ID cho từng dòng.", "&#128070; Click để chọn Xuất kho"],
+                        ["green", "3", "Card ADJUSTMENT", "Người dùng tự nhập changeQty âm hoặc dương. Dùng sau kiểm kê hoặc cân chỉnh.", "&#128070; Click để chọn Điều chỉnh"],
+                        ["orange", "4", "Số chứng từ tham chiếu", "Điền mã PO, mã yêu cầu hoặc số tham chiếu bất kỳ. Dùng để tra cứu sau.", "&#9000;&#65039; Điền mã PO / yêu cầu"],
+                        ["purple", "5", "COA / Hóa đơn cấp phiếu", "Đính kèm file cho cả phiếu. Khi duyệt APPROVED, tự động gán vào TẤT CẢ chai trong phiếu.", "&#128206; Chọn hoặc upload file"],
+                    ],
+                },
+
+                {
+                    l: "[3] Thêm hóa chất",
+                    t: "Thêm chai vào phiếu: Quét QR hoặc chọn thủ công",
+                    d: "Hai cách thêm: (1) Quét QR barcode bằng máy quét USB, (2) Chọn từ kho qua popup tìm kiếm.",
+                    ui: `<div class="mu"><div class="mu-bar"><div class="mu-tab a">Phiếu Xuất/Nhập</div></div>
+<div style="padding:10px;background:rgba(0,0,0,.4)"><div class="modal">
+<div class="mh"><span style="font-weight:700;font-size:13px">&#128228; Xuất kho · REQ-LAB-2025-050</span><button style="border:none;background:none;color:#94a3b8">&#10005;</button></div>
+<div class="mb">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+<div class="vt"><div class="vt-tab a">Chi tiết</div><div class="vt-tab">Tổng hợp</div></div>
+<div style="display:flex;gap:5px">
+<button class="btn" style="font-size:10px;color:#7c3aed;border-color:#7c3aed">&#128247; Quét QR code</button>
+<button class="btn" style="font-size:10px">+ Chọn từ kho</button>
+</div></div>
+<div style="background:#fef9c3;border:1px solid #fde047;border-radius:7px;padding:8px;font-size:11px;color:#854d0e;margin-bottom:10px">
+&#9889; <b>Quét QR:</b> Giữ nguyên màn hình này, dùng máy quét USB đưa lên barcode chai — hệ thống tự thêm vào danh sách ngay lập tức, không cần click thêm.
+</div>
+<div style="padding:30px;border:2px dashed #e2e8f0;border-radius:8px;text-align:center;color:#94a3b8;font-size:11px">
+Chưa có hóa chất nào<br><span style="font-size:10px">Quét QR hoặc click "Chọn từ kho" để bắt đầu</span>
+</div></div>
+<div class="mf"><button class="btn">Hủy</button><button class="btn p" disabled>Tiếp theo &#8594;</button></div>
+</div></div></div>`,
+                    hs: [
+                        ["108px", "540px", "1", "purple"],
+                        ["108px", "635px", "2", "blue"],
+                    ],
+                    cs: [
+                        [
+                            "purple",
+                            "1",
+                            "&#128247; Quét QR code",
+                            "Click để BẬT chế độ nhận QR. Sau đó quét barcode chai bằng máy USB — chai tự động thêm vào danh sách, không cần thao tác thêm.",
+                            "&#128070; Click &#8594; Quét barcode chai",
+                        ],
+                        [
+                            "blue",
+                            "2",
+                            "+ Chọn từ kho",
+                            "Mở popup tìm kiếm và chọn chai thủ công. Hỗ trợ tìm theo tên, SKU, barcode. Cũng có QR scanner trong popup này.",
+                            "&#128070; Click &#8594; Tìm và tick chọn chai",
+                        ],
+                    ],
+                },
+
+                {
+                    l: "[4] Điền line item",
+                    t: "Điền thông tin từng dòng hóa chất (Item Card)",
+                    d: "Mỗi chai là một Item Card. Điền số lượng GD, khối lượng cả bì, mã chỉ tiêu (bắt buộc với EXPORT), ghi chú.",
+                    ui: `<div class="mu"><div class="mu-bar"><div class="mu-tab a">Phiếu Xuất/Nhập</div></div>
+<div style="padding:10px;background:rgba(0,0,0,.4)"><div class="modal">
+<div class="mh"><span style="font-weight:700;font-size:13px">&#128228; Xuất kho · REQ-LAB-2025-050</span><button style="border:none;background:none;color:#94a3b8">&#10005;</button></div>
+<div class="mb">
+<div class="ic">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+<div><span class="mono">BTL-00123</span><span style="font-weight:700;font-size:12px;margin-left:6px">Hydrochloric Acid 37%</span><span class="bdg o" style="margin-left:5px;font-size:9px">C-Corrosive</span></div>
+<div style="display:flex;gap:3px">
+<button style="border:1px solid #e2e8f0;border-radius:5px;padding:3px 7px;font-size:10px;background:#fff">&#128206; COA</button>
+<button style="border:1px solid #e2e8f0;border-radius:5px;padding:3px 7px;font-size:10px;background:#fff">&#8853; Nhân bản</button>
+<button style="border:1px solid #fee2e2;border-radius:5px;padding:3px 7px;font-size:10px;background:#fff;color:#dc2626">&#128465;</button>
+</div></div>
+<div class="g3">
+<div><div class="fl">Số lượng GD *</div><input class="inp" value="50" style="font-weight:700" readonly></div>
+<div><div class="fl">Đơn vị</div><select class="inp"><option>mL</option></select></div>
+<div><div class="fl">Khối lượng cả bì (g)</div><input class="inp" value="120.5" readonly></div>
+</div>
+<div class="g2" style="margin-top:6px">
+<div><div class="fl">Mã chỉ tiêu (Analysis ID) *</div><input class="inp" value="ANL-2025-101" readonly></div>
+<div><div class="fl">Ghi chú</div><input class="inp" value="Cho phép thử pH" readonly></div>
+</div></div>
+<div class="ic" style="opacity:.8">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+<div><span class="mono">BTL-00201</span><span style="font-weight:700;font-size:12px;margin-left:6px">Acetone HPLC Grade</span></div>
+<div style="display:flex;gap:3px">
+<button style="border:1px solid #e2e8f0;border-radius:5px;padding:3px 7px;font-size:10px;background:#fff">&#128206; COA</button>
+<button style="border:1px solid #e2e8f0;border-radius:5px;padding:3px 7px;font-size:10px;background:#fff">&#8853; Nhân bản</button>
+<button style="border:1px solid #fee2e2;border-radius:5px;padding:3px 7px;font-size:10px;background:#fff;color:#dc2626">&#128465;</button>
+</div></div>
+<div class="g3">
+<div><div class="fl">Số lượng GD *</div><input class="inp" value="30" style="font-weight:700" readonly></div>
+<div><div class="fl">Đơn vị</div><select class="inp"><option>mL</option></select></div>
+<div><div class="fl">Khối lượng cả bì</div><input class="inp" placeholder="—" readonly></div>
+</div></div>
+</div>
+<div class="mf"><button class="btn">Hủy</button><button class="btn p">&#128190; Tạo phiếu &amp; Giao dịch</button></div>
+</div></div></div>`,
+                    hs: [
+                        ["130px", "372px", "1", ""],
+                        ["130px", "432px", "2", "blue"],
+                        ["130px", "493px", "3", ""],
+                        ["157px", "205px", "4", "orange"],
+                        ["182px", "370px", "5", "green"],
+                    ],
+                    cs: [
+                        [
+                            "",
+                            "1",
+                            "Nút &#128206; COA (từng item)",
+                            "Upload COA riêng cho từng chai — khác với COA cấp phiếu. Dùng khi mỗi chai có COA riêng từ lô khác nhau.",
+                            "&#128070; Click để upload COA riêng",
+                        ],
+                        [
+                            "blue",
+                            "2",
+                            "Nút &#8853; Nhân bản",
+                            "Cùng 1 chai cần xuất cho 2 chỉ tiêu khác nhau? Click nhân bản → dòng mới giống hệt, điền Analysis ID khác.",
+                            "&#128070; Click &#8594; dòng mới xuất hiện",
+                        ],
+                        ["", "3", "Nút &#128465; Xóa dòng", "Xóa chai này khỏi phiếu. Không ảnh hưởng kho (chưa duyệt).", "&#128070; Click để xóa dòng"],
+                        ["orange", "4", "Mã chỉ tiêu Analysis ID", "EXPORT bắt buộc điền mã ANL-xxx. Liên kết hóa chất với phép thử trong hệ thống.", "&#9000;&#65039; Điền mã ANL-xxx"],
+                        ["green", "5", "Số lượng GD", "Nhập số dương. EXPORT tự bị âm hoá khi ghi vào ledger. IMPORT giữ dương.", "&#9000;&#65039; Điền số lượng"],
+                    ],
+                },
+
+                {
+                    l: "[5] View Tổng hợp",
+                    t: "Chuyển sang tab Tổng hợp để kiểm tra",
+                    d: "Tab Tổng hợp group dữ liệu theo chai — thấy tổng lượng xuất từ mỗi chai và tất cả Analysis ID liên quan.",
+                    ui: `<div class="mu"><div class="mu-bar"><div class="mu-tab a">Phiếu Xuất/Nhập</div></div>
+<div style="padding:10px;background:rgba(0,0,0,.4)"><div class="modal">
+<div class="mh"><span style="font-weight:700;font-size:13px">&#128228; Xuất kho · REQ-LAB-2025-050</span></div>
+<div class="mb">
+<div class="vt"><div class="vt-tab">Chi tiết</div><div class="vt-tab a">Tổng hợp</div></div>
+<table class="tbl"><thead><tr>
+<th>Chai</th><th>Tên hóa chất</th><th>Lô</th><th style="text-align:right">Tổng xuất</th><th>Đv</th><th>Chỉ tiêu liên quan</th>
+</tr></thead><tbody>
+<tr><td class="mono">BTL-00123</td><td style="font-weight:600">Hydrochloric Acid 37%</td><td class="muted">LOT-2024-05</td><td style="text-align:right;font-weight:700;color:#dc2626">80</td><td class="muted">mL</td><td style="font-size:10px">ANL-101 (50mL), ANL-102 (30mL)</td></tr>
+<tr><td class="mono">BTL-00201</td><td style="font-weight:600">Acetone HPLC</td><td class="muted">LOT-2024-09</td><td style="text-align:right;font-weight:700;color:#dc2626">30</td><td class="muted">mL</td><td style="font-size:10px">ANL-101 (30mL)</td></tr>
+</tbody></table>
+<div style="margin-top:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;padding:8px;font-size:11px;color:#15803d">
+&#10003; BTL-00123: Xuất 80mL, còn lại 470mL — hợp lệ
+</div></div>
+<div class="mf"><button class="btn">Hủy</button><button class="btn p">&#128190; Tạo phiếu &amp; Giao dịch</button></div>
+</div></div></div>`,
+                    hs: [
+                        ["95px", "107px", "1", "blue"],
+                        ["95px", "58px", "2", ""],
+                    ],
+                    cs: [
+                        ["blue", "1", "Tab Tổng hợp", "Group by chai. Thấy ngay: tổng xuất mỗi chai, tất cả Analysis ID. Kiểm tra trước khi submit.", "&#128070; Click để xem tổng hợp"],
+                        ["", "2", "Tab Chi tiết", "Quay lại xem từng dòng riêng để chỉnh sửa số lượng từng chỉ tiêu.", "&#128070; Click để sửa từng dòng"],
+                    ],
+                },
+
+                {
+                    l: "[6] Submit phiếu",
+                    t: "Tạo phiếu thành công",
+                    d: "Nhấn 'Tạo phiếu & Giao dịch'. Phiếu được tạo. Với IMPORT: tự động mở cửa sổ in tem QR cho các chai vừa nhập.",
+                    ui: `<div class="mu"><div class="mu-bar"><div class="mu-tab a">Phiếu Xuất/Nhập</div></div>
+<div style="padding:10px;background:rgba(0,0,0,.4)"><div class="modal">
+<div class="mh"><span style="font-weight:700;font-size:13px">&#128229; Nhập kho · PO-2025-018</span></div>
+<div class="mb">
+<div class="ic">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+<div><span class="mono">BTL-00401</span><span style="font-weight:700;font-size:12px;margin-left:6px">Ethanol 99%</span></div></div>
+<div class="g3">
+<div><div class="fl">Số lượng nhập</div><input class="inp" value="2000" style="font-weight:700;color:#059669" readonly></div>
+<div><div class="fl">Đv</div><select class="inp"><option>mL</option></select></div>
+<div><div class="fl">Khối lượng cả bì</div><input class="inp" value="2150g" readonly></div></div></div>
+<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:7px;padding:10px;font-size:11px;color:#15803d;margin-top:8px">
+&#9989; IMPORT: Sau khi tạo thành công &#8594; hệ thống TỰ ĐỘNG mở cửa sổ <b>In Tem QR</b> cho các chai vừa nhập. Không cần thao tác thêm.
+</div></div>
+<div class="mf"><button class="btn">Hủy</button><button class="btn g">&#128190; Tạo phiếu &amp; Giao dịch</button></div>
+</div></div></div>`,
+                    hs: [["165px", "610px", "1", "green"]],
+                    cs: [
+                        [
+                            "green",
+                            "1",
+                            "Nút Tạo phiếu & Giao dịch",
+                            "Click để submit. IMPORT: tự mở In Tem. EXPORT: phiếu vào PENDING chờ duyệt. Phiếu được tạo với đủ các dòng đã điền.",
+                            "&#128070; Click để hoàn tất",
+                        ],
+                    ],
+                },
+
+                {
+                    l: "[7] Xem chi tiết",
+                    t: "Click hàng → Xem chi tiết phiếu",
+                    d: "Click vào hàng bất kỳ → Panel bên phải hiện ra với đầy đủ thông tin phiếu, danh sách chai, và các nút hành động.",
+                    ui: `<div class="mu" style="display:flex">
+<div style="flex:1;min-width:0">
+<div class="mu-bar"><div class="mu-tab a">Phiếu Xuất/Nhập</div></div>
+<table class="tbl"><thead><tr><th>Mã Phiếu</th><th>Loại</th><th>Trạng thái</th><th>Chứng từ</th><th>Ngày</th></tr></thead>
+<tbody>
+<tr class="sel" style="cursor:pointer"><td class="mono">TRB-2025-001</td><td><span class="bdg r">EXPORT</span></td><td><span class="bdg g">APPROVED</span></td><td class="muted">REQ-LAB-042</td><td class="muted">15/04</td></tr>
+<tr style="cursor:pointer"><td class="mono">TRB-2025-002</td><td><span class="bdg g">IMPORT</span></td><td><span class="bdg y">PENDING</span></td><td class="muted">PO-018</td><td class="muted">16/04</td></tr>
+</tbody></table></div>
+<div style="width:240px;border-left:1px solid #e2e8f0;background:#fafafa;flex-shrink:0;font-size:11px">
+<div style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-weight:700;font-size:12px;display:flex;justify-content:space-between;align-items:center">
+<span>Chi tiết Phiếu</span>
+<div style="display:flex;gap:4px">
+<button class="btn" style="font-size:9px;padding:3px 6px">📄 Trích xuất</button>
+<button style="border:none;background:none;color:#94a3b8">&#10005;</button>
+</div></div>
+<div style="padding:10px 12px">
+<div style="font-family:monospace;font-size:14px;font-weight:800;color:#2563eb">TRB-2025-001</div>
+<div style="margin:5px 0"><span class="bdg r">EXPORT</span> <span class="bdg g" style="margin-left:4px">APPROVED</span></div>
+<div class="fl" style="margin-top:8px">Chứng từ tham chiếu</div>
+<div style="font-size:11px;margin-bottom:8px">REQ-LAB-042</div>
+<div class="fl">Dòng hóa chất</div>
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:7px;margin-bottom:4px;font-size:10px">
+<span class="mono" style="font-size:10px">BTL-00123</span> Hydrochloric Acid<br>
+<span style="color:#dc2626;font-weight:700">-50 mL</span> · ANL-2025-101</div>
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:7px;margin-bottom:8px;font-size:10px">
+<span class="mono" style="font-size:10px">BTL-00201</span> Acetone HPLC<br>
+<span style="color:#dc2626;font-weight:700">-30 mL</span> · ANL-2025-101</div>
+<div style="display:flex;gap:4px;flex-wrap:wrap">
+<button class="btn" style="font-size:10px">&#9999;&#65039; Sửa</button>
+<button class="btn" style="font-size:10px;color:#059669;border-color:#059669">&#10003; Duyệt</button>
+<button class="btn" style="font-size:10px;color:#dc2626;border-color:#dc2626">&#10006; Từ chối</button>
+</div></div></div></div>`,
+                    hs: [
+                        ["49px", "60px", "1", "blue"],
+                        ["42px", "672px", "2", "purple"],
+                    ],
+                    cs: [
+                        [
+                            "blue",
+                            "1",
+                            "Click vào hàng",
+                            "Hàng active sáng xanh. Panel bên phải hiện: thông tin phiếu, num items, danh sách chai - số lượng - ANL ID, và nút Duyệt / Từ chối.",
+                            "&#128070; Click vào bất kỳ hàng nào",
+                        ],
+                        ["purple", "2", "Nút Trích xuất PDF", "Click để tự động tải file PDF phiếu xuất/nhập kho chi tiết thay vì giao diện báo cáo chung.", "&#128070; In phiếu ngay lập tức"],
+                    ],
+                },
+
+                {
+                    l: "[8] Duyệt phiếu",
+                    t: "Duyệt phiếu PENDING: xác nhận phân bổ chai",
+                    d: "Người có quyền duyệt: click nút '✓ Duyệt' trong panel → Modal duyệt mở. 2 tab: Chi tiết + Picking List.",
+                    ui: `<div class="mu"><div class="mu-bar"><div class="mu-tab a">Phiếu Xuất/Nhập</div></div>
+<div style="padding:8px;background:rgba(0,0,0,.4)"><div class="modal">
+<div class="mh"><span style="font-weight:700;font-size:13px">&#10003; Duyệt Phiếu TRB-2025-002 (EXPORT)</span></div>
+<div class="mb">
+<div class="vt" style="margin-bottom:10px"><div class="vt-tab a">Chi tiết Line Items</div><div class="vt-tab">Picking List</div></div>
+<table class="tbl"><thead><tr>
+<th>Chai phân bổ</th><th>Hóa chất</th><th style="text-align:right">SL thay đổi</th><th>Đv</th><th>Analysis ID</th>
+</tr></thead><tbody>
+<tr><td class="mono">BTL-00123</td><td>Hydrochloric Acid 37%</td><td style="text-align:right;font-weight:700;color:#dc2626">-50</td><td class="muted">mL</td><td class="muted">ANL-101</td></tr>
+<tr><td class="mono">BTL-00201</td><td>Acetone HPLC Grade</td><td style="text-align:right;font-weight:700;color:#dc2626">-30</td><td class="muted">mL</td><td class="muted">ANL-101</td></tr>
+</tbody></table>
+<div style="margin-top:8px;background:#fffbeb;border:1px solid #fde68a;border-radius:7px;padding:8px;font-size:11px;color:#92400e">
+&#9888;&#65039; Sau khi Duyệt: tồn kho bị trừ trực tiếp. Không thể hoàn tác!
+</div></div>
+<div class="mf">
+<button class="btn">Hủy</button>
+<button class="btn" style="border-color:#d97706;color:#d97706;font-size:11px">&#8635; Tính lại phân bổ</button>
+<button class="btn" style="border-color:#2563eb;color:#2563eb;font-size:11px">&#128190; Lưu phân bổ</button>
+<button class="btn g">&#10003; Xác nhận Duyệt</button>
+</div></div></div></div>`,
+                    hs: [
+                        ["164px", "404px", "1", "orange"],
+                        ["164px", "502px", "2", "blue"],
+                        ["164px", "600px", "3", "green"],
+                    ],
+                    cs: [
+                        ["orange", "1", "&#8635; Tính lại phân bổ", "Sau khi tự đổi chai trong tab Picking List, click để hệ thống recalculate số lượng theo FEFO.", "&#128070; Click để recalculate"],
+                        ["blue", "2", "&#128190; Lưu phân bổ", "Lưu cấu hình chai đã chọn nhưng CHƯA duyệt. Dùng khi muốn lưu tạm để kiểm tra thêm.", "&#128070; Click để lưu tạm"],
+                        ["green", "3", "&#10003; Xác nhận Duyệt", "Click để hoàn tất. Tồn kho trừ ngay lập tức. Phiếu chuyển APPROVED — không thể sửa.", "&#128070; Click để duyệt chính thức"],
+                    ],
+                },
+
+                {
+                    l: "[9] Vòng đời phiếu",
+                    t: "Luồng trạng thái phiếu",
+                    d: "Tổng hợp vòng đời và quyền thao tác theo từng trạng thái.",
+                    ui: `<div class="mu" style="padding:14px">
+<div style="font-size:13px;font-weight:700;margin-bottom:12px">Vòng đời trạng thái Phiếu Giao Dịch</div>
+<div style="display:flex;align-items:center;gap:6px;margin-bottom:16px;flex-wrap:wrap">
+<div style="background:#f1f5f9;border:2px solid #e2e8f0;border-radius:8px;padding:10px 14px;text-align:center;min-width:90px"><div style="font-size:18px">&#128221;</div><div style="font-weight:700;font-size:11px;margin-top:4px">DRAFT</div><div style="font-size:9px;color:#64748b">Vừa tạo</div></div>
+<div style="font-size:18px;color:#94a3b8">&#8594;</div>
+<div style="background:#fef9c3;border:2px solid #fde047;border-radius:8px;padding:10px 14px;text-align:center;min-width:90px"><div style="font-size:18px">&#8987;</div><div style="font-weight:700;font-size:11px;margin-top:4px;color:#854d0e">PENDING</div><div style="font-size:9px;color:#64748b">Chờ duyệt</div></div>
+<div style="font-size:18px;color:#94a3b8">&#8594;</div>
+<div style="display:flex;flex-direction:column;gap:6px">
+<div style="background:#dcfce7;border:2px solid #bbf7d0;border-radius:8px;padding:8px 14px;text-align:center;min-width:100px"><div style="font-size:16px">&#9989;</div><div style="font-weight:700;font-size:11px;margin-top:3px;color:#15803d">APPROVED</div><div style="font-size:9px;color:#64748b">Kho đã thay đổi</div></div>
+<div style="background:#fee2e2;border:2px solid #fecaca;border-radius:8px;padding:8px 14px;text-align:center;min-width:100px"><div style="font-size:16px">&#10060;</div><div style="font-weight:700;font-size:11px;margin-top:3px;color:#b91c1c">REJECTED</div><div style="font-size:9px;color:#64748b">Kho không đổi</div></div>
+</div></div>
+<table style="width:100%;border-collapse:collapse;font-size:11px">
+<thead><tr style="background:#f8fafc">
+<th style="padding:6px 10px;border-bottom:2px solid #e2e8f0;text-align:left;font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase">Trạng thái</th>
+<th style="padding:6px 10px;border-bottom:2px solid #e2e8f0;text-align:left;font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase">Ai thao tác</th>
+<th style="padding:6px 10px;border-bottom:2px solid #e2e8f0;text-align:left;font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase">Kho thay đổi?</th>
+<th style="padding:6px 10px;border-bottom:2px solid #e2e8f0;text-align:left;font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase">Có thể sửa?</th>
+</tr></thead><tbody>
+<tr style="border-bottom:1px solid #f1f5f9"><td style="padding:6px 10px"><span class="bdg gray">DRAFT</span></td><td style="padding:6px 10px">Người tạo</td><td style="padding:6px 10px;color:#64748b">&#10006; Chưa</td><td style="padding:6px 10px;color:#059669">&#10003; Có</td></tr>
+<tr style="border-bottom:1px solid #f1f5f9"><td style="padding:6px 10px"><span class="bdg y">PENDING</span></td><td style="padding:6px 10px">Người duyệt</td><td style="padding:6px 10px;color:#64748b">&#10006; Chưa</td><td style="padding:6px 10px;color:#d97706">&#9888; Hạn chế</td></tr>
+<tr style="border-bottom:1px solid #f1f5f9"><td style="padding:6px 10px"><span class="bdg g">APPROVED</span></td><td style="padding:6px 10px">Hệ thống</td><td style="padding:6px 10px;color:#059669">&#10003; Đã trừ/cộng</td><td style="padding:6px 10px;color:#dc2626">&#10006; Không</td></tr>
+<tr><td style="padding:6px 10px"><span class="bdg r">REJECTED</span></td><td style="padding:6px 10px">Người duyệt</td><td style="padding:6px 10px;color:#64748b">&#10006; Không đổi</td><td style="padding:6px 10px;color:#dc2626">&#10006; Không</td></tr>
+</tbody></table>
+<div style="margin-top:8px;background:#fffbeb;border:1px solid #fde68a;border-radius:7px;padding:8px;font-size:11px;color:#92400e">
+&#128161; Phiếu APPROVED không thể sửa. Nếu nhập sai &#8594; tạo phiếu ADJUSTMENT mới để bù trừ.
+</div></div>`,
+                    hs: [],
+                    cs: [
+                        [
+                            "green",
+                            "",
+                            "&#9989; APPROVED = Không thể hoàn tác",
+                            "Khi phiếu APPROVED, kho đã thay đổi thực tế. Để sửa sai, tạo phiếu ADJUSTMENT bù trừ.",
+                            "&#9888;&#65039; Kiểm tra kỹ trước khi duyệt",
+                        ],
+                        [
+                            "orange",
+                            "",
+                            "&#128161; Quy tắc changeQty",
+                            "EXPORT: changeQty luôn âm (-). IMPORT: luôn dương (+). ADJUSTMENT: người dùng tự nhập âm hoặc dương.",
+                            "&#128214; Tham khảo khi điền số lượng",
+                        ],
+                    ],
+                },
+            ];
+            let c = 0;
+            function r() {
+                const s = S[c];
+                document.getElementById("sl").textContent = s.l;
+                document.getElementById("sh").textContent = s.t;
+                document.getElementById("sp").textContent = s.d;
+                document.getElementById("ctr").textContent = "Slide " + (c + 1) + " / " + S.length;
+                document.getElementById("pb").style.width = ((c + 1) / S.length) * 100 + "%";
+                const uf = document.getElementById("uf");
+                uf.innerHTML = s.ui;
+                (s.hs || []).forEach(function (h) {
+                    var el = document.createElement("div");
+                    el.className = "hotspot" + (h[2] ? " " + h[2] : "");
+                    el.textContent = h[3];
+                    el.style.top = h[0];
+                    el.style.left = h[1];
+                    uf.appendChild(el);
+                });
+                document.getElementById("cp").innerHTML = (s.cs || [])
+                    .map(function (x) {
+                        var ico = x[1]
+                            ? '<div class="callout-num ' + x[0] + '">' + x[1] + "</div>"
+                            : '<div style="font-size:16px;margin-bottom:4px">' + (x[0] === "green" ? "&#9989;" : x[0] === "orange" ? "&#128161;" : "&#8505;&#65039;") + "</div>";
+                        return (
+                            '<div class="callout-card ' +
+                            x[0] +
+                            '">' +
+                            ico +
+                            '<div class="callout-title">' +
+                            x[2] +
+                            '</div><div class="callout-desc">' +
+                            x[3] +
+                            '</div><div class="callout-action">' +
+                            x[4] +
+                            "</div></div>"
+                        );
+                    })
+                    .join("");
+                document.getElementById("sb").innerHTML = S.map(function (s, i) {
+                    return '<div class="sidebar-item' + (i === c ? " active" : "") + '" onclick="g(' + i + ')"><span class="si-num">' + (i + 1) + "</span>" + s.l.replace(/^\[\d+\] /, "") + "</div>";
+                }).join("");
+                document.getElementById("dots").innerHTML = S.map(function (_, i) {
+                    return '<div onclick="g(' + i + ')" style="width:8px;height:8px;border-radius:50%;cursor:pointer;background:' + (i === c ? "#dc2626" : "#334155") + ';transition:all .2s"></div>';
+                }).join("");
+                document.getElementById("pB").disabled = c === 0;
+                document.getElementById("nB").disabled = c === S.length - 1;
+            }
+            function go(d) {
+                c = Math.max(0, Math.min(S.length - 1, c + d));
+                r();
+            }
+            function g(i) {
+                c = i;
+                r();
+            }
+            r();
+        </script>
+    </body>
+</html>

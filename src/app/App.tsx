@@ -25,8 +25,6 @@ import { ChemicalInventoryPage } from "@/pages/inventory/chemical/ChemicalInvent
 import { GeneralInventoryPage } from "@/pages/inventory/general/GeneralInventoryPage";
 import { ShipmentPrintPage } from "@/pages/ShipmentPrintPage";
 
-
-
 // Protected Route Wrapper
 const ProtectedRoute = () => {
     const { user, isGuest, loading } = useAuth();
@@ -51,7 +49,7 @@ function App() {
 
                     {/* Private Dashboard Routes */}
                     <Route element={<ProtectedRoute />}>
-                        <Route path="/" element={<Navigate to="/reception" replace />} />
+                        <Route path="/" element={<Navigate to="/crm" replace />} />
 
                         <Route path="/reception" element={<ReceptionPage />} />
                         <Route path="/technician" element={<TechnicianPage />} />

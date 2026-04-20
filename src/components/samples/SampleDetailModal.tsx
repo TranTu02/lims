@@ -191,8 +191,8 @@ export function SampleDetailModal({ open, sampleId, onClose }: Props) {
                         parameterId: matrix.parameterId ?? null,
                         parameterName: matrix.parameterName ?? null,
                         analysisStatus: "Pending",
-                        analysisMethodLOD: matrix.LOD ?? null,
-                        analysisMethodLOQ: matrix.LOQ ?? null,
+                        methodLOD: matrix.methodLOD ?? null,
+                        methodLOQ: matrix.methodLOQ ?? null,
                         protocolCode: matrix.protocolCode ?? null,
                     },
                 });

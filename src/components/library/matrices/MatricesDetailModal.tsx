@@ -89,8 +89,8 @@ export function MatricesDetailModal(props: Props) {
                               const feeAfterTaxText = formatNumberVi(m.feeAfterTax) ?? String(t("common.noData"));
                               const taxRateText = formatPercent(m.taxRate) ?? String(t("common.noData"));
 
-                              const lodText = safeText(m.LOD).trim() || String(t("common.noData"));
-                              const loqText = safeText(m.LOQ).trim() || String(t("common.noData"));
+                              const lodText = safeText(m.methodLOD).trim() || String(t("common.noData"));
+                              const loqText = safeText(m.methodLOQ).trim() || String(t("common.noData"));
                               const thresholdText = safeText(m.thresholdLimit).trim() || String(t("common.noData"));
 
                               const turnaroundText = m.turnaroundTime === null || m.turnaroundTime === undefined ? String(t("common.noData")) : String(m.turnaroundTime);
@@ -137,8 +137,8 @@ export function MatricesDetailModal(props: Props) {
                                       <div className="space-y-3">
                                           <SectionTitle>{String(t("library.matrices.detail.limits"))}</SectionTitle>
                                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                              <Field label="LOD" value={lodText} />
-                                              <Field label="LOQ" value={loqText} />
+                                              <Field label="methodLOD" value={lodText} />
+                                              <Field label="methodLOQ" value={loqText} />
                                               <Field label={String(t("library.matrices.thresholdLimit"))} value={thresholdText} />
                                               <Field label={String(t("library.matrices.turnaroundTime"))} value={turnaroundText} />
                                               <Field label={String(t("library.matrices.technicianGroupId"))} value={tgText} />

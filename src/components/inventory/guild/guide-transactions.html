@@ -1,0 +1,140 @@
+<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"><title>Hướng dẫn - Lịch sử Giao dịch</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",sans-serif;background:#0f172a;color:#1e293b;height:100vh;display:flex;flex-direction:column}
+.top-bar{background:#1e293b;color:#fff;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.top-bar h1{font-size:14px;font-weight:700}.sc{font-size:12px;color:#94a3b8}
+.progress{height:3px;background:#0f172a}.pb{height:100%;background:linear-gradient(90deg,#7c3aed,#a78bfa);transition:width .4s}
+.main{flex:1;display:flex;overflow:hidden}
+.sidebar{width:210px;background:#1e293b;overflow-y:auto;padding:12px 0;flex-shrink:0}
+.si{padding:8px 16px;cursor:pointer;border-left:3px solid transparent;font-size:11px;color:#94a3b8;transition:all .2s}
+.si:hover{background:#0f172a;color:#e2e8f0}
+.si.active{border-left-color:#7c3aed;color:#c4b5fd;background:#0f172a;font-weight:700}
+.si .n{display:inline-block;width:18px;height:18px;border-radius:50%;background:#334155;color:#94a3b8;font-size:9px;font-weight:700;text-align:center;line-height:18px;margin-right:6px}
+.si.active .n{background:#7c3aed;color:#fff}
+.content{flex:1;overflow-y:auto;padding:20px;display:flex;gap:20px}
+.slide-area{flex:1;display:flex;flex-direction:column;gap:16px}
+.sh{color:#fff}
+.sh .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#c4b5fd;margin-bottom:4px}
+.sh h2{font-size:20px;font-weight:800;margin-bottom:4px}
+.sh p{font-size:13px;color:#94a3b8}
+.uf{background:#fff;border-radius:10px;overflow:hidden;position:relative;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.hs{position:absolute;width:26px;height:26px;border-radius:50%;background:#ef4444;color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;box-shadow:0 0 0 4px rgba(239,68,68,.3);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+.cp{width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:10px;overflow-y:auto}
+.cc{background:#1e293b;border-radius:10px;padding:12px 14px;border-left:3px solid #ef4444}
+.cc.blue{border-left-color:#2563eb}.cc.green{border-left-color:#059669}
+.ct{font-size:12px;font-weight:700;color:#e2e8f0;margin-bottom:3px}
+.cd{font-size:11px;color:#94a3b8;line-height:1.5}
+.ca{margin-top:6px;padding:4px 8px;background:#0f172a;border-radius:5px;font-size:10px;color:#c4b5fd;font-weight:600}
+.nav-footer{background:#1e293b;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.nb{padding:7px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .2s}
+.nb.prev{background:#334155;color:#e2e8f0}.nb.next{background:#7c3aed;color:#fff}
+.nb:disabled{opacity:.35;cursor:not-allowed}
+/* Mini UI */
+.mu{font-size:12px;width:100%;height:100%}
+.mu-bar{background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:8px 12px;display:flex;gap:6px}
+.mu-tab{padding:5px 10px;border-radius:5px;font-size:11px;font-weight:600;color:#64748b}
+.mu-tab.a{background:#2563eb;color:#fff}
+.mu-tb{padding:8px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f1f5f9}
+.btn{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;border:1px solid #e2e8f0;background:#fff;color:#374151;cursor:pointer}
+.btn.v{background:#7c3aed;color:#fff;border-color:#7c3aed}
+.tbl{width:100%;border-collapse:collapse;font-size:11px}
+.tbl th{background:#f8fafc;padding:6px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#64748b;border-bottom:2px solid #e2e8f0}
+.tbl td{padding:7px 10px;border-bottom:1px solid #f8fafc}
+.tbl tr.sel td{background:#f5f3ff}
+.bdg{display:inline-flex;padding:2px 7px;border-radius:999px;font-size:9px;font-weight:700;border:1px solid}
+.bdg.g{background:#dcfce7;color:#15803d;border-color:#bbf7d0}
+.bdg.r{background:#fee2e2;color:#b91c1c;border-color:#fecaca}
+.sp{width:260px;border-left:1px solid #e2e8f0;background:#fafafa;flex-shrink:0;font-size:11px}
+.sp-h{padding:8px 12px;border-bottom:1px solid #e2e8f0;font-weight:700}
+.sp-b{padding:10px 12px}
+.fl{font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;margin-bottom:2px}
+.fv{font-size:12px;font-weight:600;margin-bottom:8px}
+.modal{background:#fff;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);width:90%;margin:10px auto}
+.mh{padding:10px;border-bottom:1px solid #e2e8f0;font-weight:700}
+.mb{padding:10px}
+.mf{padding:10px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end}
+.inp{border:1px solid #e2e8f0;border-radius:5px;padding:4px 7px;font-size:11px;width:100%}
+</style></head><body>
+<div class="top-bar">
+  <h1>&#128220; Hướng dẫn · Tab Lịch sử Giao dịch (Transactions)</h1>
+  <span class="sc" id="ctr">Slide 1 / 7</span>
+</div>
+<div class="progress"><div class="pb" id="pb" style="width:14.2%"></div></div>
+<div class="main">
+  <div class="sidebar" id="sb"></div>
+  <div class="content">
+    <div class="slide-area">
+      <div class="sh">
+        <div class="lbl" id="sl"></div>
+        <h2 id="sh2"></h2>
+        <p id="sp"></p>
+      </div>
+      <div class="uf" id="uf"></div>
+    </div>
+    <div class="cp" id="cp"></div>
+  </div>
+</div>
+<div class="nav-footer">
+  <button class="nb prev" id="pB" onclick="go(-1)">&#8592; Trước</button>
+  <div style="display:flex;gap:6px" id="dots"></div>
+  <button class="nb next" id="nB" onclick="go(1)">Tiếp theo &#8594;</button>
+</div>
+<script>
+var S=[
+{l:"[1] Màn hình chính",t:"Giao diện Tab Lịch sử Giao dịch",d:"Tab này là ledger chính thức — log từng dòng giao dịch SAU KHI phiếu được APPROVED. Không thể sửa hay xóa.",
+ui:`<div class="mu"><div class="mu-bar"><div class="mu-tab">Lọ/Chai</div><div class="mu-tab a">&#128220; Lịch sử Giao dịch</div></div><div class="mu-tb"><div>🔍 Tìm kiếm...</div><button class="btn v">Xuất báo cáo</button></div><table class="tbl"><thead><tr><th>Mã GD</th><th>Ngày</th><th>Hành động</th><th>Tên hóa chất</th><th style="text-align:right">Số lượng</th></tr></thead><tbody><tr class="sel"><td style="font-family:monospace">TXN-00501</td><td>15/04</td><td><span class="bdg r">EXPORT</span></td><td style="font-weight:700">Hydrochloric Acid</td><td style="text-align:right;color:#dc2626;font-weight:700">-50</td></tr></tbody></table></div>`,
+cs:[["purple","1","Nút Xuất báo cáo","Xuất dữ liệu ledger ra file PDF/Excel.","Click để xuất"]]},
+
+{l:"[2] Đọc số lượng",t:"Luồng tăng giảm kho",d:"Số lượng đỏ (-) = xuất kho. Số lượng xanh (+) = nhập kho.",
+ui:`<div class="mu"><table class="tbl"><tbody><tr><td><span class="bdg r">EXPORT</span></td><td style="font-weight:700">Hydrochloric Acid</td><td style="text-align:right;color:#dc2626;font-weight:800;font-size:16px">-50 mL</td></tr><tr><td><span class="bdg g">IMPORT</span></td><td style="font-weight:700">Sulfuric Acid</td><td style="text-align:right;color:#059669;font-weight:800;font-size:16px">+700 mL</td></tr></tbody></table></div>`,
+cs:[["","1","Dấu âm/dương","Hệ thống tự động xử lý dấu theo loại phiếu.","Theo dõi biến động"]]},
+
+{l:"[3] Tìm kiếm ANL",t:"Tìm theo Analysis ID",d:"Tìm các giao dịch dựa trên mã phép thử (Analysis ID).",
+ui:`<div class="mu"><div class="mu-tb"><div style="border:1px solid #7c3aed;padding:4px">🔍 ANL-2025-101</div></div><table class="tbl"><thead><tr><th>Mã GD</th><th>Hóa chất</th><th>Analysis ID</th></tr></thead><tbody><tr><td>TXN-00501</td><td>Hydrochloric Acid</td><td style="color:#7c3aed">ANL-2025-101</td></tr></tbody></table></div>`,
+cs:[["blue","1","Tìm ANL-xxx","Nhập mã phép thử để biết hóa chất đã dùng.","Gõ và Enter"]]},
+
+{l:"[4] Chi tiết giao dịch",t:"Panel chi tiết Ledger",d:"Xem đầy đủ log bao gồm mã phiếu gốc, ngày giờ thực hiện.",
+ui:`<div class="mu" style="display:flex"><div style="flex:1"></div><div class="sp"><div class="sp-h">Chi tiết Giao Dịch</div><div class="sp-b"><div style="font-weight:800;color:#7c3aed">TXN-00501</div><div class="fl">Phiếu gốc</div><div class="fv">TRB-2025-001</div></div></div></div>`,
+cs:[["purple","1","Tra cứu file","Dữ liệu được link từ phiếu gốc.","Xem chi tiết"]]},
+
+{l:"[5] Xuất báo cáo",t:"Tạo báo cáo PDF",d:"Chọn khoảng ngày để tổng hợp dữ liệu.",
+ui:`<div class="mu"><div class="modal"><div class="mh">Xuất Báo cáo</div><div class="mb"><div class="fl">Từ ngày</div><input class="inp" value="01/04/2025"><div class="fl" style="margin-top:5px">Tiêu đề</div><input class="inp" value="Báo cáo tháng 4"></div><div class="mf"><button class="btn v">Xuất PDF</button></div></div></div>`,
+cs:[["green","1","Xuất PDF","Tổng hợp ledger thành file báo cáo chính thức.","Click lệnh xuất"]]},
+
+{l:"[6] Bảng GD đầy đủ",t:"Giao diện danh mục SKU Ledger",d:"Bảng chứa tất cả thông tin truy xuất nguồn gốc của hóa chất.",
+ui:`<div class="mu"><table class="tbl"><thead><tr><th>Mã GD</th><th>Hành động</th><th>Tên hóa chất</th><th>Số lô</th><th style="text-align:right">Số lượng</th></tr></thead><tbody><tr><td>TXN-00501</td><td><span class="bdg r">EXPORT</span></td><td>Hydrochloric Acid</td><td>LOT-24-05</td><td style="text-align:right;color:#dc2626">-50</td></tr></tbody></table></div>`,
+cs:[["","1","Bảng 14 cột","Hiển thị đầy đủ mọi trường dữ liệu.","Kéo để xem hết"]]},
+
+{l:"[7] Auditing",t:"Người thực hiện",d:"Biết chính xác thời điểm và người phê duyệt giao dịch.",
+ui:`<div class="mu" style="display:flex"><div style="flex:1"></div><div class="sp"><div class="sp-b"><div class="fl">Người duyệt</div><div class="fv">Admin LIMS</div><div class="fl">Thời gian</div><div class="fv">15/04/2025 14:30</div></div></div></div>`,
+cs:[["","1","Minh bạch","Dễ dàng kiểm tra lại lịch sử.","Theo dõi log"]]}
+];
+var c=0;
+function r(){
+  var s=S[c];
+  document.getElementById("sl").textContent=s.l;
+  document.getElementById("sh2").textContent=s.t;
+  document.getElementById("sp").textContent=s.d;
+  document.getElementById("ctr").textContent="Slide "+(c+1)+" / "+S.length;
+  document.getElementById("pb").style.width=((c+1)/S.length*100)+"%";
+  var uf=document.getElementById("uf");
+  uf.innerHTML=s.ui;
+  document.getElementById("cp").innerHTML=(s.cs||[]).map(function(x){
+    var ico=x[1]?'<div class="cn '+x[0]+'">'+x[1]+"</div>":'<div style="font-size:16px;margin-bottom:4px">ℹ️</div>';
+    return '<div class="cc '+x[0]+'">'+ico+'<div class="ct">'+x[2]+'</div><div class="cd">'+x[3]+'</div><div class="ca">'+x[4]+"</div></div>";
+  }).join("");
+  document.getElementById("sb").innerHTML=S.map(function(s,i){
+    return '<div class="si'+(i===c?" active":"")+'" onclick="g('+i+')"><span class="n">'+(i+1)+'</span>'+s.l.replace(/^\[\d+\] /,"")+'</div>';
+  }).join("");
+  document.getElementById("dots").innerHTML=S.map(function(_,i){
+    return '<div onclick="g('+i+')" style="width:8px;height:8px;border-radius:50%;cursor:pointer;background:'+(i===c?"#7c3aed":"#334155")+';transition:all .2s"></div>';
+  }).join("");
+  document.getElementById("pB").disabled=c===0;
+  document.getElementById("nB").disabled=c===S.length-1;
+}
+function go(d){c=Math.max(0,Math.min(S.length-1,c+d));r();}
+function g(i){c=i;r();}
+r();
+</script></body></html>

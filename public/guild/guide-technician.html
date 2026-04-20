@@ -1,0 +1,945 @@
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hướng Dẫn Sử Dụng - Kỹ Thuật Viên</title>
+    <style>
+
+            :root {
+                --primary: #2563eb;
+                --primary-light: #eff6ff;
+                --accent: #f59e0b;
+                --text-main: #1e293b;
+                --text-muted: #64748b;
+                --bg-body: #f8fafc;
+                --bg-card: #ffffff;
+                --border-color: #e2e8f0;
+                --success: #10b981;
+            }
+
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            }
+
+            body {
+                background-color: var(--bg-body);
+                color: var(--text-main);
+                line-height: 1.5;
+                padding: 1.5rem;
+                height: 100vh;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+            }
+
+            /* -------------------------------------
+           HEADER
+        -------------------------------------- */
+            .guide-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                background: var(--bg-card);
+                padding: 1rem 1.5rem;
+                border-radius: 12px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+                margin-bottom: 1rem;
+                flex-shrink: 0;
+                border: 1px solid var(--border-color);
+            }
+
+            .header-title-wrapper h1 {
+                font-size: 1.25rem;
+                color: var(--primary);
+                font-weight: 700;
+            }
+
+            .header-title-wrapper p {
+                font-size: 0.85rem;
+                color: var(--text-muted);
+                margin-top: 0.25rem;
+            }
+
+            /* -------------------------------------
+           CONTENT AREA - MOCKUP UI
+        -------------------------------------- */
+            .guide-content {
+                flex: 1;
+                background: var(--bg-card);
+                border-radius: 12px;
+                box-shadow:
+                    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+                    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                position: relative;
+                overflow: hidden;
+                border: 1px solid var(--border-color);
+                display: flex;
+                flex-direction: column;
+            }
+
+            .mockup-container {
+                width: 100%;
+                height: 100%;
+                position: absolute;
+                top: 0;
+                left: 0;
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.3s ease;
+                background: #f1f5f9;
+                display: flex;
+                flex-direction: column;
+                padding: 1rem;
+            }
+
+            .mockup-container.active {
+                opacity: 1;
+                visibility: visible;
+            }
+
+            /* Mockup Topbar */
+            .mock-topbar {
+                background: white;
+                padding: 0.75rem 1rem;
+                border-bottom: 1px solid #e2e8f0;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-radius: 8px;
+                margin-bottom: 1rem;
+            }
+            .mock-topbar .title {
+                font-weight: 600;
+                font-size: 1.1rem;
+            }
+            .mock-topbar .search {
+                background: #f1f5f9;
+                padding: 0.4rem 1rem;
+                border-radius: 20px;
+                font-size: 0.85rem;
+                color: #64748b;
+            }
+
+            /* Mockup Workspace */
+            .mock-workspace {
+                display: flex;
+                gap: 1rem;
+                flex: 1;
+                overflow: hidden;
+            }
+
+            .mock-panel {
+                background: white;
+                border-radius: 8px;
+                border: 1px solid #e2e8f0;
+                padding: 1rem;
+                display: flex;
+                flex-direction: column;
+            }
+
+            /* Elements inside mockups */
+            .btn {
+                background: var(--primary);
+                color: white;
+                padding: 0.4rem 1rem;
+                border-radius: 6px;
+                font-size: 0.85rem;
+                font-weight: 500;
+                cursor: pointer;
+                border: none;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            .btn-outline {
+                background: white;
+                color: #475569;
+                border: 1px solid #cbd5e1;
+                padding: 0.4rem 1rem;
+                border-radius: 6px;
+                font-size: 0.85rem;
+                font-weight: 500;
+                cursor: pointer;
+            }
+
+            .mock-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 1rem;
+            }
+            .mock-table th,
+            .mock-table td {
+                padding: 0.75rem;
+                text-align: left;
+                border-bottom: 1px solid #e2e8f0;
+                font-size: 0.85rem;
+            }
+            .mock-table th {
+                color: #64748b;
+                font-weight: 600;
+                text-transform: uppercase;
+                font-size: 0.75rem;
+            }
+            .mock-table tr:hover {
+                background: #f8fafc;
+            }
+
+            /* Form Inputs */
+            .form-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+                margin-bottom: 1.5rem;
+            }
+            .form-group {
+                display: flex;
+                flex-direction: column;
+                gap: 0.35rem;
+            }
+            .form-group label {
+                font-size: 0.8rem;
+                font-weight: 600;
+                color: #475569;
+            }
+            .form-group input,
+            .form-group select {
+                padding: 0.5rem;
+                border: 1px solid #cbd5e1;
+                border-radius: 4px;
+                font-size: 0.85rem;
+            }
+
+            /* Modal Overlay */
+            .mock-modal-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(15, 23, 42, 0.4);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 2rem;
+                z-index: 10;
+            }
+            .mock-modal {
+                background: white;
+                border-radius: 12px;
+                width: 100%;
+                max-width: 900px;
+                height: 100%;
+                max-height: 600px;
+                display: flex;
+                flex-direction: column;
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .mock-modal-header {
+                padding: 1rem 1.5rem;
+                border-bottom: 1px solid #e2e8f0;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                font-weight: 600;
+            }
+            .mock-modal-body {
+                padding: 1.5rem;
+                flex: 1;
+                overflow-y: auto;
+                display: flex;
+                gap: 1.5rem;
+            }
+            .mock-modal-footer {
+                padding: 1rem 1.5rem;
+                border-top: 1px solid #e2e8f0;
+                display: flex;
+                justify-content: flex-end;
+                gap: 0.75rem;
+                background: #f8fafc;
+                border-bottom-left-radius: 12px;
+                border-bottom-right-radius: 12px;
+            }
+
+            /* -------------------------------------
+           TOOLTIPS (HOTSPOTS)
+        -------------------------------------- */
+            .hotspot {
+                position: absolute;
+                width: 24px;
+                height: 24px;
+                background: var(--accent);
+                border-radius: 50%;
+                cursor: pointer;
+                z-index: 20;
+                box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.3);
+                animation: pulse-ring 2s infinite;
+            }
+
+            @keyframes pulse-ring {
+                0% {
+                    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6);
+                }
+                70% {
+                    box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+                }
+                100% {
+                    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+                }
+            }
+
+            .hotspot::after {
+                content: "";
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 8px;
+                height: 8px;
+                background: white;
+                border-radius: 50%;
+            }
+
+            .tooltip-box {
+                position: absolute;
+                background: #1e293b;
+                color: white;
+                padding: 1rem;
+                border-radius: 8px;
+                width: 280px;
+                font-size: 0.9rem;
+                z-index: 30;
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+                opacity: 0;
+                visibility: hidden;
+                transition: all 0.2s;
+                pointer-events: none;
+                line-height: 1.4;
+            }
+
+            .hotspot:hover .tooltip-box {
+                opacity: 1;
+                visibility: visible;
+            }
+
+            .tooltip-box h4 {
+                color: #38bdf8;
+                margin-bottom: 0.5rem;
+                font-size: 1rem;
+                border-bottom: 1px solid #334155;
+                padding-bottom: 0.3rem;
+            }
+
+            /* Placement modifiers */
+            .tooltip-bottom {
+                top: 35px;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+            .tooltip-bottom::before {
+                content: "";
+                position: absolute;
+                bottom: 100%;
+                left: 50%;
+                transform: translateX(-50%);
+                border: 8px solid transparent;
+                border-bottom-color: #1e293b;
+            }
+            .tooltip-top {
+                bottom: 35px;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+            .tooltip-top::before {
+                content: "";
+                position: absolute;
+                top: 100%;
+                left: 50%;
+                transform: translateX(-50%);
+                border: 8px solid transparent;
+                border-top-color: #1e293b;
+            }
+            .tooltip-right {
+                top: 50%;
+                left: 35px;
+                transform: translateY(-50%);
+            }
+            .tooltip-right::before {
+                content: "";
+                position: absolute;
+                right: 100%;
+                top: 50%;
+                transform: translateY(-50%);
+                border: 8px solid transparent;
+                border-right-color: #1e293b;
+            }
+            .tooltip-left {
+                top: 50%;
+                right: 35px;
+                transform: translateY(-50%);
+            }
+            .tooltip-left::before {
+                content: "";
+                position: absolute;
+                left: 100%;
+                top: 50%;
+                transform: translateY(-50%);
+                border: 8px solid transparent;
+                border-left-color: #1e293b;
+            }
+
+            /* -------------------------------------
+           FOOTER NAVIGATION
+        -------------------------------------- */
+            .guide-footer {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                background: var(--bg-card);
+                padding: 1rem 1.5rem;
+                border-radius: 12px;
+                box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.05);
+                margin-top: 1rem;
+                flex-shrink: 0;
+                border: 1px solid var(--border-color);
+            }
+
+            .step-indicators {
+                display: flex;
+                gap: 8px;
+            }
+            .step-dot {
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                background: #cbd5e1;
+                transition: all 0.3s;
+            }
+            .step-dot.active {
+                background: var(--primary);
+                transform: scale(1.3);
+            }
+
+            .nav-btn {
+                padding: 0.5rem 1.25rem;
+                border: none;
+                border-radius: 6px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            .btn-prev {
+                background: #f1f5f9;
+                color: #475569;
+            }
+            .btn-prev:hover {
+                background: #e2e8f0;
+            }
+            .btn-next {
+                background: var(--primary);
+                color: white;
+            }
+            .btn-next:hover {
+                background: #1d4ed8;
+            }
+            .btn-prev:disabled,
+            .btn-next:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+        
+.mu {
+                font-family: "Segoe UI", sans-serif;
+                font-size: 12px;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                background: #fafafa;
+            }
+.mu-header {
+                padding: 20px;
+                background: #fff;
+                border-bottom: 1px solid #e2e8f0;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+.mu-header-top {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+            }
+.mu-title {
+                font-size: 20px;
+                font-weight: 600;
+                color: #020617;
+            }
+.mu-subtitle {
+                font-size: 12px;
+                color: #64748b;
+                margin-top: 4px;
+            }
+.mu-actions {
+                display: flex;
+                gap: 8px;
+                padding: 8px;
+                background: #f1f5f9;
+                border-radius: 6px;
+                border: 1px solid #e2e8f0;
+            }
+.mu-btn {
+                padding: 6px 12px;
+                background: #fff;
+                border: 1px solid #cbd5e1;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 12px;
+                font-weight: 600;
+                color: #334155;
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+            }
+.mu-btn.primary {
+                background: #0f172a;
+                color: #fff;
+                border-color: #0f172a;
+            }
+.mu-tabs {
+                display: flex;
+                gap: 4px;
+                padding: 0 20px;
+                margin-top: 10px;
+                border-bottom: 1px solid #e2e8f0;
+            }
+.mu-tab {
+                padding: 8px 16px;
+                font-size: 13px;
+                font-weight: 600;
+                color: #64748b;
+                cursor: pointer;
+                border-bottom: 2px solid transparent;
+            }
+.mu-tab.active {
+                color: #0f172a;
+                border-bottom-color: #0f172a;
+            }
+.mu-table-container {
+                flex: 1;
+                padding: 20px;
+                overflow: auto;
+            }
+.mu-table {
+                width: 100%;
+                border-collapse: collapse;
+                background: #fff;
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                border: 1px solid #e2e8f0;
+            }
+.mu-table th {
+                padding: 12px 16px;
+                background: #f8fafc;
+                font-size: 11px;
+                font-weight: 600;
+                color: #64748b;
+                border-bottom: 1px solid #e2e8f0;
+                text-transform: uppercase;
+                text-align: left;
+            }
+.mu-table td {
+                padding: 12px 16px;
+                border-bottom: 1px solid #f1f5f9;
+                font-size: 13px;
+                color: #334155;
+            }
+.mu-table tr:hover {
+                background: #f8fafc;
+            }
+.mu-table tr.selected {
+                background: #f0fdf4;
+            }
+.mu-badge {
+                display: inline-block;
+                padding: 4px 8px;
+                border-radius: 6px;
+                font-size: 11px;
+                font-weight: 600;
+            }
+.mu-badge.warning {
+                background: #fef08a;
+                color: #854d0e;
+            }
+.mu-badge.testing {
+                background: #e0f2fe;
+                color: #0369a1;
+            }
+.mu-badge.handed {
+                background: #dcfce7;
+                color: #166534;
+            }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+    </style>
+</head>
+<body>
+    <div class="guide-header">
+        <div class="header-title-wrapper">
+            <h1 id="slide-title">1. Tiếp nhận - Chọn Mẫu</h1>
+            <p id="slide-desc">Xác nhận nhận mẫu phân công: Tại tab 'Chờ nhận' (Pending), Kỹ thuật viên sẽ chọn các mẫu đã được phân công. Tích vào ô checkbox ở đầu các dòng chỉ tiêu cần nhận.</p>
+        </div>
+    </div>
+    <div class="guide-content">
+
+        <!-- SLIDE 1 -->
+        <div class="mockup-container active" id="slide-1">
+            <div class="mu">
+                        <div class="mu-header" style="padding:16px 20px 12px">
+                            <div class="mu-header-top">
+                                <div>
+                                    <div class="mu-title" style="font-size:18px">Bàn làm việc KTV</div>
+                                    <div class="mu-subtitle" style="font-size:11px">Xin chào, System Admin. Quản lý công việc phân công tại đây.</div>
+                                </div>
+                            </div>
+                            <div class="mu-actions" style="margin-top:12px">
+                                <span style="font-size:12px;font-weight:600;margin:auto 8px;color:#64748b">Thao tác:</span>
+                                <button class="mu-btn primary" style="background:#2563eb; color:white; border:none">⚗️ Nhận chỉ tiêu (3)</button>
+                                <button class="mu-btn">🔄 Xin cấp lại mẫu</button>
+                                <button class="mu-btn" style="opacity:0.5; cursor:not-allowed">📝 Nhập kết quả lô (0)</button>
+                                <button class="mu-btn" style="opacity:0.5; cursor:not-allowed">🗃 Gợi ý hóa chất FEFO</button>
+                                <button class="mu-btn" style="opacity:0.5; cursor:not-allowed">📄 Lập biên bản (0)</button>
+                            </div>
+                        </div>
+                        <div class="mu-tabs" style="background:#fff; border-bottom:1px solid #f1f5f9; padding:0 20px; gap:8px;">
+                            <div class="mu-tab active" style="background:#f8fafc; border-radius:16px; border:none; padding:6px 14px; font-size:12px">Chờ nhận</div>
+                            <div class="mu-tab" style="border:none; padding:6px 14px; font-size:12px">Đã nhận bàn giao</div>
+                            <div class="mu-tab" style="border:none; padding:6px 14px; font-size:12px">Đang thử nghiệm</div>
+                            <div class="mu-tab" style="border:none; padding:6px 14px; font-size:12px">Cần làm lại</div>
+                        </div>
+                        <div class="mu-table-container" style="background:#f8fafc; padding:12px">
+                            <table class="mu-table" style="box-shadow:none; border:1px solid #e2e8f0;">
+                                <thead><tr><th></th><th>STT</th><th>Mã mẫu</th><th>Chỉ tiêu</th><th>Trạng thái</th></tr></thead>
+                                <tbody>
+                                    <tr class="selected"><td><input type="checkbox" checked /></td><td>1</td><td style="font-family:monospace;font-weight:600;color:#2563eb">SP26f1573-01</td><td>Tổng số nấm men và nấm mốc</td><td><span class="mu-badge warning" style="background:#fef9c3; color:#a16207">Chờ xử lý</span></td></tr>
+                                    <tr class="selected"><td><input type="checkbox" checked /></td><td>2</td><td style="font-family:monospace;font-weight:600;color:#2563eb">SP26f1573-01</td><td>Tổng số vi sinh vật hiếu khí</td><td><span class="mu-badge warning" style="background:#fef9c3; color:#a16207">Chờ xử lý</span></td></tr>
+                                    <tr class="selected"><td><input type="checkbox" checked /></td><td>3</td><td style="font-family:monospace;font-weight:600;color:#2563eb">SP26f1573-01</td><td>Candida albicans</td><td><span class="mu-badge warning" style="background:#fef9c3; color:#a16207">Chờ xử lý</span></td></tr>
+                                    <tr><td><input type="checkbox" /></td><td>4</td><td style="font-family:monospace;font-weight:600;color:#2563eb">SP26f1573-01</td><td>Staphylococcus aureus</td><td><span class="mu-badge warning" style="background:#fef9c3; color:#a16207">Chờ xử lý</span></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+            <!-- Hotspots -->
+        </div>
+
+        <!-- SLIDE 2 -->
+        <div class="mockup-container " id="slide-2">
+            <div class="mu">
+                        <div class="mu-header" style="padding:16px 20px 12px">
+                            <div class="mu-actions" style="margin-top:0">
+                                <span style="font-size:12px;font-weight:600;margin:auto 8px;color:#64748b">Thao tác:</span>
+                                <button class="mu-btn primary" style="background:#93c5fd; color:#1e3a8a; border:none">⚗️ Nhận chỉ tiêu (3)</button>
+                                <button class="mu-btn primary" style="background:#0284c7; color:white; border:none; box-shadow:0 1px 3px rgba(0,0,0,0.2)">📝 Nhập kết quả lô (3)</button>
+                                <button class="mu-btn">📄 Lập biên bản (3)</button>
+                            </div>
+                        </div>
+                        <div class="mu-tabs" style="background:#f8fafc; padding:12px 20px; border-bottom:1px solid #e2e8f0; display:flex; gap:8px;">
+                             <div class="mu-tab" style="background:#fff; border-radius:16px; padding:6px 14px; font-size:12px; border:1px solid #e2e8f0">Chờ nhận</div>
+                             <div class="mu-tab active" style="background:#fff; border-radius:16px; padding:6px 14px; font-size:12px; font-weight:700; border:1px solid #cbd5e1; box-shadow:0 1px 2px rgba(0,0,0,0.05)">Đang thử nghiệm</div>
+                        </div>
+                        <div class="mu-table-container" style="background:#f8fafc; padding:12px">
+                            <table class="mu-table" style="box-shadow:none; border:1px solid #e2e8f0;">
+                                <thead><tr><th></th><th>STT</th><th>Mã mẫu</th><th>Chỉ tiêu</th><th>Trạng thái</th></tr></thead>
+                                <tbody>
+                                    <tr class="selected"><td><input type="checkbox" checked /></td><td>1</td><td style="font-family:monospace;font-weight:600;color:#2563eb">SP26f1572-01</td><td style="font-weight:600">Vitamin B3</td><td><span class="mu-badge" style="background:#fff; border:1px solid #e2e8f0; color:#334155">Đang thử nghiệm</span></td></tr>
+                                    <tr class="selected"><td><input type="checkbox" checked /></td><td>2</td><td style="font-family:monospace;font-weight:600;color:#2563eb">SP26f1572-01</td><td style="font-weight:600">Vitamin B5</td><td><span class="mu-badge" style="background:#fff; border:1px solid #e2e8f0; color:#334155">Đang thử nghiệm</span></td></tr>
+                                    <tr class="selected"><td><input type="checkbox" checked /></td><td>3</td><td style="font-family:monospace;font-weight:600;color:#2563eb">SP26f1572-01</td><td style="font-weight:600">Vitamin B6</td><td><span class="mu-badge" style="background:#fff; border:1px solid #e2e8f0; color:#334155">Đang thử nghiệm</span></td></tr>
+                                    <tr><td><input type="checkbox" /></td><td>4</td><td style="font-family:monospace;font-weight:600;color:#2563eb">SP26f1572-01</td><td style="font-weight:600">Vitamin B1</td><td><span class="mu-badge" style="background:#fff; border:1px solid #e2e8f0; color:#334155">Đang thử nghiệm</span></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+            <!-- Hotspots -->
+        </div>
+
+        <!-- SLIDE 3 -->
+        <div class="mockup-container " id="slide-3">
+            <div class="mu">
+                        <div class="mu-table-container" style="background:#e2e8f0">
+                            <div style="position:absolute; inset:0; background:rgba(15,23,42,0.6); display:flex; align-items:center; justify-content:center; z-index:20;">
+                                <div style="background:#fff; border-radius:12px; width:750px; overflow:hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.2)">
+                                    <div style="padding:16px 24px; background:#f8fafc; border-bottom:1px solid #e2e8f0;">
+                                        <div style="font-weight:700; font-size:16px; color:#0f172a">Nhập kết quả hàng loạt (3)</div>
+                                        <div style="font-size:12px; color:#64748b; margin-top:4px">Nhập kết quả cho các chỉ tiêu được đánh dấu. Có thể dùng nút điền tự động...</div>
+                                    </div>
+                                    <div style="padding:16px 24px">
+                                        <table style="width:100%; border-collapse:collapse; font-size:13px">
+                                            <thead><tr style="border-bottom:1px solid #cbd5e1; color:#334155; font-weight:600; font-size:12px; text-align:left"><th style="padding:8px">STT</th><th style="padding:8px">Mã mẫu</th><th style="padding:8px">Chỉ tiêu</th><th style="padding:8px">Kết quả</th><th style="padding:8px">Đánh giá</th></tr></thead>
+                                            <tbody>
+                                                <tr style="border-bottom:1px solid #f1f5f9">
+                                                    <td style="padding:12px 8px">1</td><td style="font-weight:700">SP26f1572-01</td><td>Vitamin B3</td>
+                                                    <td><div style="display:flex;align-items:center;gap:8px"><input type="text" placeholder="Nhập KQ..." style="border:2px solid #3b82f6; outline:none; border-radius:6px; padding:6px 12px; width:130px; box-shadow:0 0 0 3px rgba(59,130,246,0.1)"/> <span style="color:#0284c7;cursor:pointer;font-weight:700">↓</span></div></td>
+                                                    <td><select style="border:1px solid #cbd5e1; border-radius:6px; padding:6px 12px; color:#64748b"><option>Không đánh giá</option></select></td>
+                                                </tr>
+                                                <tr style="border-bottom:1px solid #f1f5f9">
+                                                    <td style="padding:12px 8px">2</td><td style="font-weight:700">SP26f1572-01</td><td>Vitamin B5</td>
+                                                    <td><div style="display:flex;align-items:center;gap:8px"><input type="text" placeholder="Nhập KQ..." style="border:1px solid #cbd5e1; outline:none; border-radius:6px; padding:6px 12px; width:130px;"/> <span style="color:#0284c7;cursor:pointer;font-weight:700">↓</span></div></td>
+                                                    <td><select style="border:1px solid #cbd5e1; border-radius:6px; padding:6px 12px; color:#64748b"><option>Không đánh giá</option></select></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div style="padding:16px 24px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:12px">
+                                        <button class="mu-btn" style="border-color:#cbd5e1; background:#fff">Hủy</button>
+                                        <button class="mu-btn primary" style="background:#0284c7; border:none">💾 Lưu kết quả</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+            <!-- Hotspots -->
+        </div>
+
+        <!-- SLIDE 4 -->
+        <div class="mockup-container " id="slide-4">
+            <div class="mu">
+                        <div class="mu-header" style="padding:16px 20px 12px">
+                            <div class="mu-actions" style="margin-top:0">
+                                <span style="font-size:12px;font-weight:600;margin:auto 8px;color:#64748b">Thao tác:</span>
+                                <button class="mu-btn primary" style="background:#0284c7; color:white; border:none; opacity:0.5">📝 Nhập kết quả lô (3)</button>
+                                <button class="mu-btn" style="border:2px solid #8b5cf6; color:#6d28d9; background:#ede9fe; font-weight:700">📄 Lập biên bản (3)</button>
+                            </div>
+                        </div>
+                        <div class="mu-table-container" style="background:#f8fafc; padding:12px">
+                            <table class="mu-table" style="box-shadow:none; border:1px solid #e2e8f0;">
+                                <thead><tr><th></th><th>Mã mẫu</th><th>Chỉ tiêu</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+                                <tbody>
+                                    <tr class="selected" style="background:#ede9fe"><td><input type="checkbox" checked /></td><td style="font-family:monospace;font-weight:600;color:#2563eb">SP26f1572-01</td><td style="font-weight:600">Vitamin B3</td><td><span class="mu-badge" style="background:#fff; border:1px solid #e2e8f0; color:#334155">Đang thử nghiệm</span></td>
+                                    <td style="font-size:16px"><span style="color:#8b5cf6; cursor:pointer; background:#ddd6fe; padding:6px; border-radius:6px;">📄</span></td></tr>
+                                    <tr class="selected"><td><input type="checkbox" checked /></td><td style="font-family:monospace;font-weight:600;color:#2563eb">SP26f1572-01</td><td style="font-weight:600">Vitamin B5</td><td><span class="mu-badge" style="background:#fff; border:1px solid #e2e8f0; color:#334155">Đang thử nghiệm</span></td>
+                                    <td style="font-size:16px"><span style="color:#94a3b8; cursor:pointer">📄</span></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+            <!-- Hotspots -->
+        </div>
+
+        <!-- SLIDE 5 -->
+        <div class="mockup-container " id="slide-5">
+            <div class="mu">
+                        <div class="mu-table-container" style="padding:0; position:relative; background:#f1f5f9; height: 100%">
+                            <!-- Main Editor Layout -->
+                            <div style="display:flex; flex-direction:column; height: 100%; overflow:hidden;">
+                                <!-- Top Bar -->
+                                <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 20px; background:#fff; border-bottom:1px solid #e2e8f0; z-index:10;">
+                                    <div style="display:flex; align-items:center; gap:16px;">
+                                        <span style="font-weight:700; font-size:16px; color:#0f172a">Biên bản báo cáo <span class="mu-badge" style="background:#3b82f6; color:#fff; border-radius:12px; padding:2px 8px">1 chỉ tiêu</span></span>
+                                    </div>
+                                    <div style="display:flex; gap:8px;">
+                                        <button class="mu-btn primary" style="background:#0284c7; border:none; box-shadow:0 1px 2px rgba(0,0,0,0.2)">💾 Lưu dữ liệu</button>
+                                    </div>
+                                </div>
+                                <!-- Content Body -->
+                                <div style="display:flex; flex:1; overflow:hidden;">
+                                    <!-- Left: Editor -->
+                                    <div style="flex:1; padding:20px; overflow-y:auto; position: relative;">
+                                        <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:4px 4px 0 0; padding:8px; display:flex; gap:12px; font-size:14px; font-weight:700; color:#475569">
+                                            <span>B</span> <span style="font-style:italic">I</span> <span style="text-decoration:underline">U</span> <span>|</span> <span>≣</span> <span>≡</span>
+                                        </div>
+                                        <div style="background:#fff; min-height:80%; border:1px solid #e2e8f0; border-top:none; box-shadow:0 1px 3px rgba(0,0,0,0.1); padding:40px; display:flex; flex-direction:column;">
+                                            <div style="text-align:center; margin-bottom:20px;">
+                                                <h3 style="color:#0f172a; font-weight:800; font-size:18px">VIỆN NGHIÊN CỨU VÀ PHÁT TRIỂN SẢN PHẨM THIÊN NHIÊN</h3>
+                                                <h4 style="color:#475569; font-weight:700; font-size:16px; margin: 8px 0">PHIẾU KẾT QUẢ THỬ NGHIỆM</h4>
+                                                <p style="color:#64748b; font-style:italic">HDPP157-KN (2022)</p>
+                                            </div>
+                                            <hr style="border-top:1px solid #cbd5e1; margin-bottom:20px;" />
+                                            <div style="color:#334155; line-height: 1.6; font-size:13px">
+                                                <strong>1. Trình tự thử nghiệm</strong><br /> [Điền nội dung...]<br/><br/>
+                                                <strong>2. Dữ liệu ghi nhận</strong><br /> [Tích chuột tại đây và kéo data từ bên phải...]
+                                                <span style="display:inline-block; width:2px; height:14px; background:#000; animation: blink 1s infinite"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Right: Sidebar Tools -->
+                                    <div style="width:340px; background:#fff; border-left:1px solid #e2e8f0; display:flex; flex-direction:column; z-index:10; box-shadow:-4px 0 15px rgba(0,0,0,0.03);">
+                                        <div style="display:flex; border-bottom:1px solid #e2e8f0">
+                                            <div style="flex:1; padding:12px; text-align:center; font-weight:700; font-size:13px; color:#0284c7; border-bottom:2px solid #0284c7; cursor:pointer; background:#f0f9ff" class="hover-tab">Hóa chất (BOM)</div>
+                                            <div style="flex:1; padding:12px; text-align:center; font-weight:600; font-size:13px; color:#64748b; border-bottom:2px solid transparent; cursor:pointer">Phương pháp</div>
+                                        </div>
+                                        
+                                        <div style="padding:16px; flex:1; overflow-y:auto; background:#fff">
+                                            <div style="background:#eff6ff; border:1px solid #bfdbfe; padding:12px; border-radius:6px; color:#1d4ed8; font-size:12px; margin-bottom:16px; line-height:1.5">
+                                                <strong>🧪 Đề xuất từ BOM hệ thống</strong><br/> Danh sách hóa chất dự kiến theo cấu hình phương pháp. Nhập số lượng thực tế sử dụng.
+                                            </div>
+                                            <div style="text-align:center; padding:16px; font-style:italic; border:1px dashed #cbd5e1; background:#f8fafc; color:#94a3b8; font-size:11px; margin-bottom:16px">
+                                               Chưa có danh sách hóa chất được cấp phát.
+                                            </div>
+                                            <button style="width:100%; border:none; padding:10px; border-radius:6px; background:#3b82f6; text-align:center; font-size:12px; font-weight:700; color:#fff; margin-bottom:24px; cursor:pointer; display:flex; justify-content:space-between; align-items:center">
+                                                <span>Chèn bảng Hóa chất</span> <span style="background:rgba(255,255,255,0.2); border-radius:50%; width:16px;height:16px;line-height:16px">+</span>
+                                            </button>
+                                            
+                                            <div style="font-weight:700; font-size:11px; color:#64748b; text-transform:uppercase; margin-bottom:8px">CHỈ TIÊU ĐÃ CHỌN (1)</div>
+                                            <div style="border:1px solid #e2e8f0; border-radius:6px; overflow:hidden">
+                                                <table style="width:100%; font-size:10px; border-collapse:collapse; text-align:left">
+                                                   <thead style="background:#f8fafc; color:#64748b"><tr style="border-bottom:1px solid #e2e8f0"><th style="padding:4px 8px">Mã mẫu</th><th style="padding:4px 8px">Tên chỉ tiêu</th></tr></thead>
+                                                   <tbody><tr><td style="padding:6px 8px; color:#2563eb">SP26...</td><td style="padding:6px 8px">Vitamin B3</td></tr></tbody>
+                                                </table>
+                                                <div style="padding:8px; border-top:1px solid #e2e8f0; background:#f8fafc">
+                                                    <button style="width:100%; border:none; text-align:left; background:transparent; color:#0284c7; font-weight:600; font-size:11px; cursor:pointer">➕ Chèn bảng chỉ tiêu vào mẫu</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <style>@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }</style>
+                    
+
+            <!-- Hotspots -->
+        </div>
+
+        <!-- SLIDE 6 -->
+        <div class="mockup-container " id="slide-6">
+            <div class="mu">
+                        <div class="mu-table-container" style="padding:0; position:relative; background:#f1f5f9; height: 100%">
+                            <!-- Main Editor Layout -->
+                            <div style="display:flex; flex-direction:column; height: 100%; overflow:hidden;">
+                                <!-- Top Bar -->
+                                <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 20px; background:#f8fafc; border-bottom:1px solid #e2e8f0; z-index:10;">
+                                    <div style="display:flex; gap:8px;">
+                                        <button class="mu-btn" style="color:#2563eb; border-color:#bfdbfe; background:#eff6ff">📄 Xuất PDF</button>
+                                        <button class="mu-btn" style="color:#475569">🖨️ In Biên bản</button>
+                                        <button class="mu-btn primary" style="background:#0284c7; border:none">💾 Lưu dữ liệu</button>
+                                    </div>
+                                </div>
+                                <!-- Content Body -->
+                                <div style="display:flex; flex:1; overflow:hidden;">
+                                    <!-- Left: Editor Blur -->
+                                    <div style="flex:1; padding:20px; position: relative; background:#e2e8f0; display:flex; align-items:center; justify-content:center">
+                                       <div style="background:#fff; width:80%; height:80%; opacity:0.6; border:1px solid #cbd5e1; box-shadow:0 10px 15px rgba(0,0,0,0.1)"></div>
+                                    </div>
+                                    <!-- Right: Sidebar Tools -->
+                                    <div style="width:340px; background:#fff; border-left:1px solid #e2e8f0; display:flex; flex-direction:column; z-index:10; box-shadow:-4px 0 15px rgba(0,0,0,0.03);">
+                                        <div style="display:flex; border-bottom:1px solid #e2e8f0; background:#f8fafc">
+                                            <div style="flex:1; padding:12px; text-align:center; font-weight:600; font-size:13px; color:#64748b; border-bottom:2px solid transparent; cursor:pointer;" class="hover-tab">Hóa chất (BOM)</div>
+                                            <div style="flex:1; padding:12px; text-align:center; font-weight:700; font-size:13px; color:#0284c7; border-bottom:2px solid #0284c7; cursor:pointer; background:#fff">Phương pháp</div>
+                                        </div>
+                                        
+                                        <div style="padding:16px; flex:1; overflow-y:auto; background:#f1f5f9">
+                                            <div style="background:#e0f2fe; border:1px solid #bae6fd; padding:12px; border-radius:6px; color:#0369a1; font-size:12px; margin-bottom:16px;">
+                                                <strong>Nội dung phương pháp</strong><br/> Xem nhanh nội quy trình thử nghiệm để làm tham chiếu nhập liệu.
+                                            </div>
+                                            
+                                            <button style="width:100%; border:1px solid #cbd5e1; padding:10px; border-radius:6px; background:#f8fafc; text-align:left; font-size:12px; font-weight:600; color:#334155; margin-bottom:12px; display:flex; justify-content:space-between;">
+                                                <span>📄 Chọn biểu mẫu từ Hệ thống</span> <span></span>
+                                            </button>
+                                            
+                                            <div style="display:flex; align-items:center; margin-bottom:12px">
+                                                <div style="flex:1; height:1px; background:#cbd5e1"></div>
+                                                <div style="padding:0 8px; font-size:10px; color:#64748b">HOẶC</div>
+                                                <div style="flex:1; height:1px; background:#cbd5e1"></div>
+                                            </div>
+                                            
+                                            <button style="width:100%; border:none; padding:12px; border-radius:6px; background:#0284c7; text-align:center; font-size:12px; font-weight:700; color:#fff; margin-bottom:8px; cursor:pointer; box-shadow:0 4px 6px -1px rgba(2,132,199,0.4)">
+                                                <span style="font-size:14px">↑</span> Tải file Word (.docx) vào biên bản
+                                            </button>
+                                            <div style="font-size:11px; color:#64748b; text-align:center; margin-bottom:16px">File Word sẽ thay thế toàn bộ nội dung trong editor</div>
+                                            
+                                            <button style="width:100%; border:1px solid #cbd5e1; padding:10px; border-radius:6px; background:#f8fafc; text-align:left; font-size:12px; font-weight:600; color:#334155; display:flex; justify-content:space-between">
+                                                <span>Chèn Form Kết quả mẫu</span> <span>+</span>
+                                            </button>
+                                            
+                                            <div style="text-align:center; padding:32px 16px; margin-top:8px; border:1px solid #e2e8f0; border-radius:8px; background:#f8fafc; color:#94a3b8; font-size:12px; font-style:italic">
+                                               Dữ liệu phương pháp không khả dụng hoặc chưa gán.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+            <!-- Hotspots -->
+        </div>
+    </div>
+    <div class="guide-footer">
+        <button class="nav-btn btn-prev" id="btn-prev" disabled>← Quay lại</button>
+        <div class="step-indicators" id="step-indicators">
+            <div class="step-dot active"></div>
+            <div class="step-dot "></div>
+            <div class="step-dot "></div>
+            <div class="step-dot "></div>
+            <div class="step-dot "></div>
+            <div class="step-dot "></div>
+        </div>
+        <button class="nav-btn btn-next" id="btn-next">Tiếp theo →</button>
+    </div>
+    <script>
+        const slides = document.querySelectorAll(".mockup-container");
+        const dots = document.querySelectorAll(".step-dot");
+        const btnPrev = document.getElementById("btn-prev");
+        const btnNext = document.getElementById("btn-next");
+        const titleEl = document.getElementById("slide-title");
+        const descEl = document.getElementById("slide-desc");
+
+        let currentSlide = 0;
+
+        const slideInfo = [{"title": "1. Ti\u1ebfp nh\u1eadn - Ch\u1ecdn M\u1eabu", "desc": "X\u00e1c nh\u1eadn nh\u1eadn m\u1eabu ph\u00e2n c\u00f4ng: T\u1ea1i tab 'Ch\u1edd nh\u1eadn' (Pending), K\u1ef9 thu\u1eadt vi\u00ean s\u1ebd ch\u1ecdn c\u00e1c m\u1eabu \u0111\u00e3 \u0111\u01b0\u1ee3c ph\u00e2n c\u00f4ng. T\u00edch v\u00e0o \u00f4 checkbox \u1edf \u0111\u1ea7u c\u00e1c d\u00f2ng ch\u1ec9 ti\u00eau c\u1ea7n nh\u1eadn."}, {"title": "2. KQ L\u00f4 - Gom nh\u00f3m", "desc": "T\u00edch ch\u1ecdn c\u00e1c m\u1eabu c\u00f9ng ph\u01b0\u01a1ng ph\u00e1p: \u0110\u1ec3 ti\u1ebft ki\u1ec7m th\u1eddi gian, \u1edf tab '\u0110ang th\u1eed nghi\u1ec7m', b\u1ea1n t\u00edch ch\u1ecdn nhi\u1ec1u m\u1eabu c\u00f9ng ti\u1ebfn h\u00e0nh ph\u00e2n t\u00edch xong \u0111\u1ec3 ti\u1ebfn h\u00e0nh nh\u1eadp k\u1ebft qu\u1ea3 h\u00e0ng lo\u1ea1t."}, {"title": "3. KQ L\u00f4 - \u0110i\u1ec1n Form", "desc": "T\u01b0\u01a1ng t\u00e1c nh\u1eadp li\u1ec7u l\u00f4: M\u00e0n h\u00ecnh Modal nh\u1eadp h\u00e0ng lo\u1ea1t. KTV c\u00f3 th\u1ec3 g\u00f5 k\u1ebft qu\u1ea3 li\u00ean ti\u1ebfp nh\u01b0 Excel v\u00e0 Copy theo h\u00e0m xu\u1ed1ng d\u01b0\u1edbi n\u1ebfu c\u1ea7n."}, {"title": "4. Bi\u00ean b\u1ea3n - Kh\u1edfi t\u1ea1o", "desc": "Click Icon Ho\u1eb7c N\u00fat Action: \u0110\u1ec3 t\u1ea1o m\u1ed9t bi\u00ean b\u1ea3n PDF \u0111\u1eb7c th\u00f9 (VD b\u00e1o c\u00e1o HPLC), KTV click icon \ud83d\udcc4 cu\u1ed1i d\u00f2ng ph\u00e9p th\u1eed HO\u1eb6C t\u00edch ch\u1ecdn nhi\u1ec1u h\u1ed9p v\u00e0 click L\u1eadp bi\u00ean b\u1ea3n tr\u00ean Toolbar."}, {"title": "5. Editor - Ch\u00e8n d\u1eef li\u1ec7u", "desc": "Giao di\u1ec7n so\u1ea1n th\u1ea3o v\u00e0 Tab H\u00f3a ch\u1ea5t: M\u1edf t\u00ednh n\u0103ng l\u1eadp Bi\u00ean B\u1ea3n: B\u00ean tr\u00e1i l\u00e0 Editor Rich text, B\u00ean ph\u1ea3i l\u00e0 c\u00e1c c\u00f4ng c\u1ee5 cung c\u1ea5p Macro (Template, Ch\u00e8n BOM h\u00f3a ch\u1ea5t, Danh s\u00e1ch m\u1eabu)."}, {"title": "6. Editor - N\u1ea1p Bi\u1ec3u m\u1eabu Word", "desc": "Tab Ph\u01b0\u01a1ng Ph\u00e1p & T\u1ea3i file m\u1eabu: LIMS cho ph\u00e9p b\u1ea1n s\u1eed d\u1ee5ng c\u00f4ng c\u1ee5 N\u1ea1p file Word (.docx). Editor s\u1ebd t\u1ef1 \u0111\u1ed9ng b\u00f3c t\u00e1ch (Parse) file Word m\u1eabu t\u1eeb h\u1ec7 th\u1ed1ng ho\u1eb7c file b\u1ea1n t\u1ef1 Load t\u1eeb m\u00e1y t\u00ednh \u0111\u1ec3 \u0111\u00fac th\u00e0nh giao di\u1ec7n web."}];
+
+        function updateSlide(index) {
+            slides.forEach((s) => s.classList.remove("active"));
+            dots.forEach((d) => d.classList.remove("active"));
+
+            slides[index].classList.add("active");
+            dots[index].classList.add("active");
+
+            titleEl.textContent = slideInfo[index].title;
+            descEl.textContent = slideInfo[index].desc;
+
+            btnPrev.disabled = index === 0;
+
+            if (index === slides.length - 1) {
+                btnNext.textContent = "Hoàn thành ✓";
+                btnNext.style.backgroundColor = "#10b981";
+            } else {
+                btnNext.textContent = "Tiếp theo →";
+                btnNext.style.backgroundColor = ""; // Reset
+            }
+        }
+
+        btnNext.addEventListener("click", () => {
+            if (currentSlide < slides.length - 1) {
+                currentSlide++;
+                updateSlide(currentSlide);
+            }
+        });
+
+        btnPrev.addEventListener("click", () => {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateSlide(currentSlide);
+            }
+        });
+
+        dots.forEach((dot, index) => {
+            dot.addEventListener("click", () => {
+                currentSlide = index;
+                updateSlide(currentSlide);
+            });
+        });
+    </script>
+</body>
+</html>

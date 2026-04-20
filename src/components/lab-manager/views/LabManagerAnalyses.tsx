@@ -287,8 +287,8 @@ function AnalysisDetailContent({ detail }: { detail: AnalysisDetail }) {
                     <FieldItem label={String(t("lab.analyses.analysisResult", { defaultValue: "Kết quả" }))} value={detail.analysisResult} />
                     <FieldItem label={String(t("lab.analyses.analysisResultStatus", { defaultValue: "Đạt/Không đạt" }))} value={detail.analysisResultStatus} badge />
                     <FieldItem label={String(t("lab.analyses.analysisUnit", { defaultValue: "Đơn vị" }))} value={detail.analysisUnit ?? null} />
-                    <FieldItem label="LOD" value={detail.analysisMethodLOD ?? null} />
-                    <FieldItem label="LOQ" value={detail.analysisMethodLOQ ?? null} />
+                    <FieldItem label="LOD" value={detail.methodLOD ?? null} />
+                    <FieldItem label="LOQ" value={detail.methodLOQ ?? null} />
                     <FieldItem label={String(t("lab.analyses.analysisUncertainty", { defaultValue: "Độ KĐBĐ (± U)" }))} value={detail.analysisUncertainty ?? null} />
                     <FieldItem label={String(t("lab.analyses.analysisStartedAt", { defaultValue: "Bắt đầu" }))} value={detail.analysisStartedAt ? new Date(detail.analysisStartedAt).toLocaleString("vi-VN") : null} />
                     <FieldItem label={String(t("lab.analyses.analysisCompletedAt", { defaultValue: "Hoàn thành" }))} value={detail.analysisCompletedAt ? new Date(detail.analysisCompletedAt).toLocaleString("vi-VN") : null} />

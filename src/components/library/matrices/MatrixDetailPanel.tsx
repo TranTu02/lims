@@ -95,8 +95,8 @@ export function MatrixDetailPanel(props: Props) {
                           const feeAfterTaxText = formatNumberVi(m.feeAfterTax) ?? t("common.noData");
                           const taxRateText = formatPercent(m.taxRate) ?? t("common.noData");
 
-                          const lodText = safeText(m.LOD).trim() || t("common.noData");
-                          const loqText = safeText(m.LOQ).trim() || t("common.noData");
+                          const lodText = safeText(m.methodLOD).trim() || t("common.noData");
+                          const loqText = safeText(m.methodLOQ).trim() || t("common.noData");
                           const thresholdText = safeText(m.thresholdLimit).trim() || t("common.noData");
 
                           const turnaroundText = m.turnaroundTime === null || m.turnaroundTime === undefined ? t("common.noData") : String(m.turnaroundTime);
@@ -147,8 +147,8 @@ export function MatrixDetailPanel(props: Props) {
 
                                   <SectionTitle>{String(t("library.matrices.detail.limits"))}</SectionTitle>
                                   <div className="grid grid-cols-2 gap-4 mt-3">
-                                      <Field label="LOD" value={lodText} />
-                                      <Field label="LOQ" value={loqText} />
+                                      <Field label="methodLOD" value={lodText} />
+                                      <Field label="methodLOQ" value={loqText} />
                                       <Field label={String(t("library.matrices.thresholdLimit"))} value={thresholdText} />
                                       <Field label={String(t("library.matrices.turnaroundTime"))} value={turnaroundText} />
                                       <div className="col-span-1 md:col-span-2">

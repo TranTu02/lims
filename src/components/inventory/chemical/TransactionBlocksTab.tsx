@@ -21,9 +21,10 @@ import { TableFilterPopover } from "./TableFilterPopover";
 import { SearchSelectPicker, type PickerItem } from "@/components/shared/SearchSelectPicker";
 import { searchDocuments } from "@/api/documents";
 import { DocumentUploadModal } from "@/components/document/DocumentUploadModal";
+import { HelpBubble } from "./HelpBubble";
 
 // --- Helper ---
-const generateId = () => typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2));
+const generateId = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
 
 function BlockStatusBadge({ status }: { status?: string | null }) {
     const { t } = useTranslation();
@@ -328,23 +329,17 @@ function ItemCard({ item, transactionType, onUpdate, onRemove, onDuplicate, onUp
                     </div>
                     <div className="flex items-center gap-1">
                         {coaCount > 0 && (
-                            <Button 
-                                type="button" 
-                                variant="ghost" 
-                                size="sm" 
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => onUpdate("transactionCoaDocumentIds", [])}
                                 className="h-6 px-2 text-[9px] text-destructive hover:bg-destructive/10"
                             >
                                 {t("common.clear", { defaultValue: "Xóa" })}
                             </Button>
                         )}
-                        <Button 
-                            type="button" 
-                            variant="secondary" 
-                            size="sm" 
-                            onClick={onUploadCoa} 
-                            className="h-6 px-2 text-[9px] flex items-center gap-1"
-                        >
+                        <Button type="button" variant="secondary" size="sm" onClick={onUploadCoa} className="h-6 px-2 text-[9px] flex items-center gap-1">
                             <Upload className="h-2.5 w-2.5" />
                             {coaCount > 0 ? t("common.add", { defaultValue: "Thêm" }) : t("common.upload", { defaultValue: "Tải COA" })}
                         </Button>
@@ -507,8 +502,8 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
 
     const handleSubmit = async () => {
         const payload = {
-            chemicalTransactionBlock: { 
-                transactionType, 
+            chemicalTransactionBlock: {
+                transactionType,
                 referenceDocument,
                 chemicalBlockCoaDocumentIds: coaDocumentIds.length > 0 ? coaDocumentIds : undefined,
                 chemicalBlockInvoiceDocumentIds: invoiceDocumentIds.length > 0 ? invoiceDocumentIds : undefined,
@@ -516,21 +511,9 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
             chemicalTransactions: lineItems.map((item) => {
                 const inv = item.inventory;
                 // Ưu tiên snapshot trên inventory, fallback sang nested chemicalSku
-                const chemicalName =
-                    inv.chemicalName ||
-                    (inv as any).chemicalSku?.chemicalName ||
-                    "";
-                const casNumber =
-                    inv.chemicalCasNumber ||
-                    (inv as any).chemicalSku?.chemicalCasNumber ||
-                    (inv as any).chemicalSku?.chemicalCASNumber ||
-                    "";
-                const unit =
-                    (inv as any).chemicalBaseUnit ||
-                    (inv as any).unit ||
-                    (inv as any).chemicalSku?.chemicalBaseUnit ||
-                    (inv as any).chemicalSku?.unit ||
-                    "";
+                const chemicalName = inv.chemicalName || (inv as any).chemicalSku?.chemicalName || "";
+                const casNumber = inv.chemicalCasNumber || (inv as any).chemicalSku?.chemicalCasNumber || (inv as any).chemicalSku?.chemicalCASNumber || "";
+                const unit = (inv as any).chemicalBaseUnit || (inv as any).unit || (inv as any).chemicalSku?.chemicalBaseUnit || (inv as any).chemicalSku?.unit || "";
                 return {
                     chemicalInventoryId: inv.chemicalInventoryId,
                     chemicalSkuId: inv.chemicalSkuId,
@@ -638,11 +621,11 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                                     selected={selectedCoaDocs}
                                     onChange={(items) => {
                                         setSelectedCoaDocs(items);
-                                        setCoaDocumentIds(items.map(i => i.id));
+                                        setCoaDocumentIds(items.map((i) => i.id));
                                     }}
                                     onSearch={async (q) => {
                                         const res = await searchDocuments(q, "CHEMICAL_COA");
-                                        return res.map(d => ({ id: d.documentId, label: d.documentTitle || d.documentId, sublabel: d.documentId }));
+                                        return res.map((d) => ({ id: d.documentId, label: d.documentTitle || d.documentId, sublabel: d.documentId }));
                                     }}
                                     placeholder={t("inventory.chemical.transactionBlocks.searchDoc", { defaultValue: "Tìm tài liệu trong hệ thống..." })}
                                 />
@@ -663,11 +646,11 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                                     selected={selectedInvoiceDocs}
                                     onChange={(items) => {
                                         setSelectedInvoiceDocs(items);
-                                        setInvoiceDocumentIds(items.map(i => i.id));
+                                        setInvoiceDocumentIds(items.map((i) => i.id));
                                     }}
                                     onSearch={async (q) => {
                                         const res = await searchDocuments(q, "CHEMICAL_INVOICE");
-                                        return res.map(d => ({ id: d.documentId, label: d.documentTitle || d.documentId, sublabel: d.documentId }));
+                                        return res.map((d) => ({ id: d.documentId, label: d.documentTitle || d.documentId, sublabel: d.documentId }));
                                     }}
                                     placeholder={t("inventory.chemical.transactionBlocks.searchDoc", { defaultValue: "Tìm tài liệu trong hệ thống..." })}
                                 />
@@ -834,8 +817,8 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                     if (doc?.documentId) {
                         const newId = doc.documentId;
                         const newItem = { id: newId, label: doc.documentTitle || newId, sublabel: newId };
-                        setCoaDocumentIds(prev => [...prev, newId]);
-                        setSelectedCoaDocs(prev => [...prev, newItem]);
+                        setCoaDocumentIds((prev) => [...prev, newId]);
+                        setSelectedCoaDocs((prev) => [...prev, newItem]);
                     }
                 }}
             />
@@ -846,7 +829,7 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                 fixedDocumentType="CHEMICAL_COA"
                 onSuccess={(doc) => {
                     if (doc?.documentId && uploadingCoaItemId) {
-                        const currentItem = lineItems.find(i => i.id === uploadingCoaItemId);
+                        const currentItem = lineItems.find((i) => i.id === uploadingCoaItemId);
                         const existingIds = currentItem?.transactionCoaDocumentIds || [];
                         updateLineItem(uploadingCoaItemId, "transactionCoaDocumentIds", [...existingIds, doc.documentId]);
                         setUploadingCoaItemId(null);
@@ -862,8 +845,8 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                     if (doc?.documentId) {
                         const newId = doc.documentId;
                         const newItem = { id: newId, label: doc.documentTitle || newId, sublabel: newId };
-                        setInvoiceDocumentIds(prev => [...prev, newId]);
-                        setSelectedInvoiceDocs(prev => [...prev, newItem]);
+                        setInvoiceDocumentIds((prev) => [...prev, newId]);
+                        setSelectedInvoiceDocs((prev) => [...prev, newItem]);
                     }
                 }}
             />
@@ -952,7 +935,7 @@ export function TransactionBlocksTab() {
                             {t("inventory.chemical.transactionBlocks.allocate", { defaultValue: "Cấp phát tự động (FEFO)" })}
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => refetch()} title="Tải lại">
-                            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
                         </Button>
                     </div>
                 </div>
@@ -1036,9 +1019,7 @@ export function TransactionBlocksTab() {
                                                 className={`hover:bg-muted/30 cursor-pointer transition-colors ${activeBlock?.chemicalTransactionBlockId === block.chemicalTransactionBlockId ? "bg-muted" : ""}`}
                                                 onClick={() => setActiveBlock(block)}
                                             >
-                                                <td className="px-3 py-2 whitespace-nowrap font-mono text-xs font-medium text-primary">
-                                                    {block.chemicalTransactionBlockId}
-                                                </td>
+                                                <td className="px-3 py-2 whitespace-nowrap font-mono text-xs font-medium text-primary">{block.chemicalTransactionBlockId}</td>
                                                 <td className="px-3 py-2 whitespace-nowrap">
                                                     <BlockBadge type={block.transactionType} />
                                                 </td>
@@ -1077,7 +1058,17 @@ export function TransactionBlocksTab() {
 
             {createOpen && <CreateBlockModal onClose={() => setCreateOpen(false)} />}
             {allocateOpen && <AllocateStockModal onClose={() => setAllocateOpen(false)} />}
-            {approveOpenId && <ApproveTransactionBlockModal blockId={approveOpenId} onClose={() => { setApproveOpenId(null); refetch(); }} />}
+            {approveOpenId && (
+                <ApproveTransactionBlockModal
+                    blockId={approveOpenId}
+                    onClose={() => {
+                        setApproveOpenId(null);
+                        refetch();
+                    }}
+                />
+            )}
+
+            <HelpBubble guidePath="guide-transaction-blocks.html" label="Hướng dẫn: Phiếu Xuất/Nhập Kho" />
         </>
     );
 }

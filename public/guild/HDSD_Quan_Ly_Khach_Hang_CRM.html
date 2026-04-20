@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="vi">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>HƯỚNG DẪN SỬ DỤNG MODULE CRM</title>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <style>
+            body {
+                font-family:
+                    "Inter",
+                    -apple-system,
+                    BlinkMacSystemFont,
+                    "Segoe UI",
+                    Roboto,
+                    Helvetica,
+                    Arial,
+                    sans-serif;
+                line-height: 1.6;
+                color: #334155;
+                max-width: 900px;
+                margin: 0 auto;
+                padding: 2rem;
+                background-color: #f8fafc;
+            }
+
+            .container {
+                background: white;
+                padding: 2.5rem;
+                border-radius: 12px;
+                box-shadow:
+                    0 4px 6px -1px rgb(0 0 0 / 0.1),
+                    0 2px 4px -2px rgb(0 0 0 / 0.1);
+            }
+
+            h1,
+            h2,
+            h3 {
+                color: #0f172a;
+                margin-top: 2rem;
+                margin-bottom: 1rem;
+                font-weight: 600;
+            }
+
+            h1 {
+                font-size: 2.25rem;
+                border-bottom: 2px solid #e2e8f0;
+                padding-bottom: 0.5rem;
+                margin-top: 0;
+                color: #1e40af;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+                color: #1e3a8a;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            h3 {
+                font-size: 1.25rem;
+                color: #334155;
+            }
+
+            p {
+                margin-bottom: 1rem;
+            }
+
+            ul,
+            ol {
+                margin-bottom: 1.5rem;
+                padding-left: 1.5rem;
+            }
+
+            li {
+                margin-bottom: 0.5rem;
+            }
+
+            img {
+                max-width: 100%;
+                height: auto;
+                border-radius: 8px;
+                box-shadow:
+                    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+                    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                margin: 1.5rem 0;
+                border: 1px solid #e2e8f0;
+            }
+
+            .note {
+                background-color: #eff6ff;
+                border-left: 4px solid #3b82f6;
+                padding: 1rem;
+                border-radius: 0 8px 8px 0;
+                margin: 1.5rem 0;
+            }
+
+            .warning {
+                background-color: #fef2f2;
+                border-left: 4px solid #ef4444;
+                padding: 1rem;
+                border-radius: 0 8px 8px 0;
+                margin: 1.5rem 0;
+            }
+
+            code {
+                background-color: #f1f5f9;
+                padding: 0.2rem 0.4rem;
+                border-radius: 4px;
+                font-size: 0.875em;
+                color: #0f172a;
+                font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            }
+
+            hr {
+                border: 0;
+                border-top: 1px solid #e2e8f0;
+                margin: 2rem 0;
+            }
+
+            .footer {
+                margin-top: 3rem;
+                padding-top: 1.5rem;
+                border-top: 1px solid #e2e8f0;
+                font-size: 0.875rem;
+                color: #64748b;
+                text-align: center;
+                font-style: italic;
+            }
+
+            strong {
+                color: #0f172a;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>HƯỚNG DẪN SỬ DỤNG MODULE CRM</h1>
+
+            <p>Tài liệu này hướng dẫn chi tiết cách nhân viên sử dụng module CRM để quản lý thông tin khách hàng, báo giá và đơn hàng trong hệ thống LIMS.</p>
+
+            <hr />
+
+            <h2>I. TỔNG QUAN GIAO DIỆN CRM</h2>
+            <p>Module CRM đóng vai trò quản lý vòng đời sử dụng dịch vụ của khách hàng, được chia làm 3 chức năng chính tương ứng với 3 Tab:</p>
+            <ol>
+                <li><strong>Khách hàng</strong>: Quản lý hồ sơ gốc của khách hàng bao gồm thông tin pháp nhân, thông tin liên lạc và lịch sử giao dịch.</li>
+                <li><strong>Đơn hàng</strong>: Quản lý quá trình xử lý đơn, theo dõi trạng thái phân tích và thanh toán của khách hàng.</li>
+                <li><strong>Báo giá</strong>: Quản lý các bản thảo báo giá gửi cho khách hàng, cho phép duyệt và chuyển tiếp thành đơn hàng thực tế.</li>
+            </ol>
+
+            <img src="images/crm/crm-1.png" alt="Giao diện danh sách khách hàng" />
+
+            <h3>Các công cụ chung trên giao diện</h3>
+            <ul>
+                <li><strong>Tìm kiếm nhanh</strong>: Tại ô tìm kiếm trên cùng của module CRM, bạn có thể gõ từ khoá để tìm kiếm nhanh ở mọi Tab.</li>
+                <li><strong>Tạo mới (Plus Button)</strong>: Nút <code>+ Tạo mới</code> luôn sẵn sàng ở góc phải để thêm dữ liệu tùy vào tab đang mở.</li>
+                <li>
+                    <strong>Bộ lọc động (Filter)</strong>: Biểu tượng bộ lọc (phễu lọc) bên cạnh tiêu đề các cột (như Mã KH, Tên khách hàng, Trạng thái đơn) cho phép bạn lọc chính xác các bản ghi mong
+                    muốn với tính năng đếm tổng số bản ghi (Count).
+                </li>
+            </ul>
+
+            <hr />
+
+            <h2>II. QUẢN LÝ KHÁCH HÀNG</h2>
+
+            <p>Trang danh sách Khách hàng bao gồm các cột thông tin:</p>
+            <ul>
+                <li><strong>Mã KH</strong>: Mã định danh duy nhất (VD: CL_BVRGHLGPLV) kèm nhãn phạm vi Sale phụ trách (Ví dụ: Public).</li>
+                <li><strong>Tên khách hàng</strong>: Tên gọi chính, email và số điện thoại giao dịch.</li>
+                <li><strong>MST/CMND</strong>: Mã số thuế (legalId) / CMT nhân dân của khách hàng.</li>
+                <li><strong>Tên xuất hóa đơn</strong>: Tên đơn vị trên hóa đơn (Tax Name) và mã số thuế tương ứng.</li>
+                <li><strong>Liên hệ chính</strong>: Hiển thị tên người liên hệ, nếu có nhiều người, hệ thống sẽ sử dụng biểu tượng gom nhóm.</li>
+                <li><strong>Thao tác</strong>: Các icon thao tác Mắt (Xem chi tiết), Bút (Chỉnh sửa) và Thùng rác (Xóa).</li>
+            </ul>
+
+            <h3>Xem chi tiết khách hàng</h3>
+            <p>Nhấn vào biểu tượng <strong>Mắt</strong> ở cột Thao tác để mở hộp thoại thông tin chi tiết. Giao diện chi tiết được chia theo cụm:</p>
+            <ol>
+                <li><strong>Thông tin cơ bản</strong>: Mã khách, Tên khách hàng, MST, Số điện thoại, Email liên hệ.</li>
+                <li><strong>Sale & Scope</strong>: Sale phụ trách (Tên và ID) và Phạm vi cung cấp dịch vụ (Scope).</li>
+                <li><strong>Thông tin hóa đơn</strong>: Mã số thuế, Tên doanh nghiệp/Người đại diện và Địa chỉ hóa đơn.</li>
+                <li><strong>Người liên hệ</strong>: Danh sách chi tiết của tất cả những đầu mối liên hệ (Họ tên, SĐT, Vị trí).</li>
+                <li>
+                    <strong>Đơn hàng & Báo giá</strong>: Hiển thị lịch sử tất cả các mã Đơn hàng (kèm tổng tiền, trạng thái) và Báo giá đã tạo cho khách hàng này. Giúp tổng hợp nhanh tình trạng doanh
+                    thu.
+                </li>
+            </ol>
+
+            <img src="images/crm/crm-2.png" alt="Chi tiết thông tin khách hàng" />
+
+            <hr />
+
+            <h2>III. QUẢN LÝ ĐƠN HÀNG (ORDERS)</h2>
+
+            <p>Trang danh sách Đơn hàng bao gồm các cột thông tin:</p>
+            <ul>
+                <li><strong>Mã đơn hàng</strong>: Định danh đơn.</li>
+                <li><strong>Mã báo giá</strong>: Báo giá liên kết ban đầu.</li>
+                <li><strong>Mã khách hàng</strong>: Liên kết tới khách hàng đặt dịch vụ.</li>
+                <li><strong>Tổng tiền</strong>: Tổng giá trị bao gồm thuế.</li>
+                <li><strong>Trạng thái đơn</strong>: Quá trình của đơn (Ví dụ: <code>pending</code>, <code>processing</code>, <code>completed</code>).</li>
+                <li><strong>Trạng thái thanh toán</strong>: Tình trạng cước phí (Ví dụ: <code>Chưa thanh toán</code>, <code>unpaid</code>, <code>Paid</code>).</li>
+            </ul>
+
+            <img src="images/crm/crm-3.png" alt="Danh sách đơn hàng" />
+
+            <h3>Xem chi tiết đơn hàng</h3>
+            <p>Khi nhấn Xem chi tiết đơn, bạn sẽ thấy thông tin trích xuất toàn vẹn:</p>
+            <ol>
+                <li><strong>Thông tin chung</strong>: Khách, Mã Báo giá, Sale, Chiết khấu %, Người tạo, Thời gian.</li>
+                <li>
+                    <strong>Thông tin tiền</strong>: Hiển thị bảng kê chi tiết tài chính bao gồm:
+                    <ul>
+                        <li>Tổng tiền niêm yết (Fee Before Tax and Discount)</li>
+                        <li>Chiết khấu, Tiền giảm giá (Discount Value)</li>
+                        <li>Tiền trước thuế (Fee Before Tax)</li>
+                        <li>Thuế suất %, Tiền thuế (Tax value)</li>
+                        <li>Tổng tiền (Total amount).</li>
+                    </ul>
+                </li>
+                <li><strong>Người liên hệ / Người gửi mẫu</strong>: Thông tin cá nhân giao dịch lấy mẫu.</li>
+                <li>
+                    <strong>Mẫu & Chỉ tiêu</strong>: Đây là phần quan trọng nhất, hiển thị mỗi hình thức mẫu (Tên mẫu, Loại mẫu, Nơi sản xuất) cùng với một bảng cấu trúc liệt kê toàn bộ các
+                    <strong>Chỉ tiêu</strong> (Parameter) đã được chọn để xét nghiệm, đi kèm phương pháp thử nghiệm (Protocol) và giá trị Đơn giá/Thuế/Thành tiền của từng chỉ tiêu.
+                </li>
+            </ol>
+
+            <img src="images/crm/crm-4.png" alt="Chi tiết một đơn hàng" />
+
+            <hr />
+
+            <h2>IV. QUẢN LÝ BÁO GIÁ (QUOTES)</h2>
+
+            <p>Trang báo giá có thiết kế và giao diện tương tự như Đơn hàng với các cột: <strong>Mã báo giá, Mã khách hàng, Tổng tiền, Trạng thái báo giá</strong>.</p>
+
+            <h3>1. Luồng xử lý Báo giá</h3>
+            <ul>
+                <li>Các báo giá thường khởi tạo ở trạng thái <strong>Nháp (Draft)</strong>.</li>
+                <li>Khi thoả thuận xong và đồng ý thực hiện, ta sẽ chuyển báo giá từ Draft sang <strong>Approved</strong> (Đã chốt/Đã phản hồi).</li>
+                <li>Báo giá Approved sẽ được dùng làm căn cứ tự động tạo dữ liệu Đơn hàng, giúp hạn chế sai sót và không cần nhập lại chỉ tiêu thử nghiệm.</li>
+            </ul>
+
+            <h3>2. Xem chi tiết Báo giá</h3>
+            <p>Cũng như đơn hàng, modal chi tiết báo giá liệt kê mọi nội dung (bao gồm thông tin sale phụ trách, chiết khấu, khách hàng) với phần <strong>Mẫu và Chỉ tiêu</strong> chuyên sâu:</p>
+            <ul>
+                <li>Danh sách thể hiện trực quan các Mẫu (VD: Thực phẩm bảo vệ sức khỏe) và từng loại xét nghiệm sẽ thực hiện trong mẫu đó.</li>
+                <li>Toàn bộ giá trị tài chính (tính thuế + chiết khấu trên từng dòng) được hệ thống tự động tổng hợp để ra tổng Bill cuối cùng gửi đến khách hàng.</li>
+            </ul>
+
+            <hr />
+
+            <h2>V. CÁC LƯU Ý QUAN TRỌNG KHI SỬ DỤNG</h2>
+
+            <div class="note">
+                <ul>
+                    <li>
+                        <strong>Từ Báo giá đến Đơn hàng</strong>: Hãy tận dụng việc thiết lập cấu hình Mẫu & Chỉ tiêu ở bước Tạo Báo giá. Lúc lên Đơn hàng bạn chỉ việc chọn lại báo giá đó thì các
+                        field sẽ fill tự động.
+                    </li>
+                    <li>
+                        <strong>Kiểm tra Kỹ Thông Tin Hóa Đơn</strong>: Các thông tin MST và Tên đơn vị trên hóa đơn phải được xác nhận trước khi tiến hành thu cước và in lệnh, tránh việc nhầm hoá
+                        đơn.
+                    </li>
+                    <li>
+                        <strong>Tooltips</strong>: Khi hover chuột qua các nội dung gạch chân, hoặc các phần hiển thị bị thu gọn, hệ thống cung cấp Popover hiển thị các giá trị đầy đủ (ví dụ liên hệ
+                        chính) mà không cần phải mở trực tiếp modal.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="footer">Tài liệu nội bộ LIMS Platform - Cập nhật ngày 20/04/2026</div>
+        </div>
+    </body>
+</html>

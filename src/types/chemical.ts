@@ -115,6 +115,8 @@ export interface ChemicalTransactionBlockDetail extends BaseEntity {
     parameterName?: string | null;
     analysisId?: string | null;
     chemicalTransactionBlockDetailNote?: string | null;
+    transactionCoaDocumentIds?: string[] | null;
+    transactionInvoiceDocumentIds?: string[] | null;
 }
 
 export interface ChemicalTransaction extends BaseEntity {
@@ -132,6 +134,8 @@ export interface ChemicalTransaction extends BaseEntity {
     parameterName?: string | null;
     analysisId?: string | null;
     chemicalTransactionNote?: string | null;
+    transactionCoaDocumentIds?: string[] | null;
+    transactionInvoiceDocumentIds?: string[] | null;
 
     // Virtual fields
     chemicalTransactionBlock?: ChemicalTransactionBlock;

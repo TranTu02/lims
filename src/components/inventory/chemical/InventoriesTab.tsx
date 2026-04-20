@@ -10,6 +10,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { InventoryDetailPanel } from "./InventoryDetailPanel";
 import { InventoryEditModal } from "./InventoryEditModal";
 import { PrintLabelModal } from "./PrintLabelModal";
+import { HelpBubble } from "./HelpBubble";
 import { Badge } from "@/components/ui/badge";
 import { TableFilterPopover } from "./TableFilterPopover";
 import { RefreshCw } from "lucide-react";
@@ -122,7 +123,7 @@ export function InventoriesTab() {
                             {t("common.search", { defaultValue: "Tìm kiếm" })}
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => refetch()} title="Tải lại">
-                            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
                         </Button>
                     </div>
                     <div className="flex items-center gap-2">
@@ -224,7 +225,7 @@ export function InventoriesTab() {
                                                 { label: "Đã hủy (Disposed)", value: "Disposed" },
                                             ]}
                                             onChange={(v) => {
-                                                setFilters(f => ({ ...f, chemicalInventoryStatus: v }));
+                                                setFilters((f) => ({ ...f, chemicalInventoryStatus: v }));
                                                 setPage(1);
                                             }}
                                         />
@@ -235,7 +236,7 @@ export function InventoriesTab() {
                                             type="date"
                                             value={filters.expDate}
                                             onChange={(v) => {
-                                                setFilters(f => ({ ...f, expDate: v }));
+                                                setFilters((f) => ({ ...f, expDate: v }));
                                                 setPage(1);
                                             }}
                                         />
@@ -246,7 +247,7 @@ export function InventoriesTab() {
                                             type="date"
                                             value={filters.openedDate}
                                             onChange={(v) => {
-                                                setFilters(f => ({ ...f, openedDate: v }));
+                                                setFilters((f) => ({ ...f, openedDate: v }));
                                                 setPage(1);
                                             }}
                                         />
@@ -302,12 +303,8 @@ export function InventoriesTab() {
                                                 <td className="px-3 py-2 whitespace-nowrap text-xs text-muted-foreground">{inv.chemicalSkuOldId ?? "-"}</td>
                                                 <td className="px-3 py-2 whitespace-nowrap">{inv.lotNumber ?? "-"}</td>
                                                 <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{inv.storageBinLocation ?? "-"}</td>
-                                                <td className="px-3 py-2 whitespace-nowrap text-right font-medium text-foreground">
-                                                    {inv.currentAvailableQty ?? 0}
-                                                </td>
-                                                <td className="px-3 py-2 whitespace-nowrap text-right text-muted-foreground">
-                                                    {inv.totalGrossWeight ?? "-"}
-                                                </td>
+                                                <td className="px-3 py-2 whitespace-nowrap text-right font-medium text-foreground">{inv.currentAvailableQty ?? 0}</td>
+                                                <td className="px-3 py-2 whitespace-nowrap text-right text-muted-foreground">{inv.totalGrossWeight ?? "-"}</td>
                                                 <td className="px-3 py-2 whitespace-nowrap text-center">
                                                     <StatusBadge status={inv.chemicalInventoryStatus} />
                                                 </td>
@@ -361,6 +358,8 @@ export function InventoriesTab() {
                     }}
                 />
             )}
+
+            <HelpBubble guidePath="guide-inventories.html" label="Hướng dẫn: Quản lý Lọ/Chai" />
         </div>
     );
 }

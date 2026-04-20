@@ -11,6 +11,8 @@ import { useDebouncedValue } from "../hooks/useDebouncedValue";
 
 import { ParameterGroupsTable, type ParameterGroupsExcelFiltersState } from "./ParameterGroupsTable";
 import { ParameterGroupCreateModal } from "./ParameterGroupCreateModal";
+import { ParameterGroupDetailPanel } from "./ParameterGroupDetailPanel";
+import { HelpBubble } from "../../inventory/chemical/HelpBubble";
 
 function Skeleton() {
     return (
@@ -51,6 +53,9 @@ export function ParameterGroupsView() {
     const debouncedSearch = useDebouncedValue(searchTerm, 300);
 
     const [createOpen, setCreateOpen] = useState(false);
+    const [editGroup, setEditGroup] = useState<ParameterGroup | null>(null);
+    const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);
+    const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
 
     const [serverTotalPages, setServerTotalPages] = useState<number | null>(null);
     const pagination = useServerPagination(serverTotalPages, 10);
@@ -125,31 +130,52 @@ export function ParameterGroupsView() {
             ) : null}
 
             {!isLoading && !isError ? (
-                <div className="bg-background rounded-lg border border-border overflow-hidden">
-                    <ParameterGroupsTable
-                        items={pageItems}
-                        excelFilters={excelFilters}
-                        onEdit={() => {}}
-                        onExcelFiltersChange={(next) => {
-                            setExcelFilters(next);
-                            pagination.resetPage();
+                <div className="flex gap-4">
+                    <div className="flex-1 bg-background rounded-lg border border-border overflow-hidden">
+                        <ParameterGroupsTable
+                            items={pageItems}
+                            excelFilters={excelFilters}
+                            selectedRowKey={selectedRowKey}
+                            onSelectRow={(rowKey: string, groupId: string) => {
+                                setSelectedRowKey((cur) => (cur === rowKey ? null : rowKey));
+                                setSelectedGroupId((cur) => (cur === groupId ? null : groupId));
+                            }}
+                            onEdit={(p) => setEditGroup(p)}
+                            onExcelFiltersChange={(next) => {
+                                setExcelFilters(next);
+                                pagination.resetPage();
+                            }}
+                        />
+
+                        <div className="border-t p-3">
+                            <Pagination
+                                currentPage={pagination.currentPage}
+                                totalPages={totalPages}
+                                itemsPerPage={pagination.itemsPerPage}
+                                totalItems={totalItems}
+                                onPageChange={pagination.handlePageChange}
+                                onItemsPerPageChange={pagination.handleItemsPerPageChange}
+                            />
+                        </div>
+                    </div>
+
+                    <ParameterGroupDetailPanel
+                        groupId={selectedGroupId}
+                        onClose={() => {
+                            setSelectedRowKey(null);
+                            setSelectedGroupId(null);
+                        }}
+                        onEdit={(id) => {
+                            const g = allItems.find((x) => x.groupId === id);
+                            if (g) setEditGroup(g);
                         }}
                     />
-
-                    <div className="border-t p-3">
-                        <Pagination
-                            currentPage={pagination.currentPage}
-                            totalPages={totalPages}
-                            itemsPerPage={pagination.itemsPerPage}
-                            totalItems={totalItems}
-                            onPageChange={pagination.handlePageChange}
-                            onItemsPerPageChange={pagination.handleItemsPerPageChange}
-                        />
-                    </div>
                 </div>
             ) : null}
 
             {createOpen ? <ParameterGroupCreateModal onClose={() => setCreateOpen(false)} /> : null}
+            {editGroup ? <ParameterGroupCreateModal group={editGroup} onClose={() => setEditGroup(null)} /> : null}
+            <HelpBubble guidePath="guide-parameterGroups.html" />
         </div>
     );
 }

@@ -156,8 +156,8 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
                     analysisUnit: "",
                     analysisResult: null,
                     createdAt: new Date().toISOString(),
-                    analysisMethodLOD: matrix.LOD ?? "",
-                    analysisMethodLOQ: matrix.LOQ ?? "",
+                    methodLOD: matrix.methodLOD ?? "",
+                    methodLOQ: matrix.methodLOQ ?? "",
                 };
 
                 return [...prev, newAnalysis];

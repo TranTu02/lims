@@ -15,7 +15,7 @@ export type ListQuery = {
     parameterId?: string | null;
     protocolId?: string | null;
     sampleTypeId?: string | null;
-    
+
     [key: string]: unknown;
 };
 
@@ -60,7 +60,7 @@ function assertSuccessWithMeta<T>(res: ApiResponse<T>): ListResult<T> {
             ? {
                   ...meta,
                   page: typeof meta.page === "string" ? parseInt(meta.page, 10) : meta.page,
-                  total: typeof meta.total === "number" ? meta.total : (meta as any).totalItems ?? 0,
+                  total: typeof meta.total === "number" ? meta.total : ((meta as any).totalItems ?? 0),
               }
             : null;
 
@@ -126,13 +126,13 @@ export type Matrix = {
     taxRate?: ApiNumber | null;
     feeAfterTax: ApiNumber;
 
-    LOD?: string | null;
-    LOQ?: string | null;
+    methodLOD?: string | null;
+    methodLOQ?: string | null;
     thresholdLimit?: string | null;
     turnaroundTime?: number | null;
 
     technicianGroupId?: string | null;
-    
+
     equipmentIds?: string[] | null;
     equipments?: ProtocolEquipment[] | null;
     labToolIds?: string[] | null;
@@ -279,14 +279,33 @@ export type ParameterGroup = {
     matrixIds: string[];
     groupNote?: string | null;
 
-    feeBeforeTaxAndDiscount: number;
     discountRate: number;
-    feeBeforeTax: number;
     taxRate: number;
-    feeAfterTax: number;
 
     createdAt: string;
     createdBy?: IdentityExpanded | null;
+};
+
+export type ParameterGroupDetail = ParameterGroup & {
+    // Other detail fields if any
+};
+
+export type ParameterGroupFull = ParameterGroup & {
+    feeBeforeTaxAndDiscount: number;
+    feeBeforeTax: number;
+    feeAfterTax: number;
+    matrices: Array<{
+        matrixId: string;
+        parameterId: string;
+        parameterName: string | null;
+        protocolId: string;
+        protocolCode: string | null;
+        sampleTypeId: string;
+        sampleTypeName: string | null;
+        feeBeforeTax: number;
+        taxRate: number;
+        feeAfterTax: number;
+    }>;
 };
 
 export type MatrixCreateBody = {
@@ -299,8 +318,8 @@ export type MatrixCreateBody = {
     taxRate?: number | null;
 
     turnaroundTime?: number | null;
-    LOD?: string | null;
-    LOQ?: string | null;
+    methodLOD?: string | null;
+    methodLOQ?: string | null;
     thresholdLimit?: string | null;
 
     technicianGroupId?: string | null;
@@ -408,17 +427,23 @@ export type SampleTypeUpdateBody = {
     displayTypeStyle?: Record<string, string>;
 };
 
-export type ParameterGroupCreateFullBody = {
+export type ParameterGroupCreateBody = {
     groupName: string;
-    sampleTypeId: string;
-    sampleTypeName?: string;
     matrixIds: string[];
-    groupNote?: string | null;
-    feeBeforeTaxAndDiscount: number;
     discountRate: number;
-    feeBeforeTax: number;
-    taxRate: number;
-    feeAfterTax: number;
+    sampleTypeId: string;
+    groupNote?: string;
+    taxRate?: number;
+};
+
+export type ParameterGroupUpdateBody = {
+    groupId: string;
+    groupName?: string;
+    matrixIds?: string[];
+    discountRate?: number;
+    sampleTypeId?: string;
+    groupNote?: string;
+    taxRate?: number;
 };
 
 export type ParametersFilterFrom = "parameterId" | "parameterName" | "technicianAlias" | "technicianGroupId" | "parameterStatus" | "unit";
@@ -575,7 +600,7 @@ export const libraryApi = {
                 query: buildListQuery(input),
             }),
 
-        full: (id: string) => api.getRaw<SampleTypeFull>("/v2/sampletypes/get/full", { query: { id } }),
+        full: (id: string) => api.get<SampleTypeFull>("/v2/sampletypes/get/full", { query: { id } }),
 
         create: (input: { body: SampleTypeCreateBody }) => api.post<SampleType>("/v2/sampletypes/create", { body: input.body }),
 
@@ -589,17 +614,31 @@ export const libraryApi = {
 
     parameterGroups: {
         list: (input?: { query?: ListQuery; sort?: ListSort }) =>
-            api.get<ParameterGroup[]>("/v2/parametergroups/get/list", {
+            api.get<ParameterGroup[]>("/v2/parameterGroups/get/list", {
                 query: buildListQuery(input),
             }),
 
-        createFull: (input: { body: ParameterGroupCreateFullBody }) =>
-            api.post<ParameterGroup>("/v2/parametergroups/create/full", {
+        detail: (groupId: string) => api.get<ParameterGroupDetail>("/v2/parameterGroups/get/detail", { query: { groupId } }),
+
+        full: (groupId: string) => api.get<ParameterGroupFull>("/v2/parameterGroups/get/full", { query: { groupId } }),
+
+        create: (input: { body: ParameterGroupCreateBody }) =>
+            api.post<ParameterGroup>("/v2/parameterGroups/create", {
+                body: input.body,
+            }),
+
+        update: (input: { body: ParameterGroupUpdateBody }) =>
+            api.post<ParameterGroup>("/v2/parameterGroups/update", {
+                body: input.body,
+            }),
+
+        delete: (input: { body: { groupId: string } }) =>
+            api.post<{ groupId: string }>("/v2/parameterGroups/delete", {
                 body: input.body,
             }),
 
         filter: (input: { body: ParameterGroupsFilterBody }) =>
-            api.post<ParameterGroupsFilterItem[]>("/v2/parametergroups/filter", {
+            api.post<ParameterGroupsFilterItem[]>("/v2/parameterGroups/filter", {
                 body: input.body,
             }),
     },
@@ -624,10 +663,14 @@ export const libraryKeys = {
     parametersAll: (input?: { query?: ListQuery; sort?: ListSort }) => [...libraryKeys.parameters(), "all", stableKey(input ?? {})] as const,
     sampleTypes: () => [...libraryKeys.all, "sampleTypes"] as const,
     sampleTypesList: (input?: { query?: ListQuery; sort?: ListSort }) => [...libraryKeys.sampleTypes(), "list", stableKey(input ?? {})] as const,
+    sampleTypesDetail: (sampleTypeId: string) => [...libraryKeys.sampleTypes(), "detail", sampleTypeId] as const,
+    sampleTypesFull: (sampleTypeId: string) => [...libraryKeys.sampleTypes(), "full", sampleTypeId] as const,
     sampleTypesFilter: (input: { body: SampleTypesFilterBody }) => [...libraryKeys.sampleTypes(), "filter", stableKey(input)] as const,
     sampleTypesAll: (input?: { query?: ListQuery; sort?: ListSort }) => [...libraryKeys.sampleTypes(), "all", stableKey(input ?? {})] as const,
     parameterGroups: () => [...libraryKeys.all, "parameterGroups"] as const,
     parameterGroupsList: (input?: { query?: ListQuery; sort?: ListSort }) => [...libraryKeys.parameterGroups(), "list", stableKey(input ?? {})] as const,
+    parameterGroupDetail: (groupId: string) => [...libraryKeys.parameterGroups(), "detail", groupId] as const,
+    parameterGroupFull: (groupId: string) => [...libraryKeys.parameterGroups(), "full", groupId] as const,
     parameterGroupsFilter: (input: { body: ParameterGroupsFilterBody }) => [...libraryKeys.parameterGroups(), "filter", stableKey(input)] as const,
 
     parameterGroupsAll: (input?: { query?: ListQuery; sort?: ListSort }) => [...libraryKeys.parameterGroups(), "all", stableKey(input ?? {})] as const,
@@ -997,7 +1040,7 @@ export function useUpdateSampleType() {
 
 export function useSampleTypeFull(id: string | null) {
     return useQuery({
-        queryKey: ["library", "sampleTypes", "full", id],
+        queryKey: libraryKeys.sampleTypesFull(id ?? ""),
         enabled: Boolean(id),
         queryFn: async () => await libraryApi.sampleTypes.full(id!),
     });
@@ -1046,17 +1089,65 @@ export function useParameterGroupsList(input?: { query?: ListQuery; sort?: ListS
     });
 }
 
-export function useCreateParameterGroupFull() {
+export function useParameterGroupDetail(groupId: string, opts?: { enabled?: boolean }) {
+    return useQuery({
+        queryKey: libraryKeys.parameterGroupDetail(groupId),
+        enabled: (opts?.enabled ?? true) && Boolean(groupId),
+        queryFn: async () => assertSuccess(await libraryApi.parameterGroups.detail(groupId)),
+    });
+}
+
+export function useParameterGroupFull(groupId: string, opts?: { enabled?: boolean }) {
+    return useQuery({
+        queryKey: libraryKeys.parameterGroupFull(groupId),
+        enabled: (opts?.enabled ?? true) && Boolean(groupId),
+        queryFn: async () => assertSuccess(await libraryApi.parameterGroups.full(groupId)),
+    });
+}
+
+export function useCreateParameterGroup() {
     const qc = useQueryClient();
     const { t } = useTranslation();
 
     return useMutation({
-        mutationFn: async (input: { body: ParameterGroupCreateFullBody }) => assertSuccess(await libraryApi.parameterGroups.createFull(input)),
+        mutationFn: async (input: { body: ParameterGroupCreateBody }) => assertSuccess(await libraryApi.parameterGroups.create(input)),
         onSuccess: async () => {
             await qc.invalidateQueries({ queryKey: libraryKeys.parameterGroups() });
             toast.success(t("library.parameterGroups.createSuccess"));
         },
         onError: () => toast.error(t("library.parameterGroups.createError")),
+    });
+}
+
+export function useUpdateParameterGroup() {
+    const qc = useQueryClient();
+    const { t } = useTranslation();
+
+    return useMutation({
+        mutationFn: async (input: { body: ParameterGroupUpdateBody }) => assertSuccess(await libraryApi.parameterGroups.update(input)),
+        onSuccess: async (data) => {
+            await qc.invalidateQueries({ queryKey: libraryKeys.parameterGroups() });
+            if (data.groupId) {
+                await qc.invalidateQueries({ queryKey: libraryKeys.parameterGroupDetail(data.groupId) });
+                await qc.invalidateQueries({ queryKey: libraryKeys.parameterGroupFull(data.groupId) });
+            }
+            toast.success(t("library.parameterGroups.updateSuccess"));
+        },
+        onError: () => toast.error(t("library.parameterGroups.updateError")),
+    });
+}
+
+export function useDeleteParameterGroup() {
+    const qc = useQueryClient();
+    const { t } = useTranslation();
+
+    return useMutation({
+        mutationFn: async (input: { body: { groupId: string } }) => assertSuccess(await libraryApi.parameterGroups.delete(input)),
+        onSuccess: async () => {
+            await qc.invalidateQueries({ queryKey: libraryKeys.parameterGroups() });
+            toast.success(t("library.parameterGroups.deleteSuccess"));
+        },
+        onError: () => toast.error(t("library.parameterGroups.deleteError")),
     });
 }
 

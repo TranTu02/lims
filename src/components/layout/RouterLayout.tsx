@@ -69,7 +69,7 @@ function getTabFromPath(pathname: string): TabKey {
         case "/hr":
             return "hr";
         default:
-            return "reception";
+            return "crm";
     }
 }
 

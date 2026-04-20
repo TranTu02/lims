@@ -188,6 +188,8 @@ function sanitizeClientBase(raw: unknown):
         clientEmail: sStrOrNull(raw.clientEmail),
 
         clientSaleScope: sSaleScope(raw.clientSaleScope),
+        assignedSaleId: sStrOrNull(raw.assignedSaleId),
+        clientScope: sStrOrNull(raw.clientScope),
 
         availableByIds: sStrArrOrNull(raw.availableByIds),
         availableByName: sStrArrOrNull(raw.availableByName),
@@ -203,6 +205,9 @@ function sanitizeClientBase(raw: unknown):
         modifiedAt: sStr(raw.modifiedAt),
         modifiedById: sStrOrNull(raw.modifiedById),
         deletedAt: sStrOrNull(raw.deletedAt),
+
+        orders: Array.isArray(raw.orders) ? raw.orders : undefined,
+        quotes: Array.isArray(raw.quotes) ? raw.quotes : undefined,
     };
 }
 
@@ -294,6 +299,27 @@ export async function clientsGetDetail(input: { query: { clientId: string } }): 
     }
 
     return fail("BAD_RESPONSE_SHAPE", "Unexpected response shape (client detail)");
+}
+
+export async function clientsGetFull(input: { query: { clientId: string } }): Promise<ApiResponse<ClientDetail>> {
+    const raw: unknown = await api.getRaw<unknown, { clientId: string }>("/v2/clients/get/full", {
+        query: input.query,
+        headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+    });
+
+    if (isApiResponseShape(raw)) {
+        const asApi = raw as ApiResponse<unknown>;
+        if (asApi.success) {
+            const d1 = sanitizeClientDetail(asApi.data);
+            if (d1) return ok(d1, (asApi.meta ?? null) as ApiMeta | null);
+        }
+        return asApi as ApiResponse<ClientDetail>;
+    }
+
+    const d1 = sanitizeClientDetail(raw);
+    if (d1) return ok(d1);
+
+    return fail("BAD_RESPONSE_SHAPE", "Unexpected response shape (client full)");
 }
 
 export async function clientsCreate(input: { body: ClientsCreateBody }): Promise<ApiResponse<ClientDetail>> {
@@ -402,6 +428,19 @@ export function useClientsDetail(input: { query: { clientId: string } }, opts?: 
         retry: false,
         queryFn: async () => {
             const res = await clientsGetDetail(input);
+            return assertSuccess(res);
+        },
+    });
+}
+
+export function useClientsFull(input: { query: { clientId: string } }, opts?: { enabled?: boolean }) {
+    return useQuery({
+        queryKey: [...clientsKeys.detail(input.query.clientId), "full"],
+        enabled: opts?.enabled ?? true,
+        placeholderData: keepPreviousData,
+        retry: false,
+        queryFn: async () => {
+            const res = await clientsGetFull(input);
             return assertSuccess(res);
         },
     });

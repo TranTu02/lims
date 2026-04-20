@@ -142,8 +142,8 @@ export type ReceiptAnalysis = {
     analysisCompletedAt?: IsoDateString | null;
 
     analysisUncertainty?: string | null;
-    analysisMethodLOD?: string | null;
-    analysisMethodLOQ?: string | null;
+    methodLOD?: string | null;
+    methodLOQ?: string | null;
     analysisUnit?: string | null;
 
     handoverInfo?: unknown[] | null;

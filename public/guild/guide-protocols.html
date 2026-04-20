@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hướng Dẫn Sử Dụng - Quản lý Phương pháp</title>
+    <style>
+
+            :root {
+                --primary: #2563eb;
+                --primary-light: #eff6ff;
+                --accent: #f59e0b;
+                --text-main: #1e293b;
+                --text-muted: #64748b;
+                --bg-body: #f8fafc;
+                --bg-card: #ffffff;
+                --border-color: #e2e8f0;
+                --success: #10b981;
+            }
+
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            }
+
+            body {
+                background-color: var(--bg-body);
+                color: var(--text-main);
+                line-height: 1.5;
+                padding: 1.5rem;
+                height: 100vh;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+            }
+
+            /* -------------------------------------
+           HEADER
+        -------------------------------------- */
+            .guide-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                background: var(--bg-card);
+                padding: 1rem 1.5rem;
+                border-radius: 12px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+                margin-bottom: 1rem;
+                flex-shrink: 0;
+                border: 1px solid var(--border-color);
+            }
+
+            .header-title-wrapper h1 {
+                font-size: 1.25rem;
+                color: var(--primary);
+                font-weight: 700;
+            }
+
+            .header-title-wrapper p {
+                font-size: 0.85rem;
+                color: var(--text-muted);
+                margin-top: 0.25rem;
+            }
+
+            /* -------------------------------------
+           CONTENT AREA - MOCKUP UI
+        -------------------------------------- */
+            .guide-content {
+                flex: 1;
+                background: var(--bg-card);
+                border-radius: 12px;
+                box-shadow:
+                    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+                    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                position: relative;
+                overflow: hidden;
+                border: 1px solid var(--border-color);
+                display: flex;
+                flex-direction: column;
+            }
+
+            .mockup-container {
+                width: 100%;
+                height: 100%;
+                position: absolute;
+                top: 0;
+                left: 0;
+                opacity: 0;
+                visibility: hidden;
+                transition: opacity 0.3s ease;
+                background: #f1f5f9;
+                display: flex;
+                flex-direction: column;
+                padding: 1rem;
+            }
+
+            .mockup-container.active {
+                opacity: 1;
+                visibility: visible;
+            }
+
+            /* Mockup Topbar */
+            .mock-topbar {
+                background: white;
+                padding: 0.75rem 1rem;
+                border-bottom: 1px solid #e2e8f0;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-radius: 8px;
+                margin-bottom: 1rem;
+            }
+            .mock-topbar .title {
+                font-weight: 600;
+                font-size: 1.1rem;
+            }
+            .mock-topbar .search {
+                background: #f1f5f9;
+                padding: 0.4rem 1rem;
+                border-radius: 20px;
+                font-size: 0.85rem;
+                color: #64748b;
+            }
+
+            /* Mockup Workspace */
+            .mock-workspace {
+                display: flex;
+                gap: 1rem;
+                flex: 1;
+                overflow: hidden;
+            }
+
+            .mock-panel {
+                background: white;
+                border-radius: 8px;
+                border: 1px solid #e2e8f0;
+                padding: 1rem;
+                display: flex;
+                flex-direction: column;
+            }
+
+            /* Elements inside mockups */
+            .btn {
+                background: var(--primary);
+                color: white;
+                padding: 0.4rem 1rem;
+                border-radius: 6px;
+                font-size: 0.85rem;
+                font-weight: 500;
+                cursor: pointer;
+                border: none;
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            .btn-outline {
+                background: white;
+                color: #475569;
+                border: 1px solid #cbd5e1;
+                padding: 0.4rem 1rem;
+                border-radius: 6px;
+                font-size: 0.85rem;
+                font-weight: 500;
+                cursor: pointer;
+            }
+
+            .mock-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 1rem;
+            }
+            .mock-table th,
+            .mock-table td {
+                padding: 0.75rem;
+                text-align: left;
+                border-bottom: 1px solid #e2e8f0;
+                font-size: 0.85rem;
+            }
+            .mock-table th {
+                color: #64748b;
+                font-weight: 600;
+                text-transform: uppercase;
+                font-size: 0.75rem;
+            }
+            .mock-table tr:hover {
+                background: #f8fafc;
+            }
+
+            /* Form Inputs */
+            .form-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
+                margin-bottom: 1.5rem;
+            }
+            .form-group {
+                display: flex;
+                flex-direction: column;
+                gap: 0.35rem;
+            }
+            .form-group label {
+                font-size: 0.8rem;
+                font-weight: 600;
+                color: #475569;
+            }
+            .form-group input,
+            .form-group select {
+                padding: 0.5rem;
+                border: 1px solid #cbd5e1;
+                border-radius: 4px;
+                font-size: 0.85rem;
+            }
+
+            /* Modal Overlay */
+            .mock-modal-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(15, 23, 42, 0.4);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 2rem;
+                z-index: 10;
+            }
+            .mock-modal {
+                background: white;
+                border-radius: 12px;
+                width: 100%;
+                max-width: 900px;
+                height: 100%;
+                max-height: 600px;
+                display: flex;
+                flex-direction: column;
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            }
+            .mock-modal-header {
+                padding: 1rem 1.5rem;
+                border-bottom: 1px solid #e2e8f0;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                font-weight: 600;
+            }
+            .mock-modal-body {
+                padding: 1.5rem;
+                flex: 1;
+                overflow-y: auto;
+                display: flex;
+                gap: 1.5rem;
+            }
+            .mock-modal-footer {
+                padding: 1rem 1.5rem;
+                border-top: 1px solid #e2e8f0;
+                display: flex;
+                justify-content: flex-end;
+                gap: 0.75rem;
+                background: #f8fafc;
+                border-bottom-left-radius: 12px;
+                border-bottom-right-radius: 12px;
+            }
+
+            /* -------------------------------------
+           TOOLTIPS (HOTSPOTS)
+        -------------------------------------- */
+            .hotspot {
+                position: absolute;
+                width: 24px;
+                height: 24px;
+                background: var(--accent);
+                border-radius: 50%;
+                cursor: pointer;
+                z-index: 20;
+                box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.3);
+                animation: pulse-ring 2s infinite;
+            }
+
+            @keyframes pulse-ring {
+                0% {
+                    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.6);
+                }
+                70% {
+                    box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+                }
+                100% {
+                    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+                }
+            }
+
+            .hotspot::after {
+                content: "";
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 8px;
+                height: 8px;
+                background: white;
+                border-radius: 50%;
+            }
+
+            .tooltip-box {
+                position: absolute;
+                background: #1e293b;
+                color: white;
+                padding: 1rem;
+                border-radius: 8px;
+                width: 280px;
+                font-size: 0.9rem;
+                z-index: 30;
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+                opacity: 0;
+                visibility: hidden;
+                transition: all 0.2s;
+                pointer-events: none;
+                line-height: 1.4;
+            }
+
+            .hotspot:hover .tooltip-box {
+                opacity: 1;
+                visibility: visible;
+            }
+
+            .tooltip-box h4 {
+                color: #38bdf8;
+                margin-bottom: 0.5rem;
+                font-size: 1rem;
+                border-bottom: 1px solid #334155;
+                padding-bottom: 0.3rem;
+            }
+
+            /* Placement modifiers */
+            .tooltip-bottom {
+                top: 35px;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+            .tooltip-bottom::before {
+                content: "";
+                position: absolute;
+                bottom: 100%;
+                left: 50%;
+                transform: translateX(-50%);
+                border: 8px solid transparent;
+                border-bottom-color: #1e293b;
+            }
+            .tooltip-top {
+                bottom: 35px;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+            .tooltip-top::before {
+                content: "";
+                position: absolute;
+                top: 100%;
+                left: 50%;
+                transform: translateX(-50%);
+                border: 8px solid transparent;
+                border-top-color: #1e293b;
+            }
+            .tooltip-right {
+                top: 50%;
+                left: 35px;
+                transform: translateY(-50%);
+            }
+            .tooltip-right::before {
+                content: "";
+                position: absolute;
+                right: 100%;
+                top: 50%;
+                transform: translateY(-50%);
+                border: 8px solid transparent;
+                border-right-color: #1e293b;
+            }
+            .tooltip-left {
+                top: 50%;
+                right: 35px;
+                transform: translateY(-50%);
+            }
+            .tooltip-left::before {
+                content: "";
+                position: absolute;
+                left: 100%;
+                top: 50%;
+                transform: translateY(-50%);
+                border: 8px solid transparent;
+                border-left-color: #1e293b;
+            }
+
+            /* -------------------------------------
+           FOOTER NAVIGATION
+        -------------------------------------- */
+            .guide-footer {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                background: var(--bg-card);
+                padding: 1rem 1.5rem;
+                border-radius: 12px;
+                box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.05);
+                margin-top: 1rem;
+                flex-shrink: 0;
+                border: 1px solid var(--border-color);
+            }
+
+            .step-indicators {
+                display: flex;
+                gap: 8px;
+            }
+            .step-dot {
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                background: #cbd5e1;
+                transition: all 0.3s;
+            }
+            .step-dot.active {
+                background: var(--primary);
+                transform: scale(1.3);
+            }
+
+            .nav-btn {
+                padding: 0.5rem 1.25rem;
+                border: none;
+                border-radius: 6px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            .btn-prev {
+                background: #f1f5f9;
+                color: #475569;
+            }
+            .btn-prev:hover {
+                background: #e2e8f0;
+            }
+            .btn-next {
+                background: var(--primary);
+                color: white;
+            }
+            .btn-next:hover {
+                background: #1d4ed8;
+            }
+            .btn-prev:disabled,
+            .btn-next:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+        
+.mu { font-family: "Segoe UI", sans-serif; font-size: 12px; height: 100%; display: flex; flex-direction: column; background: #f8fafc; }
+.mu-header { padding: 12px; background: #fff; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+.mu-title { font-size: 16px; font-weight: 700; color: #0f172a; }
+.mu-filter { display: flex; gap: 8px; padding: 12px; background: #f1f5f9; }
+.mu-input { padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 12px; }
+.mu-btn { padding: 6px 12px; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; color: #334155; }
+.mu-btn.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+.mu-table-container { flex: 1; padding: 12px; background: #fff; overflow: auto; }
+.mu-table { width: 100%; border-collapse: collapse; text-align: left; }
+.mu-table th { padding: 8px 12px; background: #f8fafc; font-size: 11px; font-weight: 600; color: #64748b; border-bottom: 2px solid #e2e8f0; text-transform: uppercase; }
+.mu-table td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: #334155; }
+.mu-panel { width: 300px; background: #fff; border-left: 1px solid #e2e8f0; padding: 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+.mu-panel-title { font-size: 14px; font-weight: 700; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 8px; }
+.mu-field { display: flex; flex-direction: column; gap: 4px; }
+.mu-label { font-size: 10px; font-weight: 600; color: #64748b; text-transform: uppercase; }
+.mu-value { font-size: 12px; font-weight: 500; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    </style>
+</head>
+<body>
+    <div class="guide-header">
+        <div class="header-title-wrapper">
+            <h1 id="slide-title">1. Hướng Dẫn Sử Dụng - Quản lý Phương pháp</h1>
+            <p id="slide-desc">Danh mục Phương pháp & Tiêu chuẩn: Nơi thiết lập cấu hình các phương pháp thử (SOP) áp dụng trong Lab. Phương pháp này sẽ được gán cho các Chỉ tiêu để hệ thống nhận diện đúng thông tin chứng nhận và báo cáo.</p>
+        </div>
+    </div>
+    <div class="guide-content">
+
+        <!-- SLIDE 1 -->
+        <div class="mockup-container active" id="slide-1">
+            
+            <div class="mu">
+                <div class="mu-header">
+                    <div class="mu-title">Danh sách phương pháp</div>
+                    <button class="mu-btn primary">+ Tạo mới</button>
+                </div>
+                <div class="mu-filter">
+                    <input type="text" class="mu-input" style="width:100%" placeholder="Tìm kiếm phương pháp..." />
+                </div>
+                <div class="mu-table-container">
+                    <table class="mu-table">
+                        <thead><tr><th>Mã Hiệu Tiêu Chuẩn (SOP)</th><th>Tên phương pháp</th><th>Tổ chức Ban hành</th><th>Hành động</th></tr></thead>
+                        <tbody>
+                            <tr><td style="font-weight:bold">TCVN 13263-9:2020</td><td>Xác định pH của phân bón</td><td>VILAS997</td><td style="color:#2563eb; cursor:pointer">📝 Chỉnh sửa</td></tr>
+                            <tr><td style="font-weight:bold">TCVN 13298:2018</td><td>Xác định độ axit bằng chuẩn độ</td><td>VILAS997</td><td style="color:#2563eb; cursor:pointer">📝 Chỉnh sửa</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        
+
+            <!-- Hotspots -->
+            <div class="hotspot" style="top: 14px; left: 820px">
+                <div class="tooltip-box tooltip-left">
+                    <h4>1. Tạo Phương pháp mới</h4>
+                    Click để thêm mới phương pháp nghiệm thuật vào hệ thống.
+                </div>
+            </div>
+            <div class="hotspot" style="top: 182px; left: 830px">
+                <div class="tooltip-box tooltip-left">
+                    <h4>2. Chỉnh sửa & Xem chi tiết</h4>
+                    Khi nhấn vào nút chỉnh sửa, hệ thống sẽ mở ra khung chi tiết (Panel) để cập nhật thông tin và quản lý tài liệu đính kèm.
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 2 -->
+        <div class="mockup-container " id="slide-2">
+            
+            <div class="mu" style="flex-direction:row">
+                <div style="flex:2; background:#fff; padding:20px; border-right:1px solid #e2e8f0;">
+                     <div class="mu-title" style="margin-bottom:16px;">Tên phương pháp</div>
+                     <input class="mu-input" style="width:100%; border-color:#2563eb" value="Xác định pH của phân bón" />
+                     
+                     <div style="display:flex; gap:16px; margin-top:16px;">
+                         <div style="flex:1"><div class="mu-label">Mã Hiệu Tiêu chuẩn (SOP)</div><input class="mu-input" style="width:100%" value="TCVN 13263-9:2020" /></div>
+                         <div style="flex:1"><div class="mu-label">Tổ chức Ban hành</div><input class="mu-input" style="width:100%" /></div>
+                     </div>
+                     
+                     <div style="margin-top:24px; padding:12px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px;">
+                        <h4 style="font-size:12px; color:#1e3a8a; margin-bottom:8px; font-weight:700">Hồ sơ SOP</h4>
+                        <div style="background:#fff; border:1px solid #e2e8f0; padding:8px 12px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:12px; font-weight:600; color:#0f172a">📄 DOC-VAL4CPT</span>
+                            <button class="mu-btn primary" style="font-size:10px; padding:4px 8px">👁 Xem</button>
+                        </div>
+                        <button class="mu-btn mt-3" style="width:100%; margin-top:12px; border-style:dashed;">+ Tải lên Hồ sơ SOP</button>
+                     </div>
+                </div>
+            </div>
+        
+
+            <!-- Hotspots -->
+            <div class="hotspot" style="top: 350px; left: 280px">
+                <div class="tooltip-box tooltip-bottom">
+                    <h4>1. Tải lên Hồ sơ SOP</h4>
+                    Sử dụng tính năng này để tải lên các tài liệu hướng dẫn chuẩn (PDF, DOCX) làm tài liệu tham khảo cho KTV.
+                </div>
+            </div>
+            <div class="hotspot" style="top: 290px; left: 720px">
+                <div class="tooltip-box tooltip-left">
+                    <h4>2. Xem trước Tài liệu</h4>
+                    Mở trình xem Document Viewer để hiển thị trực tiếp nội dung PDF mà không cần tải xuống máy.
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 3 -->
+        <div class="mockup-container " id="slide-3">
+            
+            <div class="mu" style="align-items:center; justify-content:center; background:rgba(0,0,0,0.2)">
+                <div style="background:#fff; width:550px; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,0.2); display:flex; flex-direction:column; overflow:hidden">
+                    <div style="padding:16px 20px; border-bottom:1px solid #e2e8f0; font-weight:700; font-size:16px;">Tạo tài liệu mới</div>
+                    <div style="padding:24px; display:flex; flex-direction:column; gap:20px;">
+                        <div>
+                            <div class="mu-label" style="margin-bottom:8px; color:#2563eb; font-weight:700">1. FILE ĐÍNH KÈM</div>
+                            <div style="border:2px dashed #cbd5e1; border-radius:8px; height:120px; background:#f8fafc; display:flex; align-items:center; justify-content:center; flex-direction:column; cursor:pointer">
+                                <span style="font-size:24px; margin-bottom:8px">📤</span>
+                                <span style="font-weight:700">Click hoặc Kéo thả file vào đây để tải lên</span>
+                                <span style="font-size:10px; color:#94a3b8">Hỗ trợ các định dạng PDF, DOCX, XLSX...</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="mu-label" style="margin-bottom:8px; color:#2563eb; font-weight:700">2. THÔNG TIN CƠ BẢN</div>
+                            <div style="display:flex; flex-direction:column; gap:12px;">
+                                <div class="mu-field"><div class="mu-label">Tên tài liệu *</div><input class="mu-input" style="width:100%" value="Xác định pH của phân bón" /></div>
+                                <div style="display:flex; gap:12px">
+                                    <div class="mu-field" style="flex:1"><div class="mu-label">Trạng thái</div><select class="mu-input" style="width:100%"><option>Issued (Đã ban hành)</option></select></div>
+                                    <div class="mu-field" style="flex:1"><div class="mu-label">Phân loại</div><select class="mu-input" style="width:100%"><option>PROTOCOL</option></select></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="padding:16px 20px; border-top:1px solid #e2e8f0; background:#f8fafc; display:flex; justify-content:flex-end; gap:8px">
+                        <button class="mu-btn">Hủy</button>
+                        <button class="mu-btn primary">Lưu</button>
+                    </div>
+                </div>
+            </div>
+        
+
+            <!-- Hotspots -->
+            <div class="hotspot" style="top: 165px; left: 475px">
+                <div class="tooltip-box tooltip-bottom">
+                    <h4>1. Kéo / Thả File</h4>
+                    Hệ thống hỗ trợ kéo thả tệp trực tiếp vào khung nét đứt. Các file PDF là lựa chọn tốt nhất để hiển thị trực tiếp.
+                </div>
+            </div>
+            <div class="hotspot" style="top: 400px; left: 450px">
+                <div class="tooltip-box tooltip-bottom">
+                    <h4>2. Gắn Thẻ Phân Loại</h4>
+                    Đảm bảo chọn đúng phân loại (Ví dụ: PROTOCOL) và Trạng thái để tối ưu quản lý tìm kiếm.
+                </div>
+            </div>
+            <div class="hotspot" style="top: 562px; left: 580px">
+                <div class="tooltip-box tooltip-top">
+                    <h4>3. Lưu liên kết</h4>
+                    Bấm Lưu để tài liệu được tải lên hệ thống lưu trữ nội bộ (MinIO) và gán ID vào phương pháp này.
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 4 -->
+        <div class="mockup-container " id="slide-4">
+            
+            <div class="mu" style="flex-direction:row">
+                <div style="width:250px; background:#f4f4f5; border-right:1px solid #e2e8f0; padding:20px; display:flex; flex-direction:column; gap:16px">
+                    <div style="font-size:11px; font-weight:800; color:#52525b; text-transform:uppercase; margin-bottom:8px">Thông tin bản ghi</div>
+                    <div class="mu-field"><div class="mu-label">Mã tài liệu</div><input class="mu-input" style="width:100%; font-size:11px" value="DOC-D9LGRWZ" disabled /></div>
+                    <div style="display:flex; gap:12px; margin-top:8px">
+                        <div class="mu-field" style="flex:1"><div class="mu-label">Loại</div><div class="mu-value">PROTOCOL</div></div>
+                        <div class="mu-field" style="flex:1"><div class="mu-label">Trạng thái</div><div class="mu-value">Issued</div></div>
+                    </div>
+                </div>
+                <div style="flex:1; background:#3f3f46; display:flex; align-items:center; justify-content:center; padding:24px; position:relative;">
+                    <div style="background:#fff; width:100%; max-width:600px; height:100%; border-radius:4px; box-shadow:0 4px 15px rgba(0,0,0,0.3); padding:30px; font-family:'Times New Roman', serif;">
+                        <h2 style="text-align:center; font-size:18px; margin-bottom:20px">XÁC ĐỊNH GIÁ TRỊ PH CỦA PHÂN BÓN</h2>
+                        <div style="font-size:14px; line-height:1.6">
+                            <b>1. Tên phương pháp</b><br/>
+                            Phương pháp tiêu chuẩn: Xác định pH của phân bón.<br/>
+                            Tài liệu tham khảo: TCVN 13263-9:2020<br/><br/>
+                            <b>2. Tiến hành thực nghiệm</b><br/>
+                            - Lặp lại thực nghiệm 6 lần trên cùng 1 mẫu.<br/>
+                            - Ghi lại kết quả, tính giá trị trung bình (X) và độ lệch...
+                        </div>
+                    </div>
+                    <button style="position:absolute; top:20px; right:20px; background:rgba(0,0,0,0.5); border:none; color:#fff; border-radius:4px; padding:6px 12px; font-size:12px; cursor:pointer">🗗 Mở Tab Mới</button>
+                </div>
+            </div>
+        
+
+            <!-- Hotspots -->
+            <div class="hotspot" style="top: 115px; left: 140px">
+                <div class="tooltip-box tooltip-right">
+                    <h4>1. Metadata Information</h4>
+                    Các thông tin Tracking cơ bản: Mã ID Document, Trạng thái và Phân loại tài liệu.
+                </div>
+            </div>
+            <div class="hotspot" style="top: 205px; left: 600px">
+                <div class="tooltip-box tooltip-bottom">
+                    <h4>2. Giao diện Hiển thị PDF</h4>
+                    Hệ thống tích hợp thư viện PDF Worker, hoặc dùng Object Viewer để trải nghiệm đọc tốt nhất mà không cần phần mềm bên thứ 3.
+                </div>
+            </div>
+            <div class="hotspot" style="top: 48px; left: 820px">
+                <div class="tooltip-box tooltip-left">
+                    <h4>3. Link ra ngoài</h4>
+                    Tính năng tiện ích giúp mở tài liệu ra Tab riêng (fullscreen) để kỹ thuật viên dễ dàng soi chiếu khi tiến hành thí nghiệm.
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="guide-footer">
+        <button class="nav-btn btn-prev" id="btn-prev" disabled>← Quay lại</button>
+        <div class="step-indicators" id="step-indicators">
+            <div class="step-dot active"></div>
+            <div class="step-dot "></div>
+            <div class="step-dot "></div>
+            <div class="step-dot "></div>
+        </div>
+        <button class="nav-btn btn-next" id="btn-next">Tiếp theo →</button>
+    </div>
+    <script>
+        const slides = document.querySelectorAll(".mockup-container");
+        const dots = document.querySelectorAll(".step-dot");
+        const btnPrev = document.getElementById("btn-prev");
+        const btnNext = document.getElementById("btn-next");
+        const titleEl = document.getElementById("slide-title");
+        const descEl = document.getElementById("slide-desc");
+        let currentSlide = 0;
+
+        const slideInfo = [{"title": "1. Qu\u1ea3n l\u00fd Ph\u01b0\u01a1ng ph\u00e1p (Protocols)", "desc": "Danh m\u1ee5c Ph\u01b0\u01a1ng ph\u00e1p & Ti\u00eau chu\u1ea9n: N\u01a1i thi\u1ebft l\u1eadp c\u1ea5u h\u00ecnh c\u00e1c ph\u01b0\u01a1ng ph\u00e1p th\u1eed (SOP) \u00e1p d\u1ee5ng trong Lab. Ph\u01b0\u01a1ng ph\u00e1p n\u00e0y s\u1ebd \u0111\u01b0\u1ee3c g\u00e1n cho c\u00e1c Ch\u1ec9 ti\u00eau \u0111\u1ec3 h\u1ec7 th\u1ed1ng nh\u1eadn di\u1ec7n \u0111\u00fang th\u00f4ng tin ch\u1ee9ng nh\u1eadn v\u00e0 b\u00e1o c\u00e1o."}, {"title": "2. Chi ti\u1ebft Ph\u01b0\u01a1ng ph\u00e1p & SOP", "desc": "C\u1eadp nh\u1eadt, Qu\u1ea3n l\u00fd t\u00e0i li\u1ec7u (SOP): Trong m\u00e0n h\u00ecnh chi ti\u1ebft, b\u1ea1n c\u00f3 th\u1ec3 thi\u1ebft l\u1eadp T\u00ean, M\u00e3 SOP, Ch\u1ee9ng nh\u1eadn (VILAS/ISO) v\u00e0 t\u1ea3i l\u00ean c\u00e1c file t\u00e0i li\u1ec7u h\u1ed3 s\u01a1 li\u00ean quan (SOP PDF)."}, {"title": "3. T\u1ea3i l\u00ean T\u00e0i li\u1ec7u (SOP)", "desc": "Qu\u1ea3n l\u00fd Document Model: Giao di\u1ec7n t\u1ea1o t\u00e0i li\u1ec7u \u0111\u00ednh k\u00e8m. B\u1ea1n c\u00f3 th\u1ec3 k\u00e9o th\u1ea3 file PDF/DOCX v\u00e0o khung Upload v\u00e0 \u0111i\u1ec1n c\u00e1c metadata c\u01a1 b\u1ea3n nh\u01b0 T\u00ean t\u00e0i li\u1ec7u, Tr\u1ea1ng th\u00e1i ph\u00e1t h\u00e0nh, Ph\u00e2n lo\u1ea1i."}, {"title": "4. Tr\u00ecnh xem t\u00e0i li\u1ec7u (Document Viewer)", "desc": "Xem tr\u01b0\u1edbc h\u1ed3 s\u01a1 SOP (PDF): M\u1ed9t khi t\u00e0i li\u1ec7u (PDF) \u0111\u01b0\u1ee3c l\u01b0u th\u00e0nh c\u00f4ng, b\u1ea5t c\u1ee9 khi n\u00e0o K\u1ef9 Thu\u1eadt Vi\u00ean hay Qu\u1ea3n l\u00fd nh\u1ea5n Xem, UI Document Preview s\u1ebd hi\u1ec7n l\u00ean bao g\u1ed3m n\u1ed9i dung t\u00e0i li\u1ec7u g\u1ed1c b\u00ean ph\u1ea3i v\u00e0 th\u00f4ng tin metadata b\u1ea3n ghi b\u00ean tr\u00e1i."}];
+        function updateSlide(index) {
+            slides.forEach((s) => s.classList.remove("active"));
+            dots.forEach((d) => d.classList.remove("active"));
+            slides[index].classList.add("active");
+            dots[index].classList.add("active");
+            titleEl.textContent = slideInfo[index].title;
+            descEl.textContent = slideInfo[index].desc;
+            btnPrev.disabled = index === 0;
+            if (index === slides.length - 1) {
+                btnNext.textContent = "Hoàn thành ✓";
+                btnNext.style.backgroundColor = "#10b981";
+            } else {
+                btnNext.textContent = "Tiếp theo →";
+                btnNext.style.backgroundColor = ""; 
+            }
+        }
+        btnNext.addEventListener("click", () => {
+            if (currentSlide < slides.length - 1) {
+                currentSlide++; updateSlide(currentSlide);
+            }
+        });
+        btnPrev.addEventListener("click", () => {
+            if (currentSlide > 0) {
+                currentSlide--; updateSlide(currentSlide);
+            }
+        });
+        dots.forEach((dot, index) => {
+            dot.addEventListener("click", () => {
+                currentSlide = index; updateSlide(currentSlide);
+            });
+        });
+    </script>
+</body>
+</html>

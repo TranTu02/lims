@@ -57,8 +57,8 @@ export type AnalysisDetail = {
     analysisStartedAt?: IsoDateString | null;
     analysisDeadline?: IsoDateString | null;
     analysisUncertainty?: string | null;
-    analysisMethodLOD?: string | null;
-    analysisMethodLOQ?: string | null;
+    methodLOD?: string | null;
+    methodLOQ?: string | null;
     analysisUnit?: string | null;
     analysisNotes?: string | null;
     handoverInfo?: unknown[] | null;
@@ -132,8 +132,8 @@ export type AnalysesCreateBody = {
     analysisStartedAt?: IsoDateString | null;
     analysisUncertainty?: string | null;
 
-    analysisMethodLOD?: string | null;
-    analysisMethodLOQ?: string | null;
+    methodLOD?: string | null;
+    methodLOQ?: string | null;
     analysisUnit?: string | null;
 
     handoverInfo?: unknown[] | null;
@@ -170,8 +170,8 @@ export type AnalysesUpdateBody = {
     analysisStartedAt?: IsoDateString | null;
     analysisUncertainty?: string | null;
 
-    analysisMethodLOD?: string | null;
-    analysisMethodLOQ?: string | null;
+    methodLOD?: string | null;
+    methodLOQ?: string | null;
     analysisUnit?: string | null;
 
     handoverInfo?: unknown[] | null;

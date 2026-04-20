@@ -22,6 +22,7 @@ import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { ParametersTable, type ParametersExcelFiltersState } from "./ParametersTable";
 import { ParameterDetailPanel } from "./ParametersDetailPanel";
 import { ParameterMatrixManager } from "./ParameterMatrixManager";
+import { HelpBubble } from "@/components/inventory/chemical/HelpBubble";
 
 function TechnicianAliasSelect({ value, onChange }: { value: string; onChange: (val: string) => void }) {
     const { t } = useTranslation();
@@ -343,10 +344,7 @@ export function ParametersView() {
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <div className="text-sm font-medium text-foreground">{String(t("library.parameters.technicianAlias", { defaultValue: "Vị trí phụ trách" }))}</div>
-                                        <TechnicianAliasSelect
-                                            value={createForm.technicianAlias || ""}
-                                            onChange={(val) => setCreateForm((s) => ({ ...s, technicianAlias: val }))}
-                                        />
+                                        <TechnicianAliasSelect value={createForm.technicianAlias || ""} onChange={(val) => setCreateForm((s) => ({ ...s, technicianAlias: val }))} />
                                     </div>
                                     <div className="space-y-2">
                                         <div className="text-sm font-medium text-foreground">{String(t("library.parameters.technicianGroupId", { defaultValue: "ID nhóm kỹ thuật viên" }))}</div>
@@ -394,9 +392,11 @@ export function ParametersView() {
                             <div className="w-[55%] overflow-y-auto p-5 relative">
                                 {!createForm.parameterId ? (
                                     <div className="h-full flex flex-col items-center justify-center text-muted-foreground p-8 text-center bg-muted/20 border border-dashed rounded-lg">
-                                        {String(t("library.parameters.edit.saveParameterFirst", {
-                                            defaultValue: 'Vui lòng lưu thông tin Chỉ tiêu trước (Bấm "Lưu") để có thể thêm và cấu hình các Ma trận nền mẫu.',
-                                        }))}
+                                        {String(
+                                            t("library.parameters.edit.saveParameterFirst", {
+                                                defaultValue: 'Vui lòng lưu thông tin Chỉ tiêu trước (Bấm "Lưu") để có thể thêm và cấu hình các Ma trận nền mẫu.',
+                                            }),
+                                        )}
                                     </div>
                                 ) : (
                                     <ParameterMatrixManager parameterId={createForm.parameterId} />
@@ -419,6 +419,8 @@ export function ParametersView() {
                     </div>
                 </div>
             ) : null}
+
+            <HelpBubble guidePath="guide-parameters.html" />
         </div>
     );
 }

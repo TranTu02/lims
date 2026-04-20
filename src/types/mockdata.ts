@@ -327,7 +327,7 @@ export const mockAnalyses: Analysis[] = [
         equipmentId: "EQ-ICP-01",
         analysisStatus: "Testing", // KTV đang làm
         analysisResultStatus: "NotEvaluated",
-        analysisMethodLOD: "0.01 mg/kg", // Snapshot từ Matrix
+        methodLOD: "0.01 mg/kg", // Snapshot từ Matrix
         protocolCode: "AOAC 2015.01", // Snapshot
         analysisLocation: "Lab Hóa Vô cơ",
         createdAt: NOW,

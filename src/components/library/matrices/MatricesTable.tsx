@@ -44,8 +44,6 @@ const FILTER_FROM_MAP: Record<FilterKey, MatricesFilterFrom> = {
     parameterId: "parameterId",
 };
 
-
-
 type ExcelFilterPopoverProps =
     | {
           type: "string";
@@ -143,7 +141,7 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
         }
 
         const rawBody = qMatrices.data as any;
-        const data = Array.isArray(rawBody) ? rawBody : (rawBody?.data ?? []) as any[];
+        const data = Array.isArray(rawBody) ? rawBody : ((rawBody?.data ?? []) as any[]);
 
         if (props.type === "string") {
             return data.map((x) => ({ value: String(x?.filterValue ?? ""), count: Number(x?.count ?? 0) })).filter((x) => x.value.trim().length > 0);
@@ -289,11 +287,9 @@ export function MatricesTable(props: Props) {
             <table className="w-full min-w-max">
                 <thead className="bg-muted/50 border-b border-border">
                     <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.matrices.matrixId"))}</th>
-
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                             <span className="inline-flex items-center gap-2">
-                                {String(t("library.matrices.parameterId"))}
+                                {String(t("library.matrices.parameterName", { defaultValue: "Tên chỉ tiêu" }))}
                                 <ExcelFilterPopover
                                     type="string"
                                     title={String(t("library.matrices.parameterId"))}
@@ -307,11 +303,9 @@ export function MatricesTable(props: Props) {
                             </span>
                         </th>
 
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.matrices.protocolId"))}</th>
-
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                             <span className="inline-flex items-center gap-2">
-                                {String(t("library.matrices.sampleTypeId"))}
+                                {String(t("library.matrices.sampleTypeName", { defaultValue: "Loại mẫu" }))}
                                 <ExcelFilterPopover
                                     type="string"
                                     title={String(t("library.matrices.sampleTypeId"))}
@@ -325,9 +319,11 @@ export function MatricesTable(props: Props) {
                             </span>
                         </th>
 
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.matrices.feeBeforeTax"))}</th>
-
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.matrices.feeAfterTax"))}</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.matrices.protocolCode", { defaultValue: "Mã phương pháp" }))}</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.matrices.methodLOD", { defaultValue: "LOD" }))}</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.matrices.methodLOQ", { defaultValue: "LOQ" }))}</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.matrices.feeBeforeTax", { defaultValue: "Đơn giá" }))}</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.matrices.technicianGroupId", { defaultValue: "Phụ trách" }))}</th>
 
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("common.actions"))}</th>
                     </tr>
@@ -337,20 +333,17 @@ export function MatricesTable(props: Props) {
                     {items.map((m) => {
                         const rowKey = getRowKey(m);
                         const active = selectedRowKey === rowKey;
-
                         const protocolLabel = getProtocolLabel(m);
-                        const feeAfterTaxText = formatNumberVi(m.feeAfterTax) ?? String(t("common.noData"));
 
                         return (
                             <tr key={rowKey} onClick={() => onSelectRow(rowKey, m.matrixId)} className={`hover:bg-muted/50 cursor-pointer ${active ? "bg-muted" : ""}`}>
-                                <td className="px-4 py-3 text-sm text-foreground font-medium">{m.matrixId}</td>
-                                <td className="px-4 py-3 text-sm text-foreground">{m.parameterId}</td>
+                                <td className="px-4 py-3 text-sm text-foreground font-medium">{m.parameterName || m.parameterId}</td>
+                                <td className="px-4 py-3 text-sm text-foreground">{m.sampleTypeName || m.sampleTypeId}</td>
                                 <td className="px-4 py-3 text-sm text-foreground">{protocolLabel}</td>
-                                <td className="px-4 py-3 text-sm text-foreground">{m.sampleTypeId}</td>
-
+                                <td className="px-4 py-3 text-sm text-foreground">{m.methodLOD || "-"}</td>
+                                <td className="px-4 py-3 text-sm text-foreground">{m.methodLOQ || "-"}</td>
                                 <td className="px-4 py-3 text-sm text-foreground">{formatNumberVi(m.feeBeforeTax) ?? String(t("common.noData"))}</td>
-
-                                <td className="px-4 py-3 text-sm text-foreground">{feeAfterTaxText}</td>
+                                <td className="px-4 py-3 text-sm text-foreground">{m.technicianGroupId || "-"}</td>
 
                                 <td className="px-1 py-3 text-left">
                                     <div className="inline-flex items-center gap-1">

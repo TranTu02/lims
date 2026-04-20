@@ -124,7 +124,8 @@ export function TransactionDetailPanel({ transaction, onClose }: Props) {
                                         {t("inventory.chemical.skus.chemicalSkuId", { defaultValue: "Mã SKU" })}: <strong className="text-foreground">{sku.chemicalSkuId || "-"}</strong>
                                     </span>
                                     <span>
-                                        {t("inventory.chemical.skus.chemicalSkuOldId", { defaultValue: "Mã Cũ" })}: <strong className="text-foreground">{displayTxn.chemicalSkuOldId || sku.chemicalSkuOldId || "-"}</strong>
+                                        {t("inventory.chemical.skus.chemicalSkuOldId", { defaultValue: "Mã Cũ" })}:{" "}
+                                        <strong className="text-foreground">{displayTxn.chemicalSkuOldId || sku.chemicalSkuOldId || "-"}</strong>
                                     </span>
                                 </div>
                             </div>
@@ -192,6 +193,22 @@ export function TransactionDetailPanel({ transaction, onClose }: Props) {
                             <div>
                                 <div className="text-muted-foreground text-xs">{t("inventory.chemical.transactions.transactionDate", { defaultValue: "Thời gian thực hiện" })}</div>
                                 <div className="font-medium mt-0.5">{displayTxn.createdAt ? new Date(displayTxn.createdAt).toLocaleString(i18n.language === "vi" ? "vi-VN" : "en-US") : "-"}</div>
+                            </div>
+                            <div className="col-span-2">
+                                <div className="text-muted-foreground text-xs">{t("common.documents", { defaultValue: "Tài liệu COA đính kèm" })}</div>
+                                <div className="font-medium mt-0.5">
+                                    {displayTxn.transactionCoaDocumentIds && displayTxn.transactionCoaDocumentIds.length > 0 ? (
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                            {displayTxn.transactionCoaDocumentIds.map((docId: string, idx: number) => (
+                                                <Badge key={idx} variant="outline" className="font-mono text-[10px] bg-background">
+                                                    {docId}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <span className="text-muted-foreground italic">-</span>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>

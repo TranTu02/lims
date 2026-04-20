@@ -64,8 +64,8 @@ type FormState = {
     feeAfterTax: string;
 
     turnaroundTime: string;
-    LOD: string;
-    LOQ: string;
+    methodLOD: string;
+    methodLOQ: string;
     thresholdLimit: string;
 
     chemicals: ChemicalBomItem[];
@@ -88,8 +88,8 @@ function initForm(): FormState {
         taxRate: "",
         feeAfterTax: "",
         turnaroundTime: "",
-        LOD: "",
-        LOQ: "",
+        methodLOD: "",
+        methodLOQ: "",
         thresholdLimit: "",
         chemicals: [],
         equipments: [],
@@ -313,8 +313,8 @@ export function MatricesEditModal(props: Props) {
             taxRate: m.taxRate != null ? String(m.taxRate) : "",
             feeAfterTax: toFormNumberString(m.feeAfterTax),
             turnaroundTime: m.turnaroundTime != null ? String(m.turnaroundTime) : "",
-            LOD: m.LOD || "",
-            LOQ: m.LOQ || "",
+            methodLOD: m.methodLOD || "",
+            methodLOQ: m.methodLOQ || "",
             thresholdLimit: m.thresholdLimit || "",
             chemicals: Array.isArray(m.chemicals)
                 ? m.chemicals.map((c) => ({
@@ -376,8 +376,8 @@ export function MatricesEditModal(props: Props) {
             form.taxRate !== baseline.taxRate ||
             form.feeAfterTax !== baseline.feeAfterTax ||
             form.turnaroundTime !== baseline.turnaroundTime ||
-            form.LOD !== baseline.LOD ||
-            form.LOQ !== baseline.LOQ ||
+            form.methodLOD !== baseline.methodLOD ||
+            form.methodLOQ !== baseline.methodLOQ ||
             form.thresholdLimit !== baseline.thresholdLimit ||
             form.technicianGroupId !== baseline.technicianGroupId ||
             JSON.stringify(form.accreditationKeys) !== JSON.stringify(baseline.accreditationKeys) ||
@@ -485,8 +485,8 @@ export function MatricesEditModal(props: Props) {
         if (form.feeAfterTax !== baseline.feeAfterTax) patch.feeAfterTax = parseFiniteNumber(form.feeAfterTax) ?? undefined;
 
         if (form.turnaroundTime !== baseline.turnaroundTime) patch.turnaroundTime = parseOptionalInt(form.turnaroundTime);
-        if (form.LOD !== baseline.LOD) patch.LOD = form.LOD.trim() || null;
-        if (form.LOQ !== baseline.LOQ) patch.LOQ = form.LOQ.trim() || null;
+        if (form.methodLOD !== baseline.methodLOD) patch.methodLOD = form.methodLOD.trim() || null;
+        if (form.methodLOQ !== baseline.methodLOQ) patch.methodLOQ = form.methodLOQ.trim() || null;
         if (form.thresholdLimit !== baseline.thresholdLimit) patch.thresholdLimit = form.thresholdLimit.trim() || null;
         if (form.technicianGroupId !== baseline.technicianGroupId) patch.technicianGroupId = form.technicianGroupId.trim() || null;
 
@@ -592,13 +592,13 @@ export function MatricesEditModal(props: Props) {
                                     <div className="grid grid-cols-1 gap-4">
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-1 min-w-0">
-                                                <FieldLabel>{String(t("library.matrices.LOD", { defaultValue: "LOD" }))}</FieldLabel>
-                                                <Input value={form.LOD} onChange={(e) => setForm((s) => ({ ...s, LOD: e.target.value }))} disabled={updateM.isPending} />
+                                                <FieldLabel>{String(t("library.matrices.methodLOD", { defaultValue: "methodLOD" }))}</FieldLabel>
+                                                <Input value={form.methodLOD} onChange={(e) => setForm((s) => ({ ...s, methodLOD: e.target.value }))} disabled={updateM.isPending} />
                                             </div>
 
                                             <div className="space-y-1 min-w-0">
-                                                <FieldLabel>{String(t("library.matrices.LOQ", { defaultValue: "LOQ" }))}</FieldLabel>
-                                                <Input value={form.LOQ} onChange={(e) => setForm((s) => ({ ...s, LOQ: e.target.value }))} disabled={updateM.isPending} />
+                                                <FieldLabel>{String(t("library.matrices.methodLOQ", { defaultValue: "methodLOQ" }))}</FieldLabel>
+                                                <Input value={form.methodLOQ} onChange={(e) => setForm((s) => ({ ...s, methodLOQ: e.target.value }))} disabled={updateM.isPending} />
                                             </div>
                                         </div>
 

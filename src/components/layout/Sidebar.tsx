@@ -54,6 +54,11 @@ type NavItem =
           titleKey: string;
           descriptionKey: string;
           subItems: NavSubItem[];
+      }
+    | {
+          type: "section";
+          id: string;
+          titleKey: string;
       };
 
 export function Sidebar({ activeTab, onTabChange, sidebarOpen = true }: SidebarProps) {
@@ -75,11 +80,21 @@ export function Sidebar({ activeTab, onTabChange, sidebarOpen = true }: SidebarP
     const navigation: NavItem[] = useMemo(
         () => [
             {
+                type: "section",
+                id: "section-commercial",
+                titleKey: "nav.section.commercial",
+            },
+            {
                 type: "item",
-                id: "reception",
-                icon: Inbox,
-                titleKey: "nav.receptionTitle",
-                descriptionKey: "nav.receptionDescription",
+                id: "crm",
+                icon: Briefcase,
+                titleKey: "nav.crmTitle",
+                descriptionKey: "nav.crmDescription",
+            },
+            {
+                type: "section",
+                id: "section-lab",
+                titleKey: "nav.section.lab",
             },
             {
                 type: "item",
@@ -135,6 +150,18 @@ export function Sidebar({ activeTab, onTabChange, sidebarOpen = true }: SidebarP
                 descriptionKey: "nav.assignmentDescription",
             },
             {
+                type: "section",
+                id: "section-logistics",
+                titleKey: "nav.section.logistics",
+            },
+            {
+                type: "item",
+                id: "reception",
+                icon: Inbox,
+                titleKey: "nav.receptionTitle",
+                descriptionKey: "nav.receptionDescription",
+            },
+            {
                 type: "item",
                 id: "handover",
                 icon: ArrowRightLeft,
@@ -148,7 +175,46 @@ export function Sidebar({ activeTab, onTabChange, sidebarOpen = true }: SidebarP
                 titleKey: "nav.storedSamplesTitle",
                 descriptionKey: "nav.storedSamplesDescription",
             },
-
+            {
+                type: "item",
+                id: "inventory",
+                icon: Package,
+                titleKey: "nav.inventoryTitle",
+                descriptionKey: "nav.inventoryDescription",
+            },
+            {
+                type: "item",
+                id: "chemical-inventory",
+                icon: Beaker,
+                titleKey: "nav.chemicalInventoryTitle",
+                descriptionKey: "nav.chemicalInventoryDescription",
+            },
+            {
+                type: "item",
+                id: "general-inventory",
+                icon: Wrench,
+                titleKey: "nav.generalInventoryTitle",
+                descriptionKey: "nav.generalInventoryDescription",
+            },
+            {
+                type: "section",
+                id: "section-admin",
+                titleKey: "nav.section.admin",
+            },
+            {
+                type: "item",
+                id: "hr",
+                icon: Briefcase,
+                titleKey: "nav.hrTitle",
+                descriptionKey: "nav.hrDescription",
+            },
+            {
+                type: "item",
+                id: "document",
+                icon: FileText,
+                titleKey: "nav.documentTitle",
+                descriptionKey: "nav.documentDescription",
+            },
             {
                 type: "group",
                 id: "libraries",
@@ -188,48 +254,6 @@ export function Sidebar({ activeTab, onTabChange, sidebarOpen = true }: SidebarP
                     },
                 ],
             },
-            {
-                type: "item",
-                id: "document",
-                icon: FileText,
-                titleKey: "nav.documentTitle",
-                descriptionKey: "nav.documentDescription",
-            },
-            {
-                type: "item",
-                id: "inventory",
-                icon: Package,
-                titleKey: "nav.inventoryTitle",
-                descriptionKey: "nav.inventoryDescription",
-            },
-            {
-                type: "item",
-                id: "chemical-inventory",
-                icon: Beaker,
-                titleKey: "nav.chemicalInventoryTitle",
-                descriptionKey: "nav.chemicalInventoryDescription",
-            },
-            {
-                type: "item",
-                id: "general-inventory",
-                icon: Wrench,
-                titleKey: "nav.generalInventoryTitle",
-                descriptionKey: "nav.generalInventoryDescription",
-            },
-            {
-                type: "item",
-                id: "crm",
-                icon: Briefcase,
-                titleKey: "nav.crmTitle",
-                descriptionKey: "nav.crmDescription",
-            },
-            {
-                type: "item",
-                id: "hr",
-                icon: Briefcase,
-                titleKey: "nav.hrTitle",
-                descriptionKey: "nav.hrDescription",
-            },
         ],
         [],
     );
@@ -261,6 +285,16 @@ export function Sidebar({ activeTab, onTabChange, sidebarOpen = true }: SidebarP
 
                     <nav className="flex-1 p-2 space-y-1 overflow-y-auto custom-scrollbar">
                         {navigation.map((item) => {
+                            if (item.type === "section") {
+                                return (
+                                    <div key={item.id} className="mt-4 mb-2 px-3">
+                                        <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                                            {t(item.titleKey, { defaultValue: item.titleKey.replace("nav.section.", "").toUpperCase() })}
+                                        </div>
+                                    </div>
+                                );
+                            }
+
                             const Icon = item.icon;
 
                             if (item.type === "group") {
@@ -422,6 +456,14 @@ export function Sidebar({ activeTab, onTabChange, sidebarOpen = true }: SidebarP
 
                     <nav className="flex-1 p-2 space-y-2 overflow-y-auto custom-scrollbar">
                         {navigation.map((item) => {
+                            if (item.type === "section") {
+                                return (
+                                    <div key={item.id} className="my-2 px-2 flex justify-center">
+                                        <div className="w-6 border-t-2 border-border/60"></div>
+                                    </div>
+                                );
+                            }
+
                             const Icon = item.icon;
 
                             if (item.type === "group") {

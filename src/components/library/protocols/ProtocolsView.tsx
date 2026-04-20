@@ -24,6 +24,7 @@ import { EquipmentSnapshotTable, type EquipmentSnapshotItem } from "../shared/Eq
 import { LabToolSnapshotTable, type LabToolSnapshotItem } from "../shared/LabToolSnapshotTable";
 import { ProtocolMatrixManager } from "./ProtocolMatrixManager";
 import { AccreditationTagInput, type AccreditationValue } from "../shared/AccreditationTagInput";
+import { HelpBubble } from "@/components/inventory/chemical/HelpBubble";
 
 type EditProtocolForm = {
     protocolId?: string;
@@ -60,7 +61,6 @@ function createEmptyFilters(): ProtocolsExcelFiltersState {
         accreditation: [],
     };
 }
-
 
 export function ProtocolsView() {
     const { t } = useTranslation();
@@ -122,7 +122,7 @@ export function ProtocolsView() {
     const serverPages = serverMeta?.totalPages ?? 1;
 
     useEffect(() => setServerTotalPages(serverPages), [serverPages]);
-    
+
     const totalItems = serverTotal;
     const totalPages = serverPages;
 
@@ -140,8 +140,6 @@ export function ProtocolsView() {
     }, [editOpen, uploadModalOpen]);
 
     // ─── Search handlers for pickers ────────────────────────────────────────
-
-
 
     const onDocumentsChange = (items: PickerItem[]) => {
         setEditForm((s) => ({
@@ -163,8 +161,6 @@ export function ProtocolsView() {
         setSearchTerm(v);
         pagination.resetPage();
     };
-
-
 
     const openCreate = () => {
         setEditForm(EMPTY_FORM);
@@ -212,7 +208,6 @@ export function ProtocolsView() {
         const code = String(editForm.protocolCode || "").trim();
         const source = String(editForm.protocolSource || "").trim();
         if (!code) return;
-
 
         // Convert BOM items back to the protocol chemicals format
         const chemicalsPayload = editForm.chemicals.length
@@ -377,10 +372,7 @@ export function ProtocolsView() {
                                     <div className="text-sm font-medium text-foreground">
                                         {String(t("library.protocols.create.protocolAccreditation.title", { defaultValue: "Chứng nhận / Công nhận" }))}
                                     </div>
-                                    <AccreditationTagInput
-                                        value={editForm.accreditationKeys}
-                                        onChange={(v) => setEditForm((s) => ({ ...s, accreditationKeys: v }))}
-                                    />
+                                    <AccreditationTagInput value={editForm.accreditationKeys} onChange={(v) => setEditForm((s) => ({ ...s, accreditationKeys: v }))} />
                                 </div>
 
                                 {/* Documents & SOPs */}
@@ -403,8 +395,10 @@ export function ProtocolsView() {
                                                 onSearch={async (q) => {
                                                     try {
                                                         const docs = await searchDocuments(q, "PROTOCOL_DOC");
-                                                        return docs.map(d => ({ id: d.documentId, label: d.documentTitle || d.documentId, sublabel: d.documentId }));
-                                                    } catch { return []; }
+                                                        return docs.map((d) => ({ id: d.documentId, label: d.documentTitle || d.documentId, sublabel: d.documentId }));
+                                                    } catch {
+                                                        return [];
+                                                    }
                                                 }}
                                                 placeholder={String(t("documentCenter.headers.allDesc", { defaultValue: "Tất cả tài liệu trong hệ thống" }))}
                                             />
@@ -427,8 +421,10 @@ export function ProtocolsView() {
                                                 onSearch={async (q) => {
                                                     try {
                                                         const docs = await searchDocuments(q, "PROTOCOL_SOP");
-                                                        return docs.map(d => ({ id: d.documentId, label: d.documentTitle || d.documentId, sublabel: d.documentId }));
-                                                    } catch { return []; }
+                                                        return docs.map((d) => ({ id: d.documentId, label: d.documentTitle || d.documentId, sublabel: d.documentId }));
+                                                    } catch {
+                                                        return [];
+                                                    }
                                                 }}
                                                 placeholder={String(t("library.protocols.create.searchSop", { defaultValue: "Tìm hồ sơ SOP" }))}
                                             />
@@ -472,11 +468,7 @@ export function ProtocolsView() {
                             <Button variant="outline" onClick={() => setEditOpen(false)} type="button">
                                 {String(t("common.cancel", { defaultValue: "Hủy" }))}
                             </Button>
-                            <Button
-                                onClick={() => void submitForm()}
-                                disabled={isPending || !String(editForm.protocolCode || "").trim()}
-                                type="button"
-                            >
+                            <Button onClick={() => void submitForm()} disabled={isPending || !String(editForm.protocolCode || "").trim()} type="button">
                                 {isPending ? t("common.saving", { defaultValue: "Đang lưu..." }) : t("common.save", { defaultValue: "Lưu" })}
                             </Button>
                         </div>
@@ -521,6 +513,7 @@ export function ProtocolsView() {
                     }
                 }}
             />
+            <HelpBubble guidePath="guide-protocols.html" />
         </div>
     );
 }

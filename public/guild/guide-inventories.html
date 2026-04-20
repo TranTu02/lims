@@ -1,0 +1,305 @@
+﻿<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"><title>Hướng dẫn - Quản lý Lọ/Chai</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:"Segoe UI",sans-serif;background:#0f172a;color:#1e293b;height:100vh;display:flex;flex-direction:column}
+.top-bar{background:#1e293b;color:#fff;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.top-bar h1{font-size:14px;font-weight:700}.slide-counter{font-size:12px;color:#94a3b8}
+.progress{height:3px;background:#1e293b}.progress-bar{height:100%;background:linear-gradient(90deg,#059669,#10b981);transition:width .4s}
+.main{flex:1;display:flex;overflow:hidden}
+.sidebar{width:210px;background:#1e293b;overflow-y:auto;padding:12px 0;flex-shrink:0}
+.sidebar-item{padding:8px 16px;cursor:pointer;border-left:3px solid transparent;font-size:11px;color:#94a3b8;transition:all .2s}
+.sidebar-item:hover{background:#0f172a;color:#e2e8f0}
+.sidebar-item.active{border-left-color:#059669;color:#34d399;background:#0f172a;font-weight:700}
+.sidebar-item .si-num{display:inline-block;width:18px;height:18px;border-radius:50%;background:#334155;color:#94a3b8;font-size:9px;font-weight:700;text-align:center;line-height:18px;margin-right:6px}
+.sidebar-item.active .si-num{background:#059669;color:#fff}
+.content{flex:1;overflow-y:auto;padding:20px;display:flex;gap:20px}
+.slide-area{flex:1;display:flex;flex-direction:column;gap:16px}
+.slide-header{color:#fff}.slide-header .step-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#34d399;margin-bottom:4px}
+.slide-header h2{font-size:20px;font-weight:800;margin-bottom:4px}.slide-header p{font-size:13px;color:#94a3b8}
+.ui-frame{background:#fff;border-radius:10px;overflow:hidden;position:relative;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.hotspot{position:absolute;width:26px;height:26px;border-radius:50%;background:#ef4444;color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;box-shadow:0 0 0 4px rgba(239,68,68,.3);animation:pulse 2s infinite}
+.hotspot.blue{background:#2563eb;box-shadow:0 0 0 4px rgba(37,99,235,.3)}
+.hotspot.green{background:#059669;box-shadow:0 0 0 4px rgba(5,150,105,.3)}
+.hotspot.orange{background:#d97706;box-shadow:0 0 0 4px rgba(217,119,6,.3)}
+.hotspot.purple{background:#7c3aed;box-shadow:0 0 0 4px rgba(124,58,237,.3)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+.callout-panel{width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:10px}
+.callout-card{background:#1e293b;border-radius:10px;padding:12px 14px;border-left:3px solid #ef4444}
+.callout-card.blue{border-left-color:#2563eb}.callout-card.green{border-left-color:#059669}.callout-card.orange{border-left-color:#d97706}.callout-card.purple{border-left-color:#7c3aed}
+.callout-num{display:inline-flex;width:20px;height:20px;border-radius:50%;background:#ef4444;color:#fff;font-size:10px;font-weight:800;align-items:center;justify-content:center;margin-bottom:6px}
+.callout-num.blue{background:#2563eb}.callout-num.green{background:#059669}.callout-num.orange{background:#d97706}.callout-num.purple{background:#7c3aed}
+.callout-title{font-size:12px;font-weight:700;color:#e2e8f0;margin-bottom:3px}
+.callout-desc{font-size:11px;color:#94a3b8;line-height:1.5}
+.callout-action{margin-top:6px;padding:4px 8px;background:#0f172a;border-radius:5px;font-size:10px;color:#34d399;font-weight:600}
+.nav-footer{background:#1e293b;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.nav-btn{padding:7px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .2s}
+.nav-btn.prev{background:#334155;color:#e2e8f0}.nav-btn.next{background:#059669;color:#fff}
+.nav-btn:disabled{opacity:.35;cursor:not-allowed}
+.mu{font-family:"Segoe UI",sans-serif;font-size:12px}
+.mu-bar{background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:8px 12px;display:flex;gap:6px}
+.mu-tab{padding:5px 12px;border-radius:5px;font-size:11px;font-weight:600;color:#64748b}
+.mu-tab.a{background:#2563eb;color:#fff}
+.mu-toolbar{padding:8px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f1f5f9}
+.mu-search{display:flex;align-items:center;gap:5px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;padding:4px 10px;min-width:180px;font-size:11px;color:#94a3b8}
+.mu-btn{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;border:1px solid #e2e8f0;background:#fff;color:#374151;cursor:pointer}
+.mu-btn.p{background:#2563eb;color:#fff;border-color:#2563eb}
+.mu-btn.g{background:#059669;color:#fff;border-color:#059669}
+.tbl{width:100%;border-collapse:collapse;font-size:11px}
+.tbl th{background:#f8fafc;padding:6px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;color:#64748b;border-bottom:2px solid #e2e8f0;white-space:nowrap}
+.tbl td{padding:7px 10px;border-bottom:1px solid #f8fafc;white-space:nowrap}
+.tbl tr.sel td{background:#f0fdf4}.tbl tr:hover td{background:#f8fafc}
+.mono{font-family:monospace;font-size:10px;color:#2563eb;font-weight:700}.muted{color:#94a3b8}
+.badge{display:inline-flex;padding:2px 7px;border-radius:999px;font-size:9px;font-weight:700;border:1px solid}
+.badge.g{background:#dcfce7;color:#15803d;border-color:#bbf7d0}
+.badge.b{background:#dbeafe;color:#1d4ed8;border-color:#bfdbfe}
+.badge.r{background:#fee2e2;color:#b91c1c;border-color:#fecaca}
+.badge.y{background:#fef9c3;color:#854d0e;border-color:#fde047}
+.badge.o{background:#fff7ed;color:#c2410c;border-color:#fed7aa}
+.badge.gray{background:#f1f5f9;color:#475569;border-color:#e2e8f0}
+.sp{width:230px;border-left:1px solid #e2e8f0;background:#fafafa;font-size:11px;flex-shrink:0}
+.sp-h{padding:8px 12px;border-bottom:1px solid #e2e8f0;font-weight:700;font-size:12px;display:flex;justify-content:space-between}
+.sp-b{padding:10px 12px}
+.fl{font-size:9px;font-weight:700;text-transform:uppercase;color:#94a3b8;margin-bottom:2px}
+.fv{font-size:12px;font-weight:600;margin-bottom:8px}
+.pg{padding:6px 12px;background:#fafafa;border-top:1px solid #f1f5f9;display:flex;align-items:center;gap:3px}
+.pgb{width:22px;height:22px;border-radius:4px;border:1px solid #e2e8f0;background:#fff;font-size:10px;cursor:pointer;font-weight:700}
+.pgb.a{background:#2563eb;color:#fff;border-color:#2563eb}
+.sel-bar{background:#eff6ff;border-bottom:1px solid #bfdbfe;padding:7px 12px;display:flex;align-items:center;gap:8px;font-size:11px;color:#2563eb}
+</style></head><body>
+<div class="top-bar">
+  <h1>🧴 Hướng dẫn sử dụng · Tab Quản lý Lọ/Chai (Inventories)</h1>
+  <span class="slide-counter" id="ctr">Slide 1 / 7</span>
+</div>
+<div class="progress"><div class="progress-bar" id="pb" style="width:14.3%"></div></div>
+<div class="main">
+  <div class="sidebar" id="sb"></div>
+  <div class="content">
+    <div class="slide-area">
+      <div class="slide-header">
+        <div class="step-label" id="sl"></div>
+        <h2 id="sh"></h2>
+        <p id="sp"></p>
+      </div>
+      <div class="ui-frame" id="uf"></div>
+    </div>
+    <div class="callout-panel" id="cp"></div>
+  </div>
+</div>
+<div class="nav-footer">
+  <button class="nav-btn prev" id="pB" onclick="go(-1)" disabled>← Trước</button>
+  <div style="display:flex;gap:6px" id="dots"></div>
+  <button class="nav-btn next" id="nB" onclick="go(1)">Tiếp theo →</button>
+</div>
+<script>
+const S=[
+{l:"Bước 1 · Mặc định",t:"Tab Lọ/Chai là màn hình mặc định",d:"Khi vào module Kho Hóa Chất, hệ thống mặc định hiển thị tab Quản lý Lọ/Chai — đây là tab dùng nhiều nhất hàng ngày.",
+html:`<div class="mu"><div class="mu-bar">
+<div class="mu-tab a">🧴 Quản lý Lọ/Chai</div>
+<div class="mu-tab">🏷️ Danh mục</div><div class="mu-tab">🏭 NCC</div>
+<div class="mu-tab">📋 Phiếu GD</div><div class="mu-tab">📜 Lịch sử</div><div class="mu-tab">🔍 Kiểm kê</div>
+</div>
+<div class="mu-toolbar"><div class="mu-search">🔍 Tìm barcode, SKU, số lô...</div>
+<div style="display:flex;gap:5px"><button class="mu-btn g">🖨 In Tem</button><button class="mu-btn p">+ Nhập Lọ Mới</button></div></div>
+<table class="tbl"><thead><tr><th>Barcode</th><th>Tên hóa chất</th><th>Số lô</th><th>Vị trí</th><th>Còn lại</th><th>Cả bì</th><th>Trạng thái</th><th>Hạn SD</th></tr></thead>
+<tbody>
+<tr><td class="mono">BTL-00123</td><td style="font-weight:700">Hydrochloric Acid 37%</td><td class="muted">LOT-2024-05</td><td class="muted">A2-S3</td><td style="text-align:right;font-weight:700">550</td><td style="text-align:right" class="muted">920</td><td><span class="badge b">Đang dùng</span></td><td class="muted">31/12/2025</td></tr>
+<tr><td class="mono">BTL-00124</td><td style="font-weight:700">Hydrochloric Acid 37%</td><td class="muted">LOT-2024-05</td><td class="muted">A2-S4</td><td style="text-align:right;font-weight:700">700</td><td style="text-align:right" class="muted">—</td><td><span class="badge g">Mới</span></td><td class="muted">31/12/2025</td></tr>
+<tr><td class="mono">BTL-00302</td><td style="font-weight:700">Sodium Hydroxide</td><td class="muted">LOT-2023-12</td><td class="muted">C3-S2</td><td style="text-align:right;font-weight:700;color:#dc2626">12</td><td style="text-align:right" class="muted">—</td><td><span class="badge r">Hết hạn</span></td><td class="muted" style="color:#dc2626">31/12/2023</td></tr>
+</tbody></table>
+<div class="pg"><button class="pgb a">1</button><button class="pgb">2</button><span style="margin-left:auto;font-size:10px;color:#94a3b8">1-20 / 248</span></div></div>`,
+hs:[{t:"14px",l:"3px",n:"1",c:"green"}],
+cs:[{n:"1",c:"green",t:"Tab mặc định khi vào module",d:"Tab này đang sáng lên (active). Tất cả chai/lọ vật lý trong kho được hiển thị tại đây.",a:"✅ Không cần click gì — đây là màn hình mặc định"}]},
+
+{l:"Bước 2 · Tìm kiếm",t:"Tìm kiếm chai theo barcode, SKU, số lô",d:"Nhập từ khóa vào ô tìm kiếm rồi nhấn Enter hoặc nút Tìm kiếm. Dữ liệu chỉ reload khi bạn submit — không tự động search.",
+html:`<div class="mu"><div class="mu-bar"><div class="mu-tab a">Quản lý Lọ/Chai</div></div>
+<div class="mu-toolbar">
+<div style="display:flex;gap:5px;align-items:center">
+<div class="mu-search" style="background:#fff;border-color:#2563eb;outline:2px solid #bfdbfe">🔍 <span style="color:#1e293b">BTL-001</span><span style="animation:blink 1s infinite">|</span></div>
+<button class="mu-btn" style="border-color:#2563eb;color:#2563eb">Tìm kiếm</button>
+<button class="mu-btn">↺</button>
+</div>
+<button class="mu-btn p">+ Nhập Lọ Mới</button>
+</div>
+<table class="tbl"><thead><tr><th>Barcode</th><th>Tên</th><th>Trạng thái</th><th>Còn lại</th></tr></thead>
+<tbody>
+<tr><td class="mono">BTL-00123</td><td>Hydrochloric Acid 37%</td><td><span class="badge b">Đang dùng</span></td><td style="text-align:right">550</td></tr>
+<tr><td class="mono">BTL-00124</td><td>Hydrochloric Acid 37%</td><td><span class="badge g">Mới</span></td><td style="text-align:right">700</td></tr>
+</tbody></table></div>`,
+hs:[{t:"34px",l:"18px",n:"1",c:"blue"},{t:"34px",l:"256px",n:"2",c:""}],
+cs:[
+{n:"1",c:"blue",t:"Ô tìm kiếm",d:"Nhập: Barcode (BTL-xxx), Mã SKU, Số lô. Nhấn Enter để search ngay.",a:"⌨️ Gõ từ khóa → Enter"},
+{n:"2",c:"",t:"Nút Tìm kiếm",d:"Hoặc click nút này để tìm kiếm sau khi nhập từ khóa.",a:"👆 Click để search"}]},
+
+{l:"Bước 3 · Lọc trạng thái",t:"Lọc chai theo Trạng thái / Ngày",d:"Click vào tiêu đề cột có biểu tượng ▾ để mở bộ lọc. Hỗ trợ lọc theo Trạng thái và Hạn sử dụng.",
+html:`<div class="mu"><div class="mu-bar"><div class="mu-tab a">Quản lý Lọ/Chai</div></div>
+<div class="mu-toolbar"><div class="mu-search">🔍 Tìm...</div><button class="mu-btn p">+ Nhập Lọ Mới</button></div>
+<table class="tbl"><thead><tr>
+<th>Barcode</th><th>Tên</th><th>Lô</th>
+<th style="position:relative">
+<span style="display:inline-flex;gap:3px;align-items:center;padding:3px 7px;border:1px solid #2563eb;border-radius:5px;background:#eff6ff;color:#2563eb;font-size:9px">Trạng thái ▾</span>
+<div style="position:absolute;top:26px;left:0;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:99;min-width:150px">
+<div style="font-size:9px;font-weight:700;color:#94a3b8;margin-bottom:5px">Chọn trạng thái:</div>
+<label style="display:flex;align-items:center;gap:5px;margin-bottom:3px;font-size:11px;cursor:pointer"><input type="checkbox" checked> <span class="badge g">Mới</span></label>
+<label style="display:flex;align-items:center;gap:5px;margin-bottom:3px;font-size:11px;cursor:pointer"><input type="checkbox" checked> <span class="badge b">Đang dùng</span></label>
+<label style="display:flex;align-items:center;gap:5px;margin-bottom:3px;font-size:11px;cursor:pointer"><input type="checkbox"> <span class="badge r">Hết hạn</span></label>
+<label style="display:flex;align-items:center;gap:5px;margin-bottom:3px;font-size:11px;cursor:pointer"><input type="checkbox"> <span class="badge o">Kiểm dịch</span></label>
+<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer"><input type="checkbox"> <span class="badge gray">Đã hủy</span></label>
+<div style="margin-top:7px;display:flex;gap:4px;justify-content:flex-end">
+<button class="mu-btn" style="font-size:10px">Reset</button>
+<button class="mu-btn p" style="font-size:10px">Áp dụng</button>
+</div></div>
+</th>
+<th>Hạn SD</th></tr></thead>
+<tbody>
+<tr><td class="mono">BTL-00123</td><td>Hydrochloric Acid</td><td class="muted">LOT-2024-05</td><td><span class="badge b">Đang dùng</span></td><td class="muted">31/12/2025</td></tr>
+<tr><td class="mono">BTL-00124</td><td>Hydrochloric Acid</td><td class="muted">LOT-2024-05</td><td><span class="badge g">Mới</span></td><td class="muted">31/12/2025</td></tr>
+</tbody></table></div>`,
+hs:[{t:"34px",l:"200px",n:"1",c:""}],
+cs:[{n:"1",c:"",t:"Filter dropdown Trạng thái",d:"Click vào cột có ▾ → dropdown hiện. Tick chọn các trạng thái muốn lọc → Áp dụng. Bộ lọc giữ nguyên khi chuyển trang.",a:"👆 Click tiêu đề cột → Tick → Áp dụng"}]},
+
+{l:"Bước 4 · Xem chi tiết",t:"Click vào hàng để xem chi tiết chai",d:"Click vào bất kỳ hàng nào → Panel chi tiết trượt ra bên phải. Click hàng khác để xem chai khác. Nhấn ✕ để đóng panel.",
+html:`<div class="mu" style="display:flex">
+<div style="flex:1;min-width:0">
+<div class="mu-bar"><div class="mu-tab a">Quản lý Lọ/Chai</div></div>
+<table class="tbl"><thead><tr><th>Barcode</th><th>Tên</th><th>Lô</th><th>Vị trí</th><th>Còn lại</th><th>Trạng thái</th></tr></thead>
+<tbody>
+<tr class="sel" style="cursor:pointer"><td class="mono">BTL-00123</td><td style="font-weight:700">Hydrochloric Acid 37%</td><td class="muted">LOT-2024-05</td><td class="muted">A2-S3</td><td style="text-align:right;font-weight:700">550</td><td><span class="badge b">Đang dùng</span></td></tr>
+<tr style="cursor:pointer"><td class="mono">BTL-00124</td><td>Hydrochloric Acid 37%</td><td class="muted">LOT-2024-05</td><td class="muted">A2-S4</td><td style="text-align:right">700</td><td><span class="badge g">Mới</span></td></tr>
+</tbody></table>
+</div>
+<div class="sp">
+<div class="sp-h">Chi tiết lọ/chai <button style="border:none;background:none;cursor:pointer;color:#94a3b8;font-size:13px">✕</button></div>
+<div class="sp-b">
+<div style="font-size:16px;font-weight:800;color:#2563eb;font-family:monospace">BTL-00123</div>
+<span class="badge b" style="margin:4px 0 10px;display:inline-block">Đang dùng</span>
+<div class="fl">Tên hóa chất</div><div class="fv" style="font-weight:700">Hydrochloric Acid 37%</div>
+<div class="fl">Số CAS</div><div class="fv mono" style="font-size:11px;color:#374151">7647-01-0</div>
+<div class="fl">Số lô / Vị trí</div><div class="fv">LOT-2024-05 · A2-S3</div>
+<div style="background:#f0fdf4;border-radius:7px;padding:8px;margin:4px 0 8px">
+<div class="fl">Lượng còn lại</div>
+<div style="font-size:20px;font-weight:800;color:#059669">550 <span style="font-size:10px;color:#64748b">mL</span></div>
+<div class="fl" style="margin-top:4px">Lượng cả bì</div><div style="font-weight:600">920 g</div>
+</div>
+<div class="fl">Hạn sử dụng</div><div class="fv">31/12/2025</div>
+<div class="fl">Ngày mở nắp</div><div class="fv">01/03/2025</div>
+<div class="fl">Hạn sau mở</div><div class="fv">28/08/2025 (180 ngày)</div>
+<div style="display:flex;gap:5px;margin-top:8px">
+<button class="mu-btn" style="font-size:10px">✏️ Sửa</button>
+<button class="mu-btn" style="font-size:10px">✂️ Tách lọ</button>
+<button class="mu-btn" style="font-size:10px">🖨 In tem</button>
+</div>
+</div></div></div>`,
+hs:[{t:"50px",l:"80px",n:"1",c:"green"}],
+cs:[{n:"1",c:"green",t:"Click hàng để xem chi tiết",d:"Hàng được chọn sáng lên (nền xanh). Panel bên phải mở tự động với tất cả thông tin: số lượng, hạn SD, ngày mở nắp, các nút thao tác.",a:"👆 Click vào hàng bất kỳ"}]},
+
+{l:"Bước 5 · In tem QR",t:"In tem nhãn QR Code cho chai",d:"Click '🖨 In Tem' để vào chế độ chọn. Tick chọn các chai cần in. Click lại nút để mở cửa sổ in.",
+html:`<div class="mu">
+<div class="mu-bar"><div class="mu-tab a">Quản lý Lọ/Chai</div></div>
+<div class="sel-bar">
+<span>☑</span><span style="font-weight:700">Chế độ chọn tem đang bật</span>
+<span style="color:#374151">— Tick chọn các chai cần in tem</span>
+<span class="badge b" style="margin-left:auto">2 đã chọn</span>
+</div>
+<div class="mu-toolbar">
+<div class="mu-search">🔍 Tìm...</div>
+<div style="display:flex;gap:5px">
+<button class="mu-btn" style="color:#2563eb;border-color:#2563eb;font-size:11px">Hủy chọn</button>
+<button class="mu-btn g" style="font-size:11px">🖨 In Tem (2)</button>
+</div>
+</div>
+<table class="tbl"><thead><tr>
+<th style="width:30px"><input type="checkbox"></th>
+<th>Barcode</th><th>Tên</th><th>Lô</th><th>Trạng thái</th>
+</tr></thead>
+<tbody>
+<tr class="sel"><td><input type="checkbox" checked></td><td class="mono">BTL-00123</td><td>Hydrochloric Acid 37%</td><td class="muted">LOT-2024-05</td><td><span class="badge b">Đang dùng</span></td></tr>
+<tr class="sel"><td><input type="checkbox" checked></td><td class="mono">BTL-00124</td><td>Hydrochloric Acid 37%</td><td class="muted">LOT-2024-05</td><td><span class="badge g">Mới</span></td></tr>
+<tr><td><input type="checkbox"></td><td class="mono">BTL-00302</td><td>Sodium Hydroxide</td><td class="muted">LOT-2023-12</td><td><span class="badge r">Hết hạn</span></td></tr>
+</tbody></table></div>`,
+hs:[{t:"43px",l:"205px",n:"1",c:"green"},{t:"55px",l:"40px",n:"2",c:"blue"},{t:"30px",l:"430px",n:"3",c:""}],
+cs:[
+{n:"1",c:"green",t:"Nút 🖨 In Tem (2)",d:"Sau khi chọn xong, click nút này để mở cửa sổ in. Số trong ngoặc = số chai đã tick.",a:"👆 Click → Mở popup in"},
+{n:"2",c:"blue",t:"Checkbox chọn chai",d:"Tick để chọn từng chai. Tick ô ở header để chọn TẤT CẢ trên trang hiện tại.",a:"☑️ Tick chọn"},
+{n:"3",c:"",t:"Hủy chọn",d:"Click để thoát chế độ chọn mà không in.",a:"👆 Click để hủy"}]},
+
+{l:"Bước 6 · Tách lọ",t:"Chia 1 chai thành nhiều chai nhỏ hơn",d:"Trong panel chi tiết, click '✂️ Tách lọ' để mở form tách. Nhập số lượng và vị trí cho từng lọ mới.",
+html:`<div class="mu">
+<div class="mu-bar"><div class="mu-tab a">Quản lý Lọ/Chai</div></div>
+<div style="padding:10px;background:rgba(0,0,0,.3)">
+<div style="background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.3)">
+<div style="padding:10px 14px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center">
+<span style="font-weight:700;font-size:12px">✂️ Tách lọ — BTL-00123 (550 mL còn lại)</span>
+<button style="border:none;background:none;cursor:pointer;color:#94a3b8">✕</button>
+</div>
+<div style="padding:12px">
+<div style="font-size:10px;font-weight:700;color:#94a3b8;margin-bottom:8px">DANH SÁCH LỌ MỚI</div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;font-size:11px;margin-bottom:6px">
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:6px"><div style="font-size:9px;color:#94a3b8;font-weight:700">Lọ #1 · Số lượng</div><input style="width:100%;border:none;background:transparent;font-weight:700;font-size:12px" value="200" readonly></div>
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:6px"><div style="font-size:9px;color:#94a3b8;font-weight:700">Khối lượng cả bì</div><input style="width:100%;border:none;background:transparent;font-size:11px" value="350g" readonly></div>
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:6px"><div style="font-size:9px;color:#94a3b8;font-weight:700">Vị trí</div><input style="width:100%;border:none;background:transparent;font-size:11px" value="A2-S5" readonly></div>
+<button style="padding:4px;border:none;background:none;color:#dc2626;cursor:pointer;font-size:14px">🗑</button>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;font-size:11px;margin-bottom:10px">
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:6px"><div style="font-size:9px;color:#94a3b8;font-weight:700">Lọ #2 · Số lượng</div><input style="width:100%;border:none;background:transparent;font-weight:700;font-size:12px" value="160" readonly></div>
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:6px"><div style="font-size:9px;color:#94a3b8;font-weight:700">Khối lượng cả bì</div><input style="width:100%;border:none;background:transparent;font-size:11px" value="280g" readonly></div>
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:6px"><div style="font-size:9px;color:#94a3b8;font-weight:700">Vị trí</div><input style="width:100%;border:none;background:transparent;font-size:11px" value="B1-S1" readonly></div>
+<button style="padding:4px;border:none;background:none;color:#dc2626;cursor:pointer;font-size:14px">🗑</button>
+</div>
+<button class="mu-btn" style="font-size:10px;margin-bottom:8px">+ Thêm lọ</button>
+<div style="background:#f0fdf4;border-radius:7px;padding:8px;font-size:11px;display:flex;justify-content:space-between;align-items:center">
+<span style="color:#15803d;font-weight:700">✅ Tổng đã tách: 360 / 550 mL</span>
+<span style="color:#64748b">Còn lại trong chai gốc: 190 mL</span>
+</div>
+</div>
+<div style="padding:10px 14px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;gap:6px">
+<button class="mu-btn">Hủy</button>
+<button class="mu-btn p">✂️ Xác nhận Tách</button>
+</div>
+</div>
+</div>
+</div>`,
+hs:[{t:"96px",l:"100px",n:"1",c:""},{t:"140px",l:"100px",n:"2",c:"blue"},{t:"175px",l:"140px",n:"3",c:"green"},{t:"195px",l:"5px",n:"4",c:"orange"}],
+cs:[
+{n:"1",c:"",t:"Lọ mới #1",d:"Điền: Số lượng tách ra, Khối lượng cả bì (g), Vị trí lưu trữ lọ mới.",a:"⌨️ Điền thông tin lọ mới"},
+{n:"2",c:"blue",t:"Nút + Thêm lọ",d:"Muốn tách thành 3, 4 lọ? Click để thêm dòng mới. Tối thiểu phải tách thành 2 lọ.",a:"👆 Click để thêm lọ"},
+{n:"3",c:"green",t:"Thanh tổng kết",d:"Monitoring: xanh = hợp lệ, đỏ = vượt quá. Tổng tách không được vượt lượng chai gốc.",a:"👀 Xem thanh trạng thái"},
+{n:"4",c:"orange",t:"Nút Xác nhận Tách",d:"Click để hoàn tất. Chai gốc bị trừ, các lọ mới được tạo với barcode mới.",a:"�� Click sau khi điền đủ"}]},
+
+{l:"Bước 7 · Trạng thái",t:"Bảng tra cứu trạng thái chai",d:"Hiểu ý nghĩa từng trạng thái (badge màu) để đọc bảng chính xác.",
+html:`<div class="mu" style="padding:16px">
+<div style="font-size:13px;font-weight:700;margin-bottom:14px">Bảng tra cứu: chemicalInventoryStatus</div>
+<table style="width:100%;border-collapse:collapse;font-size:12px">
+<thead><tr style="background:#f8fafc"><th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0">Badge</th><th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0">Trạng thái</th><th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0">Ý nghĩa</th><th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:2px solid #e2e8f0">Hành động gợi ý</th></tr></thead>
+<tbody>
+<tr style="border-bottom:1px solid #f1f5f9"><td style="padding:8px 12px"><span class="badge" style="background:#fef9c3;color:#854d0e;border-color:#fde047">Pending</span></td><td style="padding:8px 12px;font-weight:600">Chờ nhập kho</td><td style="padding:8px 12px;color:#64748b">Vừa tạo mới từ phiếu Nhập, chờ thực nhận</td><td style="padding:8px 12px;color:#64748b">Kiểm tra, xác nhận</td></tr>
+<tr style="border-bottom:1px solid #f1f5f9"><td style="padding:8px 12px"><span class="badge g">New</span></td><td style="padding:8px 12px;font-weight:600">Mới nhập kho</td><td style="padding:8px 12px;color:#64748b">Đã nhập, chưa mở nắp, chưa dùng</td><td style="padding:8px 12px;color:#64748b">Sẵn sàng xuất dùng</td></tr>
+<tr style="border-bottom:1px solid #f1f5f9"><td style="padding:8px 12px"><span class="badge b">Đang dùng</span></td><td style="padding:8px 12px;font-weight:600">InUse</td><td style="padding:8px 12px;color:#64748b">Đã mở nắp, đang được sử dụng</td><td style="padding:8px 12px;color:#64748b">Theo dõi hạn sau mở</td></tr>
+<tr style="border-bottom:1px solid #f1f5f9"><td style="padding:8px 12px"><span class="badge o">Kiểm dịch</span></td><td style="padding:8px 12px;font-weight:600">Quarantined</td><td style="padding:8px 12px;color:#64748b">Tạm giữ, chưa được phép dùng</td><td style="padding:8px 12px;color:#64748b">Kiểm tra chất lượng</td></tr>
+<tr style="border-bottom:1px solid #f1f5f9"><td style="padding:8px 12px"><span class="badge gray">Hết</span></td><td style="padding:8px 12px;font-weight:600">Empty</td><td style="padding:8px 12px;color:#64748b">Chai đã dùng hết</td><td style="padding:8px 12px;color:#64748b">Hủy, thải bỏ</td></tr>
+<tr style="border-bottom:1px solid #f1f5f9"><td style="padding:8px 12px"><span class="badge r">Hết hạn</span></td><td style="padding:8px 12px;font-weight:600">Expired</td><td style="padding:8px 12px;color:#64748b">Quá hạn sử dụng</td><td style="padding:8px 12px;color:#64748b">Không được dùng, cần thải bỏ</td></tr>
+<tr><td style="padding:8px 12px"><span class="badge gray">Đã hủy</span></td><td style="padding:8px 12px;font-weight:600">Disposed</td><td style="padding:8px 12px;color:#64748b">Đã thải bỏ/hủy chính thức</td><td style="padding:8px 12px;color:#64748b">Xem lịch sử, không thao tác</td></tr>
+</tbody></table></div>`,
+hs:[],
+cs:[
+{n:"",c:"green",t:"💡 Mẹo đọc bảng",d:"Màu badge = trạng thái. Xanh lá = OK, Xanh dương = đang dùng, Đỏ = cần xử lý, Vàng = chờ xử lý.",a:"📖 Tham khảo khi làm việc"},
+{n:"",c:"orange",t:"⚠️ Lưu ý Expired",d:"Chai Hết hạn không được xuất cho phép thử. Cần tạo phiếu Thải bỏ (ADJUSTMENT) để compliance.",a:"🚫 Không xuất chai Expired"}]}
+];
+let c=0;
+function r(){
+const s=S[c];
+document.getElementById("sl").textContent=s.l;
+document.getElementById("sh").textContent=s.t;
+document.getElementById("sp").textContent=s.d;
+document.getElementById("ctr").textContent="Slide "+(c+1)+" / "+S.length;
+document.getElementById("pb").style.width=((c+1)/S.length*100)+"%";
+const uf=document.getElementById("uf");uf.innerHTML=s.html;
+(s.hs||[]).forEach(h=>{const el=document.createElement("div");el.className="hotspot"+(h.c?" "+h.c:"");el.textContent=h.n;el.style.top=h.t;el.style.left=h.l;uf.appendChild(el);});
+document.getElementById("cp").innerHTML=(s.cs||[]).map(x=>`<div class="callout-card ${x.c}">${x.n?`<div class="callout-num ${x.c}">${x.n}</div>`:"<div style='font-size:18px;margin-bottom:4px'>"+(x.c==="green"?"✅":"⚠️")+"</div>"}<div class="callout-title">${x.t}</div><div class="callout-desc">${x.d}</div><div class="callout-action">${x.a}</div></div>`).join("");
+document.getElementById("sb").innerHTML=S.map((s,i)=>`<div class="sidebar-item${i===c?" active":""}" onclick="g(${i})"><span class="si-num">${i+1}</span>${s.l.split("·")[1]?.trim()||s.t}</div>`).join("");
+document.getElementById("dots").innerHTML=S.map((_,i)=>`<div onclick="g(${i})" style="width:8px;height:8px;border-radius:50%;cursor:pointer;background:${i===c?"#059669":"#334155"}"></div>`).join("");
+document.getElementById("pB").disabled=c===0;
+document.getElementById("nB").disabled=c===S.length-1;
+}
+function go(d){c=Math.max(0,Math.min(S.length-1,c+d));r();}
+function g(i){c=i;r();}
+r();
+</script></body></html>

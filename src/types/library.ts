@@ -20,8 +20,8 @@ export interface Matrix extends BaseEntity {
     taxRate: number;
     feeAfterTax: number;
 
-    LOD?: string;
-    LOQ?: string;
+    methodLOD?: string;
+    methodLOQ?: string;
     thresholdLimit?: string;
     turnaroundTime?: number;
     technicianGroupId?: string;

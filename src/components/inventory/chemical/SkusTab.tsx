@@ -10,6 +10,7 @@ import type { ChemicalSku } from "@/types/chemical";
 import { SkuDetailPanel } from "./SkuDetailPanel";
 import { SkuEditModal } from "./SkuEditModal";
 import { Pagination } from "@/components/ui/pagination";
+import { HelpBubble } from "./HelpBubble";
 export function SkusTab() {
     const { t } = useTranslation();
     const [search, setSearch] = useState("");
@@ -69,7 +70,7 @@ export function SkusTab() {
                             {t("common.search", { defaultValue: "Tìm kiếm" })}
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => refetch()} title="Tải lại">
-                            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
                         </Button>
                     </div>
                     <Button variant="default" type="button" onClick={() => setCreateOpen(true)}>
@@ -113,7 +114,7 @@ export function SkusTab() {
                                                 { label: "N - Environmental", value: "N" },
                                             ]}
                                             onChange={(v) => {
-                                                setFilters(f => ({ ...f, chemicalHazardClass: v }));
+                                                setFilters((f) => ({ ...f, chemicalHazardClass: v }));
                                                 setPage(1);
                                             }}
                                         />
@@ -185,6 +186,8 @@ export function SkusTab() {
             {activeSku && <SkuDetailPanel sku={activeSku} onClose={() => setActiveSku(null)} />}
 
             {createOpen && <SkuEditModal sku={null} onClose={() => setCreateOpen(false)} />}
+
+            <HelpBubble guidePath="guide-skus.html" label="Hướng dẫn: Danh mục Hóa chất" />
         </div>
     );
 }

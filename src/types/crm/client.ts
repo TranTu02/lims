@@ -1,121 +1,129 @@
 import type { EntityInfo } from "../common";
 
 export type ApiError = {
-  message?: string;
-  code?: string | null;
-  details?: unknown;
+    message?: string;
+    code?: string | null;
+    details?: unknown;
 } | null;
 
 export type ApiMeta = Record<string, unknown> | null;
 
 export type ApiResponse<TData, TMeta = ApiMeta> = {
-  success: boolean;
-  data: TData;
-  meta: TMeta;
-  error: ApiError;
+    success: boolean;
+    data: TData;
+    meta: TMeta;
+    error: ApiError;
 };
 
 export type ClientContact = {
-  contactId?: string | null;
-  contactName?: string | null;
-  contactPhone?: string | null;
-  contactEmail?: string | null;
-  contactPosition?: string | null;
-  contactAddress?: string | null;
+    contactId?: string | null;
+    contactName?: string | null;
+    contactPhone?: string | null;
+    contactEmail?: string | null;
+    contactPosition?: string | null;
+    contactAddress?: string | null;
 
-  [key: string]: unknown;
+    [key: string]: unknown;
 };
 
 export type ClientInvoiceInfo = {
-  taxCode?: string | null;
-  taxName?: string | null;
-  taxEmail?: string | null;
-  taxAddress?: string | null;
+    taxCode?: string | null;
+    taxName?: string | null;
+    taxEmail?: string | null;
+    taxAddress?: string | null;
 
-  [key: string]: unknown;
+    [key: string]: unknown;
 };
 
 export type ClientSaleScope = "public" | "private" | (string & {}) | null;
 
 export type ClientBase = {
-  entity: EntityInfo;
+    entity: EntityInfo;
 
-  clientId: string;
-  clientName: string;
+    clientId: string;
+    clientName: string;
 
-  legalId: string | null;
-  clientAddress: string | null;
-  clientPhone: string | null;
-  clientEmail: string | null;
+    legalId: string | null;
+    clientAddress: string | null;
+    clientPhone: string | null;
+    clientEmail: string | null;
 
-  clientSaleScope: ClientSaleScope;
+    clientSaleScope: ClientSaleScope;
+    assignedSaleId: string | null;
+    clientScope: string | null;
 
-  availableByIds: string[] | null;
-  availableByName: string[] | null;
+    availableByIds: string[] | null;
+    availableByName: string[] | null;
 
-  clientContacts: ClientContact[] | null;
+    clientContacts: ClientContact[] | null;
 
-  invoiceInfo: ClientInvoiceInfo | null;
+    invoiceInfo: ClientInvoiceInfo | null;
 
-  totalOrderAmount: string | null;
+    totalOrderAmount: string | null;
+    orders?: any[] | null;
+    quotes?: any[] | null;
 
-  createdAt: string;
-  createdById: string | null;
-  modifiedAt: string;
-  modifiedById: string | null;
-  deletedAt: string | null;
+    createdAt: string;
+    createdById: string | null;
+    modifiedAt: string;
+    modifiedById: string | null;
+    deletedAt: string | null;
 };
 
 export type ClientListItem = ClientBase & {
-  total_count: string;
+    total_count: string;
 };
 
 export type ClientDetail = ClientBase;
 
 export type ClientsCreateBody = {
-  clientName: string;
+    clientName: string;
 
-  legalId?: string | null;
-  clientAddress?: string | null;
-  clientPhone?: string | null;
-  clientEmail?: string | null;
+    legalId?: string | null;
+    clientAddress?: string | null;
+    clientPhone?: string | null;
+    clientEmail?: string | null;
 
-  clientSaleScope?: ClientSaleScope;
+    clientSaleScope?: ClientSaleScope;
+    assignedSaleId?: string | null;
+    clientScope?: string | null;
 
-  availableByIds?: string[] | null;
-  availableByName?: string[] | null;
+    availableByIds?: string[] | null;
+    availableByName?: string[] | null;
 
-  clientContacts?: ClientContact[] | null;
+    clientContacts?: ClientContact[] | null;
 
-  invoiceInfo?: ClientInvoiceInfo | null;
+    invoiceInfo?: ClientInvoiceInfo | null;
 
-  totalOrderAmount?: string | null;
+    totalOrderAmount?: string | null;
 
-  [key: string]: unknown;
+    [key: string]: unknown;
 };
 
 export type ClientsUpdateBody = {
-  clientId: string;
+    clientId: string;
 
-  clientName?: string;
+    clientName?: string;
 
-  legalId?: string | null;
-  clientAddress?: string | null;
-  clientPhone?: string | null;
-  clientEmail?: string | null;
+    legalId?: string | null;
+    clientAddress?: string | null;
+    clientPhone?: string | null;
+    clientEmail?: string | null;
 
-  clientSaleScope?: ClientSaleScope;
+    clientSaleScope?: ClientSaleScope;
+    assignedSaleId?: string | null;
+    clientScope?: string | null;
 
-  availableByIds?: string[] | null;
-  availableByName?: string[] | null;
+    availableByIds?: string[] | null;
+    availableByName?: string[] | null;
 
-  clientContacts?: ClientContact[] | null;
+    clientContacts?: ClientContact[] | null;
 
-  invoiceInfo?: ClientInvoiceInfo | null;
+    invoiceInfo?: ClientInvoiceInfo | null;
 
-  totalOrderAmount?: string | null;
+    totalOrderAmount?: string | null;
 
-  [key: string]: unknown;
+    [key: string]: unknown;
 };
 
 export type ClientsListResponse = ApiResponse<ClientListItem[]>;

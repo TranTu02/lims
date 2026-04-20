@@ -26,11 +26,10 @@ type Props = {
     excelFilters: ParameterGroupsExcelFiltersState;
     onExcelFiltersChange: (next: ParameterGroupsExcelFiltersState) => void;
     onEdit?: (p: ParameterGroup) => void;
-};
 
-function formatCurrency(value: number, locale: string) {
-    return new Intl.NumberFormat(locale, { style: "currency", currency: "VND" }).format(value);
-}
+    selectedRowKey: string | null;
+    onSelectRow: (rowKey: string, groupId: string) => void;
+};
 
 type OptionWithCount = { key: string; value: string; count: number };
 
@@ -203,7 +202,7 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
 
 export function ParameterGroupsTable(props: Props) {
     const { t, i18n } = useTranslation();
-    const { items, excelFilters, onExcelFiltersChange, onEdit } = props;
+    const { items, excelFilters, onExcelFiltersChange, onEdit, selectedRowKey, onSelectRow } = props;
 
     const locale = i18n.language;
 
@@ -262,10 +261,9 @@ export function ParameterGroupsTable(props: Props) {
                         </th>
 
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.parameterGroups.matrixIds"))}</th>
-
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.parameterGroups.feeBeforeTaxAndDiscount"))}</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.parameterGroups.feeBeforeTax"))}</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.parameterGroups.feeAfterTax"))}</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.parameterGroups.discountRate"))} (%)</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.parameterGroups.taxRate"))} (%)</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("library.parameterGroups.createdAt"))}</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("common.actions"))}</th>
                     </tr>
                 </thead>
@@ -274,9 +272,11 @@ export function ParameterGroupsTable(props: Props) {
                     {items.map((x) => {
                         const matrixCount = x.matrixIds?.length ?? 0;
                         const matrixPreview = (x.matrixIds ?? []).slice(0, 3);
+                        const rowKey = x.groupId;
+                        const active = selectedRowKey === rowKey;
 
                         return (
-                            <tr key={x.groupId} className="hover:bg-muted/50">
+                            <tr key={x.groupId} className={`hover:bg-muted/50 cursor-pointer ${active ? "bg-muted" : ""}`} onClick={() => onSelectRow(rowKey, x.groupId)}>
                                 <td className="px-4 py-3 text-sm text-foreground font-medium">{x.groupId}</td>
 
                                 <td className="px-4 py-3 text-sm text-foreground">
@@ -298,28 +298,32 @@ export function ParameterGroupsTable(props: Props) {
 
                                         {matrixCount > matrixPreview.length ? (
                                             <span className="text-xs text-muted-foreground">
-                                                {String(t("library.parameterGroups.values.moreMatrices", {
-                                                    count: matrixCount - matrixPreview.length,
-                                                }))}
+                                                {String(
+                                                    t("library.parameterGroups.values.moreMatrices", {
+                                                        count: matrixCount - matrixPreview.length,
+                                                    }),
+                                                )}
                                             </span>
                                         ) : null}
                                     </div>
                                 </td>
 
-                                <td className="px-4 py-3 text-sm text-foreground text-left font-medium">{formatCurrency(x.feeBeforeTaxAndDiscount, locale)}</td>
+                                <td className="px-4 py-3 text-sm text-foreground text-left tabular-nums">
+                                    <Badge variant="secondary">{x.discountRate}%</Badge>
+                                </td>
 
-                                <td className="px-4 py-3 text-sm text-foreground text-left font-medium">{formatCurrency(x.feeBeforeTax, locale)}</td>
+                                <td className="px-4 py-3 text-sm text-foreground text-left tabular-nums">{x.taxRate}%</td>
 
-                                <td className="px-4 py-3 text-sm text-foreground text-left font-semibold">{formatCurrency(x.feeAfterTax, locale)}</td>
+                                <td className="px-4 py-3 text-sm text-muted-foreground">{x.createdAt ? new Date(x.createdAt).toLocaleDateString(locale) : "-"}</td>
 
                                 <td className="px-4 py-3 text-left" onClick={(e) => e.stopPropagation()}>
-                                    {onEdit && (
-                                        <div className="inline-flex items-center justify-start gap-1">
+                                    <div className="inline-flex items-center justify-start gap-1">
+                                        {onEdit && (
                                             <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => onEdit(x)} type="button" title={String(t("common.edit"))}>
                                                 <Edit className="h-4 w-4" />
                                             </Button>
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
                                 </td>
                             </tr>
                         );

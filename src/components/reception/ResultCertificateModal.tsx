@@ -13,13 +13,7 @@ import { documentApi } from "@/api/documents";
 import { samplesGetFull } from "@/api/samples";
 import { toast } from "sonner";
 import { EmailModal } from "@/components/common/EmailModal";
-import { 
-    Select, 
-    SelectContent, 
-    SelectItem, 
-    SelectTrigger, 
-    SelectValue 
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
@@ -109,33 +103,34 @@ const CONTENT_STYLE = `
 
 function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail, tVi: any, tEn: any, replacingReportId?: string | null, languages: ("vie" | "eng")[] = ["vie"]): string {
     const analyses = sample.analyses ?? [];
-    const rows = analyses.map((a, i) => {
-        let nameVie = a.parameterName || "-";
-        let nameEng = "";
-        if (a.analysisReportDisplay && typeof a.analysisReportDisplay === 'object') {
-            nameVie = (a.analysisReportDisplay as any).vie || a.parameterName || "-";
-            nameEng = (a.analysisReportDisplay as any).eng || "";
-        }
-        
-        let displayName = "";
-        if (languages.includes("vie") && languages.includes("eng")) {
-            displayName = `<strong>${nameVie}</strong><br/><span style="font-size: 10px; color: #444;">/ ${nameEng || "-"}</span>`;
-        } else if (languages.includes("eng")) {
-            displayName = nameEng || nameVie;
-        } else {
-            displayName = nameVie;
-        }
+    const rows = analyses
+        .map((a, i) => {
+            let nameVie = a.parameterName || "-";
+            let nameEng = "";
+            if (a.analysisReportDisplay && typeof a.analysisReportDisplay === "object") {
+                nameVie = (a.analysisReportDisplay as any).vie || a.parameterName || "-";
+                nameEng = (a.analysisReportDisplay as any).eng || "";
+            }
 
-        let loc = a.analysisLocation || "";
-        let accKeys: string[] = [];
-        if (a.protocolAccreditation && typeof a.protocolAccreditation === 'object') {
-            accKeys = Object.keys(a.protocolAccreditation).filter(k => (a.protocolAccreditation as any)[k] === true);
-        }
-        let accStr = accKeys.length > 0 ? accKeys.join(", ") : "";
-        let protocolAndAcc = [loc, accStr].filter(Boolean).join(" ");
-        if (!protocolAndAcc) protocolAndAcc = "-";
+            let displayName = "";
+            if (languages.includes("vie") && languages.includes("eng")) {
+                displayName = `<strong>${nameVie}</strong><br/><span style="font-size: 10px; color: #444;">/ ${nameEng || "-"}</span>`;
+            } else if (languages.includes("eng")) {
+                displayName = nameEng || nameVie;
+            } else {
+                displayName = nameVie;
+            }
 
-        return `
+            let loc = a.analysisLocation || "";
+            let accKeys: string[] = [];
+            if (a.protocolAccreditation && typeof a.protocolAccreditation === "object") {
+                accKeys = Object.keys(a.protocolAccreditation).filter((k) => (a.protocolAccreditation as any)[k] === true);
+            }
+            let accStr = accKeys.length > 0 ? accKeys.join(", ") : "";
+            let protocolAndAcc = [loc, accStr].filter(Boolean).join(" ");
+            if (!protocolAndAcc) protocolAndAcc = "-";
+
+            return `
         <tr class="table-row">
             <td style="border: 1px solid black; padding: 4px 8px; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;">${i + 1}.</td>
             <td style="border: 1px solid black; padding: 4px 8px; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;">${displayName}</td>
@@ -145,9 +140,10 @@ function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail,
             <td style="border: 1px solid black; padding: 4px 8px; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;">${protocolAndAcc}</td>
         </tr>
     `;
-    }).join("");
+        })
+        .join("");
 
-    const replacementHtml = replacingReportId 
+    const replacementHtml = replacingReportId
         ? `<div style="font-size: 11px; font-weight: 600; margin-top: 5px; color: #000;">
              Thay thế cho phiếu có mã xuất bản ${replacingReportId} / This report replaces report no. ${replacingReportId}
            </div>`
@@ -306,7 +302,7 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
     const [activeSampleId, setActiveSampleId] = useState(samples[0]?.sampleId ?? "");
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [replacingReportId, setReplacingReportId] = useState<string | null>(null);
-    const [selectedPastReport, setSelectedPastReport] = useState<{ reportId: string, header?: string, content?: string } | null>(null);
+    const [selectedPastReport, setSelectedPastReport] = useState<{ reportId: string; header?: string; content?: string } | null>(null);
     const [reportLanguages, setReportLanguages] = useState<("vie" | "eng")[]>(["vie"]);
     const editorRef = useRef<any>(null);
     const exportMutation = useExportReport();
@@ -316,7 +312,11 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
     const [isEmailLoading, setIsEmailLoading] = useState(false);
     const queryClient = useQueryClient();
 
-    const { data: fullReceipt, refetch, isFetching } = useQuery({
+    const {
+        data: fullReceipt,
+        refetch,
+        isFetching,
+    } = useQuery({
         queryKey: ["receipts", "full", receipt.receiptId],
         enabled: open && !!receipt.receiptId,
         queryFn: async () => {
@@ -351,7 +351,7 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
     const extractHtmlParts = (html: string) => {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, "text/html");
-        
+
         // Ensure inline styles or outer CSS are brought over.
         // TinyMCE puts the raw HTML in the content but lacks the head styles
         const headerTd = doc.querySelector("thead tr td");
@@ -384,7 +384,7 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
 
             if (preview) {
                 if (res.url) {
-                    setPreviewUrl(res.url);
+                    window.open(res.url, "_blank");
                 } else if (finalBase64) {
                     const byteCharacters = atob(finalBase64);
                     const byteNumbers = new Array(byteCharacters.length);
@@ -399,7 +399,7 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                 return res;
             } else if (!preview) {
                 toast.success(t("common.toast.success", "Xuất báo cáo thành công"), { duration: 1000 });
-                
+
                 // Track generated report for email
                 const fileId = (res.reportId || res.documentId || res.fileId) as string;
                 if (fileId) {
@@ -414,18 +414,16 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                     try {
                         const sRes = await samplesGetFull({ sampleId: selectedSample.sampleId });
                         if (sRes.success && sRes.data) {
-                             queryClient.setQueryData(["receipts", "full", receipt.receiptId], (old: any) => {
-                                 if (!old) return old;
-                                 return {
-                                     ...old,
-                                     samples: (old.samples || []).map((s: any) => 
-                                         s.sampleId === selectedSample.sampleId ? { ...s, ...sRes.data } : s
-                                     )
-                                 };
-                             });
+                            queryClient.setQueryData(["receipts", "full", receipt.receiptId], (old: any) => {
+                                if (!old) return old;
+                                return {
+                                    ...old,
+                                    samples: (old.samples || []).map((s: any) => (s.sampleId === selectedSample.sampleId ? { ...s, ...sRes.data } : s)),
+                                };
+                            });
                         }
                     } catch (e) {
-                         console.error("Failed to fetch fresh sample data", e);
+                        console.error("Failed to fetch fresh sample data", e);
                     }
                 }
 
@@ -442,11 +440,11 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                         }
 
                         if (url) {
-                            setPreviewUrl(url);
+                            window.open(url, "_blank");
                         }
                     } catch (e) {
-                         console.error("Failed to get report URL", e);
-                         toast.error("Không thể lấy đường dẫn tệp báo cáo.", { duration: 1000 });
+                        console.error("Failed to get report URL", e);
+                        toast.error("Không thể lấy đường dẫn tệp báo cáo.", { duration: 1000 });
                     }
                 }
                 return res;
@@ -464,7 +462,7 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
             // Find existing report if available
             const existingReportId = (selectedSample as any)?.reports?.[0]?.reportId || (selectedSample as any)?.reportIds?.[0];
             let reportToAttach = lastGeneratedReport;
-            
+
             if (!reportToAttach && existingReportId) {
                 reportToAttach = { fileId: existingReportId, fileName: `Report_${selectedSample?.sampleId}.pdf` };
             }
@@ -497,7 +495,7 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                 });
                 setShowEmailModal(true);
             } else {
-                 toast.error("Không thể tải mẫu email");
+                toast.error("Không thể tải mẫu email");
             }
         } catch (e: any) {
             console.error("Failed to prepare email report", e);
@@ -584,33 +582,15 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                         <p className="text-xs text-muted-foreground mt-0.5">Mã biên nhận: {receipt.receiptCode}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-1.5"
-                            onClick={handleSendEmail}
-                            disabled={exportMutation.isPending || isEmailLoading}
-                        >
+                        <Button variant="outline" size="sm" className="gap-1.5" onClick={handleSendEmail} disabled={exportMutation.isPending || isEmailLoading}>
                             {isEmailLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
                             Gửi Email
                         </Button>
-                        <Button
-                            size="sm"
-                            className="gap-1.5"
-                            onClick={() => handleExport(false)}
-                            disabled={exportMutation.isPending}
-                        >
+                        <Button size="sm" className="gap-1.5" onClick={() => handleExport(false)} disabled={exportMutation.isPending}>
                             {exportMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
                             {t("reception.handover.document.exportPDF", "Xuất PDF")}
                         </Button>
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8 ml-1"
-                            onClick={handleRefreshEditor}
-                            disabled={isFetching}
-                            title="Làm mới trình sửa văn bản (hủy tải mẫu cũ)"
-                        >
+                        <Button variant="outline" size="icon" className="h-8 w-8 ml-1" onClick={handleRefreshEditor} disabled={isFetching} title="Làm mới trình sửa văn bản (hủy tải mẫu cũ)">
                             <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onOpenChange(false)} disabled={exportMutation.isPending}>
@@ -662,8 +642,8 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                                 <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
                                     {!!receiptDocs?.length ? (
                                         receiptDocs.map((doc: any) => (
-                                            <div 
-                                                key={`${doc.documentId}`} 
+                                            <div
+                                                key={`${doc.documentId}`}
                                                 className="group flex items-center justify-between p-2 rounded-lg border border-border hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer"
                                                 onClick={() => handleOpenDocument(String(doc.documentId))}
                                             >
@@ -726,11 +706,11 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                                     <div className="flex items-center gap-3 mb-2">
                                         <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                                             <Beaker className="h-5 w-5" />
-                                         </div>
-                                         <div>
-                                             <h3 className="font-bold text-lg leading-none">{`${selectedSample.sampleId}`}</h3>
-                                             <p className="text-sm text-muted-foreground mt-1">{`${selectedSample.sampleTypeName || ""}`}</p>
-                                         </div>
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-lg leading-none">{`${selectedSample.sampleId}`}</h3>
+                                            <p className="text-sm text-muted-foreground mt-1">{`${selectedSample.sampleTypeName || ""}`}</p>
+                                        </div>
                                     </div>
 
                                     <div className="grid grid-cols-1 gap-4">
@@ -744,15 +724,15 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                                                 <div className="space-y-1.5">
                                                     <label className="text-[11px] font-medium text-muted-foreground pl-0.5">Ngôn ngữ báo cáo</label>
                                                     <div className="flex items-center gap-2">
-                                                        <Button 
+                                                        <Button
                                                             variant={reportLanguages.includes("vie") ? "default" : "outline"}
                                                             size="sm"
                                                             className={`flex-1 h-8 text-xs ${!reportLanguages.includes("vie") ? "bg-background" : ""}`}
                                                             onClick={() => {
-                                                                setReportLanguages(prev => {
+                                                                setReportLanguages((prev) => {
                                                                     if (prev.includes("vie")) {
                                                                         if (prev.length === 1) return prev; // Keep at least one
-                                                                        return prev.filter(l => l !== "vie");
+                                                                        return prev.filter((l) => l !== "vie");
                                                                     }
                                                                     return [...prev, "vie"];
                                                                 });
@@ -760,15 +740,15 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                                                         >
                                                             VIE
                                                         </Button>
-                                                        <Button 
+                                                        <Button
                                                             variant={reportLanguages.includes("eng") ? "default" : "outline"}
                                                             size="sm"
                                                             className={`flex-1 h-8 text-xs ${!reportLanguages.includes("eng") ? "bg-background" : ""}`}
                                                             onClick={() => {
-                                                                setReportLanguages(prev => {
+                                                                setReportLanguages((prev) => {
                                                                     if (prev.includes("eng")) {
                                                                         if (prev.length === 1) return prev; // Keep at least one
-                                                                        return prev.filter(l => l !== "eng");
+                                                                        return prev.filter((l) => l !== "eng");
                                                                     }
                                                                     return [...prev, "eng"];
                                                                 });
@@ -788,11 +768,11 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                                                         <SelectContent className="z-[1200]">
                                                             <SelectItem value="none">Không thay thế</SelectItem>
                                                             {(() => {
-                                                                const list = selectedSample.reports
-                                                                    ? selectedSample.reports.map((r: any) => `${r.reportId || r}`)
-                                                                    : (selectedSample.reportIds || []);
+                                                                const list = selectedSample.reports ? selectedSample.reports.map((r: any) => `${r.reportId || r}`) : selectedSample.reportIds || [];
                                                                 return list.map((rid: string) => (
-                                                                    <SelectItem key={rid} value={rid}>{rid}</SelectItem>
+                                                                    <SelectItem key={rid} value={rid}>
+                                                                        {rid}
+                                                                    </SelectItem>
                                                                 ));
                                                             })()}
                                                         </SelectContent>
@@ -826,21 +806,14 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                                                     </div>
                                                 )}
                                                 {(() => {
-                                                    const list = selectedSample.reports
-                                                        ? selectedSample.reports.map((r: any) => `${r.reportId || r}`)
-                                                        : (selectedSample.reportIds || []);
+                                                    const list = selectedSample.reports ? selectedSample.reports.map((r: any) => `${r.reportId || r}`) : selectedSample.reportIds || [];
                                                     if (list.length === 0) return null;
                                                     return (
                                                         <div className="pt-2 border-t mt-2">
                                                             <div className="flex items-center justify-between mb-1">
                                                                 <span className="text-[11px] font-semibold block">Báo cáo đã xuất:</span>
                                                                 {selectedPastReport && (
-                                                                    <Button 
-                                                                        variant="ghost" 
-                                                                        size="sm" 
-                                                                        className="h-6 text-[10px] text-primary px-1 hover:bg-primary/10"
-                                                                        onClick={handleRefreshEditor}
-                                                                    >
+                                                                    <Button variant="ghost" size="sm" className="h-6 text-[10px] text-primary px-1 hover:bg-primary/10" onClick={handleRefreshEditor}>
                                                                         <RefreshCw className="h-3 w-3 mr-1" />
                                                                         Dùng dữ liệu hiện tại
                                                                     </Button>
@@ -848,14 +821,21 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                                                             </div>
                                                             <div className="flex flex-col gap-1">
                                                                 {list.map((rid: string) => (
-                                                                    <div key={rid} className="flex items-center justify-between bg-background p-1.5 px-2 rounded border text-[11px] group cursor-pointer hover:border-primary/50" onClick={() => handleLoadPastReport(rid)}>
+                                                                    <div
+                                                                        key={rid}
+                                                                        className="flex items-center justify-between bg-background p-1.5 px-2 rounded border text-[11px] group cursor-pointer hover:border-primary/50"
+                                                                        onClick={() => handleLoadPastReport(rid)}
+                                                                    >
                                                                         <span className="font-medium group-hover:text-primary transition-colors">{rid}</span>
                                                                         <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                            <Button 
-                                                                                variant="ghost" 
-                                                                                size="icon" 
-                                                                                className="h-6 w-6" 
-                                                                                onClick={(e) => { e.stopPropagation(); handlePreviewReport(rid); }}
+                                                                            <Button
+                                                                                variant="ghost"
+                                                                                size="icon"
+                                                                                className="h-6 w-6"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    handlePreviewReport(rid);
+                                                                                }}
                                                                                 title="Xem trước PDF gốc"
                                                                             >
                                                                                 <Eye className="h-3 w-3" />
@@ -882,10 +862,12 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                                                             <div className="font-medium text-sm text-foreground">{`${a.parameterName || ""}`}</div>
                                                             <Badge className="text-[10px] h-5">{`${a.analysisStatus || ""}`}</Badge>
                                                         </div>
-                                                         <div className="flex justify-between items-center text-xs text-muted-foreground">
-                                                             <span>{`${a.protocolCode || ""}`}</span>
-                                                             <span className="font-bold text-primary">{`${a.analysisResult || ""}`} {`${a.analysisUnit || ""}`}</span>
-                                                         </div>
+                                                        <div className="flex justify-between items-center text-xs text-muted-foreground">
+                                                            <span>{`${a.protocolCode || ""}`}</span>
+                                                            <span className="font-bold text-primary">
+                                                                {`${a.analysisResult || ""}`} {`${a.analysisUnit || ""}`}
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>
@@ -915,14 +897,12 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                             </Button>
                         </div>
                         <div className="flex-1 bg-muted">
-                            <iframe 
-                                src={`${previewUrl}#toolbar=0`} 
-                                className="w-full h-full border-none"
-                                title="PDF Preview"
-                            />
+                            <iframe src={`${previewUrl}#toolbar=0`} className="w-full h-full border-none" title="PDF Preview" />
                         </div>
                         <div className="p-3 border-t bg-card flex justify-end gap-2">
-                            <Button variant="outline" onClick={() => setPreviewUrl(null)}>Đóng</Button>
+                            <Button variant="outline" onClick={() => setPreviewUrl(null)}>
+                                Đóng
+                            </Button>
                             <Button onClick={() => window.open(previewUrl ?? "")}>
                                 <Printer className="h-4 w-4 mr-2" />
                                 In phiếu

@@ -29,8 +29,8 @@ type AnalysisEntry = {
     protocolCode: string;
     sampleTypeName: string;
     analysisUnit?: string;
-    LOD?: string;
-    LOQ?: string;
+    methodLOD?: string;
+    methodLOQ?: string;
     [key: string]: any;
 };
 
@@ -166,8 +166,8 @@ export function AddSampleModal({ receipt, onClose, onCreated }: Props) {
                                   protocolCode: a.protocolCode ?? "",
                                   sampleTypeName: full.sampleTypeName ?? "",
                                   analysisUnit: a.analysisUnit ?? "",
-                                  LOD: a.analysisMethodLOD ?? "",
-                                  LOQ: a.analysisMethodLOQ ?? "",
+                                  methodLOD: a.methodLOD ?? "",
+                                  methodLOQ: a.methodLOQ ?? "",
                               };
                           })
                         : [],
@@ -206,10 +206,8 @@ export function AddSampleModal({ receipt, onClose, onCreated }: Props) {
                         protocolCode: matrix.protocolCode ?? "",
                         sampleTypeName: matrix.sampleTypeName ?? "",
                         analysisUnit: "",
-                        LOD: matrix.LOD ?? "",
-                        LOQ: matrix.LOQ ?? "",
-                        analysisMethodLOD: matrix.LOD ?? "",
-                        analysisMethodLOQ: matrix.LOQ ?? "",
+                        methodLOD: matrix.methodLOD ?? "",
+                        methodLOQ: matrix.methodLOQ ?? "",
                     },
                 ],
             };
@@ -259,7 +257,7 @@ export function AddSampleModal({ receipt, onClose, onCreated }: Props) {
                 sampleInfo: form.sampleInfo.filter((r) => r.value.trim()),
                 sampleReceiptInfo: form.sampleReceiptInfo.filter((r) => r.value.trim()),
                 analyses: form.analyses.map((a) => {
-                    const { sampleTypeName, LOD, LOQ, ...rest } = a;
+                    const { sampleTypeName, methodLOD, methodLOQ, ...rest } = a;
                     return {
                         ...rest,
                         matrixId: a.matrixId,
@@ -515,7 +513,7 @@ export function AddSampleModal({ receipt, onClose, onCreated }: Props) {
                                             <th className="px-3 py-2 text-left text-[10px] font-medium text-muted-foreground uppercase">
                                                 {String(t("lab.analyses.protocolCode", { defaultValue: "Phương pháp" }))}
                                             </th>
-                                            <th className="px-3 py-2 text-left text-[10px] font-medium text-muted-foreground uppercase">LOD/LOQ</th>
+                                            <th className="px-3 py-2 text-left text-[10px] font-medium text-muted-foreground uppercase">methodLOD/methodLOQ</th>
                                             <th className="px-3 py-2 w-10" />
                                         </tr>
                                     </thead>
@@ -526,10 +524,10 @@ export function AddSampleModal({ receipt, onClose, onCreated }: Props) {
                                                 <td className="px-3 py-2 text-sm text-foreground">{a.parameterName}</td>
                                                 <td className="px-3 py-2 text-xs text-muted-foreground">{a.protocolCode}</td>
                                                 <td className="px-3 py-2 text-xs text-muted-foreground">
-                                                    {a.LOD && <span>LOD: {a.LOD}</span>}
-                                                    {a.LOD && a.LOQ && <span className="mx-1">·</span>}
-                                                    {a.LOQ && <span>LOQ: {a.LOQ}</span>}
-                                                    {!a.LOD && !a.LOQ && "-"}
+                                                    {a.methodLOD && <span>methodLOD: {a.methodLOD}</span>}
+                                                    {a.methodLOD && a.methodLOQ && <span className="mx-1">·</span>}
+                                                    {a.methodLOQ && <span>methodLOQ: {a.methodLOQ}</span>}
+                                                    {!a.methodLOD && !a.methodLOQ && "-"}
                                                 </td>
                                                 <td className="px-3 py-2">
                                                     <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeAnalysis(a.matrixId)}>
