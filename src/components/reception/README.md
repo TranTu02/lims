@@ -67,7 +67,7 @@ graph TD
    - Chứa `sampleName`, loại nền mẫu (`sampleTypeName`), `sampleNote`, thông tin khách hàng cung cấp (cấu trúc flexible dạng json `sampleInfo` và `sampleReceiptInfo`).
 3. **Analyses (Phép thử / Chỉ tiêu)**
    - Lưu trữ tại `analyses`, mapping 1-n với Samples qua `sampleId`.
-   - Thông tin về `parameterName`, `protocolCode`, giá trị `analysisResult`, trạng thái phân tích `analysisStatus`, ngày hết hạn phân tích, và thông tin đa ngôn ngữ (`analysisReportDisplay` dạng `{ "vie": "...", "eng": "..." }`).
+   - Thông tin về `parameterName`, `protocolCode`, giá trị `analysisResult`, trạng thái phân tích `analysisStatus`, ngày hết hạn phân tích, và thông tin đa ngôn ngữ (`displayStyle` dạng `{ "vie": "...", "eng": "..." }`).
 4. **Incoming Requests (Yêu cầu)**
    - Lưu trữ tại `incomingRequests`, chứa thông tin sơ khai mà sale/khách hàng cung cấp trước khi nó được chuyển (`converted`) thành Phiếu tiếp nhận thực.
 
@@ -78,7 +78,7 @@ graph TD
 Component `ResultCertificateModal.tsx` tích hợp module tạo Editor mạnh mẽ sử dụng `TinyMCE` để biên tập báo cáo dưới dạng HTML trước khi chuyển thành PDF qua backend.
 
 *   **HTML Structure**: Cấu trúc A4 print-ready được load sẵn trong nội dung Editor.
-*   **Ngôn ngữ (Language)**: Hỗ trợ tạo template theo tiếng Việt (VIE) hoặc tiếng Anh (ENG), cho phép cập nhật song ngữ tên chỉ tiêu phụ thuộc cấu hình `analysisReportDisplay`.
+*   **Ngôn ngữ (Language)**: Hỗ trợ tạo template theo tiếng Việt (VIE) hoặc tiếng Anh (ENG), cho phép cập nhật song ngữ tên chỉ tiêu phụ thuộc cấu hình `displayStyle`.
 *   **Replace Report**: Cho phép chọn ID của bản báo cáo cũ để phát hành một bản sửa đổi (hiển thị thông tin thay thế trực tiếp trên header của PDF).
 *   **Preview Mode**: Có thể Export qua Endpoint PDF API của Backend ở dạng Preview URL tạm thời hoặc Submit thẳng thành Record Document liên kết trực tiếp vào Phiếu.
 

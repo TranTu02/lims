@@ -101,25 +101,22 @@ const CONTENT_STYLE = `
   }
 `;
 
-function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail, tVi: any, tEn: any, replacingReportId?: string | null, languages: ("vie" | "eng")[] = ["vie"]): string {
+function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail, tVi: any, t2nd: any, replacingReportId?: string | null, secondLang: "en" | "cn" = "en"): string {
     const analyses = sample.analyses ?? [];
     const rows = analyses
         .map((a, i) => {
             let nameVie = a.parameterName || "-";
-            let nameEng = "";
-            if (a.analysisReportDisplay && typeof a.analysisReportDisplay === "object") {
-                nameVie = (a.analysisReportDisplay as any).vie || a.parameterName || "-";
-                nameEng = (a.analysisReportDisplay as any).eng || "";
+            let name2nd = "";
+            if (a.displayStyle && typeof a.displayStyle === "object") {
+                nameVie = (a.displayStyle as any).vie || (a.displayStyle as any).vi || a.parameterName || "-";
+                if (secondLang === "en") {
+                    name2nd = (a.displayStyle as any).eng || (a.displayStyle as any).en || "";
+                } else if (secondLang === "cn") {
+                    name2nd = (a.displayStyle as any).cn || (a.displayStyle as any).chn || (a.displayStyle as any).zho || "";
+                }
             }
 
-            let displayName = "";
-            if (languages.includes("vie") && languages.includes("eng")) {
-                displayName = `<strong>${nameVie}</strong><br/><span style="font-size: 10px; color: #444;">/ ${nameEng || "-"}</span>`;
-            } else if (languages.includes("eng")) {
-                displayName = nameEng || nameVie;
-            } else {
-                displayName = nameVie;
-            }
+            let displayName = `<strong>${nameVie}</strong><br/><span style="font-size: 10px; color: #444;">/ ${name2nd || "-"}</span>`;
 
             let loc = a.analysisLocation || "";
             let accKeys: string[] = [];
@@ -153,12 +150,30 @@ function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail,
         if (!list || !Array.isArray(list)) return "";
         return list
             .map((item) => {
-                const label = item.label || item.fname || "";
+                const labelVi = item.label || item.fname || "";
+                let labelKey = "";
+                if (labelVi === "Tên mẫu thử" || labelVi.includes("Tên mẫu")) labelKey = "name";
+                else if (labelVi === "Số lô") labelKey = "lot";
+                else if (labelVi === "Ngày sản xuất") labelKey = "mfg";
+                else if (labelVi === "Nơi sản xuất") labelKey = "placeOfProduction";
+                else if (labelVi === "Hạn sử dụng") labelKey = "exp";
+                else if (labelVi === "Số công bố") labelKey = "declarationNo";
+                else if (labelVi === "Số đăng ký") labelKey = "registrationNo";
+                else if (labelVi === "Thông tin khác") labelKey = "otherInfo";
+                else if (labelVi === "Ngày tiếp nhận") labelKey = "receiptDate";
+                else if (labelVi === "Ngày thử nghiệm") labelKey = "testDate";
+                else if (labelVi === "Tình trạng mẫu lưu" || labelVi === "Thời gian lưu mẫu") labelKey = "storageCondition";
+                else if (labelVi === "Mô tả") labelKey = "description";
+                
+                const transVi = labelKey ? tVi(`testReport.sampleLabels.${labelKey}`) : labelVi;
+                const trans2nd = labelKey ? t2nd(`testReport.sampleLabels.${labelKey}`) : "";
+                const finalLabel = trans2nd ? `${transVi} / ${trans2nd}` : transVi;
+
                 const value = item.value || item.fvalue || "--";
-                if (!label) return "";
+                if (!labelVi) return "";
                 return `
                     <div class="grid-container">
-                        <div class="grid-item"><strong>${label}</strong></div>
+                        <div class="grid-item"><strong>${finalLabel}</strong></div>
                         <div class="grid-item">${value}</div>
                     </div>
                 `;
@@ -166,7 +181,7 @@ function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail,
             .join("");
     };
 
-    const refCode = `${tVi("testReport.draft")} / ${tEn("testReport.draft")}`;
+    const refCode = `${tVi("testReport.draft")} / ${t2nd("testReport.draft")}`;
     const dateStr = new Date().toLocaleDateString("vi-VN");
 
     const sampleInfoHtml = renderInfoRows(sample.sampleInfo);
@@ -184,9 +199,9 @@ function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail,
                                 </div>
                                 <div style="text-align: right; flex-grow: 1; display: flex; flex-direction: column; align-items: flex-end;">
                                     <p style="font-weight: bold; font-size: 14.4px; color: #0058a3; margin-bottom: 0; line-height: 17.6px;">${tVi("testReport.institute.organizationName")}</p>
-                                    <p style="font-weight: 400; font-size: 11.2px; margin: 0; line-height: 12px;">/ ${tEn("testReport.institute.organizationName")}</p>
+                                    <p style="font-weight: 400; font-size: 11.2px; margin: 0; line-height: 12px;">/ ${t2nd("testReport.institute.organizationName")}</p>
                                     <span style="font-weight: 400; font-size: 11.2px; border-bottom: 1px solid rgba(128,128,128,0.5); width: fit-content; display: block; margin: 0; line-height: 12px; padding-bottom: 1px;">
-                                        ${tVi("testReport.institute.departmentName")} / ${tEn("testReport.institute.departmentName")}
+                                        ${tVi("testReport.institute.departmentName")} / ${t2nd("testReport.institute.departmentName")}
                                     </span>
                                 </div>
                             </div>
@@ -194,11 +209,11 @@ function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail,
                             <div style="padding-top: 2mm; position: relative; margin-top: 5mm;">
                                 <div style="position: relative; text-align: left;">
                                     <p style="font-weight: 900; font-size: 24pt; color: #0058a3; margin: 0; line-height: 1;">${tVi("testReport.title")}</p>
-                                    <p style="font-weight: 800; font-size: 21pt; color: #0058a3; margin: 0; line-height: 1;">/ ${tEn("testReport.title")}</p>
+                                    <p style="font-weight: 800; font-size: 21pt; color: #0058a3; margin: 0; line-height: 1;">/ ${t2nd("testReport.title")}</p>
                                     <div style="display: flex; align-items: center; gap: 2mm; font-size: 12px; margin-top: 10px;">
-                                        ${languages.includes("vie") ? tVi("testReport.ref") : ""} ${languages.length > 1 ? "/" : ""} ${languages.includes("eng") ? tEn("testReport.ref") : ""}: 
+                                        ${tVi("testReport.ref")} / ${t2nd("testReport.ref")}: 
                                         <span class="ref_code" style="min-width: 5pt; margin: 0; margin-right: 5mm;">${refCode}</span>
-                                        <span style="min-width: 5pt; margin: 0;">${languages.includes("vie") ? tVi("testReport.date") : ""} ${languages.length > 1 ? "/" : ""} ${languages.includes("eng") ? tEn("testReport.date") : ""}: ${dateStr}</span>
+                                        <span style="min-width: 5pt; margin: 0;">${tVi("testReport.date")} / ${t2nd("testReport.date")}: ${dateStr}</span>
                                     </div>
                                     ${replacementHtml}
                                 </div>
@@ -215,7 +230,7 @@ function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail,
                     <td>
                         <div id="customer-section" class="info-box">
                              <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
-                                <p style="font-size: 11px; margin: 0;">${tVi("testReport.customerInfo")} / ${tEn("testReport.customerInfo")}</p>
+                                <p style="font-size: 11px; margin: 0;">${tVi("testReport.customerInfo")} / ${t2nd("testReport.customerInfo")}</p>
                             </div>
                             <div style="display: flex; flex-direction: column; gap: 2px;">
                                 <p style="font-weight: 760; margin: 0; font-size: 16px;">${(receipt.client?.clientName || "-").toUpperCase()}</p>
@@ -225,17 +240,17 @@ function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail,
  
                         <div id="sample-section" class="info-box">
                             <div style="display: flex; justify-content: space-between; border-bottom: 0.5px solid #000; margin-bottom: 4px; padding-bottom: 2px;">
-                                <p style="font-size: 11px; margin: 0;">${tVi("testReport.sampleInfo")} / ${tEn("testReport.sampleInfo")}</p>
+                                <p style="font-size: 11px; margin: 0;">${tVi("testReport.sampleInfo")} / ${t2nd("testReport.sampleInfo")}</p>
                                 <p style="font-size: 11px; margin: 0;"><strong>${sample.sampleId ?? "-"}</strong></p>
                             </div>
  
                             <div style="margin-bottom: 6px;">
-                                <p style="font-size: 10px; font-style: italic; margin-bottom: 2px; color: #555;">Thông tin khách hàng cung cấp / Information provided by client:</p>
+                                <p style="font-size: 10px; font-style: italic; margin-bottom: 2px; color: #555;">${tVi("testReport.clientProvidedInfo")} / ${t2nd("testReport.clientProvidedInfo")}:</p>
                                 ${sampleInfoHtml || `<div class="grid-container"><div class="grid-item"><strong>Tên mẫu</strong></div><div class="grid-item" style="grid-column: span 3;">${sample.sampleName || "--"}</div></div>`}
                             </div>
  
                             <div style="border-top: 0.5px dashed #ccc; padding-top: 4px;">
-                                <p style="font-size: 10px; font-style: italic; margin-bottom: 2px; color: #555;">Thông tin tiếp nhận / Receipt information:</p>
+                                <p style="font-size: 10px; font-style: italic; margin-bottom: 2px; color: #555;">${tVi("testReport.receiptInformation")} / ${t2nd("testReport.receiptInformation")}:</p>
                                 ${receiptInfoHtml || `<div class="grid-container"><div class="grid-item"><strong>Ngày tiếp nhận</strong></div><div class="grid-item">${receipt.receiptDate ? new Date(receipt.receiptDate).toLocaleDateString("vi-VN") : "--"}</div><div class="grid-item"></div><div class="grid-item"></div></div>`}
                             </div>
                         </div>
@@ -244,12 +259,12 @@ function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail,
                             <table style="width: 100%; border-collapse: collapse; font-size: 11px;" class="mce-item-table">
                                 <thead>
                                     <tr>
-                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f2f2f2; font-weight: 500; width: 45px; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.stt")}</strong><br/><span style="font-size: 11px; color: #444444;">/ ${tEn("testReport.table.stt")}</span></th>
-                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f2f2f2; font-weight: 500; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.test")}</strong><br/><span style="font-size: 11px; color: #444444;">/ ${tEn("testReport.table.test")}</span></th>
-                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f2f2f2; font-weight: 500; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.result")}</strong><br/><span style="font-size: 11px; color: #444444;">/ ${tEn("testReport.table.result")}</span></th>
-                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f2f2f2; font-weight: 500; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.unit")}</strong><br/><span style="font-size: 11px; color: #444444;">/ ${tEn("testReport.table.unit")}</span></th>
-                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f2f2f2; font-weight: 500; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.protocol")}</strong><br/><span style="font-size: 11px; color: #444444;">/ ${tEn("testReport.table.protocol")}</span></th>
-                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f2f2f2; font-weight: 500; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.scope")}</strong><br/><span style="font-size: 11px; color: #444444;">/ ${tEn("testReport.table.scope")}</span></th>
+                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f2f2f2; font-weight: 500; width: 4%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.stt")}</strong><br/><span style="font-size: 11px; color: #444444;">/ ${t2nd("testReport.table.stt")}</span></th>
+                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f2f2f2; font-weight: 500; width: 30%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.test")}</strong><br/><span style="font-size: 11px; color: #444444;">/ ${t2nd("testReport.table.test")}</span></th>
+                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f2f2f2; font-weight: 500; width: 15%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.result")}</strong><br/><span style="font-size: 11px; color: #444444;">/ ${t2nd("testReport.table.result")}</span></th>
+                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f2f2f2; font-weight: 500; width: 11%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.unit")}</strong><br/><span style="font-size: 11px; color: #444444;">/ ${t2nd("testReport.table.unit")}</span></th>
+                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f2f2f2; font-weight: 500; width: 25%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.protocol")}</strong><br/><span style="font-size: 11px; color: #444444;">/ ${t2nd("testReport.table.protocol")}</span></th>
+                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f2f2f2; font-weight: 500; width: 15%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.scope")}</strong><br/><span style="font-size: 11px; color: #444444;">/ ${t2nd("testReport.table.scope")}</span></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -263,10 +278,10 @@ function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail,
 
                         <div id="notes-section" class="info-box">
                             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                                <p style="font-weight: bold; margin: 0; font-size: 11px;">${tVi("testReport.notesTitle")} / ${tEn("testReport.notesTitle")}</p>
+                                <p style="font-weight: bold; margin: 0; font-size: 11px;">${tVi("testReport.notesTitle")} / ${t2nd("testReport.notesTitle")}</p>
                             </div>
                             <p style="font-size: 11px; margin: 0; line-height: 1.2;">
-                                ${tVi("testReport.notesContent")}
+                                ${["kph", "methodLOD", "methodLOQ", "irdop", "ex", "vs", "tdc", "sampleInfo", "validOnly"].map(key => `${tVi(`testReport.notes.${key}`)} / ${t2nd(`testReport.notes.${key}`)}.`).join("<br/>")}
                             </p>
                         </div>
 
@@ -274,11 +289,11 @@ function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail,
 
                         <div id="signature-section" style="padding: 0 8px; display: flex; justify-content: space-between; margin: 0; min-height: 2.7cm;">
                             <div style="flex-grow: 1; text-align: center; display: flex; flex-direction: column; justify-content: space-between; max-width: 45%;">
-                                <strong style="font-size: 12px; line-height: 1.2; margin: 0;">${tVi("testReport.signatures.qaManager")}<br/><span style="font-weight: 400;">/ ${tEn("testReport.signatures.qaManager")}</span></strong>
+                                <strong style="font-size: 12px; line-height: 1.2; margin: 0;">${tVi("testReport.signatures.qaManager")}<br/><span style="font-weight: 400;">/ ${t2nd("testReport.signatures.qaManager")}</span></strong>
                                 <p style="font-size: 12px; margin: 0; line-height: 1.4; margin-top: 1.5cm;">Trần Thị Lan</p>
                             </div>
                             <div style="flex-grow: 1; text-align: center; display: flex; flex-direction: column; justify-content: space-between; max-width: 45%;">
-                                <strong style="font-size: 12px; line-height: 1.2; margin: 0;">${tVi("testReport.signatures.vicePresident")}<br/><span style="font-weight: 400;">/ ${tEn("testReport.signatures.vicePresident")}</span></strong>
+                                <strong style="font-size: 12px; line-height: 1.2; margin: 0;">${tVi("testReport.signatures.vicePresident")}<br/><span style="font-weight: 400;">/ ${t2nd("testReport.signatures.vicePresident")}</span></strong>
                                 <p style="font-size: 12px; margin: 0; line-height: 1.4; margin-top: 1.5cm;">Nguyễn Bá Xuân Trường</p>
                             </div>
                         </div>
@@ -296,14 +311,14 @@ function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail,
 export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
     const { t, i18n } = useTranslation();
     const tVi = i18n.getFixedT("vi");
-    const tEn = i18n.getFixedT("en");
+    const [secondLang, setSecondLang] = useState<"en" | "cn">("en");
+    const t2nd = i18n.getFixedT(secondLang);
 
     const samples = receipt.samples ?? [];
     const [activeSampleId, setActiveSampleId] = useState(samples[0]?.sampleId ?? "");
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [replacingReportId, setReplacingReportId] = useState<string | null>(null);
     const [selectedPastReport, setSelectedPastReport] = useState<{ reportId: string; header?: string; content?: string } | null>(null);
-    const [reportLanguages, setReportLanguages] = useState<("vie" | "eng")[]>(["vie"]);
     const editorRef = useRef<any>(null);
     const exportMutation = useExportReport();
     const [showEmailModal, setShowEmailModal] = useState(false);
@@ -343,10 +358,10 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                     </table>
                 `);
             } else {
-                editorRef.current.setContent(generateSampleResultHtml(selectedSample, activeReceipt, tVi, tEn, replacingReportId, reportLanguages));
+                editorRef.current.setContent(generateSampleResultHtml(selectedSample, activeReceipt, tVi, t2nd, replacingReportId, secondLang));
             }
         }
-    }, [replacingReportId, selectedSample?.sampleId, activeReceipt, tVi, tEn, reportLanguages, selectedPastReport]);
+    }, [replacingReportId, selectedSample?.sampleId, activeReceipt, tVi, t2nd, secondLang, selectedPastReport]);
 
     const extractHtmlParts = (html: string) => {
         const parser = new DOMParser();
@@ -682,7 +697,7 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                                                     </table>
                                                 `;
                                             }
-                                            return generateSampleResultHtml(selectedSample, activeReceipt, tVi, tEn, replacingReportId, reportLanguages);
+                                            return generateSampleResultHtml(selectedSample, activeReceipt, tVi, t2nd, replacingReportId, secondLang);
                                         })()}
                                         init={{
                                             height: "100%",
@@ -725,36 +740,20 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                                                     <label className="text-[11px] font-medium text-muted-foreground pl-0.5">Ngôn ngữ báo cáo</label>
                                                     <div className="flex items-center gap-2">
                                                         <Button
-                                                            variant={reportLanguages.includes("vie") ? "default" : "outline"}
+                                                            variant={secondLang === "en" ? "default" : "outline"}
                                                             size="sm"
-                                                            className={`flex-1 h-8 text-xs ${!reportLanguages.includes("vie") ? "bg-background" : ""}`}
-                                                            onClick={() => {
-                                                                setReportLanguages((prev) => {
-                                                                    if (prev.includes("vie")) {
-                                                                        if (prev.length === 1) return prev; // Keep at least one
-                                                                        return prev.filter((l) => l !== "vie");
-                                                                    }
-                                                                    return [...prev, "vie"];
-                                                                });
-                                                            }}
+                                                            className={`flex-1 h-8 text-xs ${secondLang !== "en" ? "bg-background" : ""}`}
+                                                            onClick={() => setSecondLang("en")}
                                                         >
-                                                            VIE
+                                                            VI / EN
                                                         </Button>
                                                         <Button
-                                                            variant={reportLanguages.includes("eng") ? "default" : "outline"}
+                                                            variant={secondLang === "cn" ? "default" : "outline"}
                                                             size="sm"
-                                                            className={`flex-1 h-8 text-xs ${!reportLanguages.includes("eng") ? "bg-background" : ""}`}
-                                                            onClick={() => {
-                                                                setReportLanguages((prev) => {
-                                                                    if (prev.includes("eng")) {
-                                                                        if (prev.length === 1) return prev; // Keep at least one
-                                                                        return prev.filter((l) => l !== "eng");
-                                                                    }
-                                                                    return [...prev, "eng"];
-                                                                });
-                                                            }}
+                                                            className={`flex-1 h-8 text-xs ${secondLang !== "cn" ? "bg-background" : ""}`}
+                                                            onClick={() => setSecondLang("cn")}
                                                         >
-                                                            ENG
+                                                            VI / CN
                                                         </Button>
                                                     </div>
                                                 </div>

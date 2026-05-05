@@ -15,12 +15,16 @@ import { HelpBubble } from "./HelpBubble";
 
 function TransactionTypeBadge({ type }: { type?: string | null }) {
     const { t } = useTranslation();
-    const TRANSACTION_TYPE_MAP: Record<string, { label: string; variant: "success" | "destructive" | "secondary" }> = {
+    const TRANSACTION_TYPE_MAP: Record<string, { label: string; variant: "success" | "destructive" | "secondary" | "outline" | "default" }> = {
         IMPORT: { label: t("inventory.chemical.transactions.actionTypeLabels.IMPORT", { defaultValue: "Nhập kho" }), variant: "success" },
         EXPORT: { label: t("inventory.chemical.transactions.actionTypeLabels.EXPORT", { defaultValue: "Xuất kho" }), variant: "destructive" },
         ADJUSTMENT: {
             label: t("inventory.chemical.transactions.actionTypeLabels.ADJUSTMENT", { defaultValue: "Điều chỉnh" }),
             variant: "secondary",
+        },
+        LAB_CONSUMPTION: {
+            label: t("inventory.chemical.transactions.actionTypeLabels.LAB_CONSUMPTION", { defaultValue: "Nhật ký sử dụng PTN" }),
+            variant: "outline",
         },
     };
     const s = type ? TRANSACTION_TYPE_MAP[type] : undefined;
@@ -138,6 +142,7 @@ export function TransactionsTab() {
                                                 { label: t("inventory.chemical.transactionBlocks.types.INBOUND"), value: "IMPORT" },
                                                 { label: t("inventory.chemical.transactionBlocks.types.OUTBOUND"), value: "EXPORT" },
                                                 { label: t("inventory.chemical.transactionBlocks.types.ADJUSTMENT"), value: "ADJUSTMENT" },
+                                                { label: t("inventory.chemical.transactionBlocks.types.LAB_CONSUMPTION", { defaultValue: "Nhật ký sử dụng PTN" }), value: "LAB_CONSUMPTION" },
                                             ]}
                                             onChange={(v) => {
                                                 setFilters((f) => ({ ...f, transactionType: v }));

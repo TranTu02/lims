@@ -62,7 +62,7 @@ export type AnalysisDetail = {
     analysisUnit?: string | null;
     analysisNotes?: string | null;
     handoverInfo?: unknown[] | null;
-    analysisReportDisplay?: Record<string, unknown> | null;
+    displayStyle?: Record<string, unknown> | null;
     rawInputData?: Record<string, unknown> | null;
     resultHistory?: Record<string, unknown>[] | null;
     consumablesUsed?: Record<string, unknown>[] | null;
@@ -137,7 +137,7 @@ export type AnalysesCreateBody = {
     analysisUnit?: string | null;
 
     handoverInfo?: unknown[] | null;
-    analysisReportDisplay?: Record<string, string | undefined> | null;
+    displayStyle?: Record<string, string | undefined> | null;
 
     analysisLocation?: string | null;
     protocolCode?: string | null;
@@ -175,7 +175,7 @@ export type AnalysesUpdateBody = {
     analysisUnit?: string | null;
 
     handoverInfo?: unknown[] | null;
-    analysisReportDisplay?: Record<string, string | undefined> | null;
+    displayStyle?: Record<string, string | undefined> | null;
 
     analysisLocation?: string | null;
     protocolCode?: string | null;

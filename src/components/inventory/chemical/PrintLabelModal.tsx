@@ -102,9 +102,7 @@ function LabelSingle({ item }: { item: LabelItem }) {
                         {item.chemicalName || ""}
                     </div>
                     {item.chemicalCasNumber && (
-                        <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>
-                            CAS: {item.chemicalCasNumber}
-                        </div>
+                        <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>CAS: {item.chemicalCasNumber}</div>
                     )}
                     {item.lotNumber && (
                         <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: "0.1mm" }}>
@@ -174,9 +172,7 @@ function LabelSingle({ item }: { item: LabelItem }) {
 
 export function PrintLabelModal({ items, onClose }: Props) {
     const { t } = useTranslation();
-    const [quantities, setQuantities] = useState<Record<string, number>>(
-        Object.fromEntries(items.map((it) => [it.chemicalInventoryId, 1])),
-    );
+    const [quantities, setQuantities] = useState<Record<string, number>>(Object.fromEntries(items.map((it) => [it.chemicalInventoryId, 1])));
     const printRef = useRef<HTMLDivElement>(null);
 
     // Final list of items based on quantities
@@ -299,12 +295,8 @@ export function PrintLabelModal({ items, onClose }: Props) {
     }
 
     return (
-        <div className="fixed inset-0 z-[70] bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
-            <div
-                className="bg-background rounded-xl shadow-2xl border border-border flex flex-col overflow-hidden"
-                style={{ width: "1000px", height: "90vh" }}
-                onClick={(e) => e.stopPropagation()}
-            >
+        <div className="fixed inset-0 z-[70] bg-black/50 flex items-center justify-center p-4">
+            <div className="bg-background rounded-xl shadow-2xl border border-border flex flex-col overflow-hidden" style={{ width: "1000px", height: "90vh" }} onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
                 <div className="px-5 py-4 border-b border-border flex items-center justify-between shrink-0">
                     <div>
@@ -313,7 +305,7 @@ export function PrintLabelModal({ items, onClose }: Props) {
                             {t("inventory.chemical.inventories.printLabelDescFull", {
                                 defaultValue: "Tổng cộng {{totalLabel}} tem cho {{count}} mẫu hóa chất",
                                 count: items.length,
-                                totalLabel: finalItems.length
+                                totalLabel: finalItems.length,
                             })}
                         </p>
                     </div>
@@ -342,9 +334,9 @@ export function PrintLabelModal({ items, onClose }: Props) {
                                 <div className="flex items-center gap-2">
                                     <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{t("common.quantityShort", { defaultValue: "S.L" })}</span>
                                     <div className="flex items-center">
-                                        <button 
+                                        <button
                                             className="h-7 w-7 flex items-center justify-center border border-input rounded-l-md hover:bg-muted"
-                                            onClick={() => setQuantities(q => ({ ...q, [item.chemicalInventoryId]: Math.max(0, (q[item.chemicalInventoryId] || 1) - 1) }))}
+                                            onClick={() => setQuantities((q) => ({ ...q, [item.chemicalInventoryId]: Math.max(0, (q[item.chemicalInventoryId] || 1) - 1) }))}
                                         >
                                             -
                                         </button>
@@ -353,15 +345,15 @@ export function PrintLabelModal({ items, onClose }: Props) {
                                             value={quantities[item.chemicalInventoryId] || 1}
                                             onChange={(e) => {
                                                 const v = parseInt(e.target.value) || 0;
-                                                setQuantities(q => ({ ...q, [item.chemicalInventoryId]: Math.min(100, Math.max(0, v)) }));
+                                                setQuantities((q) => ({ ...q, [item.chemicalInventoryId]: Math.min(100, Math.max(0, v)) }));
                                             }}
                                             className="h-7 w-12 rounded-none border-x-0 text-center text-xs font-bold p-0"
                                             min="0"
                                             max="100"
                                         />
-                                        <button 
+                                        <button
                                             className="h-7 w-7 flex items-center justify-center border border-input rounded-r-md hover:bg-muted"
-                                            onClick={() => setQuantities(q => ({ ...q, [item.chemicalInventoryId]: Math.min(100, (q[item.chemicalInventoryId] || 1) + 1) }))}
+                                            onClick={() => setQuantities((q) => ({ ...q, [item.chemicalInventoryId]: Math.min(100, (q[item.chemicalInventoryId] || 1) + 1) }))}
                                         >
                                             +
                                         </button>
@@ -401,9 +393,9 @@ export function PrintLabelModal({ items, onClose }: Props) {
                 <div className="px-5 py-3 border-t border-border flex items-center justify-between shrink-0 bg-background">
                     <div className="flex items-center gap-4">
                         <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                            {t("inventory.chemical.inventories.sheetSpecFull", { 
-                                defaultValue: "Giấy: 100×22mm | Tem: 50×22mm | Lề: 1.5mm | {{count}} bản in", 
-                                count: finalItems.length 
+                            {t("inventory.chemical.inventories.sheetSpecFull", {
+                                defaultValue: "Giấy: 100×22mm | Tem: 50×22mm | Lề: 1.5mm | {{count}} bản in",
+                                count: finalItems.length,
                             })}
                         </span>
                     </div>

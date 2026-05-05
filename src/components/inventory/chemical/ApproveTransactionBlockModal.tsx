@@ -34,7 +34,7 @@ function InventorySelect({ skuId, currentInventoryId, onSelect, className }: Inv
                     search,
                     "chemicalSkuId[]": [skuId],
                     itemsPerPage: 50,
-                }
+                },
             });
             const inner = res.data;
             return (Array.isArray(inner) ? inner : []) as ChemicalInventory[];
@@ -45,7 +45,7 @@ function InventorySelect({ skuId, currentInventoryId, onSelect, className }: Inv
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-                <button 
+                <button
                     type="button"
                     className={`inline-flex items-center h-8 px-2.5 border border-primary/20 rounded-lg text-[10px] font-mono font-black cursor-pointer transition-all bg-background hover:bg-primary/5 hover:border-primary shadow-sm ${className ?? ""}`}
                 >
@@ -57,7 +57,7 @@ function InventorySelect({ skuId, currentInventoryId, onSelect, className }: Inv
                 <Command shouldFilter={false}>
                     <div className="flex items-center border-b border-border px-3">
                         <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                        <Input 
+                        <Input
                             placeholder={String(t("common.search"))}
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
@@ -104,7 +104,9 @@ function InventorySelect({ skuId, currentInventoryId, onSelect, className }: Inv
                                     </div>
                                     <div className="text-right shrink-0 ml-4">
                                         <div className="text-[11px] font-black text-foreground tabular-nums">{(inv.currentAvailableQty || 0).toLocaleString()}</div>
-                                        <div className="text-[7px] font-black text-muted-foreground uppercase opacity-40 tracking-wider">{String(t("inventory.chemical.allocateStock.currentBalance"))}</div>
+                                        <div className="text-[7px] font-black text-muted-foreground uppercase opacity-40 tracking-wider">
+                                            {String(t("inventory.chemical.allocateStock.currentBalance"))}
+                                        </div>
                                     </div>
                                 </CommandItem>
                             ))}
@@ -124,7 +126,7 @@ interface ApproveTransactionBlockModalProps {
 
 export function ApproveTransactionBlockModal({ blockId, onClose }: ApproveTransactionBlockModalProps) {
     const { t } = useTranslation();
-    
+
     // API Hooks
     const { data: block, isLoading: blockLoading, refetch: refetchBlock } = useChemicalTransactionBlockFull(blockId);
     const { mutate: allocateMutate, isPending: isAllocating, data: allocateRes } = useAllocateStock();
@@ -139,35 +141,35 @@ export function ApproveTransactionBlockModal({ blockId, onClose }: ApproveTransa
     const [isDirty, setIsDirty] = useState(false);
 
     // Allocation logic
-    const handleAllocateCall = useCallback((
-        details: ChemicalTransactionBlockDetail[], 
-        manual: { chemicalInventoryId: string; chemicalSkuId: string }[] = []
-    ) => {
-        const required = details.map(d => ({
-            chemicalSkuId: d.chemicalSkuId || "",
-            chemicalName: d.chemicalName || "",
-            chemicalCasNumber: d.chemicalCasNumber,
-            totalChangeQty: d.changeQty,
-            unit: d.chemicalTransactionBlockDetailUnit || "",
-            analysisIds: d.analysisId ? [d.analysisId] : [],
-            parameterName: d.parameterName || "",
-        }));
+    const handleAllocateCall = useCallback(
+        (details: ChemicalTransactionBlockDetail[], manual: { chemicalInventoryId: string; chemicalSkuId: string }[] = []) => {
+            const required = details.map((d) => ({
+                chemicalSkuId: d.chemicalSkuId || "",
+                chemicalName: d.chemicalName || "",
+                chemicalCasNumber: d.chemicalCasNumber,
+                totalChangeQty: d.changeQty,
+                unit: d.chemicalTransactionBlockDetailUnit || "",
+                analysisIds: d.analysisId ? [d.analysisId] : [],
+                parameterName: d.parameterName || "",
+            }));
 
-        allocateMutate(
-            { 
-                body: { 
-                    requiredChemicals: required,
-                    selectedInventories: manual.length > 0 ? manual : undefined
-                } 
-            },
-            {
-                onSuccess: (res) => {
-                    setAllocateData(res);
-                    if (hasInitialAllocated) setIsDirty(true);
-                }
-            }
-        );
-    }, [allocateMutate, hasInitialAllocated]);
+            allocateMutate(
+                {
+                    body: {
+                        requiredChemicals: required,
+                        selectedInventories: manual.length > 0 ? manual : undefined,
+                    },
+                },
+                {
+                    onSuccess: (res) => {
+                        setAllocateData(res);
+                        if (hasInitialAllocated) setIsDirty(true);
+                    },
+                },
+            );
+        },
+        [allocateMutate, hasInitialAllocated],
+    );
 
     // Initial Allocation from Block Details
     useEffect(() => {
@@ -177,33 +179,36 @@ export function ApproveTransactionBlockModal({ blockId, onClose }: ApproveTransa
         }
     }, [block?.chemicalTransactionBlockId, block?.chemicalTransactionBlockDetails, handleAllocateCall, manualSelections, hasInitialAllocated]);
 
-    const handleManualOverrideForSku = useCallback((skuId: string, invId: string) => {
-        if (!block?.chemicalTransactionBlockDetails) return;
-        const newManual = [...manualSelections].filter(m => m.chemicalSkuId !== skuId);
-        if (invId.trim()) {
-            newManual.push({ chemicalInventoryId: invId.trim(), chemicalSkuId: skuId });
-        }
-        setManualSelections(newManual);
-        setIsDirty(true);
-        handleAllocateCall(block.chemicalTransactionBlockDetails, newManual);
-    }, [block?.chemicalTransactionBlockDetails, handleAllocateCall, manualSelections]);
+    const handleManualOverrideForSku = useCallback(
+        (skuId: string, invId: string) => {
+            if (!block?.chemicalTransactionBlockDetails) return;
+            const newManual = [...manualSelections].filter((m) => m.chemicalSkuId !== skuId);
+            if (invId.trim()) {
+                newManual.push({ chemicalInventoryId: invId.trim(), chemicalSkuId: skuId });
+            }
+            setManualSelections(newManual);
+            setIsDirty(true);
+            handleAllocateCall(block.chemicalTransactionBlockDetails, newManual);
+        },
+        [block?.chemicalTransactionBlockDetails, handleAllocateCall, manualSelections],
+    );
 
     const handleUpdateBlock = async () => {
         if (!allocateData || !block?.chemicalTransactionBlockDetails) return;
         try {
-            const updates = allocateData.transactionDetails.map((td) => {
-                const original = block.chemicalTransactionBlockDetails?.find(
-                    d => d.analysisId === td.analysisId && d.chemicalSkuId === td.chemicalSkuId
-                );
-                if (!original) return null;
-                return {
-                    chemicalTransactionBlockDetailId: original.chemicalTransactionBlockDetailId,
-                    chemicalInventoryId: td.chemicalInventoryId,
-                };
-            }).filter((u): u is { chemicalTransactionBlockDetailId: string; chemicalInventoryId: string } => u !== null);
+            const updates = allocateData.transactionDetails
+                .map((td) => {
+                    const original = block.chemicalTransactionBlockDetails?.find((d) => d.analysisId === td.analysisId && d.chemicalSkuId === td.chemicalSkuId);
+                    if (!original) return null;
+                    return {
+                        chemicalTransactionBlockDetailId: original.chemicalTransactionBlockDetailId,
+                        chemicalInventoryId: td.chemicalInventoryId,
+                    };
+                })
+                .filter((u): u is { chemicalTransactionBlockDetailId: string; chemicalInventoryId: string } => u !== null);
 
             await updateMutation.mutateAsync({
-                body: updates
+                body: updates,
             });
             setIsDirty(false);
             refetchBlock();
@@ -215,9 +220,11 @@ export function ApproveTransactionBlockModal({ blockId, onClose }: ApproveTransa
 
     const handleApprove = async () => {
         if (!block) return;
-        
+
         if (isDirty) {
-            const ok = window.confirm(t("inventory.chemical.allocateStock.unsavedChangesConfirm", { defaultValue: "Cấu hình phân bổ đã thay đổi nhưng chưa được lưu. Bạn có muốn lưu và tiếp tục phê duyệt không?" }));
+            const ok = window.confirm(
+                t("inventory.chemical.allocateStock.unsavedChangesConfirm", { defaultValue: "Cấu hình phân bổ đã thay đổi nhưng chưa được lưu. Bạn có muốn lưu và tiếp tục phê duyệt không?" }),
+            );
             if (ok) {
                 await handleUpdateBlock();
             } else {
@@ -227,7 +234,7 @@ export function ApproveTransactionBlockModal({ blockId, onClose }: ApproveTransa
 
         try {
             await approveMutation.mutateAsync({
-                body: { chemicalTransactionBlockId: blockId }
+                body: { chemicalTransactionBlockId: blockId },
             });
             toast.success(String(t("common.toast.success")));
             onClose();
@@ -251,16 +258,13 @@ export function ApproveTransactionBlockModal({ blockId, onClose }: ApproveTransa
     }
 
     return (
-        <div className="fixed inset-0 z-[70] bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 z-[70] bg-black/50 flex items-center justify-center p-4">
             <div className="bg-background rounded-xl shadow-2xl border border-border flex flex-col" style={{ width: "80%", height: "90%", maxWidth: "1600px" }} onClick={(e) => e.stopPropagation()}>
-                
                 {/* Header */}
                 <div className="px-5 py-4 border-b border-border flex items-center justify-between shrink-0">
                     <div>
                         <h3 className="text-base font-semibold">{String(t("inventory.chemical.transactionBlocks.approveTitle", { defaultValue: "Duyệt Phiếu Xuất/Nhập Kho" }))}</h3>
-                        <p className="text-xs text-muted-foreground mt-0.5 font-mono">
-                            ID: {blockId}
-                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5 font-mono">ID: {blockId}</p>
                     </div>
                     <button type="button" onClick={onClose} className="p-1.5 hover:bg-muted rounded-md transition-colors">
                         <X className="h-4 w-4" />
@@ -268,14 +272,21 @@ export function ApproveTransactionBlockModal({ blockId, onClose }: ApproveTransa
                 </div>
 
                 <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="flex-1 flex flex-col min-h-0">
-                    
                     {/* Toolbar */}
                     <div className="px-5 py-3 border-b border-border flex items-center justify-between gap-4 shrink-0 bg-muted/20">
                         <div className="flex items-center gap-4">
                             <div className="flex items-center gap-2">
                                 <span className="text-sm font-medium">{t("inventory.chemical.transactionBlocks.type", { defaultValue: "Loại phiếu" })}:</span>
-                                <Badge className={block?.transactionType === 'EXPORT' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'}>
-                                    {block?.transactionType === 'EXPORT' ? String(t("inventory.chemical.transactionBlocks.types.OUTBOUND")) : String(t("inventory.chemical.transactionBlocks.types.INBOUND"))}
+                                <Badge
+                                    className={
+                                        block?.transactionType === "EXPORT"
+                                            ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                                            : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                                    }
+                                >
+                                    {block?.transactionType === "EXPORT"
+                                        ? String(t("inventory.chemical.transactionBlocks.types.OUTBOUND"))
+                                        : String(t("inventory.chemical.transactionBlocks.types.INBOUND"))}
                                 </Badge>
                             </div>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -293,12 +304,14 @@ export function ApproveTransactionBlockModal({ blockId, onClose }: ApproveTransa
                                     <List className="h-3.5 w-3.5 mr-1.5" /> {String(t("inventory.chemical.allocateStock.pickingListTitle"))}
                                 </TabsTrigger>
                             </TabsList>
-                            <Button 
-                                variant="outline" size="sm" 
+                            <Button
+                                variant="outline"
+                                size="sm"
                                 onClick={() => block?.chemicalTransactionBlockDetails && handleAllocateCall(block.chemicalTransactionBlockDetails, manualSelections)}
                                 disabled={isAllocating}
                             >
-                                <RefreshCw className={`h-4 w-4 mr-1.5 ${isAllocating ? 'animate-spin' : ''}`} /> {String(t("inventory.chemical.allocateStock.resetAllocation", { defaultValue: "Tính toán lại" }))}
+                                <RefreshCw className={`h-4 w-4 mr-1.5 ${isAllocating ? "animate-spin" : ""}`} />{" "}
+                                {String(t("inventory.chemical.allocateStock.resetAllocation", { defaultValue: "Tính toán lại" }))}
                             </Button>
                         </div>
                     </div>
@@ -318,16 +331,21 @@ export function ApproveTransactionBlockModal({ blockId, onClose }: ApproveTransa
                                             {/* Header */}
                                             <div className="flex items-start justify-between">
                                                 <div className="min-w-0">
-                                                    <div className="font-medium text-sm truncate" title={detail.chemicalName}>{detail.chemicalName}</div>
+                                                    <div className="font-medium text-sm truncate" title={detail.chemicalName}>
+                                                        {detail.chemicalName}
+                                                    </div>
                                                     <div className="text-[10px] font-mono text-muted-foreground mt-0.5">
                                                         SKU: {detail.chemicalSkuId} | {t("inventory.chemical.allocateStock.cas")}: {detail.chemicalCasNumber ?? "-"}
                                                     </div>
                                                 </div>
                                                 <div className="text-right shrink-0">
-                                                    <div className="text-xs font-mono text-muted-foreground">{t("inventory.chemical.allocateStock.lot")}: {detail.chemicalInventoryId}</div>
+                                                    <div className="text-xs font-mono text-muted-foreground">
+                                                        {t("inventory.chemical.allocateStock.lot")}: {detail.chemicalInventoryId}
+                                                    </div>
                                                     {detail.currentAvailableQty !== undefined && (
                                                         <div className="text-[10px] text-muted-foreground mt-0.5">
-                                                            {t("inventory.dashboard.table.stock", { defaultValue: "Tồn" })}: <strong className="text-foreground">{detail.currentAvailableQty.toLocaleString()}</strong>
+                                                            {t("inventory.dashboard.table.stock", { defaultValue: "Tồn" })}:{" "}
+                                                            <strong className="text-foreground">{detail.currentAvailableQty.toLocaleString()}</strong>
                                                         </div>
                                                     )}
                                                 </div>
@@ -381,8 +399,8 @@ export function ApproveTransactionBlockModal({ blockId, onClose }: ApproveTransa
                                             {pickList.map((pick: AllocatePickingItem, idx: number) => (
                                                 <tr key={idx} className="hover:bg-muted/50 transition-colors">
                                                     <td className="px-4 py-3">
-                                                        <InventorySelect 
-                                                            skuId={pick.chemicalSkuId} 
+                                                        <InventorySelect
+                                                            skuId={pick.chemicalSkuId}
                                                             currentInventoryId={pick.chemicalInventoryId}
                                                             onSelect={(id) => handleManualOverrideForSku(pick.chemicalSkuId, id)}
                                                             className="w-[200px]"
@@ -397,20 +415,14 @@ export function ApproveTransactionBlockModal({ blockId, onClose }: ApproveTransa
                                                     <td className="px-4 py-3">
                                                         <div className="flex flex-wrap gap-1.5">
                                                             {pick.analysisIds?.map((aid: string | null) => (
-                                                                <Badge 
-                                                                    key={aid || 'null'} 
-                                                                    variant="outline" 
-                                                                    className="bg-muted text-muted-foreground"
-                                                                >
+                                                                <Badge key={aid || "null"} variant="outline" className="bg-muted text-muted-foreground">
                                                                     #{aid ?? "-"}
                                                                 </Badge>
                                                             ))}
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-3 text-right">
-                                                        <div className="text-sm font-semibold text-primary">
-                                                            {Math.abs(pick.totalChangeQty).toLocaleString()}
-                                                        </div>
+                                                        <div className="text-sm font-semibold text-primary">{Math.abs(pick.totalChangeQty).toLocaleString()}</div>
                                                         <div className="text-[10px] text-muted-foreground uppercase">{String(t("common.quantity"))}: V</div>
                                                     </td>
                                                 </tr>
@@ -438,29 +450,23 @@ export function ApproveTransactionBlockModal({ blockId, onClose }: ApproveTransa
                             {String(t("inventory.chemical.allocateStock.totalTests"))}: <strong className="text-foreground">{txDetails.length}</strong>
                         </span>
                         <div className="flex items-center gap-1.5 ml-2">
-                            <div className={`h-2 w-2 rounded-full ${isDirty ? 'bg-yellow-500' : 'bg-success animate-pulse'}`} />
-                            <span>{isDirty ? t("inventory.chemical.allocateStock.hasUnsavedChanges", { defaultValue: "Có thay đổi chưa lưu" }) : String(t("inventory.chemical.allocateStock.readyToExecute"))}</span>
+                            <div className={`h-2 w-2 rounded-full ${isDirty ? "bg-yellow-500" : "bg-success animate-pulse"}`} />
+                            <span>
+                                {isDirty
+                                    ? t("inventory.chemical.allocateStock.hasUnsavedChanges", { defaultValue: "Có thay đổi chưa lưu" })
+                                    : String(t("inventory.chemical.allocateStock.readyToExecute"))}
+                            </span>
                         </div>
                     </div>
                     <div className="flex gap-2">
                         <Button type="button" variant="outline" onClick={onClose}>
                             {t("common.cancel", { defaultValue: "Hủy" })}
                         </Button>
-                        <Button 
-                            type="button"
-                            variant="outline"
-                            onClick={handleUpdateBlock}
-                            disabled={updateMutation.isPending || isAllocating || !effectiveData}
-                        >
+                        <Button type="button" variant="outline" onClick={handleUpdateBlock} disabled={updateMutation.isPending || isAllocating || !effectiveData}>
                             {updateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
                             {String(t("inventory.chemical.allocateStock.saveAllocation"))}
                         </Button>
-                        <Button 
-                            type="button"
-                            variant="success"
-                            onClick={handleApprove}
-                            disabled={approveMutation.isPending || updateMutation.isPending}
-                        >
+                        <Button type="button" variant="success" onClick={handleApprove} disabled={approveMutation.isPending || updateMutation.isPending}>
                             {approveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
                             {String(t("inventory.chemical.allocateStock.approveOutbound"))}
                         </Button>

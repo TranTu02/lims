@@ -58,6 +58,7 @@ type FormAnalysis = {
     parameterName: string;
     protocolCode: string;
     feeAfterTax: number;
+    _raw?: any;
 };
 
 type FormSampleInfoRow = {
@@ -78,6 +79,7 @@ type FormSample = {
     sampleInfo: FormSampleInfoRow[];
 
     analyses: FormAnalysis[];
+    _raw?: any;
 };
 
 type FullFormState = {
@@ -96,6 +98,9 @@ type FullFormState = {
     taxEmail: string;
 
     notes: string;
+
+    contactPerson?: any;
+    senderInfo?: any;
 
     samples: FormSample[];
 };
@@ -209,6 +214,7 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                                             parameterName: a.parameterName || "",
                                             protocolCode: a.protocolCode || "",
                                             feeAfterTax: 0,
+                                            _raw: a,
                                         }))
                                       : [
                                             {
@@ -217,8 +223,10 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                                                 parameterName: "",
                                                 protocolCode: "",
                                                 feeAfterTax: 0,
+                                                _raw: null,
                                             },
                                         ],
+                              _raw: s,
                           }))
                         : [
                               {
@@ -236,10 +244,14 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                                           parameterName: "",
                                           protocolCode: "",
                                           feeAfterTax: 0,
+                                          _raw: null,
                                       },
                                   ],
+                                  _raw: null,
                               },
                           ],
+                contactPerson: initialIncomingRequest.contactPerson || null,
+                senderInfo: initialIncomingRequest.senderInfo || null,
             };
         }
 
@@ -425,6 +437,7 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                                   parameterName: a.parameterName || "",
                                   protocolCode: a.protocolCode || "",
                                   feeAfterTax: 0,
+                                  _raw: a,
                               }))
                             : [
                                   {
@@ -433,8 +446,10 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                                       parameterName: "",
                                       protocolCode: "",
                                       feeAfterTax: 0,
+                                      _raw: null,
                                   },
                               ],
+                    _raw: s,
                 };
             });
 
@@ -443,6 +458,8 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                 orderId: order.orderId || "",
                 clientId: order.clientId || "",
                 clientName: order.client?.clientName || "",
+                contactPerson: order.contactPerson || null,
+                senderInfo: order.senderInfo || null,
                 samples: newSamples.length > 0 ? newSamples : prev.samples,
             }));
 
@@ -583,6 +600,9 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
             },
         },
 
+        contactPerson: full.contactPerson || undefined,
+        senderInfo: full.senderInfo || undefined,
+
         receiptDate: full.receiptDate ? new Date(full.receiptDate).toISOString() : null,
 
         samples: full.samples.map((s) => {
@@ -595,6 +615,7 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                     .filter((r) => r.label.length > 0 || r.value.length > 0) ?? [];
 
             return {
+                ...(s._raw || {}),
                 sampleName: s.sampleName.trim() || null,
                 sampleTypeId: s.sampleTypeId.trim() || null,
 
@@ -605,6 +626,7 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
 
                 analyses:
                     s.analyses.map((a) => ({
+                        ...(a._raw || {}),
                         matrixId: a.matrixId.trim() || null,
                     })) ?? null,
             };

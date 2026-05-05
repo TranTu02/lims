@@ -16,12 +16,12 @@ interface InventorySeparateModalProps {
 export function InventorySeparateModal({ inventory, onClose }: InventorySeparateModalProps) {
     const { t } = useTranslation();
     const separateMutation = useChemicalSeparateInventory();
-    
+
     const [note, setNote] = useState("");
     const [originalTotalGrossWeight, setOriginalTotalGrossWeight] = useState<number | undefined>(undefined);
     const [items, setItems] = useState<Partial<SeparateChemicalInventoryItem>[]>([
         { currentAvailableQty: 0, totalGrossWeight: undefined, storageBinLocation: inventory.storageBinLocation ?? "" },
-        { currentAvailableQty: 0, totalGrossWeight: undefined, storageBinLocation: inventory.storageBinLocation ?? "" }
+        { currentAvailableQty: 0, totalGrossWeight: undefined, storageBinLocation: inventory.storageBinLocation ?? "" },
     ]);
 
     const addItem = () => {
@@ -39,7 +39,7 @@ export function InventorySeparateModal({ inventory, onClose }: InventorySeparate
     };
 
     const totalSeparated = items.reduce((sum, item) => sum + (Number(item.currentAvailableQty) || 0), 0);
-    const isValid = totalSeparated <= inventory.currentAvailableQty && items.length >= 2 && items.every(i => (i.currentAvailableQty || 0) > 0);
+    const isValid = totalSeparated <= inventory.currentAvailableQty && items.length >= 2 && items.every((i) => (i.currentAvailableQty || 0) > 0);
 
     const handleSubmit = () => {
         if (!isValid) {
@@ -51,31 +51,37 @@ export function InventorySeparateModal({ inventory, onClose }: InventorySeparate
             return;
         }
 
-        separateMutation.mutate({
-            body: {
-                chemicalInventoryId: inventory.chemicalInventoryId,
-                note: note || undefined,
-                originalTotalGrossWeight: originalTotalGrossWeight,
-                separationChemicals: items as SeparateChemicalInventoryItem[],
-            }
-        }, {
-            onSuccess: () => onClose()
-        });
+        separateMutation.mutate(
+            {
+                body: {
+                    chemicalInventoryId: inventory.chemicalInventoryId,
+                    note: note || undefined,
+                    originalTotalGrossWeight: originalTotalGrossWeight,
+                    separationChemicals: items as SeparateChemicalInventoryItem[],
+                },
+            },
+            {
+                onSuccess: () => onClose(),
+            },
+        );
     };
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={onClose}>
-            <div className="bg-background rounded-xl shadow-2xl border border-border w-full max-w-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
+            <div
+                className="bg-background rounded-xl shadow-2xl border border-border w-full max-w-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200"
+                onClick={(e) => e.stopPropagation()}
+            >
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-border flex items-center justify-between shrink-0">
                     <div>
                         <h3 className="text-lg font-semibold">{t("inventory.chemical.inventories.separate", { defaultValue: "Tách lọ hóa chất" })}</h3>
                         <p className="text-sm text-muted-foreground mt-0.5">
-                            {t("inventory.chemical.inventories.separateDesc", { 
-                                defaultValue: "Tách từ lọ {{id}} (Hiện có: {{qty}} {{unit}})", 
+                            {t("inventory.chemical.inventories.separateDesc", {
+                                defaultValue: "Tách từ lọ {{id}} (Hiện có: {{qty}} {{unit}})",
                                 id: inventory.chemicalInventoryId,
                                 qty: inventory.currentAvailableQty,
-                                unit: (inventory as any).chemicalSku?.chemicalBaseUnit ?? ""
+                                unit: (inventory as any).chemicalSku?.chemicalBaseUnit ?? "",
                             })}
                         </p>
                     </div>
@@ -89,12 +95,14 @@ export function InventorySeparateModal({ inventory, onClose }: InventorySeparate
                     {/* Note & Original bottle weight */}
                     <div className="space-y-4">
                         <div className="flex items-center gap-2 mb-2">
-                            <span className="bg-muted px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold tracking-wider uppercase text-muted-foreground">{t("inventory.chemical.inventories.originalBottle", { defaultValue: "Lọ Gốc" })}</span>
+                            <span className="bg-muted px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold tracking-wider uppercase text-muted-foreground">
+                                {t("inventory.chemical.inventories.originalBottle", { defaultValue: "Lọ Gốc" })}
+                            </span>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
                                 <label className="text-sm font-medium">{t("inventory.chemical.inventories.originalTotalGrossWeight", { defaultValue: "Lượng còn lại cả bì sau tách" })}</label>
-                                <Input 
+                                <Input
                                     type="number"
                                     step="any"
                                     className="h-9"
@@ -105,7 +113,7 @@ export function InventorySeparateModal({ inventory, onClose }: InventorySeparate
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-sm font-medium">{t("common.note", { defaultValue: "Ghi chú" })}</label>
-                                <Input 
+                                <Input
                                     placeholder={t("inventory.chemical.inventories.separateNotePlaceholder", { defaultValue: "Lý do tách lọ..." })}
                                     value={note}
                                     onChange={(e) => setNote(e.target.value)}
@@ -131,9 +139,7 @@ export function InventorySeparateModal({ inventory, onClose }: InventorySeparate
                                 <div key={idx} className="p-4 border border-border rounded-xl bg-card hover:border-primary/50 transition-colors space-y-4 group relative">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
-                                            <div className="h-6 w-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
-                                                {idx + 1}
-                                            </div>
+                                            <div className="h-6 w-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">{idx + 1}</div>
                                             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t("common.bottle", { defaultValue: "Lọ mới" })}</span>
                                         </div>
                                         {items.length > 2 && (
@@ -149,7 +155,7 @@ export function InventorySeparateModal({ inventory, onClose }: InventorySeparate
                                                 <span className="text-destructive">*</span>
                                             </label>
                                             <div className="relative">
-                                                <Input 
+                                                <Input
                                                     type="number"
                                                     className="h-9 text-sm focus-visible:ring-primary"
                                                     placeholder="0.00"
@@ -162,8 +168,10 @@ export function InventorySeparateModal({ inventory, onClose }: InventorySeparate
                                             </div>
                                         </div>
                                         <div className="space-y-1.5">
-                                            <label className="text-[11px] font-semibold text-muted-foreground uppercase">{t("inventory.chemical.inventories.totalGrossWeight", { defaultValue: "Lượng cả bì" })}</label>
-                                            <Input 
+                                            <label className="text-[11px] font-semibold text-muted-foreground uppercase">
+                                                {t("inventory.chemical.inventories.totalGrossWeight", { defaultValue: "Lượng cả bì" })}
+                                            </label>
+                                            <Input
                                                 type="number"
                                                 step="any"
                                                 className="h-9 text-sm"
@@ -173,8 +181,10 @@ export function InventorySeparateModal({ inventory, onClose }: InventorySeparate
                                             />
                                         </div>
                                         <div className="space-y-1.5">
-                                            <label className="text-[11px] font-semibold text-muted-foreground uppercase">{t("inventory.chemical.inventories.storageBinLocation", { defaultValue: "Vị trí" })}</label>
-                                            <Input 
+                                            <label className="text-[11px] font-semibold text-muted-foreground uppercase">
+                                                {t("inventory.chemical.inventories.storageBinLocation", { defaultValue: "Vị trí" })}
+                                            </label>
+                                            <Input
                                                 className="h-9 text-sm"
                                                 placeholder={t("inventory.chemical.inventories.locationPlace", { defaultValue: "Tủ, kệ..." })}
                                                 value={item.storageBinLocation || ""}
@@ -188,24 +198,21 @@ export function InventorySeparateModal({ inventory, onClose }: InventorySeparate
                     </div>
 
                     {/* Summary Info */}
-                    <div className={`p-4 rounded-xl flex items-center gap-4 text-sm transition-colors border ${
-                        totalSeparated > inventory.currentAvailableQty 
-                        ? "bg-destructive/5 text-destructive border-destructive/20" 
-                        : "bg-primary/5 text-primary border-primary/20"
-                    }`}>
-                        <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${
-                            totalSeparated > inventory.currentAvailableQty ? "bg-destructive/10" : "bg-primary/10"
-                        }`}>
+                    <div
+                        className={`p-4 rounded-xl flex items-center gap-4 text-sm transition-colors border ${
+                            totalSeparated > inventory.currentAvailableQty ? "bg-destructive/5 text-destructive border-destructive/20" : "bg-primary/5 text-primary border-primary/20"
+                        }`}
+                    >
+                        <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${totalSeparated > inventory.currentAvailableQty ? "bg-destructive/10" : "bg-primary/10"}`}>
                             <AlertCircle className="h-5 w-5" />
                         </div>
                         <div className="flex-1">
                             <div className="font-semibold text-xs uppercase tracking-tight opacity-70 mb-1">{t("inventory.chemical.inventories.summary", { defaultValue: "TÓM TẮT TRIẾT TÁCH" })}</div>
                             <div className="flex justify-between items-end">
-                                <div className="text-sm font-medium">
-                                    {t("inventory.chemical.inventories.totalSeparated", { defaultValue: "Tổng lượng tách ra" })}:
-                                </div>
+                                <div className="text-sm font-medium">{t("inventory.chemical.inventories.totalSeparated", { defaultValue: "Tổng lượng tách ra" })}:</div>
                                 <div className={`text-xl font-bold font-mono ${totalSeparated > inventory.currentAvailableQty ? "text-destructive" : ""}`}>
-                                    {totalSeparated.toLocaleString()} / {inventory.currentAvailableQty.toLocaleString()} <span className="text-xs font-normal opacity-70 uppercase">{(inventory as any).chemicalSku?.chemicalBaseUnit}</span>
+                                    {totalSeparated.toLocaleString()} / {inventory.currentAvailableQty.toLocaleString()}{" "}
+                                    <span className="text-xs font-normal opacity-70 uppercase">{(inventory as any).chemicalSku?.chemicalBaseUnit}</span>
                                 </div>
                             </div>
                         </div>
@@ -217,14 +224,15 @@ export function InventorySeparateModal({ inventory, onClose }: InventorySeparate
                     <Button variant="ghost" onClick={onClose}>
                         {t("common.cancel", { defaultValue: "Hủy" })}
                     </Button>
-                    <Button 
-                        onClick={handleSubmit} 
-                        disabled={!isValid || separateMutation.isPending}
-                        className="px-8 shadow-lg shadow-primary/25"
-                    >
-                        {separateMutation.isPending 
-                          ? <div className="flex items-center gap-2"><div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> {t("common.processing", { defaultValue: "Đang xử lý..." })}</div> 
-                          : t("common.confirm", { defaultValue: "Xác nhận tách lọ" })}
+                    <Button onClick={handleSubmit} disabled={!isValid || separateMutation.isPending} className="px-8 shadow-lg shadow-primary/25">
+                        {separateMutation.isPending ? (
+                            <div className="flex items-center gap-2">
+                                <div className="h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />{" "}
+                                {t("common.processing", { defaultValue: "Đang xử lý..." })}
+                            </div>
+                        ) : (
+                            t("common.confirm", { defaultValue: "Xác nhận tách lọ" })
+                        )}
                     </Button>
                 </div>
             </div>

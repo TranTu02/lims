@@ -147,7 +147,7 @@ export type ReceiptAnalysis = {
     analysisUnit?: string | null;
 
     handoverInfo?: unknown[] | null;
-    analysisReportDisplay?: Record<string, unknown> | null;
+    displayStyle?: Record<string, unknown> | null;
     analysisLocation?: string | null;
     protocolAccreditation?: any | null;
 
@@ -289,6 +289,9 @@ export type ReceiptsCreateFullBody = {
         invoiceInfo?: ClientInvoiceInfo | null;
         [key: string]: unknown;
     } | null;
+
+    contactPerson?: ContactPerson | null;
+    senderInfo?: ReceiptSenderInfo | null;
 
     receiptDate?: IsoDateString | null;
 

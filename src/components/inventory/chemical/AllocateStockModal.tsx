@@ -64,9 +64,9 @@ export function AllocateStockModal({ onClose }: Props) {
     const handleAllocate = () => {
         if (!estimateData) return;
         allocateMutation.mutate(
-            { 
-                body: { 
-                    requiredChemicals: estimateData.details.map(d => ({
+            {
+                body: {
+                    requiredChemicals: estimateData.details.map((d) => ({
                         chemicalSkuId: d.chemicalSkuId,
                         chemicalName: d.chemicalName,
                         chemicalCasNumber: d.chemicalCasNumber,
@@ -74,9 +74,9 @@ export function AllocateStockModal({ onClose }: Props) {
                         unit: d.unit,
                         analysisIds: [d.analysisId],
                         parameterName: d.parameterName,
-                    })) 
-                } 
-            }, 
+                    })),
+                },
+            },
             {
                 onSuccess: (res: any) => {
                     if (!res.success) {
@@ -94,7 +94,7 @@ export function AllocateStockModal({ onClose }: Props) {
     };
 
     return (
-        <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4">
             <div className="bg-background rounded-xl shadow-2xl border border-border flex flex-col w-[800px] max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
                 <div className="px-5 py-4 border-b border-border flex items-center justify-between shrink-0">
                     <div>
@@ -208,11 +208,15 @@ export function AllocateStockModal({ onClose }: Props) {
                                                         <div className="flex flex-wrap gap-x-2 gap-y-1 mt-0.5">
                                                             {sum.chemicalCasNumber && <span className="text-[10px] text-muted-foreground font-normal">CAS: {sum.chemicalCasNumber}</span>}
                                                             {sum.analysisIds?.map((aid: string) => {
-                                                                const detailsForAid = estimateData.details.filter(d => d.analysisId === aid && d.chemicalSkuId === sum.chemicalSkuId);
-                                                                const params = detailsForAid.map(d => d.parameterName).filter(Boolean).join(", ");
+                                                                const detailsForAid = estimateData.details.filter((d) => d.analysisId === aid && d.chemicalSkuId === sum.chemicalSkuId);
+                                                                const params = detailsForAid
+                                                                    .map((d) => d.parameterName)
+                                                                    .filter(Boolean)
+                                                                    .join(", ");
                                                                 return (
                                                                     <span key={aid} className="text-[10px] text-muted-foreground font-normal bg-muted/30 px-1 rounded">
-                                                                        {aid}{params ? ` (${params})` : ""}
+                                                                        {aid}
+                                                                        {params ? ` (${params})` : ""}
                                                                     </span>
                                                                 );
                                                             })}
@@ -249,7 +253,7 @@ export function AllocateStockModal({ onClose }: Props) {
                     {/* Step 3: Allocated Results (Picking List) */}
                     {step === 3 && allocateData && (
                         <div className="space-y-6 animate-in fade-in slide-in-from-right-2">
-                             <div className="bg-success/10 text-success border border-success/20 rounded-lg p-4 flex items-start gap-3">
+                            <div className="bg-success/10 text-success border border-success/20 rounded-lg p-4 flex items-start gap-3">
                                 <CheckCircle2 className="h-5 w-5 mt-0.5" />
                                 <div>
                                     <h4 className="font-semibold text-sm">{t("inventory.chemical.allocateStock.success", { defaultValue: "Cấp phát thành công!" })}</h4>
@@ -264,7 +268,9 @@ export function AllocateStockModal({ onClose }: Props) {
                             <div className="border border-border rounded-lg overflow-hidden bg-background shadow-sm">
                                 <div className="bg-orange-50/50 border-b border-border px-4 py-2.5 flex items-center gap-2">
                                     <Package className="h-4 w-4 text-orange-600" />
-                                    <span className="text-sm font-semibold text-orange-900">{t("inventory.chemical.allocateStock.pickingListTitle", { defaultValue: "2. Danh sách đi lấy hàng (Picking List)" })}</span>
+                                    <span className="text-sm font-semibold text-orange-900">
+                                        {t("inventory.chemical.allocateStock.pickingListTitle", { defaultValue: "2. Danh sách đi lấy hàng (Picking List)" })}
+                                    </span>
                                 </div>
                                 <table className="w-full text-sm">
                                     <thead className="bg-muted/50 text-[11px] uppercase text-muted-foreground font-bold">
@@ -277,9 +283,9 @@ export function AllocateStockModal({ onClose }: Props) {
                                     <tbody className="divide-y divide-border">
                                         {allocateData.pickingList.map((pick: any, idx: number) => {
                                             const chemName = pick.chemicalName || pick.chemicalSkuId;
-                                            const relatedDetail = allocateData.transactionDetails.find(tx => tx.chemicalSkuId === pick.chemicalSkuId);
+                                            const relatedDetail = allocateData.transactionDetails.find((tx) => tx.chemicalSkuId === pick.chemicalSkuId);
                                             const unit = relatedDetail?.chemicalTransactionBlockDetailUnit || "";
-                                            
+
                                             return (
                                                 <tr key={idx} className="hover:bg-muted/5">
                                                     <td className="px-4 py-4 align-middle">
@@ -293,7 +299,10 @@ export function AllocateStockModal({ onClose }: Props) {
                                                         {pick.analysisIds && pick.analysisIds.length > 0 && (
                                                             <div className="flex flex-wrap gap-1.5 mt-2.5">
                                                                 {pick.analysisIds.map((aid: string) => (
-                                                                    <span key={aid} className="bg-primary/5 text-primary border border-primary/10 rounded px-1.5 py-0.5 text-[9px] font-mono font-medium">
+                                                                    <span
+                                                                        key={aid}
+                                                                        className="bg-primary/5 text-primary border border-primary/10 rounded px-1.5 py-0.5 text-[9px] font-mono font-medium"
+                                                                    >
                                                                         #{aid}
                                                                     </span>
                                                                 ))}
@@ -319,8 +328,8 @@ export function AllocateStockModal({ onClose }: Props) {
                                     {t("common.close", { defaultValue: "Đóng" })}
                                 </Button>
                                 <Button variant="success" onClick={onClose} className="font-semibold">
-                                     <CheckCircle2 className="h-4 w-4 mr-2" />
-                                     {t("inventory.chemical.allocateStock.confirmAndAssign", { defaultValue: "Xác nhận xuất kho & Gán chỉ tiêu" })}
+                                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                                    {t("inventory.chemical.allocateStock.confirmAndAssign", { defaultValue: "Xác nhận xuất kho & Gán chỉ tiêu" })}
                                 </Button>
                             </div>
                         </div>

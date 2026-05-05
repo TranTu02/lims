@@ -169,7 +169,7 @@ export function AuditBlockEditModal({ auditBlock, onClose }: Props) {
     const selectCls = "flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
             <div className="bg-background rounded-xl shadow-2xl border border-border w-full max-w-3xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
                 <div className="px-5 py-4 border-b border-border flex items-start justify-between shrink-0">

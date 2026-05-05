@@ -101,6 +101,9 @@ export function SkusTab() {
                                         {t("inventory.chemical.skus.chemicalBaseUnit", { defaultValue: "Đơn vị" })}
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.skus.chemicalType", { defaultValue: "Loại hóa chất" })}
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                                         <TableFilterPopover
                                             title={t("inventory.chemical.skus.chemicalHazardClass", { defaultValue: "Phân loại nguy hiểm" })}
                                             type="enum"
@@ -156,6 +159,7 @@ export function SkusTab() {
                                             <td className="px-3 py-2 whitespace-nowrap font-mono text-xs">{sku.chemicalCasNumber ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap font-medium">{sku.chemicalName ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap">{sku.chemicalBaseUnit ?? "-"}</td>
+                                            <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{sku.chemicalType ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{sku.chemicalHazardClass ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap text-right font-medium">{sku.chemicalTotalAvailableQty ?? 0}</td>
                                             <td className="px-3 py-2 whitespace-nowrap text-right text-muted-foreground">{sku.chemicalReorderLevel ?? "-"}</td>

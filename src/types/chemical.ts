@@ -8,6 +8,7 @@ export interface ChemicalSku extends BaseEntity {
     chemicalTotalAvailableQty?: number | null;
     chemicalReorderLevel?: number | null;
     chemicalHazardClass?: string | null;
+    chemicalType?: string | null;
     openedExpDays?: number | null;
     chemicalSkuOldId?: string | null;
 
@@ -52,6 +53,7 @@ export interface ChemicalInventory extends BaseEntity {
     chemicalInventoryId: string;
     chemicalSkuId: string;
     chemicalName?: string | null; // Snapshot from SKU
+    chemicalType?: string | null;
     chemicalCasNumber?: string | null; // Snapshot from SKU
     chemicalSupplierId?: string | null;
     lotNumber?: string | null;
@@ -78,7 +80,7 @@ export interface ChemicalInventory extends BaseEntity {
     chemicalSupplier?: ChemicalSupplier;
 }
 
-export type ChemicalTransactionType = "IMPORT" | "EXPORT" | "ADJUSTMENT" | string;
+export type ChemicalTransactionType = "IMPORT" | "EXPORT" | "ADJUSTMENT" | "LAB_CONSUMPTION" | string;
 export type ChemicalTransactionBlockStatus = "DRAFT" | "PENDING_APPROVAL" | "APPROVED" | "REJECTED" | string;
 
 export interface ChemicalTransactionBlock extends BaseEntity {
@@ -115,6 +117,7 @@ export interface ChemicalTransactionBlockDetail extends BaseEntity {
     parameterName?: string | null;
     analysisId?: string | null;
     chemicalTransactionBlockDetailNote?: string | null;
+    usageDate?: string | null;
     transactionCoaDocumentIds?: string[] | null;
     transactionInvoiceDocumentIds?: string[] | null;
 }
@@ -134,6 +137,7 @@ export interface ChemicalTransaction extends BaseEntity {
     parameterName?: string | null;
     analysisId?: string | null;
     chemicalTransactionNote?: string | null;
+    usageDate?: string | null;
     transactionCoaDocumentIds?: string[] | null;
     transactionInvoiceDocumentIds?: string[] | null;
 

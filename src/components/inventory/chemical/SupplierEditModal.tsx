@@ -86,7 +86,7 @@ export function SupplierEditModal({ supplier, onClose }: Props) {
     const removeContact = (idx: number) => setContacts((prev) => prev.filter((_, i) => i !== idx));
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center" onClick={onClose}>
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
             <div className="bg-background rounded-xl shadow-2xl border border-border w-[600px] max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
                 <div className="px-5 py-4 border-b border-border flex items-start justify-between">

@@ -45,14 +45,11 @@ function TransactionRow({ item, type }: { item: ChemicalTransaction | ChemicalTr
             <div className={`mt-0.5 h-2 w-2 rounded-full shrink-0 ${isTxn ? "bg-primary" : "bg-yellow-400"}`} title={isTxn ? "Đã thực thi" : "Dự kiến (Bảng tạm)"} />
             <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold text-foreground">
-                        {a.transactionType || a.actionType}
-                    </span>
+                    <span className="font-semibold text-foreground">{a.transactionType || a.actionType}</span>
                     <span className={`font-bold ${changeQty > 0 ? "text-green-600" : changeQty < 0 ? "text-red-600" : ""}`}>
-                        {changeQty > 0 ? "+" : ""}{changeQty} {unit} 
-                        {a.totalWeight !== undefined && a.totalWeight !== null && (
-                            <span className="text-[10px] text-muted-foreground ml-1">({a.totalWeight} KL)</span>
-                        )}
+                        {changeQty > 0 ? "+" : ""}
+                        {changeQty} {unit}
+                        {a.totalWeight !== undefined && a.totalWeight !== null && <span className="text-[10px] text-muted-foreground ml-1">({a.totalWeight} KL)</span>}
                     </span>
                 </div>
                 {a.parameterName && (
@@ -135,9 +132,7 @@ export function InventoryDetailPanel({ inventory, onClose }: Props) {
                                 <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mt-2">
                                     {t("inventory.chemical.inventories.totalGrossWeight", { defaultValue: "KL cả bì" })}
                                 </div>
-                                <div className="text-sm font-semibold mt-0.5 text-foreground">
-                                    {displayInv.totalGrossWeight ?? "-"}
-                                </div>
+                                <div className="text-sm font-semibold mt-0.5 text-foreground">{displayInv.totalGrossWeight ?? "-"}</div>
                             </div>
 
                             <div>
@@ -158,6 +153,9 @@ export function InventoryDetailPanel({ inventory, onClose }: Props) {
                                 <div className="border border-border rounded-md p-3 text-sm">
                                     <div className="font-semibold">{sku.chemicalName || sku.chemicalSkuId}</div>
                                     <div className="flex gap-4 mt-2 text-muted-foreground text-xs">
+                                        <span>
+                                            Loại: <strong className="text-foreground">{displayInv.chemicalType || sku.chemicalType || "-"}</strong>
+                                        </span>
                                         <span>
                                             CAS: <strong className="text-foreground">{(sku as any).chemicalCasNumber || sku.chemicalCASNumber || "-"}</strong>
                                         </span>
@@ -208,7 +206,7 @@ export function InventoryDetailPanel({ inventory, onClose }: Props) {
                                 </div>
                                 <div className="text-sm font-medium mt-1">{(displayInv as any).manufacturerCountry || "-"}</div>
                             </div>
-                            
+
                             <div className="col-span-2">
                                 <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">
                                     {t("inventory.chemical.inventories.storageConditions", { defaultValue: "Điều kiện bảo quản" })}
@@ -256,13 +254,13 @@ export function InventoryDetailPanel({ inventory, onClose }: Props) {
                                     <FileText className="h-3.5 w-3.5" />
                                     {t("inventory.chemical.inventories.documents", { defaultValue: "Tài liệu đính kèm" })}
                                 </h3>
-                                
+
                                 {((displayInv as any).inventoryCoaDocuments?.length > 0 || (displayInv as any).inventoryCoaDocumentIds?.length > 0) && (
                                     <div className="space-y-1">
                                         <span className="text-[10px] uppercase font-bold text-muted-foreground px-1">COA Documents</span>
                                         <div className="grid grid-cols-1 gap-1">
-                                            {((displayInv as any).inventoryCoaDocuments?.length > 0 
-                                                ? (displayInv as any).inventoryCoaDocuments 
+                                            {((displayInv as any).inventoryCoaDocuments?.length > 0
+                                                ? (displayInv as any).inventoryCoaDocuments
                                                 : (displayInv as any).inventoryCoaDocumentIds.map((id: string) => ({ documentId: id }))
                                             ).map((doc: any, i: number) => (
                                                 <DocumentItem key={doc?.documentId || i} doc={doc} />
@@ -275,8 +273,8 @@ export function InventoryDetailPanel({ inventory, onClose }: Props) {
                                     <div className="space-y-1">
                                         <span className="text-[10px] uppercase font-bold text-muted-foreground px-1">Invoice / Order Documents</span>
                                         <div className="grid grid-cols-1 gap-1">
-                                            {((displayInv as any).inventoryInvoiceDocuments?.length > 0 
-                                                ? (displayInv as any).inventoryInvoiceDocuments 
+                                            {((displayInv as any).inventoryInvoiceDocuments?.length > 0
+                                                ? (displayInv as any).inventoryInvoiceDocuments
                                                 : (displayInv as any).inventoryInvoiceDocumentIds.map((id: string) => ({ documentId: id }))
                                             ).map((doc: any, i: number) => (
                                                 <DocumentItem key={doc?.documentId || i} doc={doc} />
@@ -293,16 +291,12 @@ export function InventoryDetailPanel({ inventory, onClose }: Props) {
                                 <History className="h-3.5 w-3.5" />
                                 {t("inventory.chemical.inventories.transactions", { defaultValue: "Lịch sử giao dịch (Snapshots)" })}
                             </h3>
-                            
+
                             <div className="space-y-2">
                                 {(displayInv as any).chemicalTransactions?.length > 0 ? (
-                                    (displayInv as any).chemicalTransactions.map((txn: any) => (
-                                        <TransactionRow key={txn.chemicalTransactionId} item={txn} type="TXN" />
-                                    ))
+                                    (displayInv as any).chemicalTransactions.map((txn: any) => <TransactionRow key={txn.chemicalTransactionId} item={txn} type="TXN" />)
                                 ) : (displayInv as any).chemicalTransactionBlockDetails?.length > 0 ? (
-                                   (displayInv as any).chemicalTransactionBlockDetails.map((det: any) => (
-                                        <TransactionRow key={det.chemicalTransactionBlockDetailId} item={det} type="DETAIL" />
-                                    ))
+                                    (displayInv as any).chemicalTransactionBlockDetails.map((det: any) => <TransactionRow key={det.chemicalTransactionBlockDetailId} item={det} type="DETAIL" />)
                                 ) : (
                                     <div className="text-center py-8 bg-muted/10 rounded-lg border border-dashed border-border text-muted-foreground text-xs">
                                         {t("common.noData", { defaultValue: "Chưa có lịch sử giao dịch" })}

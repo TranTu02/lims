@@ -398,23 +398,17 @@ Bảng trung gian quan trọng nhất, kết hợp 3 bảng trên để tạo ra
 
 | `protocolCode` | `text` | | Mã phương pháp (Nhập trực tiếp hoặc từ protocol). |
 
+| `protocolTitle` | `text` | | Tên đầy đủ của phương pháp. |
 | `protocolSource` | `text` | | Nguồn phương pháp. |
-
 | `protocolAccreditation` | `jsonb` | | (Snapshot) Phạm vi được công nhận chi tiết `{ [code]: { registrationDate, expirationDate } | boolean }`. |
-
 | `parameterName` | `text` | | Tên chỉ tiêu (Nhập trực tiếp). |
-
-| `displayStyle` | `jsonb` | | Cấu hình hiển thị báo cáo: `{"eng": "...", "default": "..."}`. |
-
+| `displayStyle` | `jsonb` | | Cấu hình hiển thị báo cáo: `{"vi": "...", "en": "...", "cn": "..."}`. |
 | `sampleTypeName` | `text` | | Tham chiếu `sampleTypes`. |
-
+| `taxRate` | `numeric` | | Thuế suất áp dụng cho chỉ tiêu này. |
 | `feeBeforeTax` | `numeric` | | Đơn giá trước thuế. |
-
+| `methodLOD` | `text` | | LOD tại thời điểm thử. |
+| `methodLOQ` | `text` | | LOQ tại thời điểm thử. |
 | `thresholdLimit` | `text` | | Ngưỡng quy chuẩn cho phép (Để đánh giá Đạt/Không đạt). |
-
-| `methodLOD` | `text` | | LOD tiêu chuẩn của phương pháp. |
-
-| `methodLOQ` | `text` | | LOQ tiêu chuẩn của phương pháp. |
 
 | `turnaroundTime` | `int` | | Thời gian thực hiện tiêu chuẩn (số ngày). |
 | `turnaroundDays` | `int` | | **[MỚI]** Dự kiến số ngày hoàn thành thực tế. |
@@ -473,7 +467,7 @@ Lưu trữ danh tính của các chỉ tiêu hóa/lý/vi sinh.
 
 | `parameterName` | `text` | | Tên chỉ tiêu (VD: `Chì (Pb)`, `Tổng số VSV`). |
 
-| `displayStyle` | `jsonb` | | Cấu hình hiển thị dạng markdown {"displayStyle": {"eng": "<tên tiếng anh>", "default": "<tên tiếng Việt>"}}. |
+| `displayStyle` | `jsonb` | | Cấu hình hiển thị dạng markdown {"vi": "<tên tiếng việt>", "en": "<tên tiếng anh>", "cn": "<tên tiếng trung>"}. |
 
 | `technicianAlias` | `text` | | Mã vị trí phụ trách chính cho chỉ tiêu. |
 
@@ -499,7 +493,7 @@ Phân loại mẫu để áp dụng đơn giá và ngưỡng quy chuẩn.
 
 | `sampleTypeName` | `text` | | Tên (VD: `Thực phẩm bảo vệ sức khỏe`, `Nước thải`). |
 
-| `displayTypeStyle` | `jsonb` | | {eng: <tên tiếng anh>, default: <tên tiếng Việt>} |
+| `displayTypeStyle` | `jsonb` | | {en: <tên tiếng anh>, vi: <tên tiếng Việt>, cn: <tên tiếng trung>} |
 
 | _Audit Cols_ | ... | | |
 
@@ -512,26 +506,13 @@ Bảng định nghĩa các gói/nhóm chỉ tiêu để tư vấn bán hàng và
 | :------------------------ | :-------------- | :----- | :----------------------------------------------------------------- |
 
 | `groupId` | `text` | **PK** | Mã nhóm chỉ tiêu (Custom Text ID). |
-
 | `groupName` | `text` | | Tên nhóm chỉ tiêu (VD: Gói kiểm nhanh thực phẩm). |
-
-| `matrixIds` | `text[]` | | Mảng mã liên kết với bảng `library.matrices`. (GIN Index support). |
-
+| `matrixIds` | `text[]` | | Mảng mã liên kết với bảng `library.matrices`. (Tổng giá gói = SUM(matrices.feeBeforeTax)). |
 | `groupNote` | `text` | | Ghi chú cho nhóm chỉ tiêu. |
-
 | `sampleTypeId` | `text` | **FK** | Link ID loại sản phẩm (`library.sampleTypes`). |
-
 | `sampleTypeName` | `text` | | Snapshot tên loại sản phẩm áp dụng. |
-
-| `feeBeforeTaxAndDiscount` | `numeric(15,2)` | | Giá tiền trước giảm giá. Default 0. |
-
-| `discountRate` | `numeric(5,2)` | | Giảm giá (%). Default 0. |
-
-| `feeBeforeTax` | `numeric(15,2)` | | Giá tiền sau giảm giá (Trước thuế). Default 0. |
-
-| `taxRate` | `numeric(5,2)` | | Thuế suất (%). Default 0. |
-
-| `feeAfterTax` | `numeric(15,2)` | | Giá tiền sau thuế. Default 0. |
+| `discountRate` | `numeric(5,2)` | | % Giảm giá áp dụng cho tổng giá trị gói. Default 0. |
+| `taxRate` | `numeric(5,2)` | | % Thuế suất (nếu có áp dụng riêng cho gói). Default 0. |
 
 | _Audit Cols_ | ... | | |
 
@@ -712,7 +693,7 @@ Lưu trữ công việc phân tích cụ thể. Trạng thái này quan trọng 
 
 | `handoverInfo` | `jsonb[]` | | **(Object)** Ghi nhận kẹp cùng lúc cấp phát `{handedOverBy, receivedBy, timestamp}`. |
 
-| `analysisReportDisplay` | `jsonb` | | **(Object)** Định dạng hiển thị trên báo cáo `{eng,default}`. |
+| `displayStyle` | `jsonb` | | **(Object)** Định dạng hiển thị trên báo cáo `{vi, en, cn}`. |
 
 | `parameterName` | `text` | | **(Snapshot)** Tên chỉ tiêu. |
 
@@ -917,17 +898,18 @@ Liên quan đến các dịch vụ ngoài và hỗ trợ.
 
 #### 1. Bảng `chemicalSkus` (Danh mục Hóa chất Master)
 
-| Column Name                 | Type      | Key    | Description                                           |
-| :-------------------------- | :-------- | :----- | :---------------------------------------------------- |
-| `chemicalSkuId`             | `text`    | **PK** | Mã gốc hóa chất (VD: `SKU_HNO3`).                     |
-| `chemicalSkuOldId`          | `text`    |        | **[MỚI]** ID từ hệ thống cũ (migration reference).    |
-| `chemicalName`              | `text`    |        | Tên gọi hóa chất (VD: `Axit Nitric 65%`).             |
-| `chemicalCasNumber`         | `text`    |        | Số CAS.                                               |
-| `chemicalBaseUnit`          | `text`    |        | Đơn vị lưu kho cơ bản (VD: `ml`, `g`).                |
-| `chemicalTotalAvailableQty` | `numeric` |        | Tổng tồn kho khả dụng hiện tại.                       |
-| `chemicalReorderLevel`      | `numeric` |        | Mức cảnh báo tồn tối thiểu.                           |
-| `chemicalHazardClass`       | `text`    |        | Phân loại độc hại (`Flammable`, `Toxic`...).          |
-| `openedExpDays`             | `int`     |        | **[MỚI]** Số ngày sử dụng tối đa sau mở nắp mặc định. |
+| Column Name                 | Type      | Key    | Description                                                                 |
+| :-------------------------- | :-------- | :----- | :-------------------------------------------------------------------------- |
+| `chemicalSkuId`             | `text`    | **PK** | Mã gốc hóa chất (VD: `SKU_HNO3`).                                           |
+| `chemicalSkuOldId`          | `text`    |        | **[MỚI]** ID từ hệ thống cũ (migration reference).                          |
+| `chemicalName`              | `text`    |        | Tên gọi hóa chất (VD: `Axit Nitric 65%`).                                   |
+| `chemicalType`              | `text`    |        | **[MỚI]** Phân loại: `Hóa chất`, `Môi trường`, `Chất chuẩn`, `Chủng chuẩn`. |
+| `chemicalCasNumber`         | `text`    |        | Số CAS.                                                                     |
+| `chemicalBaseUnit`          | `text`    |        | Đơn vị lưu kho cơ bản (VD: `ml`, `g`).                                      |
+| `chemicalTotalAvailableQty` | `numeric` |        | Tổng tồn kho khả dụng hiện tại.                                             |
+| `chemicalReorderLevel`      | `numeric` |        | Mức cảnh báo tồn tối thiểu.                                                 |
+| `chemicalHazardClass`       | `text`    |        | Phân loại độc hại (`Flammable`, `Toxic`...).                                |
+| `openedExpDays`             | `int`     |        | **[MỚI]** Số ngày sử dụng tối đa sau mở nắp mặc định.                       |
 
 #### 2. Bảng `chemicalSuppliers` (Danh mục Nhà cung cấp)
 
@@ -958,45 +940,46 @@ Liên quan đến các dịch vụ ngoài và hỗ trợ.
 
 #### 4. Bảng `chemicalInventories` (Tồn kho vật lý thực tế - Từng chai)
 
-| Column Name                   | Type      | Key    | Description                                                               |
-| :---------------------------- | :-------- | :----- | :------------------------------------------------------------------------ |
-| `chemicalInventoryId`         | `text`    | **PK** | Mã Barcode trên chai (VD: `BTL_2603_001`).                                |
-| `chemicalSkuId`               | `text`    | **FK** | Mã SKU hóa chất.                                                          |
-| `chemicalSkuOldId`            | `text`    |        | **[MỚI]** ID từ hệ thống cũ (migration reference).                        |
-| `chemicalName`                | `text`    |        | Tên hóa chất.                                                             |
-| `chemicalBaseUnit`            | `text`    |        | Đơn vị tính cơ bản.                                                       |
-| `chemicalCasNumber`           | `text`    |        | Số CAS.                                                                   |
-| `chemicalSupplierId`          | `text`    | **FK** | Mua từ NCC nào.                                                           |
-| `lotNumber`                   | `text`    |        | Số Lô (Lot).                                                              |
-| `manufacturerName`            | `text`    |        | Hãng sản xuất.                                                            |
-| `manufacturerCountry`         | `text`    |        | Nước sản xuất.                                                            |
-| `inventoryCoaDocumentIds`     | `text[]`  |        | File chứng nhận COA của lô.                                               |
-| `inventoryInvoiceDocumentIds` | `text[]`  |        | File hóa đơn của lô.                                                      |
-| `currentAvailableQty`         | `numeric` |        | Số lượng khả dụng hiện tại trong lọ.                                      |
-| `totalGrossWeight`            | `numeric` |        | **[MỚI]** Tổng khối lượng cả bì.                                          |
-| `mfgDate`                     | `date`    |        | Ngày sản xuất.                                                            |
-| `expDate`                     | `date`    |        | Ngày hết hạn.                                                             |
-| `openedDate`                  | `date`    |        | Ngày mở nắp thực tế.                                                      |
-| `openedExpDays`               | `int`     |        | **[MỚI]** Số ngày sử dụng sau khi mở nắp (ghi đè từ SKU).                 |
-| `openedExpDate`               | `date`    |        | Hạn sử dụng sau khi mở nắp (Hệ thống tính toán).                          |
-| `chemicalInventoryStatus`     | `text`    |        | `Pending`, `Quarantined`, `New`, `InUse`, `Empty`, `Expired`, `Disposed`. |
-| `storageBinLocation`          | `text`    |        | Vị trí lưu trữ chi tiết.                                                  |
-| `storageConditions`           | `text`    |        | Điều kiện bảo quản/lưu trữ (ví dụ: nhiệt độ, ánh sáng...).                |
+| Column Name                   | Type      | Key    | Description                                                                                 |
+| :---------------------------- | :-------- | :----- | :------------------------------------------------------------------------------------------ |
+| `chemicalInventoryId`         | `text`    | **PK** | Mã Barcode trên chai (VD: `BTL_2603_001`).                                                  |
+| `chemicalSkuId`               | `text`    | **FK** | Mã SKU hóa chất.                                                                            |
+| `chemicalSkuOldId`            | `text`    |        | **[MỚI]** ID từ hệ thống cũ (migration reference).                                          |
+| `chemicalName`                | `text`    |        | Tên hóa chất.                                                                               |
+| `chemicalType`                | `text`    |        | **[MỚI]** Phân loại: `Hóa chất`, `Môi trường`, `Chất chuẩn`, `Chủng chuẩn`, `Hóa chất pha`. |
+| `chemicalBaseUnit`            | `text`    |        | Đơn vị tính cơ bản.                                                                         |
+| `chemicalCasNumber`           | `text`    |        | Số CAS.                                                                                     |
+| `chemicalSupplierId`          | `text`    | **FK** | Mua từ NCC nào.                                                                             |
+| `lotNumber`                   | `text`    |        | Số Lô (Lot).                                                                                |
+| `manufacturerName`            | `text`    |        | Hãng sản xuất.                                                                              |
+| `manufacturerCountry`         | `text`    |        | Nước sản xuất.                                                                              |
+| `inventoryCoaDocumentIds`     | `text[]`  |        | File chứng nhận COA của lô.                                                                 |
+| `inventoryInvoiceDocumentIds` | `text[]`  |        | File hóa đơn của lô.                                                                        |
+| `currentAvailableQty`         | `numeric` |        | Số lượng khả dụng hiện tại trong lọ.                                                        |
+| `totalGrossWeight`            | `numeric` |        | **[MỚI]** Tổng khối lượng cả bì.                                                            |
+| `mfgDate`                     | `date`    |        | Ngày sản xuất.                                                                              |
+| `expDate`                     | `date`    |        | Ngày hết hạn.                                                                               |
+| `openedDate`                  | `date`    |        | Ngày mở nắp thực tế.                                                                        |
+| `openedExpDays`               | `int`     |        | **[MỚI]** Số ngày sử dụng sau khi mở nắp (ghi đè từ SKU).                                   |
+| `openedExpDate`               | `date`    |        | Hạn sử dụng sau khi mở nắp (Hệ thống tính toán).                                            |
+| `chemicalInventoryStatus`     | `text`    |        | `Pending`, `Quarantined`, `New`, `InUse`, `Empty`, `Expired`, `Disposed`.                   |
+| `storageBinLocation`          | `text`    |        | Vị trí lưu trữ chi tiết.                                                                    |
+| `storageConditions`           | `text`    |        | Điều kiện bảo quản/lưu trữ (ví dụ: nhiệt độ, ánh sáng...).                                  |
 
 #### 5. Bảng `chemicalTransactionBlocks` (Phiếu Giao Dịch - Header)
 
-| Column Name                       | Type        | Key    | Description                                                                      |
-| :-------------------------------- | :---------- | :----- | :------------------------------------------------------------------------------- |
-| `chemicalTransactionBlockId`      | `text`      | **PK** | Mã Phiếu (VD: `TRB_2603_01`).                                                    |
-| `transactionType`                 | `text`      |        | `IMPORT` (Nhập), `EXPORT` (Xuất), `ADJUSTMENT` (Điều chỉnh).                     |
-| `chemicalTransactionBlockStatus`  | `text`      |        | **[MỚI]** Trạng thái Phiếu: `DRAFT`, `PENDING_APPROVAL`, `APPROVED`, `REJECTED`. |
-| `referenceDocument`               | `text`      |        | Số Yêu cầu / PO tham chiếu.                                                      |
-| `createdBy`                       | `text`      |        | Người tạo phiếu.                                                                 |
-| `createdAt`                       | `timestamp` |        | Thời gian tạo.                                                                   |
-| `approvedBy`                      | `text`      |        | **[MỚI]** Người duyệt phiếu.                                                     |
-| `approvedAt`                      | `timestamp` |        | **[MỚI]** Thời gian duyệt.                                                       |
-| `chemicalBlockCoaDocumentIds`     | `text[]`    |        | File chứng nhận COA của lô.                                                      |
-| `chemicalBlockInvoiceDocumentIds` | `text[]`    |        | File hóa đơn của lô.                                                             |
+| Column Name                       | Type        | Key    | Description                                                                                           |
+| :-------------------------------- | :---------- | :----- | :---------------------------------------------------------------------------------------------------- |
+| `chemicalTransactionBlockId`      | `text`      | **PK** | Mã Phiếu (VD: `TRB_2603_01`).                                                                         |
+| `transactionType`                 | `text`      |        | `IMPORT` (Nhập), `EXPORT` (Xuất), `ADJUSTMENT` (Điều chỉnh), `LAB_CONSUMPTION` (Nhật ký sử dụng PTN). |
+| `chemicalTransactionBlockStatus`  | `text`      |        | **[MỚI]** Trạng thái Phiếu: `DRAFT`, `PENDING_APPROVAL`, `APPROVED`, `REJECTED`.                      |
+| `referenceDocument`               | `text`      |        | Số Yêu cầu / PO tham chiếu.                                                                           |
+| `createdBy`                       | `text`      |        | Người tạo phiếu.                                                                                      |
+| `createdAt`                       | `timestamp` |        | Thời gian tạo.                                                                                        |
+| `approvedBy`                      | `text`      |        | **[MỚI]** Người duyệt phiếu.                                                                          |
+| `approvedAt`                      | `timestamp` |        | **[MỚI]** Thời gian duyệt.                                                                            |
+| `chemicalBlockCoaDocumentIds`     | `text[]`    |        | File chứng nhận COA của lô.                                                                           |
+| `chemicalBlockInvoiceDocumentIds` | `text[]`    |        | File hóa đơn của lô.                                                                                  |
 
 > **Logic Cập nhật Tự động:** Khi duyệt `chemicalTransactionBlocks` sang `APPROVED`, nếu 2 trường `chemicalBlockCoaDocumentIds` và `chemicalBlockInvoiceDocumentIds` có dữ liệu (khác null/empty), hệ thống sẽ tự động cập nhật tài liệu tương ứng vào `inventoryCoaDocumentIds` và `inventoryInvoiceDocumentIds` của tất cả các chai/lọ (`chemicalInventoryId`) nằm trong phiếu giao dịch này.
 
@@ -1004,49 +987,51 @@ Liên quan đến các dịch vụ ngoài và hỗ trợ.
 
 _Lưu dữ liệu mà thuật toán gợi ý hoặc KTV xin xuất/nhập, nhưng CHƯA TÁC ĐỘNG VÀO KHO._
 
-| Column Name                          | Type      | Key    | Description                                        |
-| :----------------------------------- | :-------- | :----- | :------------------------------------------------- |
-| `chemicalTransactionBlockDetailId`   | `text`    | **PK** | Mã dòng chi tiết tạm.                              |
-| `chemicalTransactionBlockId`         | `text`    | **FK** | Thuộc Phiếu nào.                                   |
-| `transactionCoaDocumentIds`          | `text[]`  |        | File chứng nhận COA của lô.                        |
-| `transactionInvoiceDocumentIds`      | `text[]`  |        | File hóa đơn của lô.                               |
-| `transactionType`                    | `text`    |        | `IMPORT`, `EXPORT`, `ADJUSTMENT`.                  |
-| `chemicalSkuId`                      | `text`    | **FK** | Mã SKU.                                            |
-| `chemicalSkuOldId`                   | `text`    |        | **[MỚI]** ID từ hệ thống cũ.                       |
-| `chemicalName`                       | `text`    |        | Tên Hóa chất.                                      |
-| `lotNumber`                          | `text`    |        | Số lô.                                             |
-| `chemicalCasNumber`                  | `text`    |        | Số CAS.                                            |
-| `chemicalInventoryId`                | `text`    | **FK** | **Dự kiến** bốc chai/lọ nào.                       |
-| `changeQty`                          | `numeric` |        | **Dự kiến** thay đổi bao nhiêu.                    |
-| `totalWeight`                        | `numeric` |        | **[MỚI]** Tổng khối lượng tại thời điểm giao dịch. |
-| `chemicalTransactionBlockDetailUnit` | `text`    |        | Đơn vị tính.                                       |
-| `parameterName`                      | `text`    |        | Xuất ra cho Phép thử nào.                          |
-| `analysisId`                         | `text`    | **FK** | Phục vụ mã chỉ tiêu thực hiện nào.                 |
-| `chemicalTransactionBlockDetailNote` | `text`    |        | Ghi chú.                                           |
+| Column Name                          | Type      | Key    | Description                                              |
+| :----------------------------------- | :-------- | :----- | :------------------------------------------------------- |
+| `chemicalTransactionBlockDetailId`   | `text`    | **PK** | Mã dòng chi tiết tạm.                                    |
+| `chemicalTransactionBlockId`         | `text`    | **FK** | Thuộc Phiếu nào.                                         |
+| `transactionCoaDocumentIds`          | `text[]`  |        | File chứng nhận COA của lô.                              |
+| `transactionInvoiceDocumentIds`      | `text[]`  |        | File hóa đơn của lô.                                     |
+| `transactionType`                    | `text`    |        | `IMPORT`, `EXPORT`, `ADJUSTMENT`, `LAB_CONSUMPTION`.     |
+| `usageDate`                          | `date`    |        | **[MỚI]** Ngày sử dụng thực tế (áp dụng cho nhật ký SD). |
+| `chemicalSkuId`                      | `text`    | **FK** | Mã SKU.                                                  |
+| `chemicalSkuOldId`                   | `text`    |        | **[MỚI]** ID từ hệ thống cũ.                             |
+| `chemicalName`                       | `text`    |        | Tên Hóa chất.                                            |
+| `lotNumber`                          | `text`    |        | Số lô.                                                   |
+| `chemicalCasNumber`                  | `text`    |        | Số CAS.                                                  |
+| `chemicalInventoryId`                | `text`    | **FK** | **Dự kiến** bốc chai/lọ nào.                             |
+| `changeQty`                          | `numeric` |        | **Dự kiến** thay đổi bao nhiêu.                          |
+| `totalWeight`                        | `numeric` |        | **[MỚI]** Tổng khối lượng tại thời điểm giao dịch.       |
+| `chemicalTransactionBlockDetailUnit` | `text`    |        | Đơn vị tính.                                             |
+| `parameterName`                      | `text`    |        | Xuất ra cho Phép thử nào.                                |
+| `analysisId`                         | `text`    | **FK** | Phục vụ mã chỉ tiêu thực hiện nào.                       |
+| `chemicalTransactionBlockDetailNote` | `text`    |        | Ghi chú.                                                 |
 
 #### 7. Bảng `chemicalTransactions` (Lịch sử giao dịch chính thức - LEDGER)
 
 _Chỉ sinh ra dữ liệu khi Phiếu ở trạng thái APPROVED. Đây là Sổ cái không thể xóa sửa._
 
-| Column Name                     | Type      | Key    | Description                                        |
-| :------------------------------ | :-------- | :----- | :------------------------------------------------- |
-| `chemicalTransactionId`         | `text`    | **PK** | Mã dòng giao dịch thực tế (VD: `TXN_99901`).       |
-| `chemicalTransactionBlockId`    | `text`    | **FK** | Nguồn gốc từ Phiếu nào.                            |
-| `transactionCoaDocumentIds`     | `text[]`  |        | File chứng nhận COA của lô.                        |
-| `transactionInvoiceDocumentIds` | `text[]`  |        | File hóa đơn của lô.                               |
-| `transactionType`               | `text`    |        | `IMPORT`, `EXPORT`, `ADJUSTMENT`.                  |
-| `chemicalSkuId`                 | `text`    | **FK** | Mã SKU.                                            |
-| `chemicalSkuOldId`              | `text`    |        | **[MỚI]** ID từ hệ thống cũ.                       |
-| `chemicalName`                  | `text`    |        | Tên Hóa chất.                                      |
-| `lotNumber`                     | `text`    |        | Số lô.                                             |
-| `chemicalCasNumber`             | `text`    |        | Số CAS.                                            |
-| `chemicalInventoryId`           | `text`    | **FK** | Mã Barcode của chai/lọ.                            |
-| `changeQty`                     | `numeric` |        | Số lượng thay đổi.                                 |
-| `totalWeight`                   | `numeric` |        | **[MỚI]** Tổng khối lượng tại thời điểm xuất/nhập. |
-| `chemicalTransactionUnit`       | `text`    |        | Đơn vị tính.                                       |
-| `parameterName`                 | `text`    |        | Xuất ra cho Phép thử nào.                          |
-| `analysisId`                    | `text`    | **FK** | Phục vụ mã chỉ tiêu thực hiện nào.                 |
-| `chemicalTransactionNote`       | `text`    |        | Ghi chú.                                           |
+| Column Name                     | Type      | Key    | Description                                              |
+| :------------------------------ | :-------- | :----- | :------------------------------------------------------- |
+| `chemicalTransactionId`         | `text`    | **PK** | Mã dòng giao dịch thực tế (VD: `TXN_99901`).             |
+| `chemicalTransactionBlockId`    | `text`    | **FK** | Nguồn gốc từ Phiếu nào.                                  |
+| `transactionCoaDocumentIds`     | `text[]`  |        | File chứng nhận COA của lô.                              |
+| `transactionInvoiceDocumentIds` | `text[]`  |        | File hóa đơn của lô.                                     |
+| `transactionType`               | `text`    |        | `IMPORT`, `EXPORT`, `ADJUSTMENT`, `LAB_CONSUMPTION`.     |
+| `usageDate`                     | `date`    |        | **[MỚI]** Ngày sử dụng thực tế (áp dụng cho nhật ký SD). |
+| `chemicalSkuId`                 | `text`    | **FK** | Mã SKU.                                                  |
+| `chemicalSkuOldId`              | `text`    |        | **[MỚI]** ID từ hệ thống cũ.                             |
+| `chemicalName`                  | `text`    |        | Tên Hóa chất.                                            |
+| `lotNumber`                     | `text`    |        | Số lô.                                                   |
+| `chemicalCasNumber`             | `text`    |        | Số CAS.                                                  |
+| `chemicalInventoryId`           | `text`    | **FK** | Mã Barcode của chai/lọ.                                  |
+| `changeQty`                     | `numeric` |        | Số lượng thay đổi.                                       |
+| `totalWeight`                   | `numeric` |        | **[MỚI]** Tổng khối lượng tại thời điểm xuất/nhập.       |
+| `chemicalTransactionUnit`       | `text`    |        | Đơn vị tính.                                             |
+| `parameterName`                 | `text`    |        | Xuất ra cho Phép thử nào.                                |
+| `analysisId`                    | `text`    | **FK** | Phục vụ mã chỉ tiêu thực hiện nào.                       |
+| `chemicalTransactionNote`       | `text`    |        | Ghi chú.                                                 |
 
 #### Phân hệ 3: INVENTORY AUDIT (Kiểm kê kho)
 

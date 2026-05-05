@@ -325,7 +325,7 @@ export interface Analysis extends BaseEntity {
     methodLOQ?: string; // Snapshot
     analysisUnit?: string; // Snapshot
     handoverInfo?: Record<string, any>[];
-    analysisReportDisplay?: Record<string, any>;
+    displayStyle?: Record<string, any>;
     parameterName?: string; // Snapshot
     analysisLocation?: string;
     protocolCode?: string; // Snapshot

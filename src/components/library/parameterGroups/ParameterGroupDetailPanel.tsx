@@ -1,6 +1,5 @@
-import { AlertCircle, X, Pencil, Package } from "lucide-react";
+import { AlertCircle, X, Pencil } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useMemo } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

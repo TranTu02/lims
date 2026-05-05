@@ -20,6 +20,7 @@ type Props = {
 };
 
 const STATUS_OPTIONS = ["New", "InUse", "Quarantined", "Pending", "Empty", "Expired", "Disposed"];
+const INV_CHEMICAL_TYPES = ["Hóa chất", "Môi trường", "Chất chuẩn", "Chủng chuẩn", "Hóa chất pha", "Hóa chất phụ trợ"];
 
 export function InventoryEditModal({ inventory, onClose }: Props) {
     const { t } = useTranslation();
@@ -31,6 +32,7 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
         chemicalInventoryId: inventory?.chemicalInventoryId ?? "",
         chemicalSkuId: (inventory as any)?.chemicalSkuId ?? "",
         chemicalName: (inventory as any)?.chemicalName ?? "",
+        chemicalType: (inventory as any)?.chemicalType ?? "",
         chemicalCasNumber: (inventory as any)?.chemicalCasNumber ?? "",
         lotNumber: (inventory as any)?.lotNumber ?? "",
         chemicalSkuOldId: (inventory as any)?.chemicalSkuOldId ?? "",
@@ -71,8 +73,8 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
                 ...form,
                 mfgDate: form.mfgDate || null,
                 expDate: form.expDate || null,
-                openedDate: isInUse ? (form.openedDate || null) : null,
-                openedExpDate: isInUse ? (form.openedExpDate || null) : null,
+                openedDate: isInUse ? form.openedDate || null : null,
+                openedExpDate: isInUse ? form.openedExpDate || null : null,
                 totalGrossWeight: form.totalGrossWeight ? Number(form.totalGrossWeight) : null,
             };
             // Remove helper fields not needed by API
@@ -134,7 +136,7 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
     const set = (key: string, val: any) => {
         setForm((f) => {
             const next = { ...f, [key]: val };
-            
+
             // Auto calculate openedExpDate if openedDate or openedExpDays changes
             if (key === "openedDate" || key === "openedExpDays") {
                 next.openedExpDate = calculateOpenedExpDate(next.openedDate, next.openedExpDays);
@@ -166,7 +168,7 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
     };
 
     return (
-        <div className="fixed inset-0 z-[70] bg-black/50 flex items-center justify-center p-4" onClick={() => !uploadModalOpen && !uploadInvoiceModalOpen && onClose()}>
+        <div className="fixed inset-0 z-[70] bg-black/50 flex items-center justify-center p-4">
             <div className="bg-background rounded-xl shadow-2xl border border-border w-[900px] max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
                 <div className="px-5 py-4 border-b border-border flex items-start justify-between">
@@ -194,14 +196,15 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
                                 <SkuSelect
                                     value={form.chemicalSkuId}
                                     onChange={(skuId, sku) => {
-                                        setForm(f => ({
+                                        setForm((f) => ({
                                             ...f,
                                             chemicalSkuId: skuId,
                                             chemicalName: sku?.chemicalName || f.chemicalName,
+                                            chemicalType: sku?.chemicalType || f.chemicalType,
                                             chemicalCasNumber: sku?.chemicalCasNumber || f.chemicalCasNumber,
                                             chemicalSkuOldId: (sku as any)?.chemicalSkuOldId || f.chemicalSkuOldId,
                                             openedExpDays: sku?.openedExpDays ?? f.openedExpDays,
-                                            openedExpDate: calculateOpenedExpDate(f.openedDate, sku?.openedExpDays ?? f.openedExpDays)
+                                            openedExpDate: calculateOpenedExpDate(f.openedDate, sku?.openedExpDays ?? f.openedExpDays),
                                         }));
                                     }}
                                     placeholder={t("inventory.chemical.skus.selectPlaceholder", { defaultValue: "Chọn mã SKU..." })}
@@ -212,14 +215,7 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
                                     <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                                         {t("inventory.chemical.inventories.cloneCount", { defaultValue: "Số lượng lọ/chai" })}
                                     </label>
-                                    <Input
-                                        type="number"
-                                        min={1}
-                                        max={50}
-                                        value={cloneCount}
-                                        onChange={(e) => setCloneCount(Math.max(1, parseInt(e.target.value) || 1))}
-                                        placeholder="Số lượng lọ..."
-                                    />
+                                    <Input type="number" min={1} max={50} value={cloneCount} onChange={(e) => setCloneCount(Math.max(1, parseInt(e.target.value) || 1))} placeholder="Số lượng lọ..." />
                                     <p className="text-[10px] text-muted-foreground italic">Nhập số lượng để nhân bản thông tin sang nhiều lọ/chai khác nhau.</p>
                                 </div>
                             )}
@@ -257,6 +253,22 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
                                 ))}
                             </select>
                         </div>
+                        <div className="space-y-1">
+                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("inventory.chemical.skus.chemicalType", { defaultValue: "Loại hóa chất" })}</label>
+                            <select
+                                id="edit-inv-type"
+                                value={form.chemicalType}
+                                onChange={(e) => set("chemicalType", e.target.value)}
+                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            >
+                                <option value="">-- {t("common.select", { defaultValue: "Theo SKU gốc" })} --</option>
+                                {INV_CHEMICAL_TYPES.map((s) => (
+                                    <option key={s} value={s}>
+                                        {s}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                         <div className="col-span-2 space-y-1">
                             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                                 {t("inventory.chemical.inventories.storageBinLocation", { defaultValue: "Vị trí lưu kho" })} <span className="text-destructive">*</span>
@@ -276,7 +288,7 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
                                 ))}
                             </select>
                         </div>
-                        
+
                         <div className="col-span-2 space-y-1">
                             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("inventory.chemical.skus.manufacturer", { defaultValue: "Hãng Sản xuất" })}</label>
                             <Input value={form.manufacturerName} onChange={(e) => set("manufacturerName", e.target.value)} id="edit-inv-mfg" />
@@ -303,12 +315,17 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
                             </label>
                             <Input value={form.chemicalSkuOldId} onChange={(e) => set("chemicalSkuOldId", e.target.value)} id="edit-inv-oldid" />
                         </div>
-                        
+
                         <div className="col-span-4 space-y-1">
                             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                                 {t("inventory.chemical.inventories.storageConditions", { defaultValue: "Điều kiện lưu kho" })}
                             </label>
-                            <Input value={form.storageConditions} onChange={(e) => set("storageConditions", e.target.value)} id="edit-inv-conditions" placeholder="Nơi thoáng mát, tối, nhiệt độ phòng 20-25°C..." />
+                            <Input
+                                value={form.storageConditions}
+                                onChange={(e) => set("storageConditions", e.target.value)}
+                                id="edit-inv-conditions"
+                                placeholder="Nơi thoáng mát, tối, nhiệt độ phòng 20-25°C..."
+                            />
                         </div>
                     </div>
 
@@ -336,7 +353,9 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
                                         <Input type="date" value={form.openedDate} onChange={(e) => set("openedDate", e.target.value)} id="edit-inv-openeddate" />
                                     </div>
                                     <div className="col-span-2 space-y-1">
-                                        <label className="text-xs text-muted-foreground">{t("inventory.chemical.inventories.openedExpDate", { defaultValue: "Hạn SD thực tế sau khui (Dự kiến)" })}</label>
+                                        <label className="text-xs text-muted-foreground">
+                                            {t("inventory.chemical.inventories.openedExpDate", { defaultValue: "Hạn SD thực tế sau khui (Dự kiến)" })}
+                                        </label>
                                         <Input type="date" value={form.openedExpDate} readOnly className="bg-muted font-bold text-primary" />
                                     </div>
                                 </>

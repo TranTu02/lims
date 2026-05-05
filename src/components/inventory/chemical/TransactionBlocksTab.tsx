@@ -21,6 +21,7 @@ import { TableFilterPopover } from "./TableFilterPopover";
 import { SearchSelectPicker, type PickerItem } from "@/components/shared/SearchSelectPicker";
 import { searchDocuments } from "@/api/documents";
 import { DocumentUploadModal } from "@/components/document/DocumentUploadModal";
+import { ChemicalLogReportEditor } from "./ChemicalLogReportEditor";
 import { HelpBubble } from "./HelpBubble";
 
 // --- Helper ---
@@ -48,6 +49,10 @@ function BlockBadge({ type }: { type?: string | null }) {
         IMPORT: { label: t("inventory.chemical.transactionBlocks.types.INBOUND", { defaultValue: "Nhập kho" }), cls: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" },
         EXPORT: { label: t("inventory.chemical.transactionBlocks.types.OUTBOUND", { defaultValue: "Xuất kho" }), cls: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" },
         ADJUSTMENT: { label: t("inventory.chemical.transactionBlocks.types.ADJUSTMENT", { defaultValue: "Điều chỉnh" }), cls: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
+        LAB_CONSUMPTION: {
+            label: t("inventory.chemical.transactionBlocks.types.LAB_CONSUMPTION", { defaultValue: "Nhật ký sử dụng PTN" }),
+            cls: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+        },
     };
     const s = type ? BLOCK_TYPE_MAP[type] : undefined;
     if (s) return <Badge className={s.cls}>{s.label}</Badge>;
@@ -105,7 +110,7 @@ function InventoryPickerModal({ selectedIds, onToggle, onClose }: InventoryPicke
     );
 
     return (
-        <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4">
             <div className="bg-background rounded-xl shadow-2xl border border-border flex flex-col" style={{ width: "50%", height: "70%", minWidth: "700px" }} onClick={(e) => e.stopPropagation()}>
                 <div className="px-4 py-3 border-b border-border flex items-center justify-between">
                     <div>
@@ -223,15 +228,17 @@ export type EditLineItem = {
     inventory: ChemicalInventory;
     changeQty: number;
     totalWeight?: number;
+    totalWeight?: number;
     analysisId: string;
     chemicalTransactionBlockDetailNote: string;
     transactionCoaDocumentIds?: string[];
+    usageDate?: string;
 };
 
 type ItemCardProps = {
     item: EditLineItem;
     transactionType: string;
-    onUpdate: (field: "changeQty" | "chemicalTransactionBlockDetailNote" | "analysisId" | "totalWeight" | "transactionCoaDocumentIds", value: any) => void;
+    onUpdate: (field: "changeQty" | "chemicalTransactionBlockDetailNote" | "analysisId" | "totalWeight" | "transactionCoaDocumentIds" | "usageDate", value: any) => void;
     onRemove: () => void;
     onDuplicate: () => void;
     onUploadCoa: () => void;
@@ -271,7 +278,7 @@ function ItemCard({ item, transactionType, onUpdate, onRemove, onDuplicate, onUp
             </div>
 
             {/* Fields Grid */}
-            <div className={`grid gap-2 items-end ${transactionType === "EXPORT" ? "grid-cols-4" : "grid-cols-3"}`}>
+            <div className={`grid gap-2 items-end ${transactionType === "EXPORT" || transactionType === "LAB_CONSUMPTION" ? "grid-cols-4" : "grid-cols-3"}`}>
                 <div className="space-y-0.5">
                     <label className="text-[10px] font-medium text-muted-foreground uppercase">{t("common.quantity", { defaultValue: "Số lượng" })}</label>
                     <Input
@@ -302,6 +309,12 @@ function ItemCard({ item, transactionType, onUpdate, onRemove, onDuplicate, onUp
                             value={item.analysisId || ""}
                             onChange={(e) => onUpdate("analysisId", e.target.value)}
                         />
+                    </div>
+                )}
+                {transactionType === "LAB_CONSUMPTION" && (
+                    <div className="space-y-0.5">
+                        <label className="text-[10px] font-medium text-muted-foreground uppercase">{t("inventory.chemical.transactions.usageDate", { defaultValue: "Ngày sử dụng" })}</label>
+                        <Input type="date" className="h-8 text-xs" value={item.usageDate || ""} onChange={(e) => onUpdate("usageDate", e.target.value)} />
                     </div>
                 )}
                 <div className="space-y-0.5">
@@ -353,15 +366,15 @@ function ItemCard({ item, transactionType, onUpdate, onRemove, onDuplicate, onUp
 // --- Create Block Modal (80% w, 90% h, 2-col ≥1536px) ---
 type CreateBlockModalProps = {
     onClose: () => void;
-    initialType?: "IMPORT" | "EXPORT" | "ADJUSTMENT";
+    initialType?: "IMPORT" | "EXPORT" | "ADJUSTMENT" | "LAB_CONSUMPTION";
     initialItems?: ChemicalInventory[];
-    initialTxnData?: Record<string, { changeQty: number; chemicalTransactionBlockDetailNote: string; analysisId?: string; totalWeight?: number }>;
+    initialTxnData?: Record<string, { changeQty: number; chemicalTransactionBlockDetailNote: string; analysisId?: string; totalWeight?: number; usageDate?: string }>;
     initialRef?: string;
 };
 
 function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, initialRef }: CreateBlockModalProps) {
     const { t } = useTranslation();
-    const [transactionType, setTransactionType] = useState<"IMPORT" | "EXPORT" | "ADJUSTMENT">(initialType ?? "EXPORT");
+    const [transactionType, setTransactionType] = useState<"IMPORT" | "EXPORT" | "ADJUSTMENT" | "LAB_CONSUMPTION">(initialType ?? "EXPORT");
     const [referenceDocument, setReferenceDocument] = useState(initialRef ?? "");
     const [viewMode, setViewMode] = useState<"DETAILS" | "SUMMARY">("DETAILS");
 
@@ -382,6 +395,7 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                 totalWeight: initialTxnData?.[inv.chemicalInventoryId]?.totalWeight ?? undefined,
                 analysisId: initialTxnData?.[inv.chemicalInventoryId]?.analysisId ?? "",
                 chemicalTransactionBlockDetailNote: initialTxnData?.[inv.chemicalInventoryId]?.chemicalTransactionBlockDetailNote ?? "",
+                usageDate: initialTxnData?.[inv.chemicalInventoryId]?.usageDate ?? new Date().toISOString().split("T")[0],
             }));
         }
         return [];
@@ -389,6 +403,7 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
 
     const [pickerOpen, setPickerOpen] = useState(false);
     const [printLabelOpen, setPrintLabelOpen] = useState(false);
+    const [logReportOpen, setLogReportOpen] = useState(false);
     const [isScanning, setIsScanning] = useState(false);
 
     // Individual item COA upload
@@ -424,6 +439,7 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                             totalWeight: undefined,
                             analysisId: "",
                             chemicalTransactionBlockDetailNote: "",
+                            usageDate: new Date().toISOString().split("T")[0],
                         },
                     ]);
                     toast.success(t("inventory.chemical.inventories.addedByScan", { defaultValue: "Đã thêm: {{id}}", id: scannedId }));
@@ -457,6 +473,10 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
             label: t("inventory.chemical.transactionBlocks.types.ADJUSTMENT", { defaultValue: "Điều chỉnh" }),
             cls: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
         },
+        LAB_CONSUMPTION: {
+            label: t("inventory.chemical.transactionBlocks.types.LAB_CONSUMPTION", { defaultValue: "Nhật ký sử dụng PTN" }),
+            cls: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+        },
     };
 
     const toggleInventory = (inv: ChemicalInventory) => {
@@ -474,6 +494,7 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                     totalWeight: undefined,
                     analysisId: "",
                     chemicalTransactionBlockDetailNote: "",
+                    usageDate: new Date().toISOString().split("T")[0],
                 },
             ];
         });
@@ -520,11 +541,17 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                     chemicalName,
                     casNumber,
                     lotNumber: inv.lotNumber || "",
-                    changeQty: transactionType === "EXPORT" ? -Math.abs(item.changeQty || 0) : transactionType === "IMPORT" ? Math.abs(item.changeQty || 0) : item.changeQty || 0,
+                    changeQty:
+                        transactionType === "EXPORT" || transactionType === "LAB_CONSUMPTION"
+                            ? -Math.abs(item.changeQty || 0)
+                            : transactionType === "IMPORT"
+                              ? Math.abs(item.changeQty || 0)
+                              : item.changeQty || 0,
                     totalWeight: item.totalWeight ? Number(item.totalWeight) : undefined,
                     chemicalTransactionNote: item.chemicalTransactionBlockDetailNote || "",
                     chemicalTransactionBlockDetailNote: item.chemicalTransactionBlockDetailNote || "",
                     analysisId: item.analysisId || "",
+                    usageDate: transactionType === "LAB_CONSUMPTION" ? item.usageDate : undefined,
                     chemicalTransactionUnit: unit,
                     chemicalTransactionBlockDetailUnit: unit,
                     transactionType: transactionType,
@@ -550,7 +577,7 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
 
     return (
         <>
-            <div className="fixed inset-0 z-40 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+            <div className="fixed inset-0 z-40 bg-black/50 flex items-center justify-center p-4">
                 <div
                     className="bg-background rounded-xl shadow-2xl border border-border flex flex-col"
                     style={{ width: "80%", height: "90%", maxWidth: "1600px" }}
@@ -575,7 +602,7 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                             <div className="space-y-1.5">
                                 <label className="text-sm font-medium">{t("inventory.chemical.transactionBlocks.type", { defaultValue: "Loại phiếu" })}</label>
                                 <div className="flex gap-2">
-                                    {(["IMPORT", "EXPORT", "ADJUSTMENT"] as const).map((type) => (
+                                    {(["IMPORT", "EXPORT", "ADJUSTMENT", "LAB_CONSUMPTION"] as const).map((type) => (
                                         <button
                                             key={type}
                                             type="button"
@@ -666,9 +693,11 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                                         {t("common.list", { defaultValue: "Danh sách" })}{" "}
                                         {transactionType === "EXPORT"
                                             ? t("inventory.chemical.transactionBlocks.types.OUTBOUND", { defaultValue: "xuất" })
-                                            : transactionType === "IMPORT"
-                                              ? t("inventory.chemical.transactionBlocks.types.INBOUND", { defaultValue: "nhập" })
-                                              : t("inventory.chemical.transactionBlocks.types.ADJUSTMENT", { defaultValue: "điều chỉnh" })}
+                                            : transactionType === "LAB_CONSUMPTION"
+                                              ? t("inventory.chemical.transactionBlocks.types.LAB_CONSUMPTION", { defaultValue: "nhật ký" })
+                                              : transactionType === "IMPORT"
+                                                ? t("inventory.chemical.transactionBlocks.types.INBOUND", { defaultValue: "nhập" })
+                                                : t("inventory.chemical.transactionBlocks.types.ADJUSTMENT", { defaultValue: "điều chỉnh" })}
                                         <Badge variant="secondary" className="ml-1 rounded-full">
                                             {lineItems.length}
                                         </Badge>
@@ -773,6 +802,11 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                                     <Printer className="h-4 w-4 mr-2" /> {t("inventory.chemical.transactionBlocks.printLabel", { defaultValue: "In Tem" })}
                                 </Button>
                             )}
+                            {lineItems.length > 0 && (
+                                <Button type="button" variant="outline" onClick={() => setLogReportOpen(true)}>
+                                    <FileText className="h-4 w-4 mr-2" /> In Sổ Nhật Ký
+                                </Button>
+                            )}
                             <Button type="button" variant="outline" onClick={onClose}>
                                 {t("common.cancel", { defaultValue: "Hủy" })}
                             </Button>
@@ -806,6 +840,14 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                         setPrintLabelOpen(false);
                         onClose();
                     }}
+                />
+            )}
+
+            {logReportOpen && (
+                <ChemicalLogReportEditor
+                    open={logReportOpen}
+                    onOpenChange={setLogReportOpen}
+                    inventories={Array.from(new Map(lineItems.map((i) => [i.inventory.chemicalInventoryId, i.inventory])).values())}
                 />
             )}
 

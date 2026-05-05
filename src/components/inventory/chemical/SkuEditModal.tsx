@@ -16,6 +16,7 @@ type Props = {
 };
 
 const HAZARD_CLASSES = ["Flammable", "Toxic", "Corrosive", "Oxidizing", "Explosive", "Radioactive", "Biohazard", "Irritant", "Environmental Hazard", "None"];
+const CHEMICAL_TYPES = ["Hóa chất", "Môi trường", "Chất chuẩn", "Chủng chuẩn"];
 
 export function SkuEditModal({ sku, onClose, onSuccess }: Props) {
     const { t } = useTranslation();
@@ -29,6 +30,7 @@ export function SkuEditModal({ sku, onClose, onSuccess }: Props) {
         chemicalBaseUnit: sku?.chemicalBaseUnit ?? "",
         chemicalReorderLevel: String(sku?.chemicalReorderLevel ?? ""),
         chemicalHazardClass: sku?.chemicalHazardClass ?? "",
+        chemicalType: sku?.chemicalType ?? "",
         openedExpDays: String(sku?.openedExpDays ?? ""),
         chemicalSkuOldId: sku?.chemicalSkuOldId ?? "",
     });
@@ -49,11 +51,11 @@ export function SkuEditModal({ sku, onClose, onSuccess }: Props) {
                     : t("inventory.chemical.skus.updateSuccess", { defaultValue: "Đã cập nhật thông tin SKU thành công" }),
             );
             qc.invalidateQueries({ queryKey: chemicalKeys.skus.all() });
-            
+
             if (isCreate && onSuccess && res.data) {
                 onSuccess(res.data as ChemicalSku);
             }
-            
+
             onClose();
         },
         onError: (err: any) => {
@@ -64,7 +66,7 @@ export function SkuEditModal({ sku, onClose, onSuccess }: Props) {
     const set = (key: string, val: string) => setForm((f) => ({ ...f, [key]: val }));
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center" onClick={onClose}>
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
             <div className="bg-background rounded-xl shadow-2xl border border-border w-[520px] max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
                 <div className="px-5 py-4 border-b border-border flex items-start justify-between">
@@ -125,6 +127,22 @@ export function SkuEditModal({ sku, onClose, onSuccess }: Props) {
                                 {HAZARD_CLASSES.map((h) => (
                                     <option key={h} value={h}>
                                         {t(`inventory.chemical.skus.hazardClasses.${h}`, { defaultValue: h })}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("inventory.chemical.skus.chemicalType", { defaultValue: "Loại hóa chất" })}</label>
+                            <select
+                                id="edit-sku-type"
+                                value={form.chemicalType}
+                                onChange={(e) => set("chemicalType", e.target.value)}
+                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            >
+                                <option value="">-- {t("common.select", { defaultValue: "Chọn" })} --</option>
+                                {CHEMICAL_TYPES.map((h) => (
+                                    <option key={h} value={h}>
+                                        {h}
                                     </option>
                                 ))}
                             </select>

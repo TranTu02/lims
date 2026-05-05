@@ -1042,7 +1042,7 @@ export function useSampleTypeFull(id: string | null) {
     return useQuery({
         queryKey: libraryKeys.sampleTypesFull(id ?? ""),
         enabled: Boolean(id),
-        queryFn: async () => await libraryApi.sampleTypes.full(id!),
+        queryFn: async () => assertSuccess(await libraryApi.sampleTypes.full(id!)),
     });
 }
 

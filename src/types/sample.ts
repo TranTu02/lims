@@ -67,7 +67,7 @@ export type SampleAnalysis = {
     analysisUnit?: string | null;
 
     handoverInfo?: unknown | null;
-    analysisReportDisplay?: AnalysisReportDisplay | null;
+    displayStyle?: AnalysisReportDisplay | null;
 
     analysisLocation?: string | null;
     protocolCode?: string | null;

@@ -52,27 +52,34 @@ function StatusBadge({ status }: { status?: string | null }) {
 function LineItemCard({ item, idField }: { item: ChemicalTransactionBlockDetail | ChemicalTransaction; idField: string }) {
     const { t } = useTranslation();
     const id = (item as any)[idField] ?? "-";
-    
+
     // Normalize fields across union types
     const a = item as any;
     const itemUnit = a.chemicalTransactionUnit ?? a.chemicalTransactionBlockDetailUnit ?? "";
     const itemParamName = a.parameterName ?? "";
     const itemNote = a.chemicalTransactionNote ?? a.chemicalTransactionBlockDetailNote ?? "";
-    const analysisIds = item.analysisId ? item.analysisId.split(",").map(s => s.trim()).filter(Boolean) : [];
+    const analysisIds = item.analysisId
+        ? String(item.analysisId)
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+        : [];
 
     return (
         <div className="p-4 bg-background border border-border rounded-lg shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                        <div className="font-bold text-sm text-foreground leading-tight truncate">{item.chemicalName || t("inventory.chemical.transactions.noName", { defaultValue: "Hóa chất (Không tên)" })}</div>
+                        <div className="font-bold text-sm text-foreground leading-tight truncate">
+                            {item.chemicalName || t("inventory.chemical.transactions.noName", { defaultValue: "Hóa chất (Không tên)" })}
+                        </div>
                         {item.chemicalInventoryId && (
                             <div className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-muted border border-border/50 text-[9px] font-mono font-medium text-muted-foreground uppercase tracking-tighter shrink-0">
                                 {item.chemicalInventoryId}
                             </div>
                         )}
                     </div>
-                    
+
                     <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-medium mb-2 flex-wrap">
                         <span className="bg-muted/50 px-1 rounded">SKU: {item.chemicalSkuId || "-"}</span>
                         <span className="bg-muted/50 px-1 rounded">Mã cũ: {a.chemicalSkuOldId || "-"}</span>
@@ -93,29 +100,37 @@ function LineItemCard({ item, idField }: { item: ChemicalTransactionBlockDetail 
                 <div className="text-right shrink-0">
                     <div className={`font-bold text-sm flex items-center justify-end gap-1 ${item.changeQty > 0 ? "text-success" : item.changeQty < 0 ? "text-destructive" : ""}`}>
                         {item.changeQty > 0 ? "+" : ""}
-                        {item.changeQty} 
+                        {item.changeQty}
                         <span className="text-[10px] font-medium text-muted-foreground lowercase ml-0.5">{itemUnit}</span>
                     </div>
-                    {a.totalWeight !== undefined && a.totalWeight !== null && (
-                        <div className="text-[10px] font-medium text-muted-foreground flex justify-end">
-                            KL: {a.totalWeight}
-                        </div>
-                    )}
+                    {a.totalWeight !== undefined && a.totalWeight !== null && <div className="text-[10px] font-medium text-muted-foreground flex justify-end">KL: {a.totalWeight}</div>}
                     <div className="text-[9px] text-muted-foreground/50 font-mono mt-1 uppercase">ID: {id}</div>
                 </div>
             </div>
 
-            {(itemParamName || itemNote) && (
+            {(itemParamName || itemNote || (a.usageDate && a.transactionType === "LAB_CONSUMPTION")) && (
                 <div className="mt-3 pt-3 border-t border-border/40 grid grid-cols-1 gap-2">
+                    {a.usageDate && a.transactionType === "LAB_CONSUMPTION" && (
+                        <div className="flex items-start gap-1.5">
+                            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-tight shrink-0 mt-0.5">
+                                {t("inventory.chemical.transactions.usageDate", { defaultValue: "Ngày sử dụng" })}:
+                            </span>
+                            <span className="text-[11px] font-medium text-foreground">{new Date(a.usageDate).toLocaleDateString("vi-VN")}</span>
+                        </div>
+                    )}
                     {itemParamName && (
                         <div className="flex items-start gap-1.5">
-                            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-tight shrink-0 mt-0.5">{t("inventory.chemical.transactions.testName", { defaultValue: "Phép thử" })}:</span>
+                            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-tight shrink-0 mt-0.5">
+                                {t("inventory.chemical.transactions.testName", { defaultValue: "Phép thử" })}:
+                            </span>
                             <span className="text-[11px] font-medium text-foreground">{itemParamName}</span>
                         </div>
                     )}
                     {itemNote && (
                         <div className="flex items-start gap-1.5">
-                            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-tight shrink-0 mt-0.5">{t("inventory.chemical.transactions.note", { defaultValue: "Ghi chú" })}:</span>
+                            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-tight shrink-0 mt-0.5">
+                                {t("inventory.chemical.transactions.note", { defaultValue: "Ghi chú" })}:
+                            </span>
                             <span className="text-[11px] italic text-muted-foreground">{itemNote}</span>
                         </div>
                     )}
@@ -154,6 +169,12 @@ export function TransactionBlockDetailPanel({ block, onClose, hideApprove, onApp
                 return <Badge className="bg-destructive text-destructive-foreground">{t("inventory.chemical.transactionBlocks.export", { defaultValue: "Xuất" })}</Badge>;
             case "ADJUSTMENT":
                 return <Badge className="bg-primary text-primary-foreground">{t("inventory.chemical.transactionBlocks.adjustment", { defaultValue: "Bù/Trả lại" })}</Badge>;
+            case "LAB_CONSUMPTION":
+                return (
+                    <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                        {t("inventory.chemical.transactionBlocks.types.LAB_CONSUMPTION", { defaultValue: "Nhật ký sử dụng PTN" })}
+                    </Badge>
+                );
             default:
                 return <Badge variant="outline">{type ?? "-"}</Badge>;
         }
@@ -189,13 +210,7 @@ export function TransactionBlockDetailPanel({ block, onClose, hideApprove, onApp
                             {t("inventory.chemical.transactionBlocks.approveButton", { defaultValue: "Duyệt Phiếu" })}
                         </Button>
                     )}
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        type="button"
-                        onClick={() => setShowProposalEditor(true)}
-                        className="h-8 text-[11px] px-3"
-                    >
+                    <Button variant="outline" size="sm" type="button" onClick={() => setShowProposalEditor(true)} className="h-8 text-[11px] px-3">
                         <FileText className="h-3.5 w-3.5 mr-1.5" />
                         {String(t("inventory.chemical.transactionBlocks.exportProposal", { defaultValue: "Trích xuất" }))}
                     </Button>
@@ -205,158 +220,152 @@ export function TransactionBlockDetailPanel({ block, onClose, hideApprove, onApp
                 </div>
             </div>
 
-            {showProposalEditor && displayBlock && (
-                <ChemicalProposalEditor
-                    open={showProposalEditor}
-                    onOpenChange={setShowProposalEditor}
-                    block={displayBlock as any}
-                />
-            )}
+            {showProposalEditor && displayBlock && <ChemicalProposalEditor open={showProposalEditor} onOpenChange={setShowProposalEditor} block={displayBlock as any} />}
 
             <div className="flex-1 overflow-y-auto relative">
                 {fullBlockQuery.isLoading ? (
-                <div className="p-12 flex justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-            ) : (
-                <div className="p-4 space-y-6">
-                    {/* General Information */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5 mb-1">
-                                <ArrowUpDown className="h-3 w-3" />
-                                {t("inventory.chemical.transactionBlocks.type", { defaultValue: "Phân loại" })}
-                            </div>
-                            <div>{getTransactionBadge(displayBlock.transactionType)}</div>
-                        </div>
-                        <div>
-                            <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5 mb-1">
-                                <CheckCircle2 className="h-3 w-3" />
-                                {t("inventory.chemical.transactionBlocks.status", { defaultValue: "Trạng thái" })}
+                    <div className="p-12 flex justify-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                ) : (
+                    <div className="p-4 space-y-6">
+                        {/* General Information */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5 mb-1">
+                                    <ArrowUpDown className="h-3 w-3" />
+                                    {t("inventory.chemical.transactionBlocks.type", { defaultValue: "Phân loại" })}
+                                </div>
+                                <div>{getTransactionBadge(displayBlock.transactionType)}</div>
                             </div>
                             <div>
-                                <StatusBadge status={displayBlock.chemicalTransactionBlockStatus} />
+                                <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5 mb-1">
+                                    <CheckCircle2 className="h-3 w-3" />
+                                    {t("inventory.chemical.transactionBlocks.status", { defaultValue: "Trạng thái" })}
+                                </div>
+                                <div>
+                                    <StatusBadge status={displayBlock.chemicalTransactionBlockStatus} />
+                                </div>
                             </div>
-                        </div>
-                        <div>
-                            <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5 mb-1">
-                                <Calendar className="h-3 w-3" />
-                                {t("inventory.chemical.transactionBlocks.createdAt", { defaultValue: "Ngày tạo" })}
+                            <div>
+                                <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5 mb-1">
+                                    <Calendar className="h-3 w-3" />
+                                    {t("inventory.chemical.transactionBlocks.createdAt", { defaultValue: "Ngày tạo" })}
+                                </div>
+                                <div className="text-sm font-medium">{displayBlock.createdAt ? new Date(displayBlock.createdAt).toLocaleString("vi-VN") : "-"}</div>
                             </div>
-                            <div className="text-sm font-medium">{displayBlock.createdAt ? new Date(displayBlock.createdAt).toLocaleString("vi-VN") : "-"}</div>
-                        </div>
-                        <div>
-                            <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5 mb-1">
-                                <User className="h-3 w-3" />
-                                {t("inventory.chemical.transactionBlocks.createdBy", { defaultValue: "Người tạo" })}
-                            </div>
-                            <div className="text-sm font-medium">{displayBlock.createdBy || "-"}</div>
-                        </div>
-                        {displayBlock.approvedBy && (
                             <div>
                                 <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5 mb-1">
                                     <User className="h-3 w-3" />
-                                    {t("inventory.chemical.transactionBlocks.approvedBy", { defaultValue: "Người duyệt" })}
+                                    {t("inventory.chemical.transactionBlocks.createdBy", { defaultValue: "Người tạo" })}
                                 </div>
-                                <div className="text-sm font-medium">
-                                    {displayBlock.approvedBy}
-                                    {displayBlock.approvedAt && <span className="text-xs text-muted-foreground ml-1">({new Date(displayBlock.approvedAt).toLocaleString("vi-VN")})</span>}
-                                </div>
+                                <div className="text-sm font-medium">{displayBlock.createdBy || "-"}</div>
                             </div>
-                        )}
-                    </div>
-
-                    {((displayBlock as any).chemicalBlockCoaDocumentIds?.length > 0 || (displayBlock as any).chemicalBlockInvoiceDocumentIds?.length > 0) && (
-                        <div className="space-y-4 pt-2">
-                            <h3 className="text-[13px] font-bold flex items-center gap-2 text-foreground/80 border-b border-border/50 pb-2">
-                                <FileText className="h-4 w-4 text-primary/70" />
-                                {t("inventory.chemical.transactionBlocks.documents", { defaultValue: "Tài liệu đính kèm" })}
-                            </h3>
-                            
-                            {((displayBlock as any).chemicalBlockCoaDocuments?.length > 0 || (displayBlock as any).chemicalBlockCoaDocumentIds?.length > 0) && (
-                                <div className="space-y-1">
-                                    <span className="text-[10px] uppercase font-bold text-muted-foreground px-1">COA Documents</span>
-                                    <div className="grid grid-cols-1 gap-1">
-                                        {((displayBlock as any).chemicalBlockCoaDocuments?.length > 0 
-                                            ? (displayBlock as any).chemicalBlockCoaDocuments 
-                                            : (displayBlock as any).chemicalBlockCoaDocumentIds.map((id: string) => ({ documentId: id }))
-                                        ).map((doc: any, i: number) => (
-                                            <DocumentItem key={doc?.documentId || i} doc={doc} />
-                                        ))}
+                            {displayBlock.approvedBy && (
+                                <div>
+                                    <div className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1.5 mb-1">
+                                        <User className="h-3 w-3" />
+                                        {t("inventory.chemical.transactionBlocks.approvedBy", { defaultValue: "Người duyệt" })}
                                     </div>
-                                </div>
-                            )}
-
-                            {((displayBlock as any).chemicalBlockInvoiceDocuments?.length > 0 || (displayBlock as any).chemicalBlockInvoiceDocumentIds?.length > 0) && (
-                                <div className="space-y-1">
-                                    <span className="text-[10px] uppercase font-bold text-muted-foreground px-1">Invoice / Order Documents</span>
-                                    <div className="grid grid-cols-1 gap-1">
-                                        {((displayBlock as any).chemicalBlockInvoiceDocuments?.length > 0 
-                                            ? (displayBlock as any).chemicalBlockInvoiceDocuments 
-                                            : (displayBlock as any).chemicalBlockInvoiceDocumentIds.map((id: string) => ({ documentId: id }))
-                                        ).map((doc: any, i: number) => (
-                                            <DocumentItem key={doc?.documentId || i} doc={doc} />
-                                        ))}
+                                    <div className="text-sm font-medium">
+                                        {displayBlock.approvedBy}
+                                        {displayBlock.approvedAt && <span className="text-xs text-muted-foreground ml-1">({new Date(displayBlock.approvedAt).toLocaleString("vi-VN")})</span>}
                                     </div>
                                 </div>
                             )}
                         </div>
-                    )}
 
-                    {/* Details hoặc Transactions */}
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between border-b border-border/50 pb-2">
-                            <h3 className="text-[13px] font-bold flex items-center gap-2 text-foreground/80">
-                                <ListOrdered className="h-4 w-4 text-primary/70" />
-                                {isApproved
-                                    ? t("inventory.chemical.transactionBlocks.executedHistory", { defaultValue: "Lịch sử đã thực thi" })
-                                    : t("inventory.chemical.transactionBlocks.pendingDetails", { defaultValue: "Chi tiết dự kiến" })}
-                            </h3>
-                            <div className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full border border-primary/20">
-                                {isApproved ? displayBlock.chemicalTransactions?.length || 0 : displayBlock.chemicalTransactionBlockDetails?.length || 0} mục
-                            </div>
-                        </div>
+                        {((displayBlock as any).chemicalBlockCoaDocumentIds?.length > 0 || (displayBlock as any).chemicalBlockInvoiceDocumentIds?.length > 0) && (
+                            <div className="space-y-4 pt-2">
+                                <h3 className="text-[13px] font-bold flex items-center gap-2 text-foreground/80 border-b border-border/50 pb-2">
+                                    <FileText className="h-4 w-4 text-primary/70" />
+                                    {t("inventory.chemical.transactionBlocks.documents", { defaultValue: "Tài liệu đính kèm" })}
+                                </h3>
 
-                        {/* Nếu APPROVED → show transactions (đã thực thi) */}
-                        {showTransactions && (
-                            <div className="space-y-3">
-                                {displayBlock.chemicalTransactions!.map((txn) => (
-                                    <LineItemCard key={txn.chemicalTransactionId} item={txn} idField="chemicalTransactionId" />
-                                ))}
+                                {((displayBlock as any).chemicalBlockCoaDocuments?.length > 0 || (displayBlock as any).chemicalBlockCoaDocumentIds?.length > 0) && (
+                                    <div className="space-y-1">
+                                        <span className="text-[10px] uppercase font-bold text-muted-foreground px-1">COA Documents</span>
+                                        <div className="grid grid-cols-1 gap-1">
+                                            {((displayBlock as any).chemicalBlockCoaDocuments?.length > 0
+                                                ? (displayBlock as any).chemicalBlockCoaDocuments
+                                                : (displayBlock as any).chemicalBlockCoaDocumentIds.map((id: string) => ({ documentId: id }))
+                                            ).map((doc: any, i: number) => (
+                                                <DocumentItem key={doc?.documentId || i} doc={doc} />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {((displayBlock as any).chemicalBlockInvoiceDocuments?.length > 0 || (displayBlock as any).chemicalBlockInvoiceDocumentIds?.length > 0) && (
+                                    <div className="space-y-1">
+                                        <span className="text-[10px] uppercase font-bold text-muted-foreground px-1">Invoice / Order Documents</span>
+                                        <div className="grid grid-cols-1 gap-1">
+                                            {((displayBlock as any).chemicalBlockInvoiceDocuments?.length > 0
+                                                ? (displayBlock as any).chemicalBlockInvoiceDocuments
+                                                : (displayBlock as any).chemicalBlockInvoiceDocumentIds.map((id: string) => ({ documentId: id }))
+                                            ).map((doc: any, i: number) => (
+                                                <DocumentItem key={doc?.documentId || i} doc={doc} />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 
-                        {/* Nếu chưa APPROVED → show details (bảng tạm) */}
-                        {showDetails && (
-                            <div className="space-y-3">
-                                <div className="p-2 bg-yellow-50 dark:bg-yellow-900/10 rounded-md border border-yellow-200 dark:border-yellow-800 text-xs text-yellow-800 dark:text-yellow-300 flex items-center gap-2">
-                                    <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                                    {t("inventory.chemical.transactionBlocks.pendingNote", { defaultValue: "Phiếu chưa được duyệt. Tồn kho chưa bị tác động." })}
+                        {/* Details hoặc Transactions */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                                <h3 className="text-[13px] font-bold flex items-center gap-2 text-foreground/80">
+                                    <ListOrdered className="h-4 w-4 text-primary/70" />
+                                    {isApproved
+                                        ? t("inventory.chemical.transactionBlocks.executedHistory", { defaultValue: "Lịch sử đã thực thi" })
+                                        : t("inventory.chemical.transactionBlocks.pendingDetails", { defaultValue: "Chi tiết dự kiến" })}
+                                </h3>
+                                <div className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full border border-primary/20">
+                                    {isApproved ? displayBlock.chemicalTransactions?.length || 0 : displayBlock.chemicalTransactionBlockDetails?.length || 0} mục
                                 </div>
-                                {displayBlock.chemicalTransactionBlockDetails!.map((detail) => (
-                                    <LineItemCard key={detail.chemicalTransactionBlockDetailId} item={detail} idField="chemicalTransactionBlockDetailId" />
-                                ))}
                             </div>
-                        )}
 
-                        {/* Fallback: nếu có transactions nhưng chưa approved (edge case) */}
-                        {!showTransactions && !showDetails && hasTransactions && (
-                            <div className="space-y-3">
-                                {displayBlock.chemicalTransactions!.map((txn) => (
-                                    <LineItemCard key={txn.chemicalTransactionId} item={txn} idField="chemicalTransactionId" />
-                                ))}
-                            </div>
-                        )}
+                            {/* Nếu APPROVED → show transactions (đã thực thi) */}
+                            {showTransactions && (
+                                <div className="space-y-3">
+                                    {displayBlock.chemicalTransactions!.map((txn) => (
+                                        <LineItemCard key={txn.chemicalTransactionId} item={txn} idField="chemicalTransactionId" />
+                                    ))}
+                                </div>
+                            )}
 
-                        {/* Không có gì */}
-                        {!showTransactions && !showDetails && !hasTransactions && (
-                            <div className="p-6 text-center text-muted-foreground border border-dashed rounded-md bg-muted/20">
-                                {t("inventory.chemical.transactionBlocks.noLineItems", { defaultValue: "Không có chi tiết giao dịch" })}
-                            </div>
-                        )}
+                            {/* Nếu chưa APPROVED → show details (bảng tạm) */}
+                            {showDetails && (
+                                <div className="space-y-3">
+                                    <div className="p-2 bg-yellow-50 dark:bg-yellow-900/10 rounded-md border border-yellow-200 dark:border-yellow-800 text-xs text-yellow-800 dark:text-yellow-300 flex items-center gap-2">
+                                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                                        {t("inventory.chemical.transactionBlocks.pendingNote", { defaultValue: "Phiếu chưa được duyệt. Tồn kho chưa bị tác động." })}
+                                    </div>
+                                    {displayBlock.chemicalTransactionBlockDetails!.map((detail) => (
+                                        <LineItemCard key={detail.chemicalTransactionBlockDetailId} item={detail} idField="chemicalTransactionBlockDetailId" />
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Fallback: nếu có transactions nhưng chưa approved (edge case) */}
+                            {!showTransactions && !showDetails && hasTransactions && (
+                                <div className="space-y-3">
+                                    {displayBlock.chemicalTransactions!.map((txn) => (
+                                        <LineItemCard key={txn.chemicalTransactionId} item={txn} idField="chemicalTransactionId" />
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Không có gì */}
+                            {!showTransactions && !showDetails && !hasTransactions && (
+                                <div className="p-6 text-center text-muted-foreground border border-dashed rounded-md bg-muted/20">
+                                    {t("inventory.chemical.transactionBlocks.noLineItems", { defaultValue: "Không có chi tiết giao dịch" })}
+                                </div>
+                            )}
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
             </div>
         </div>
     );

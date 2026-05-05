@@ -14,6 +14,7 @@ const TRANSACTION_TYPE_MAP: Record<string, { cls: string }> = {
     IMPORT: { cls: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" },
     EXPORT: { cls: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" },
     ADJUSTMENT: { cls: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
+    LAB_CONSUMPTION: { cls: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300" },
 };
 
 function TransactionTypeBadge({ type }: { type?: string | null; className?: string }) {
@@ -194,6 +195,12 @@ export function TransactionDetailPanel({ transaction, onClose }: Props) {
                                 <div className="text-muted-foreground text-xs">{t("inventory.chemical.transactions.transactionDate", { defaultValue: "Thời gian thực hiện" })}</div>
                                 <div className="font-medium mt-0.5">{displayTxn.createdAt ? new Date(displayTxn.createdAt).toLocaleString(i18n.language === "vi" ? "vi-VN" : "en-US") : "-"}</div>
                             </div>
+                            {displayTxn.usageDate && (
+                                <div className="col-span-2">
+                                    <div className="text-muted-foreground text-xs">{t("inventory.chemical.transactions.usageDate", { defaultValue: "Ngày sử dụng (Nhật ký)" })}</div>
+                                    <div className="font-medium mt-0.5">{new Date(displayTxn.usageDate).toLocaleDateString(i18n.language === "vi" ? "vi-VN" : "en-US")}</div>
+                                </div>
+                            )}
                             <div className="col-span-2">
                                 <div className="text-muted-foreground text-xs">{t("common.documents", { defaultValue: "Tài liệu COA đính kèm" })}</div>
                                 <div className="font-medium mt-0.5">

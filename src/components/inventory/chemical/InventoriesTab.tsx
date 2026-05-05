@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Printer, CheckSquare } from "lucide-react";
+import { Plus, Search, Printer, CheckSquare, FileText } from "lucide-react";
 import { useChemicalInventoriesList } from "@/api/chemical";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ChemicalInventory } from "@/types/chemical";
@@ -10,6 +10,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { InventoryDetailPanel } from "./InventoryDetailPanel";
 import { InventoryEditModal } from "./InventoryEditModal";
 import { PrintLabelModal } from "./PrintLabelModal";
+import { ChemicalLogReportEditor } from "./ChemicalLogReportEditor";
 import { HelpBubble } from "./HelpBubble";
 import { Badge } from "@/components/ui/badge";
 import { TableFilterPopover } from "./TableFilterPopover";
@@ -50,6 +51,7 @@ export function InventoriesTab() {
     const [selectMode, setSelectMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [printOpen, setPrintOpen] = useState(false);
+    const [logReportOpen, setLogReportOpen] = useState(false);
 
     const {
         data: result,
@@ -78,16 +80,21 @@ export function InventoriesTab() {
 
     const handleLabelClick = () => {
         if (!selectMode) {
-            // First click: enter select mode
             setSelectMode(true);
             setSelectedIds(new Set());
         } else {
-            // Second click: show print modal with selected items
-            if (selectedIds.size === 0) {
-                setSelectMode(false);
-                return;
-            }
-            setPrintOpen(true);
+            if (selectedIds.size === 0) setSelectMode(false);
+            else setPrintOpen(true);
+        }
+    };
+
+    const handleLogReportClick = () => {
+        if (!selectMode) {
+            setSelectMode(true);
+            setSelectedIds(new Set());
+        } else {
+            if (selectedIds.size === 0) setSelectMode(false);
+            else setLogReportOpen(true);
         }
     };
 
@@ -132,6 +139,10 @@ export function InventoriesTab() {
                                 {t("common.cancelSelect", { defaultValue: "Hủy chọn" })}
                             </Button>
                         )}
+                        <Button variant={selectMode ? "secondary" : "outline"} type="button" onClick={handleLogReportClick}>
+                            <FileText className="h-4 w-4 mr-2" />
+                            {selectMode ? (selectedIds.size > 0 ? `In Sổ Nhật ký (${selectedIds.size})` : `In Sổ Nhật ký`) : `In Sổ Nhật ký`}
+                        </Button>
                         <Button variant={selectMode ? "default" : "outline"} type="button" onClick={handleLabelClick}>
                             <Printer className="h-4 w-4 mr-2" />
                             {selectMode
@@ -191,6 +202,9 @@ export function InventoriesTab() {
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                                         {t("inventory.chemical.skus.chemicalCasNumber", { defaultValue: "Số CAS" })}
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.skus.chemicalType", { defaultValue: "Loại hóa chất" })}
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                                         {t("inventory.chemical.inventories.chemicalSkuId", { defaultValue: "Mã SKU" })}
@@ -299,6 +313,7 @@ export function InventoriesTab() {
                                                 <td className="px-3 py-2 whitespace-nowrap font-mono text-xs font-medium text-primary">{inv.chemicalInventoryId ?? "-"}</td>
                                                 <td className="px-3 py-2 whitespace-nowrap font-medium">{inv.chemicalName || (inv as any).chemicalSku?.chemicalName || "-"}</td>
                                                 <td className="px-3 py-2 whitespace-nowrap font-mono text-xs">{inv.chemicalCasNumber || (inv as any).chemicalSku?.chemicalCASNumber || "-"}</td>
+                                                <td className="px-3 py-2 whitespace-nowrap text-xs text-muted-foreground">{inv.chemicalType || (inv as any).chemicalSku?.chemicalType || "-"}</td>
                                                 <td className="px-3 py-2 whitespace-nowrap text-xs text-muted-foreground">{inv.chemicalSkuId ?? "-"}</td>
                                                 <td className="px-3 py-2 whitespace-nowrap text-xs text-muted-foreground">{inv.chemicalSkuOldId ?? "-"}</td>
                                                 <td className="px-3 py-2 whitespace-nowrap">{inv.lotNumber ?? "-"}</td>
@@ -356,6 +371,18 @@ export function InventoriesTab() {
                         setPrintOpen(false);
                         exitSelectMode();
                     }}
+                />
+            )}
+
+            {/* Log report modal */}
+            {logReportOpen && (
+                <ChemicalLogReportEditor
+                    open={logReportOpen}
+                    onOpenChange={(open) => {
+                        setLogReportOpen(open);
+                        if (!open) exitSelectMode();
+                    }}
+                    inventories={selectedItems}
                 />
             )}
 
