@@ -11,6 +11,8 @@ import { Pagination } from "@/components/ui/pagination";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAnalysesProcessing, useAnalysesUpdateBulk } from "@/api/analyses";
+import { useIdentityGroupsList } from "@/api/identityGroups";
+import { FilterPopover } from "@/components/lab-manager/FilterPopover";
 import type { AnalysisListItem } from "@/types/analysis";
 import { TechnicianAssignmentModal } from "@/components/assignment/TechnicianAssignmentModal";
 import { TechnicianBulkEntryModal } from "@/components/technician/TechnicianBulkEntryModal";
@@ -56,6 +58,19 @@ export function TechnicianWorkspace() {
     const [search, setSearch] = useState("");
     const debouncedSearch = useDebounce(search, 300);
 
+    const [technicianGroupId, setTechnicianGroupId] = useState<string | null>(null);
+
+    const { data: groupsRes, isLoading: isGroupsLoading } = useIdentityGroupsList({
+        query: { identityGroupMainRole: ["ROLE_TECHNICIAN"], option: "full", itemsPerPage: 100 }
+    });
+    const groupsOptions = useMemo(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return (groupsRes?.data ?? []).map((group: any) => ({
+            value: group.identityGroupId,
+            label: group.identityGroupName
+        }));
+    }, [groupsRes?.data]);
+
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [showAssignmentModal, setShowAssignmentModal] = useState(false);
     const [showBulkEntryModal, setShowBulkEntryModal] = useState(false);
@@ -69,6 +84,7 @@ export function TechnicianWorkspace() {
         if (activeTab === "pending") return ["Pending", "Ready"];
         if (activeTab === "handedover") return ["HandedOver"];
         if (activeTab === "testing") return ["Testing"];
+        if (activeTab === "data-entered") return ["DataEntered"];
         if (activeTab === "retest") return ["ReTest"];
         return ["Testing"]; // fallback
     }, [activeTab]);
@@ -83,6 +99,7 @@ export function TechnicianWorkspace() {
             sortColumn: "createdAt",
             sortDirection: "DESC",
             search: debouncedSearch || undefined,
+            technicianGroupId: technicianGroupId ? [technicianGroupId] : undefined,
             itemsPerPage,
             page,
         },
@@ -99,7 +116,7 @@ export function TechnicianWorkspace() {
         setPage(1);
         setSelectedIds([]);
         setSearch("");
-    }, [activeTab]);
+    }, [activeTab, technicianGroupId]);
 
     // Drag-to-select state and logic
     const [isSelecting, setIsSelecting] = useState(false);
@@ -310,10 +327,11 @@ export function TechnicianWorkspace() {
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                    <TabsList className="grid w-full grid-cols-5 md:w-[700px]">
+                    <TabsList className="grid w-full grid-cols-6 md:w-[850px]">
                         <TabsTrigger value="pending">{t("technician.workspace.tabs.pending", { defaultValue: "Chờ nhận" })}</TabsTrigger>
                         <TabsTrigger value="handedover">{t("technician.workspace.tabs.handedover", { defaultValue: "Đã nhận bàn giao" })}</TabsTrigger>
                         <TabsTrigger value="testing">{t("technician.workspace.tabs.testing", { defaultValue: "Đang thử nghiệm" })}</TabsTrigger>
+                        <TabsTrigger value="data-entered">{t("technician.workspace.tabs.dataEntered", { defaultValue: "Đã nhập kết quả" })}</TabsTrigger>
                         <TabsTrigger value="retest">{t("technician.workspace.tabs.retest", { defaultValue: "Cần làm lại" })}</TabsTrigger>
                         <TabsTrigger value="chemical-requests">{t("technician.workspace.tabs.chemicalRequests", { defaultValue: "Yêu cầu hóa chất" })}</TabsTrigger>
                     </TabsList>
@@ -352,7 +370,15 @@ export function TechnicianWorkspace() {
                                             <TableHead className="min-w-[100px] ">{t("technician.workspace.result", { defaultValue: "Kết quả" })}</TableHead>
                                             <TableHead className="w-[80px] ">{t("technician.workspace.unit", { defaultValue: "Đơn vị" })}</TableHead>
                                             <TableHead className="min-w-[150px]">{t("technician.workspace.assignee", { defaultValue: "Người phụ trách" })}</TableHead>
-                                            <TableHead className="min-w-[150px]">{t("technician.workspace.assignedGroup", { defaultValue: "Nhóm thực hiện" })}</TableHead>
+                                            <TableHead className="min-w-[150px] p-0 align-middle">
+                                                <FilterPopover 
+                                                    title={String(t("technician.workspace.assignedGroup", { defaultValue: "Nhóm thực hiện" }))}
+                                                    value={technicianGroupId}
+                                                    options={groupsOptions}
+                                                    onSelect={setTechnicianGroupId}
+                                                    isLoading={isGroupsLoading}
+                                                />
+                                            </TableHead>
                                             <TableHead className="w-[120px] ">{t("technician.workspace.statusCol", { defaultValue: "Trạng thái" })}</TableHead>
                                             <TableHead className="w-[80px] ">{t("common.actions", { defaultValue: "Hành động" })}</TableHead>
                                         </TableRow>
@@ -376,6 +402,7 @@ export function TechnicianWorkspace() {
                                                     technician?: { identityName?: string };
                                                     sample?: { sampleCode?: string };
                                                     technicianGroupName?: string;
+                                                    protocolId?: string;
                                                     protocolCode?: string;
                                                     analysisUnit?: string;
                                                 };
@@ -410,7 +437,7 @@ export function TechnicianWorkspace() {
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="icon"
-                                                                    className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
+                                                                    className={`h-8 w-8 ${!item.protocolId ? "text-warning hover:text-warning hover:bg-warning/10" : "text-primary hover:text-primary hover:bg-primary/10"}`}
                                                                     onClick={() => handleOpenProtocolEditor(item)}
                                                                     title={t("technician.workspace.createProtocol", { defaultValue: "Lập biên bản thử nghiệm" })}
                                                                 >

@@ -141,7 +141,7 @@ export function TechnicianChemicalAllocationModal({
                         </div>
                         <ArrowRight className="w-4 h-4 text-muted-foreground" />
                         <div className={`flex items-center gap-2 ${step === "finished" ? "text-primary font-bold" : "text-muted-foreground"}`}>
-                            <div className={`w-6 h-6 rounded-full border flex items-center justify-center text-xs ${step === "finished" ? "bg-green-500 text-white" : ""}`}>
+                            <div className={`w-6 h-6 rounded-full border flex items-center justify-center text-xs ${step === "finished" ? "bg-success text-success-foreground" : ""}`}>
                                 {step === "finished" ? <Check className="w-4 h-4" /> : "3"}
                             </div>
                             {t("technician.workspace.stepFinished", { defaultValue: "Hoàn tất" })}
@@ -257,8 +257,8 @@ export function TechnicianChemicalAllocationModal({
 
                         {step === "allocate" && allocationData && (
                             <div className="space-y-8">
-                                <div className="bg-green-500/5 p-4 rounded-lg border border-green-500/20">
-                                    <h3 className="font-semibold text-green-700">{t("technician.workspace.fefoResult", { defaultValue: "Kết quả phân bổ (FEFO)" })}</h3>
+                                <div className="bg-success/5 p-4 rounded-lg border border-success/20">
+                                    <h3 className="font-semibold text-success">{t("technician.workspace.fefoResult", { defaultValue: "Kết quả phân bổ (FEFO)" })}</h3>
                                     <p className="text-sm text-muted-foreground">{t("technician.workspace.fefoResultDesc", { defaultValue: "Hệ thống đã tự động tìm các chai phù hợp nhất trong kho." })}</p>
                                 </div>
 
@@ -284,7 +284,7 @@ export function TechnicianChemicalAllocationModal({
                                                             <div className="text-xs text-muted-foreground">{tx.chemicalSkuId}</div>
                                                         </TableCell>
                                                         <TableCell className="text-xs">{tx.chemicalCasNumber || "-"}</TableCell>
-                                                        <TableCell className=" font-bold text-red-600">
+                                                        <TableCell className=" font-bold text-destructive">
                                                             {tx.changeQty}
                                                         </TableCell>
                                                     </TableRow>
@@ -294,9 +294,9 @@ export function TechnicianChemicalAllocationModal({
                                     </div>
 
                                     {/* Right: Picking List */}
-                                    <div className="border rounded-lg shadow-sm bg-card overflow-hidden border-orange-200">
-                                        <div className="bg-orange-50/50 px-4 py-2.5 border-b border-orange-200 font-semibold text-orange-900 flex items-center gap-2">
-                                            <MapPin className="w-4 h-4 text-orange-600" /> 
+                                    <div className="border rounded-lg shadow-sm bg-card overflow-hidden border-warning/50">
+                                        <div className="bg-warning/10 px-4 py-2.5 border-b border-warning/50 font-semibold text-warning-foreground flex items-center gap-2">
+                                            <MapPin className="w-4 h-4 text-warning" /> 
                                             <span className="text-sm font-semibold">{t("technician.workspace.pickingList", { defaultValue: "2. Danh sách đi lấy hàng (Picking List)" })}</span>
                                         </div>
                                         <Table>
@@ -334,7 +334,7 @@ export function TechnicianChemicalAllocationModal({
                                                                 )}
                                                             </TableCell>
                                                             <TableCell className="px-4 py-4 text-right align-middle">
-                                                                <div className="flex items-center justify-end font-bold text-sm text-emerald-600 dark:text-emerald-400 gap-1.5">
+                                                                <div className="flex items-center justify-end font-bold text-sm text-success gap-1.5">
                                                                     <span className="text-muted-foreground/30 text-[10px] font-normal">→</span>
                                                                     {Math.abs(pick.totalChangeQty)}
                                                                     {unit && <span className="font-medium text-muted-foreground text-[10px] ml-0.5">{unit}</span>}
@@ -352,7 +352,7 @@ export function TechnicianChemicalAllocationModal({
 
                         {step === "finished" && (
                             <div className="flex flex-col items-center justify-center py-12 gap-4 text-center">
-                                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-green-600">
+                                <div className="w-16 h-16 bg-success/20 rounded-full flex items-center justify-center text-success">
                                     <Check className="w-10 h-10" />
                                 </div>
                                 <h3 className="text-xl font-bold text-foreground">{t("technician.workspace.jobDone", { defaultValue: "Hoàn tất công việc!" })}</h3>
@@ -378,7 +378,7 @@ export function TechnicianChemicalAllocationModal({
                     )}
 
                     {step === "allocate" && allocationData && (
-                        <Button onClick={handleConfirmExport} disabled={isCreatingBlock} className="gap-2 bg-green-600 hover:bg-green-700">
+                        <Button onClick={handleConfirmExport} disabled={isCreatingBlock} className="gap-2 bg-success hover:bg-success/90 text-success-foreground">
                             {isCreatingBlock ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                             {t("technician.workspace.confirmAndAssign", { defaultValue: "Xác nhận xuất kho & Gán chỉ tiêu" })}
                         </Button>

@@ -23,9 +23,11 @@ type Props = {
         protocolCode: string;
     };
     onSuccess?: (protocol: Protocol) => void;
+    autoOpenDocUpload?: boolean;  // Pre-open the doc upload modal
+    initialDocFiles?: File[];     // Pre-load files into doc upload modal
 };
 
-export function ProtocolFormModal({ onClose, protocolId, initialData, onSuccess }: Props) {
+export function ProtocolFormModal({ onClose, protocolId, initialData, onSuccess, autoOpenDocUpload, initialDocFiles }: Props) {
     const { t } = useTranslation();
     const isEdit = Boolean(protocolId);
 
@@ -53,6 +55,11 @@ export function ProtocolFormModal({ onClose, protocolId, initialData, onSuccess 
 
     const [uploadSopOpen, setUploadSopOpen] = useState(false);
     const [uploadDocOpen, setUploadDocOpen] = useState(false);
+
+    // Auto-open doc upload modal if requested by parent
+    useEffect(() => {
+        if (autoOpenDocUpload) setUploadDocOpen(true);
+    }, [autoOpenDocUpload]);
 
     // Equipment & Lab Tools
     const [equipments, setEquipments] = useState<EquipmentSnapshotItem[]>([]);
@@ -320,43 +327,67 @@ export function ProtocolFormModal({ onClose, protocolId, initialData, onSuccess 
                         {String(t("common.save"))}
                     </Button>
                 </div>
+
+                <DocumentUploadModal
+                    open={uploadSopOpen}
+                    onClose={() => setUploadSopOpen(false)}
+                    fixedDocumentType="PROTOCOL_SOP"
+                    initialTitle={protocolTitle}
+                    initialCommonKeys={protocolCode ? [protocolCode] : undefined}
+                    initialRefType="Protocol"
+                    initialRefId={protocolId}
+                    zIndexClass="z-[110]"
+                    onSuccess={(doc) => {
+                        if (doc?.documentId) {
+                            const newId = doc.documentId;
+                            const newItem = { id: newId, label: doc.documentTitle || newId, sublabel: newId };
+                            setSopDocumentIds(prev => [...prev, newId]);
+                            setSelectedSopDocs(prev => [...prev, newItem]);
+                        }
+                    }}
+                />
+
+                <DocumentUploadModal
+                    open={uploadDocOpen}
+                    onClose={() => setUploadDocOpen(false)}
+                    fixedDocumentType="PROTOCOL_DOC"
+                    initialTitle={autoOpenDocUpload
+                        ? `MẪU biên bản thử nghiệm ${protocolCode || ""}`.trim()
+                        : (protocolTitle || protocolCode)}
+                    initialCommonKeys={protocolCode ? [protocolCode] : undefined}
+                    initialRefType="Protocol"
+                    initialRefId={protocolId}
+                    initialFiles={autoOpenDocUpload ? (initialDocFiles ?? []) : undefined}
+                    lockTitle={autoOpenDocUpload}
+                    zIndexClass="z-[110]"
+                    onSuccess={async (doc) => {
+                        if (doc?.documentId) {
+                            const newId = doc.documentId;
+                            const newItem = { id: newId, label: doc.documentTitle || newId, sublabel: newId };
+                            setProtocolDocumentIds(prev => [...prev, newId]);
+                            setSelectedProtocolDocs(prev => [...prev, newItem]);
+
+                            // When triggered from editor (autoOpenDocUpload), immediately patch protocol
+                            if (autoOpenDocUpload && protocolId) {
+                                try {
+                                    const existingIds = protocolDocumentIds;
+                                    if (!existingIds.includes(newId)) {
+                                        await updateP.mutateAsync({
+                                            body: {
+                                                protocolId,
+                                                protocolDocumentIds: [...existingIds, newId],
+                                            },
+                                        });
+                                    }
+                                    onClose();
+                                } catch (e) {
+                                    console.error("Failed to update protocolDocumentIds", e);
+                                }
+                            }
+                        }
+                    }}
+                />
             </div>
-
-            <DocumentUploadModal
-                open={uploadSopOpen}
-                onClose={() => setUploadSopOpen(false)}
-                fixedDocumentType="PROTOCOL_SOP"
-                initialTitle={protocolTitle}
-                initialCommonKeys={protocolCode ? [protocolCode] : undefined}
-                initialRefType="Protocol"
-                initialRefId={protocolId}
-                onSuccess={(doc) => {
-                    if (doc?.documentId) {
-                        const newId = doc.documentId;
-                        const newItem = { id: newId, label: doc.documentTitle || newId, sublabel: newId };
-                        setSopDocumentIds(prev => [...prev, newId]);
-                        setSelectedSopDocs(prev => [...prev, newItem]);
-                    }
-                }}
-            />
-
-            <DocumentUploadModal
-                open={uploadDocOpen}
-                onClose={() => setUploadDocOpen(false)}
-                fixedDocumentType="PROTOCOL_DOC"
-                initialTitle={protocolTitle}
-                initialCommonKeys={protocolCode ? [protocolCode] : undefined}
-                initialRefType="Protocol"
-                initialRefId={protocolId}
-                onSuccess={(doc) => {
-                    if (doc?.documentId) {
-                        const newId = doc.documentId;
-                        const newItem = { id: newId, label: doc.documentTitle || newId, sublabel: newId };
-                        setProtocolDocumentIds(prev => [...prev, newId]);
-                        setSelectedProtocolDocs(prev => [...prev, newItem]);
-                    }
-                }}
-            />
         </div>
     );
 }

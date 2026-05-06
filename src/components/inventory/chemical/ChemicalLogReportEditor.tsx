@@ -51,7 +51,7 @@ export function ChemicalLogReportEditor({ open, onOpenChange, inventories }: Pro
         if (!inventories || inventories.length === 0) return "";
 
         const content = inventories
-            .map((item, index) => {
+            .map((item) => {
                 const chemicalName = item.chemicalName || (item as any).chemicalSku?.chemicalName || item.chemicalSkuId || "";
                 const casNumber = item.chemicalCasNumber || (item as any).chemicalSku?.chemicalCASNumber || "";
                 const manufacturer = item.manufacturerName || "";

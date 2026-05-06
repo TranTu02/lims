@@ -228,7 +228,6 @@ export type EditLineItem = {
     inventory: ChemicalInventory;
     changeQty: number;
     totalWeight?: number;
-    totalWeight?: number;
     analysisId: string;
     chemicalTransactionBlockDetailNote: string;
     transactionCoaDocumentIds?: string[];

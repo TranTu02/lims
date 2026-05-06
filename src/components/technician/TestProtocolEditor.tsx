@@ -8,6 +8,7 @@ import * as mammoth from "mammoth";
 import { useAnalysisDetail, useAnalysesUpdateBulk, useAnalysesGenerateLabReport } from "@/api/analyses";
 import { useMatrixFull, useProtocolDetail } from "@/api/library";
 import { documentApi } from "@/api/documents";
+import { ProtocolFormModal } from "@/components/library/protocols/ProtocolFormModal";
 
 import type { AnalysisListItem } from "@/types/analysis";
 
@@ -73,10 +74,11 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
 
     // Protocol selection: if analyses have different protocolCodes, let user pick
     const uniqueProtocols = useMemo(() => {
-        const seen = new Map<string, { code: string; label: string }>();
+        const seen = new Map<string, { code: string; label: string; id: string | null }>();
         analyses.forEach((a) => {
             const code = (a as AnalysisListItem & { protocolCode?: string }).protocolCode || "";
-            if (code && !seen.has(code)) seen.set(code, { code, label: code });
+            const id = (a as AnalysisListItem & { protocolId?: string }).protocolId || null;
+            if (code && !seen.has(code)) seen.set(code, { code, label: code, id });
         });
         return Array.from(seen.values());
     }, [analyses]);
@@ -104,7 +106,7 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
     const matrixId = (primaryAnalysis as AnalysisListItem & { matrixId?: string })?.matrixId || analysisDetail?.matrixId || null;
     const { data: matrixFull } = useMatrixFull(matrixId);
 
-    const directProtocolId = matrixFull?.protocolId || null;
+    const directProtocolId = uniqueProtocols.find(p => p.code === selectedProtocolCode)?.id || (primaryAnalysis as AnalysisListItem & { protocolId?: string })?.protocolId || analysisDetail?.protocolId || matrixFull?.protocolId || null;
     const { data: protocolDetail, isLoading: isLoadingProtocol } = useProtocolDetail({ params: { protocolId: directProtocolId || "" } });
     // Mutators
     const { mutate: updateBulk, isPending: isUpdating } = useAnalysesUpdateBulk();
@@ -140,12 +142,38 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
     const [showProtocolDocsModal, setShowProtocolDocsModal] = useState(false);
     const [isSysDocLoading, setIsSysDocLoading] = useState(false);
 
+    const [pendingDocxFile, setPendingDocxFile] = useState<File | null>(null);
+    const [showProtocolUploadConfirm, setShowProtocolUploadConfirm] = useState(false);
+    const [showProtocolFormForUpload, setShowProtocolFormForUpload] = useState(false);
 
+    const handleConfirmProtocolUpload = async (uploadToLibrary: boolean) => {
+        setShowProtocolUploadConfirm(false);
+        if (pendingDocxFile) {
+            setIsDocxLoading(true);
+            try {
+                const arrayBuffer = await pendingDocxFile.arrayBuffer();
+                await processDocxArrayBuffer(arrayBuffer);
+            } catch (err) {
+                console.error("File upload error:", err);
+                toast.error(t("technician.workspace.docxError", { defaultValue: "Lỗi khi đọc file Word" }));
+            } finally {
+                setIsDocxLoading(false);
+                if (docxInputRef.current) docxInputRef.current.value = "";
+            }
+
+            if (uploadToLibrary) {
+                // Open ProtocolFormModal (edit mode) with doc upload pre-opened
+                setShowProtocolFormForUpload(true);
+            } else {
+                setPendingDocxFile(null);
+            }
+        }
+    };
 
     // Build header HTML (reused for both initial template and docx wrap)
     const buildHeaderInnerHtml = useCallback(() => {
         const orgName = t("testReport.institute.organizationName", { defaultValue: "VIỆN NGHIÊN CỨU VÀ PHÁT TRIỂN SẢN PHẨM THIÊN NHIÊN" });
-            const reportTitle = t("testReport.title", { defaultValue: "BIÊN BẢN THỬ NGHIỆM" });
+            const reportTitle = t("technician.workspace.protocolTitleDoc", { defaultValue: "BIÊN BẢN THỬ NGHIỆM" });
             const protocolName = protocolDetail?.protocolTitle || protocolDetail?.protocolCode || selectedProtocolCode || (primaryAnalysis as AnalysisListItem & { protocolCode?: string })?.protocolCode || "-";
 
             return `
@@ -215,30 +243,7 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
           </tbody>
         </table>`;
 
-    const handleDocxUpload = useCallback(
-        async (e: React.ChangeEvent<HTMLInputElement>) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
-            if (!file.name.toLowerCase().endsWith(".docx")) {
-                toast.error(t("technician.workspace.invalidDocx", { defaultValue: "Chỉ hỗ trợ file .docx" }));
-                return;
-            }
-            setIsDocxLoading(true);
-            try {
-                const arrayBuffer = await file.arrayBuffer();
-                await processDocxArrayBuffer(arrayBuffer);
-            } catch (err) {
-                console.error("File upload error:", err);
-                toast.error(t("technician.workspace.docxError", { defaultValue: "Lỗi khi đọc file Word" }));
-            } finally {
-                setIsDocxLoading(false);
-                if (docxInputRef.current) docxInputRef.current.value = "";
-            }
-        },
-        [t],
-    );
-
-    const processDocxArrayBuffer = async (arrayBuffer: ArrayBuffer) => {
+    const processDocxArrayBuffer = useCallback(async (arrayBuffer: ArrayBuffer) => {
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const transformParagraph = (paragraph: any) => {
@@ -280,7 +285,36 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
             toast.error(t("technician.workspace.docxError", { defaultValue: "Lỗi khi chuyển đổi file Word" }));
             throw err;
         }
-    };
+    }, [buildHeaderHtml, HEADER_FOOTER, t]);
+
+    const handleDocxUpload = useCallback(
+        async (e: React.ChangeEvent<HTMLInputElement>) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            if (!file.name.toLowerCase().endsWith(".docx")) {
+                toast.error(t("technician.workspace.invalidDocx", { defaultValue: "Chỉ hỗ trợ file .docx" }));
+                return;
+            }
+            
+            if (directProtocolId) {
+                setPendingDocxFile(file);
+                setShowProtocolUploadConfirm(true);
+            } else {
+                setIsDocxLoading(true);
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    await processDocxArrayBuffer(arrayBuffer);
+                } catch (err) {
+                    console.error("File upload error:", err);
+                    toast.error(t("technician.workspace.docxError", { defaultValue: "Lỗi khi đọc file Word" }));
+                } finally {
+                    setIsDocxLoading(false);
+                    if (docxInputRef.current) docxInputRef.current.value = "";
+                }
+            }
+        },
+        [t, directProtocolId, processDocxArrayBuffer],
+    );
 
     const handleSelectProtocolDoc = async (documentId: string, filename: string) => {
         setIsSysDocLoading(true);
@@ -492,44 +526,14 @@ ${CONTENT_STYLE}
         lastKey.current = currentKey;
         const savedHtmlNow = (analysisDetail?.rawData as Record<string, unknown>)?.protocolReportHtml as string;
         if (!savedHtmlNow) {
-            const orgName = t("testReport.institute.organizationName", { defaultValue: "VIỆN NGHIÊN CỨU VÀ PHÁT TRIỂN SẢN PHẨM THIÊN NHIÊN" });
-            const reportTitle = t("testReport.title", { defaultValue: "BIÊN BẢN THỬ NGHIỆM" });
-            const protocolName = protocolDetail?.protocolTitle || protocolDetail?.protocolCode || selectedProtocolCode || (primaryAnalysis as AnalysisListItem & { protocolCode?: string })?.protocolCode || "-";
-            stableInitialHtml.current = `
-        <table style="width:100%; border-collapse:collapse; border:none; font-family:'Times New Roman',Times,serif;">
-          <thead>
-            <tr>
-              <th style="border:none !important; padding-bottom:10px;">
-                <table style="border:none !important; width:100%; border-collapse:collapse;">
-                  <tr>
-                    <td style="border:none !important; width:80px; vertical-align:top; padding:0;">
-                      <img src="${LOGO_URL}" style="height:52px; width:auto; object-fit:contain;" />
-                    </td>
-                    <td style="border:none !important; text-align:center; vertical-align:middle; padding:0 8px;">
-                      <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">${orgName}</div>
-                      <div style="font-size:15px; font-weight:700; text-transform:uppercase; margin-top:3px;">${reportTitle}</div>
-                      <div style="font-size:11px; font-weight:600; font-style:italic; margin-top:2px;">${protocolName}</div>
-                    </td>
-                    <td style="border:none !important; width:80px; padding:0;"></td>
-                  </tr>
-                </table>
-                <div style="border-top:1.5px solid #374151; margin-top:8px;"></div>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style="border:none !important;">
+            stableInitialHtml.current = `${buildHeaderHtml()}
                 <br/>
                 <h3>1. ${t("technician.workspace.testingSequence", { defaultValue: "Trình tự thử nghiệm" })}</h3>
                 <p>[${t("technician.workspace.fillContent", { defaultValue: "Điền nội dung..." })}]</p>
                 <br/>
                 <h3>2. ${t("technician.workspace.recordedData", { defaultValue: "Dữ liệu ghi nhận" })}</h3>
                 <p>[${t("technician.workspace.fillContent", { defaultValue: "Điền nội dung..." })}]</p>
-              </td>
-            </tr>
-          </tbody>
-        </table>`;
+${HEADER_FOOTER}`;
         } else {
             stableInitialHtml.current = savedHtmlNow;
         }
@@ -834,6 +838,23 @@ ${CONTENT_STYLE}
                             </Tabs>
                         </div>
                     </div>
+
+                    {showProtocolFormForUpload && directProtocolId && (
+                        <ProtocolFormModal
+                            protocolId={directProtocolId}
+                            onClose={() => {
+                                setShowProtocolFormForUpload(false);
+                                setPendingDocxFile(null);
+                            }}
+                            autoOpenDocUpload={true}
+                            initialDocFiles={pendingDocxFile ? [pendingDocxFile] : []}
+                            onSuccess={() => {
+                                setShowProtocolFormForUpload(false);
+                                setPendingDocxFile(null);
+                                toast.success("Đã cập nhật biểu mẫu vào thư viện Phương pháp.");
+                            }}
+                        />
+                    )}
                 </DialogContent>
             </Dialog>
 
@@ -916,6 +937,31 @@ ${CONTENT_STYLE}
                     ) : null}
                 </DialogContent>
             </Dialog>
+
+            <Dialog open={showProtocolUploadConfirm} onOpenChange={(open) => {
+                if (!open && showProtocolUploadConfirm) handleConfirmProtocolUpload(false);
+            }}>
+                <DialogContent className="max-w-md">
+                    <DialogTitle className="text-lg font-semibold text-foreground">
+                        Tạo mẫu biên bản cho Phương pháp?
+                    </DialogTitle>
+                    <div className="py-2 text-sm text-muted-foreground">
+                        Hệ thống nhận thấy bạn đang tạo biên bản từ file Word cho phương pháp <strong>{protocolDetail?.protocolTitle || selectedProtocolCode || "này"}</strong>.
+                        Bạn có muốn lưu file này vào thư viện để làm biểu mẫu (Template) cho các lần sau không?
+                    </div>
+                    <div className="flex justify-end gap-2 mt-4">
+                        <Button variant="outline" onClick={() => handleConfirmProtocolUpload(false)}>
+                            Không, chỉ tạo cho biên bản này
+                        </Button>
+                        <Button variant="default" onClick={() => handleConfirmProtocolUpload(true)}>
+                            Có, cập nhật vào Phương pháp
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+
+
         </>
     );
 }

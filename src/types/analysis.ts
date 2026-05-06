@@ -29,6 +29,7 @@ export type AnalysisListItem = {
     involvedIds?: string[] | null;
     analysisMarks?: string[] | null;
     analysisPriority?: number | null;
+    protocolId?: string | null;
     protocolCode?: string | null;
     createdBy?: unknown;
 
@@ -74,6 +75,7 @@ export type AnalysisDetail = {
     technicianGroupName?: string | null;
 
     analysisLocation?: string | null;
+    protocolId?: string | null;
     protocolCode?: string | null;
     rawData?: Record<string, unknown> | null;
     involvedIds?: string[] | null;

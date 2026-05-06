@@ -29,6 +29,9 @@ interface DocumentUploadModalProps {
     initialRefType?: string;
     initialRefId?: string;
     editDocument?: DocumentInfo | null;
+    initialFiles?: File[];
+    lockTitle?: boolean;    // When true, filename won't override initialTitle
+    zIndexClass?: string;   // Custom z-index class for the overlay, default "z-50"
 }
 
 const DOCUMENT_STATUS_OPTIONS: { label: string; value: DocumentStatus }[] = [
@@ -38,7 +41,7 @@ const DOCUMENT_STATUS_OPTIONS: { label: string; value: DocumentStatus }[] = [
     { label: "Cancelled (Đã huỷ)", value: "Cancelled" },
 ];
 
-export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentType, initialTitle, initialCommonKeys, initialRefType, initialRefId, editDocument }: DocumentUploadModalProps) {
+export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentType, initialTitle, initialCommonKeys, initialRefType, initialRefId, editDocument, initialFiles, lockTitle, zIndexClass }: DocumentUploadModalProps) {
     const { t } = useTranslation();
     const qc = useQueryClient();
 
@@ -113,9 +116,13 @@ export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentTyp
                 if (initialCommonKeys?.length) setCommonKeys(initialCommonKeys.join(", "));
                 if (initialRefType) setRefType(initialRefType);
                 if (initialRefId) setRefId(initialRefId);
+                if (initialFiles?.length) {
+                    setFileQueue(initialFiles);
+                    setCurrentQueueIndex(0);
+                }
             }
         }
-    }, [open, fixedDocumentType, initialTitle, initialCommonKeys, initialRefType, initialRefId, editDocument]);
+    }, [open, fixedDocumentType, initialTitle, initialCommonKeys, initialRefType, initialRefId, editDocument, initialFiles]);
 
     const handleClose = () => {
         resetForm();
@@ -161,11 +168,12 @@ export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentTyp
     useEffect(() => {
         if (fileQueue.length > 0 && currentQueueIndex < fileQueue.length) {
             const f = fileQueue[currentQueueIndex];
-            setDocumentTitle(f.name.replace(/\.[^/.]+$/, ""));
+            // Don't override title from filename if lockTitle is true
+            if (!lockTitle) setDocumentTitle(f.name.replace(/\.[^/.]+$/, ""));
             setUploadedFileName(f.name);
             setFileId(""); // ensure we upload on save
         }
-    }, [currentQueueIndex, fileQueue]);
+    }, [currentQueueIndex, fileQueue, lockTitle]);
 
     const handleUploadSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
@@ -285,7 +293,7 @@ export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentTyp
     if (!open) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div className={`fixed inset-0 bg-black/50 flex items-center justify-center p-4 ${zIndexClass ?? "z-50"}`}>
             <div className="bg-background rounded-xl border border-border w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/20">
                     <div>
