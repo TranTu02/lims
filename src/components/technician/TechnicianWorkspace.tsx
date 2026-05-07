@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Search, Loader2, FastForward, FlaskConical, PenLine, Beaker, FilePenLine, RotateCcw, RefreshCw, CheckCircle2 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
+// import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -23,28 +23,28 @@ import { DocumentPreviewButton } from "@/components/document/DocumentPreviewButt
 import { HelpBubble } from "@/components/inventory/chemical/HelpBubble";
 import { convertResultToHtml } from "@/utils/resultHtml";
 
-function getStatusVariant(status: string) {
-    if (status === "Pending") return "warning";
-    if (status === "Ready") return "success";
-    if (status === "HandedOver") return "secondary";
-    if (status === "Testing") return "default";
-    if (status === "ReTest") return "destructive";
-    if (status === "Complained") return "destructive";
-    if (status === "DataEntered" || status === "TechReview") return "secondary";
-    return "outline";
-}
+// function getStatusVariant(status: string) {
+//     if (status === "Pending") return "warning";
+//     if (status === "Ready") return "success";
+//     if (status === "HandedOver") return "secondary";
+//     if (status === "Testing") return "default";
+//     if (status === "ReTest") return "destructive";
+//     if (status === "Complained") return "destructive";
+//     if (status === "DataEntered" || status === "TechReview") return "secondary";
+//     return "outline";
+// }
 
-function getStatusText(status: string) {
-    if (status === "Pending") return "Chờ xử lý";
-    if (status === "Ready") return "Sẵn sàng";
-    if (status === "HandedOver") return "Đã nhận bàn giao";
-    if (status === "Testing") return "Đang thử nghiệm";
-    if (status === "DataEntered") return "Đã nhập KQ";
-    if (status === "TechReview") return "Chờ soát xét";
-    if (status === "ReTest") return "Cần làm lại";
-    if (status === "Complained") return "Khiếu nại";
-    return status;
-}
+// function getStatusText(status: string) {
+//     if (status === "Pending") return "Chờ xử lý";
+//     if (status === "Ready") return "Sẵn sàng";
+//     if (status === "HandedOver") return "Đã nhận bàn giao";
+//     if (status === "Testing") return "Đang thử nghiệm";
+//     if (status === "DataEntered") return "Đã nhập KQ";
+//     if (status === "TechReview") return "Chờ soát xét";
+//     if (status === "ReTest") return "Cần làm lại";
+//     if (status === "Complained") return "Khiếu nại";
+//     return status;
+// }
 
 export function TechnicianWorkspace() {
     const { user } = useAuth();
