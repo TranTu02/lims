@@ -1,13 +1,13 @@
 # =============================================================================
 # LIMS Frontend - Dockerfile
 # Base OS  : Debian (bookworm-slim)
-# Node     : 24.10.1
+# Node     : 24 (latest 24.x from Docker Hub)
 # Framework: React + Vite (served via vite preview)
 # Port     : 4173
 # =============================================================================
 
 # ─── Stage 1: Builder ────────────────────────────────────────────────────────
-FROM node:24.10.1-bookworm-slim AS builder
+FROM node:24-bookworm-slim AS builder
 
 WORKDIR /app
 
@@ -22,7 +22,7 @@ COPY . .
 RUN npm run build
 
 # ─── Stage 2: Runner ─────────────────────────────────────────────────────────
-FROM node:24.10.1-bookworm-slim AS runner
+FROM node:24-bookworm-slim AS runner
 
 WORKDIR /app
 
