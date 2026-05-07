@@ -520,9 +520,9 @@ export function AddSampleModal({ receipt, onClose, onCreated }: Props) {
                                     <tbody className="divide-y divide-border">
                                         {form.analyses.map((a) => (
                                             <tr key={a.matrixId} className="hover:bg-muted/20">
-                                                <td className="px-3 py-2 text-xs font-mono text-muted-foreground">{a.matrixId}</td>
-                                                <td className="px-3 py-2 text-sm text-foreground">{a.parameterName}</td>
-                                                <td className="px-3 py-2 text-xs text-muted-foreground">{a.protocolCode}</td>
+                                                <td className="px-3 py-2 text-xs font-mono text-muted-foreground break-all">{a.matrixId}</td>
+                                                <td className="px-3 py-2 text-sm text-foreground break-words">{a.parameterName}</td>
+                                                <td className="px-3 py-2 text-xs text-muted-foreground break-all">{a.protocolCode}</td>
                                                 <td className="px-3 py-2 text-xs text-muted-foreground">
                                                     {a.methodLOD && <span>methodLOD: {a.methodLOD}</span>}
                                                     {a.methodLOD && a.methodLOQ && <span className="mx-1">·</span>}

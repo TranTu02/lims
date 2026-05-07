@@ -125,15 +125,15 @@ export function LabManagerAnalyses() {
             {/* Table */}
             <div className="border-border/50 bg-card flex flex-1 flex-col overflow-hidden rounded-lg border shadow-sm">
                 <div className="flex-1 overflow-auto">
-                    <Table>
+                    <Table className="table-fixed w-full">
                         <TableHeader className="bg-muted/50 sticky top-0 z-10 shadow-sm">
                             <TableRow>
-                                <TableHead className="w-16">STT</TableHead>
-                                <TableHead className="min-w-[120px]">{String(t("lab.samples.sampleId", { defaultValue: "Mã mẫu" }))}</TableHead>
-                                <TableHead className="min-w-[160px]">{String(t("lab.analyses.parameterName", { defaultValue: "Chỉ tiêu" }))}</TableHead>
-                                <TableHead className="min-w-[100px]">{String(t("lab.analyses.result", { defaultValue: "Kết quả" }))}</TableHead>
-                                <TableHead className="min-w-[80px]">{String(t("lab.analyses.unit", { defaultValue: "Đơn vị" }))}</TableHead>
-                                <TableHead className="min-w-[160px] p-0 align-middle">
+                                <TableHead className="w-12">STT</TableHead>
+                                <TableHead className="w-[110px]">{String(t("lab.samples.sampleId", { defaultValue: "Mã mẫu" }))}</TableHead>
+                                <TableHead className="w-[180px]">{String(t("lab.analyses.parameterName", { defaultValue: "Chỉ tiêu" }))}</TableHead>
+                                <TableHead className="w-[150px]">{String(t("lab.analyses.result", { defaultValue: "Kết quả" }))}</TableHead>
+                                <TableHead className="w-[80px]">{String(t("lab.analyses.unit", { defaultValue: "Đơn vị" }))}</TableHead>
+                                <TableHead className="w-[130px] p-0 align-middle">
                                     <FilterPopover 
                                         title={String(t("lab.analyses.technicianGroup", { defaultValue: "Nhóm phụ trách" }))}
                                         value={technicianGroupId}
@@ -142,7 +142,7 @@ export function LabManagerAnalyses() {
                                         isLoading={isGroupsLoading}
                                     />
                                 </TableHead>
-                                <TableHead className="min-w-[170px] p-0 align-middle">
+                                <TableHead className="w-[140px] p-0 align-middle">
                                     <FilterPopover 
                                         title={String(t("lab.analyses.technician", { defaultValue: "Người thực hiện" }))}
                                         value={technicianId}
@@ -151,7 +151,7 @@ export function LabManagerAnalyses() {
                                         isLoading={isTechLoading}
                                     />
                                 </TableHead>
-                                <TableHead className="min-w-[170px] p-0 align-middle">
+                                <TableHead className="w-[130px] p-0 align-middle">
                                     <FilterPopover 
                                         title={String(t("lab.analyses.relatedTechs", { defaultValue: "Người liên quan" }))}
                                         value={technicianIds}
@@ -160,8 +160,8 @@ export function LabManagerAnalyses() {
                                         isLoading={isTechLoading}
                                     />
                                 </TableHead>
-                                <TableHead className="w-[120px]">{String(t("common.status"))}</TableHead>
-                                <TableHead className="w-[60px]">{String(t("common.view"))}</TableHead>
+                                <TableHead className="w-[110px]">{String(t("common.status"))}</TableHead>
+                                <TableHead className="w-[70px]">{String(t("common.view"))}</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -172,15 +172,17 @@ export function LabManagerAnalyses() {
                             ) : (
                                 analysesList.map((item, index) => (
                                     <TableRow key={item.analysisId} className="transition-colors cursor-pointer hover:bg-muted/40" onClick={() => handleViewDetail(item.analysisId)}>
-                                        <TableCell>{(page - 1) * itemsPerPage + index + 1}</TableCell>
-                                        <TableCell className="font-medium text-primary">{item.sampleId}</TableCell>
+                                        <TableCell className="text-xs text-muted-foreground">{(page - 1) * itemsPerPage + index + 1}</TableCell>
+                                        <TableCell className="font-medium text-primary text-xs break-all">{(item as any).sample?.sampleCode || item.sampleId}</TableCell>
                                         <TableCell>
-                                            <div className="font-semibold">{item.parameterName ?? "-"}</div>
-                                            <div className="text-muted-foreground italic text-[11px]">{item.protocolCode ?? "-"}</div>
+                                            <div className="font-semibold text-sm break-words whitespace-normal">{item.parameterName ?? "-"}</div>
+                                            <div className="text-muted-foreground italic text-[11px] break-all">{item.protocolCode ?? "-"}</div>
                                         </TableCell>
-                                        <TableCell className="font-mono font-medium text-blue-600">{item.analysisResult ?? "-"}</TableCell>
+                                        <TableCell className="font-medium text-blue-600 break-words whitespace-normal">
+                                            <span dangerouslySetInnerHTML={{ __html: item.analysisResult ? String(item.analysisResult) : "-" }} />
+                                        </TableCell>
                                         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                        <TableCell className="text-xs text-muted-foreground">{(item as any).analysisUnit ?? "-"}</TableCell>
+                                        <TableCell className="text-xs text-muted-foreground break-all">{(item as any).analysisUnit ?? "-"}</TableCell>
                                         <TableCell>
                                             <Badge variant="outline" className="text-xs bg-muted/40 whitespace-nowrap">{item.technicianGroupName ?? "-"}</Badge>
                                         </TableCell>
@@ -189,7 +191,7 @@ export function LabManagerAnalyses() {
                                                 <div className="h-6 w-6 rounded-full bg-muted border border-border flex items-center justify-center shrink-0">
                                                     <UserCircle className="h-4 w-4 text-muted-foreground" />
                                                 </div>
-                                                <span className="truncate">
+                                                <span className="break-words whitespace-normal text-xs">
                                                     {(item.technician as { identityName?: string } | null)?.identityName ?? "-"}
                                                 </span>
                                             </div>

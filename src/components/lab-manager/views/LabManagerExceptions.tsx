@@ -183,13 +183,13 @@ export function LabManagerExceptions() {
                     <div className="flex-1 overflow-auto">
                         {tabIsSample ? (
                             /* ===== SAMPLE TABLE ===== */
-                            <Table>
+                            <Table className="table-fixed w-full">
                                 <TableHeader className="bg-muted/50 sticky top-0 z-10 shadow-sm">
                                     <TableRow>
-                                        <TableHead className="w-16">STT</TableHead>
-                                        <TableHead className="min-w-[140px]">{String(t("lab.samples.sampleId", { defaultValue: "Mã mẫu" }))}</TableHead>
-                                        <TableHead className="min-w-[140px]">{String(t("lab.receipts.receiptId", { defaultValue: "Mã phiếu" }))}</TableHead>
-                                        <TableHead className="min-w-[180px]">{String(t("lab.samples.sampleTypeName", { defaultValue: "Loại mẫu" }))}</TableHead>
+                                        <TableHead className="w-12">STT</TableHead>
+                                        <TableHead className="w-[140px]">{String(t("lab.samples.sampleId", { defaultValue: "Mã mẫu" }))}</TableHead>
+                                        <TableHead className="w-[140px]">{String(t("lab.receipts.receiptId", { defaultValue: "Mã phiếu" }))}</TableHead>
+                                        <TableHead className="w-[200px]">{String(t("lab.samples.sampleTypeName", { defaultValue: "Loại mẫu" }))}</TableHead>
                                         <TableHead className="w-[120px]">{String(t("common.status", { defaultValue: "Trạng thái" }))}</TableHead>
                                         <TableHead className="w-[120px]">Marks</TableHead>
                                         <TableHead className="w-[100px]">{String(t("common.createdAt", { defaultValue: "Ngày tạo" }))}</TableHead>
@@ -204,12 +204,12 @@ export function LabManagerExceptions() {
                                     ) : (
                                         samplesList.map((sample, index) => (
                                             <TableRow key={sample.sampleId} className="transition-colors">
-                                                <TableCell>{(page - 1) * itemsPerPage + index + 1}</TableCell>
-                                                <TableCell className="font-medium text-primary">{sample.sampleId}</TableCell>
-                                                <TableCell className="font-medium">{sample.receiptId ?? "-"}</TableCell>
-                                                <TableCell className="text-muted-foreground text-sm">{sample.sampleTypeName ?? "-"}</TableCell>
+                                                <TableCell className="text-xs text-muted-foreground">{(page - 1) * itemsPerPage + index + 1}</TableCell>
+                                                <TableCell className="font-medium text-primary text-xs break-all">{sample.sampleId}</TableCell>
+                                                <TableCell className="font-medium text-xs break-all">{sample.receiptId ?? "-"}</TableCell>
+                                                <TableCell className="text-muted-foreground text-sm break-words whitespace-normal">{sample.sampleTypeName ?? "-"}</TableCell>
                                                 <TableCell>
-                                                    <Badge variant="outline" className="font-medium whitespace-nowrap">{sample.sampleStatus ?? "-"}</Badge>
+                                                    <Badge variant="outline" className="font-medium whitespace-nowrap text-xs">{sample.sampleStatus ?? "-"}</Badge>
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex flex-wrap gap-1">
@@ -233,17 +233,17 @@ export function LabManagerExceptions() {
                             </Table>
                         ) : (
                             /* ===== ANALYSIS TABLE ===== */
-                            <Table>
+                            <Table className="table-fixed w-full">
                                 <TableHeader className="bg-muted/50 sticky top-0 z-10 shadow-sm">
                                     <TableRow>
-                                        <TableHead className="w-16">STT</TableHead>
-                                        <TableHead className="min-w-[120px]">{String(t("lab.samples.sampleId", { defaultValue: "Mã mẫu" }))}</TableHead>
-                                        <TableHead className="min-w-[180px]">{String(t("lab.analyses.parameterName", { defaultValue: "Chỉ tiêu" }))}</TableHead>
-                                        <TableHead className="min-w-[140px]">{String(t("lab.analyses.protocolCode", { defaultValue: "Phương pháp" }))}</TableHead>
-                                        <TableHead className="min-w-[100px]">{String(t("lab.analyses.analysisResult", { defaultValue: "Kết quả" }))}</TableHead>
-                                        <TableHead className="min-w-[80px]">{String(t("lab.analyses.unit", { defaultValue: "Đơn vị" }))}</TableHead>
-                                        <TableHead className="w-[120px]">{String(t("common.status"))}</TableHead>
-                                        <TableHead className="min-w-[160px] p-0 align-middle">
+                                        <TableHead className="w-12">STT</TableHead>
+                                        <TableHead className="w-[110px]">{String(t("lab.samples.sampleId", { defaultValue: "Mã mẫu" }))}</TableHead>
+                                        <TableHead className="w-[180px]">{String(t("lab.analyses.parameterName", { defaultValue: "Chỉ tiêu" }))}</TableHead>
+                                        <TableHead className="w-[130px]">{String(t("lab.analyses.protocolCode", { defaultValue: "Phương pháp" }))}</TableHead>
+                                        <TableHead className="w-[150px]">{String(t("lab.analyses.analysisResult", { defaultValue: "Kết quả" }))}</TableHead>
+                                        <TableHead className="w-[80px]">{String(t("lab.analyses.unit", { defaultValue: "Đơn vị" }))}</TableHead>
+                                        <TableHead className="w-[110px]">{String(t("common.status"))}</TableHead>
+                                        <TableHead className="w-[120px] p-0 align-middle">
                                             <FilterPopover 
                                                 title={t("lab.analyses.technicianGroup", { defaultValue: "Nhóm phụ trách" })}
                                                 value={technicianGroupId}
@@ -252,7 +252,7 @@ export function LabManagerExceptions() {
                                                 isLoading={isGroupsLoading}
                                             />
                                         </TableHead>
-                                        <TableHead className="min-w-[150px] p-0 align-middle">
+                                        <TableHead className="w-[130px] p-0 align-middle">
                                             <FilterPopover 
                                                 title={t("lab.analyses.technician", { defaultValue: "Người phụ trách" })}
                                                 value={technicianId}
@@ -261,10 +261,10 @@ export function LabManagerExceptions() {
                                                 isLoading={isTechLoading}
                                             />
                                         </TableHead>
-                                        <TableHead className="min-w-[160px]">Marks</TableHead>
-                                        <TableHead className="w-[150px] p-0 align-middle">
+                                        <TableHead className="w-[100px]">Marks</TableHead>
+                                        <TableHead className="w-[100px] p-0 align-middle">
                                             <FilterPopover 
-                                                title={t("common.view", { defaultValue: "Xem" })}
+                                                title={t("common.view", { defaultValue: "Biên bản" })}
                                                 value={analysisDocumentIdFilter}
                                                 options={documentOptions}
                                                 onSelect={setAnalysisDocumentIdFilter}
@@ -280,14 +280,19 @@ export function LabManagerExceptions() {
                                     ) : (
                                         analysesList.map((item, index) => (
                                             <TableRow key={item.analysisId} className="transition-colors">
-                                                <TableCell>{(page - 1) * itemsPerPage + index + 1}</TableCell>
-                                                <TableCell className="font-medium text-primary">{item.sampleId}</TableCell>
-                                                <TableCell className="font-semibold">{item.parameterName ?? "-"}</TableCell>
-                                                <TableCell className="text-muted-foreground italic text-xs">{item.protocolCode ?? "-"}</TableCell>
-                                                <TableCell className="font-mono font-medium text-blue-600">{item.analysisResult ?? "-"}</TableCell>
-                                                <TableCell className="text-xs text-muted-foreground">{(item as any).analysisUnit ?? "-"}</TableCell>
+                                                <TableCell className="text-xs text-muted-foreground">{(page - 1) * itemsPerPage + index + 1}</TableCell>
+                                                <TableCell className="font-medium text-primary text-xs break-all">{(item as any).sample?.sampleCode || item.sampleId}</TableCell>
                                                 <TableCell>
-                                                    <Badge variant="outline" className="font-medium whitespace-nowrap">{item.analysisStatus}</Badge>
+                                                    <div className="font-semibold text-sm break-words whitespace-normal">{item.parameterName ?? "-"}</div>
+                                                    <div className="text-muted-foreground italic text-[11px] break-all">{item.protocolCode ?? "-"}</div>
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground italic text-xs break-all whitespace-normal">{item.protocolCode ?? "-"}</TableCell>
+                                                <TableCell className="font-medium text-blue-600 break-words whitespace-normal">
+                                                    <span dangerouslySetInnerHTML={{ __html: item.analysisResult ? String(item.analysisResult) : "-" }} />
+                                                </TableCell>
+                                                <TableCell className="text-xs text-muted-foreground break-all">{(item as any).analysisUnit ?? "-"}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline" className="font-medium whitespace-nowrap text-xs">{item.analysisStatus}</Badge>
                                                 </TableCell>
                                                 <TableCell>
                                                     <Badge variant="outline" className="text-xs bg-muted/40 whitespace-nowrap">{item.technicianGroupName ?? "-"}</Badge>
@@ -295,7 +300,7 @@ export function LabManagerExceptions() {
                                                 <TableCell>
                                                     <div className="flex items-center gap-2 text-sm">
                                                         <UserCircle className="h-4 w-4 text-muted-foreground shrink-0" />
-                                                        <span className="truncate">
+                                                        <span className="break-words whitespace-normal text-xs">
                                                             {(item.technician as { identityName?: string } | null)?.identityName ?? "-"}
                                                         </span>
                                                     </div>

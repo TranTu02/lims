@@ -184,20 +184,20 @@ export function LabManagerApprovals() {
                 {/* Table */}
                 <div className="border-border/50 bg-card z-10 flex flex-1 flex-col overflow-hidden rounded-lg border shadow-sm relative">
                     <div className="flex-1 overflow-auto">
-                        <Table>
+                        <Table className="table-fixed w-full">
                             <TableHeader className="bg-muted/50 sticky top-0 z-10 shadow-sm">
                                 <TableRow>
-                                    <TableHead className="w-12 "><Checkbox checked={analysesList.length > 0 && selectedIds.length === analysesList.length} onCheckedChange={handleSelectAll} /></TableHead>
-                                    <TableHead className="w-16 ">STT</TableHead>
-                                    <TableHead className="min-w-[120px]">Mã mẫu</TableHead>
-                                    <TableHead className="min-w-[180px]">Chỉ tiêu</TableHead>
-                                    <TableHead className="min-w-[140px]">Phương pháp</TableHead>
-                                    <TableHead className="min-w-[100px] ">Kết quả</TableHead>
-                                    <TableHead className="w-[80px] ">Đơn vị</TableHead>
-                                    <TableHead className="min-w-[140px]">Người phụ trách</TableHead>
-                                    <TableHead className="min-w-[140px]">Nhóm thực hiện</TableHead>
-                                    <TableHead className="w-[120px] ">Trạng thái</TableHead>
-                                    <TableHead className="w-[100px] ">Thao tác</TableHead>
+                                    <TableHead className="w-10"><Checkbox checked={analysesList.length > 0 && selectedIds.length === analysesList.length} onCheckedChange={handleSelectAll} /></TableHead>
+                                    <TableHead className="w-12">STT</TableHead>
+                                    <TableHead className="w-[110px]">Mã mẫu</TableHead>
+                                    <TableHead className="w-[170px]">Chỉ tiêu</TableHead>
+                                    <TableHead className="w-[130px]">Phương pháp</TableHead>
+                                    <TableHead className="w-[160px]">Kết quả</TableHead>
+                                    <TableHead className="w-[80px]">Đơn vị</TableHead>
+                                    <TableHead className="w-[130px]">Người phụ trách</TableHead>
+                                    <TableHead className="w-[120px]">Nhóm thực hiện</TableHead>
+                                    <TableHead className="w-[110px]">Trạng thái</TableHead>
+                                    <TableHead className="w-[90px]">Thao tác</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -208,19 +208,28 @@ export function LabManagerApprovals() {
                                 ) : (
                                     analysesList.map((baseItem: AnalysisListItem, index: number) => {
                                         const item = baseItem as any;
+                                        const isSelected = selectedIds.includes(item.analysisId);
                                         return (
-                                            <TableRow key={item.analysisId} className={`transition-colors ${selectedIds.includes(item.analysisId) ? "bg-primary/5" : ""}`}>
-                                                <TableCell className=""><Checkbox checked={selectedIds.includes(item.analysisId)} onCheckedChange={(c) => handleSelectOne(!!c, item.analysisId)} /></TableCell>
-                                                <TableCell className="">{(page - 1) * itemsPerPage + index + 1}</TableCell>
-                                                <TableCell className="font-medium text-primary">{item.sampleId}</TableCell>
-                                                <TableCell className="font-semibold">{item.parameterName || "-"}</TableCell>
-                                                <TableCell className="text-muted-foreground italic text-xs">{item.protocolCode || "-"}</TableCell>
-                                                <TableCell className=" font-mono font-medium text-blue-600">{item.resultValue ?? "-"}</TableCell>
-                                                <TableCell className=" text-muted-foreground text-xs">{item.analysisUnit || item.resultUnit || "-"}</TableCell>
-                                                <TableCell>{item.technician?.identityName ?? "-"}</TableCell>
-                                                <TableCell>{item.technicianGroupName ?? "-"}</TableCell>
-                                                <TableCell className=""><Badge variant={getStatusVariant(item.analysisStatus)} className="font-medium whitespace-nowrap">{getStatusText(item.analysisStatus)}</Badge></TableCell>
-                                                <TableCell className="">
+                                            <TableRow 
+                                                key={item.analysisId} 
+                                                className={`transition-colors cursor-pointer select-none ${isSelected ? "bg-primary/5" : ""}`}
+                                                onClick={() => handleSelectOne(!isSelected, item.analysisId)}
+                                            >
+                                                <TableCell className="overflow-hidden">
+                                                    <Checkbox checked={isSelected} onCheckedChange={(c) => handleSelectOne(!!c, item.analysisId)} onClick={(e) => e.stopPropagation()} />
+                                                </TableCell>
+                                                <TableCell className="text-xs text-muted-foreground">{(page - 1) * itemsPerPage + index + 1}</TableCell>
+                                                <TableCell className="font-medium text-primary text-xs break-all">{item.sample?.sampleCode || item.sampleId}</TableCell>
+                                                <TableCell className="font-semibold text-sm break-words whitespace-normal">{item.parameterName || "-"}</TableCell>
+                                                <TableCell className="text-muted-foreground italic text-xs break-all whitespace-normal">{item.protocolCode || "-"}</TableCell>
+                                                <TableCell className="font-medium text-blue-600 break-words whitespace-normal">
+                                                    <span dangerouslySetInnerHTML={{ __html: item.analysisResult ? String(item.analysisResult) : "-" }} />
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground text-xs break-all whitespace-normal">{item.analysisUnit || "-"}</TableCell>
+                                                <TableCell className="text-sm break-words whitespace-normal">{item.technician?.identityName ?? "-"}</TableCell>
+                                                <TableCell className="text-sm break-words whitespace-normal">{item.technicianGroupName ?? "-"}</TableCell>
+                                                <TableCell><Badge variant={getStatusVariant(item.analysisStatus)} className="font-medium whitespace-nowrap text-xs">{getStatusText(item.analysisStatus)}</Badge></TableCell>
+                                                <TableCell onClick={(e) => e.stopPropagation()}>
                                                     <div className="flex items-center justify-center gap-1">
                                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10" onClick={() => handleViewDetail(item)} title="Xem chi tiết"><Eye className="h-4 w-4" /></Button>
                                                         {activeTab !== "retest" && (

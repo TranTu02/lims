@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Editor } from "@tinymce/tinymce-react";
-import { Save, Printer, PlusCircle, Loader2, Beaker, FileText, Upload } from "lucide-react";
+import { Printer, PlusCircle, Loader2, Beaker, FileText, Upload } from "lucide-react";
 import { toast } from "sonner";
 import * as mammoth from "mammoth";
 
@@ -387,20 +387,27 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
     };
 
 
-    const insertResultTable = () => {
+    const insertConfirmationTable = () => {
         if (!editorRef.current) return;
-        const paramName = analysisDetail?.parameterName || primaryAnalysis?.parameterName || "";
-        const resultVal = analysisDetail?.analysisResult || "";
-        const resultStatus = analysisDetail?.analysisResultStatus || "";
+        // Insert borderless 2-column, 1-row table with 30mm height and centered text
         editorRef.current.insertContent(`
-            <br/><h4>Tóm tắt Kết quả:</h4>
-            <table><thead><tr>
-                <th>${t("technician.workspace.parameterOrNorm", { defaultValue: "Chỉ tiêu / Thông số" })}</th>
-                <th>${t("technician.workspace.measuredResult", { defaultValue: "Kết quả đo được" })}</th>
-                <th>${t("technician.workspace.statusEval", { defaultValue: "Đánh giá (Status)" })}</th>
-            </tr></thead><tbody><tr>
-                <td><strong>${paramName}</strong></td><td>${resultVal}</td><td>${resultStatus}</td>
-            </tr></tbody></table><br/>`);
+            <br/>
+            <table style="width: 100%; border-collapse: collapse; border: none; margin-top: 10px;">
+                <tbody>
+                    <tr style="height: 30mm;">
+                        <td style="width: 50%; border: none !important; text-align: center; vertical-align: top; padding: 5px;">
+                            <p>Ngày kiểm tra: ....................</p>
+                            <p><strong>Người kiểm tra</strong></p>
+                        </td>
+                        <td style="width: 50%; border: none !important; text-align: center; vertical-align: top; padding: 5px;">
+                            <p>Ngày thực hiện: ....................</p>
+                            <p><strong>Người thực hiện</strong></p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <br/>
+        `);
     };
 
     const finalizeHtmlForExport = (html: string) => {
@@ -415,15 +422,11 @@ ${CONTENT_STYLE}
         return `<!DOCTYPE html><html><head><meta charset="UTF-8">${stylePrefix}</head><body>${html}</body></html>`;
     };
 
-    const handleSave = () => {
+    const handleSaveAndExport = () => {
         if (analyses.length === 0) return;
         const htmlContent = editorRef.current?.getContent() || "";
         const payloadHtml = finalizeHtmlForExport(htmlContent);
 
-        // Dispatch updates for all analyses. 
-        // Note: Currently we save the same HTML to the primary analysis or all? 
-        // Requirement says "protocol nào làm tiêu đề chính", so usually we save html to primaryAnalysis.
-        
         const payload = analyses.map(a => {
             const myChems = availableChemicals
                 .filter(c => c.analysisId === a.analysisId)
@@ -432,23 +435,63 @@ ${CONTENT_STYLE}
                     consumedQty: quantities[c.uniqueKey] || "0",
                     changeQty: -Math.abs(Number(quantities[c.uniqueKey] || 0)),
                 }));
-            
             const existingRaw = (a as any).rawData || {};
-
             return {
                 analysisId: a.analysisId,
                 consumablesUsed: myChems,
-                // Save HTML only to the primary one or all? Let's save to all if they are part of one report.
                 rawData: { ...existingRaw, protocolReportHtml: payloadHtml },
             };
         });
 
+        // Step 1: Save to DB
         updateBulk(
             { body: payload },
             {
                 onSuccess: () => {
-                    toast.success(t("technician.workspace.saveProtocolSuccess", { defaultValue: "Đã sao lưu Biên bản thử nghiệm và danh sách hóa chất gốc" }));
+                    toast.success(t("technician.workspace.saveProtocolSuccess", { defaultValue: "Đã lưu biên bản. Đang xuất PDF..." }));
                     onSuccess?.();
+
+                    // Step 2: Export PDF right after save
+                    generateLabReport({
+                        analyses: analyses.map(a => a.analysisId),
+                        html: payloadHtml,
+                    }, {
+                        onSuccess: async (data: any) => {
+                            toast.success(t("technician.workspace.exportSuccess", { defaultValue: "Đã xuất báo cáo và tạo tài liệu thành công." }));
+                            setIsExported(true);
+
+                            const docId = data.documentId || data.data?.documentId;
+                            
+                            if (docId) {
+                                try {
+                                    const urlRes = await documentApi.url(docId);
+                                    const urlData = (urlRes as any).data ?? urlRes;
+                                    const finalUrl = urlData?.url || urlData;
+
+                                    if (typeof finalUrl === 'string' && finalUrl.startsWith('http')) {
+                                        // Robust opening in new tab
+                                        const link = document.createElement('a');
+                                        link.href = finalUrl;
+                                        link.target = '_blank';
+                                        link.rel = 'noopener noreferrer';
+                                        document.body.appendChild(link);
+                                        link.click();
+                                        document.body.removeChild(link);
+                                    } else {
+                                        toast.error(t("common.error.invalidUrl", { defaultValue: "Không lấy được liên kết tài liệu." }));
+                                    }
+                                } catch (e) {
+                                    console.error("Failed to fetch document URL after export:", e);
+                                }
+                            }
+                            // Step 3: Close editor after attempting to open tab
+                            onOpenChange(false);
+                            onSuccess?.();
+                        },
+                        onError: (error) => {
+                            console.error("Export API error:", error);
+                        },
+                    });
                 },
                 onError: () => toast.error(t("common.error.saveFailed", { defaultValue: "Có lỗi xảy ra khi lưu" })),
             },
@@ -457,64 +500,6 @@ ${CONTENT_STYLE}
 
     const handlePrint = () => {
         if (editorRef.current) editorRef.current.execCommand("mcePrint");
-    };
-
-    const handleExport = () => {
-        if (analyses.length === 0) return;
-        const htmlContent = editorRef.current?.getContent() || "";
-        const payloadHtml = finalizeHtmlForExport(htmlContent);
-
-        generateLabReport({
-            analyses: analyses.map(a => a.analysisId),
-            html: payloadHtml,
-        }, {
-            onSuccess: async (data: any) => {
-                console.log("Export API success:", data);
-                toast.success(t("technician.workspace.exportSuccess", { defaultValue: "Đã xuất báo cáo và tạo tài liệu thành công." }));
-                setIsExported(true);
-
-                // Automatically update the already-opened window with the real URL
-                const docId = data.documentId || data.data?.documentId;
-                
-                if (docId) {
-                    try {
-                        const urlRes = await documentApi.url(docId);
-                        const urlData = (urlRes as any).data ?? urlRes;
-                        const finalUrl = urlData?.url || urlData;
-                        
-                        if (typeof finalUrl === 'string' && finalUrl.startsWith('http')) {
-                            // Try to open window
-                            const newWin = window.open(finalUrl, '_blank');
-                            
-                            // If window.open was blocked by the browser
-                            if (!newWin || newWin.closed || typeof newWin.closed === 'undefined') {
-                                toast.info(
-                                    <div className="flex flex-col gap-2 p-1">
-                                        <p className="text-sm font-medium">{t("technician.workspace.popupBlocked", { defaultValue: "Tab mới đã bị chặn." })}</p>
-                                        <Button size="sm" variant="outline" className="h-8" onClick={() => window.open(finalUrl, '_blank')}>
-                                            {t("common.open", { defaultValue: "Mở tài liệu" })}
-                                        </Button>
-                                    </div>,
-                                    { duration: 6000, position: 'bottom-right' }
-                                );
-                            }
-                        } else {
-                            console.error("Invalid URL format:", finalUrl);
-                            toast.error(t("common.error.invalidUrl", { defaultValue: "Không lấy được liên kết tài liệu." }));
-                        }
-                    } catch (e) {
-                        console.error("Failed to fetch document URL after export:", e);
-                        toast.error(t("common.error.urlFetchFailed", { defaultValue: "Lỗi khi lấy liên kết xem tài liệu." }));
-                    }
-                }
-                
-                // Also trigger onSuccess so that parent component refetches (updating document icons)
-                onSuccess?.();
-            },
-            onError: (error) => {
-                console.error("Export API error:", error);
-            }
-        });
     };
 
     // Stable initialHtml computed once per open/primary-analysis change
@@ -578,17 +563,17 @@ ${HEADER_FOOTER}`;
                             )}
                         </div>
                         <div className="flex items-center gap-2 pr-6">
-                            <Button variant="outline" size="sm" onClick={handleExport} disabled={isGenerating} className="h-8 px-3 border-blue-200 text-blue-700 hover:bg-blue-50">
-                                {isGenerating ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <FileText className="w-4 h-4 mr-1.5" />}
-                                {t("technician.workspace.exportProtocol", { defaultValue: "Xuất PDF" })}
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={handlePrint} disabled={!isExported} className="h-8 px-3">
+                            <Button variant="outline" size="sm" onClick={handlePrint} disabled={!isExported} className="h-8 px-3 border-border bg-background text-foreground hover:bg-muted">
                                 <Printer className="w-4 h-4 mr-1.5" />
                                 {t("technician.workspace.printProtocol", { defaultValue: "In Biên bản" })}
                             </Button>
-                            <Button size="sm" onClick={handleSave} disabled={isUpdating} className="h-8 px-3 shadow-sm">
-                                {isUpdating ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Save className="w-4 h-4 mr-1.5" />}
-                                {t("technician.workspace.saveData", { defaultValue: "Lưu dữ liệu" })}
+                            <Button size="sm" onClick={handleSaveAndExport} disabled={isUpdating || isGenerating} className="h-8 px-4 shadow-sm bg-primary text-primary-foreground hover:bg-primary/90">
+                                {(isUpdating || isGenerating) ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <FileText className="w-4 h-4 mr-1.5" />}
+                                {isUpdating
+                                    ? t("technician.workspace.saving", { defaultValue: "Đang lưu..." })
+                                    : isGenerating
+                                        ? t("technician.workspace.exporting", { defaultValue: "Đang xuất PDF..." })
+                                        : t("technician.workspace.saveAndExport", { defaultValue: "Lưu & Xuất PDF" })}
                             </Button>
                         </div>
                     </div>
@@ -614,27 +599,70 @@ ${HEADER_FOOTER}`;
                                     base_url: "/tinymce",
                                     suffix: ".min",
                                     plugins: "table lists code",
-                                    toolbar: "undo redo | bold italic underline | alignleft aligncenter alignright | table | code",
+                                    toolbar: "undo redo | bold italic underline superscript subscript | alignleft aligncenter alignright | table | code | multiplication",
                                     paste_as_text: true,
                                     content_style: CONTENT_STYLE,
                                     branding: false,
                                     promotion: false,
                                     skin_url: "/tinymce/skins/ui/oxide",
                                     content_css: "/tinymce/skins/content/default/content.min.css",
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    setup: (editor: any) => {
+                                        // Custom button: multiplication sign ×
+                                        editor.ui.registry.addButton("multiplication", {
+                                            text: "×",
+                                            tooltip: "Dấu nhân (×) — hoặc nhấn phím *",
+                                            onAction: () => {
+                                                editor.insertContent("\u00d7");
+                                            },
+                                        });
+
+                                        /**
+                                         * Keyboard shortcuts:
+                                         *   ^  → toggle <sup> (superscript). Vì ^ cần Shift+6,
+                                         *        TinyMCE nhận key='Dead' trên một số layout;
+                                         *        nên ta bắt cả e.key === '^' lẫn Shift+Digit6.
+                                         *   _  → toggle <sub> (subscript). Shift+Minus.
+                                         *   *  → chèn ký tự × (dấu nhân Unicode).
+                                         *
+                                         * Cả ba phím đều preventDefault để ngăn ký tự gốc
+                                         * được chèn vào văn bản.
+                                         */
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                        editor.on("keydown", (e: any) => {
+                                            const isSup = e.key === "^" || (e.shiftKey && e.code === "Digit6");
+                                            const isSub = e.key === "_" || (e.shiftKey && e.code === "Minus");
+                                            const isMul = e.key === "*" || (e.shiftKey && e.code === "Digit8");
+
+                                            if (isSup) {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                editor.execCommand("superscript");
+                                            } else if (isSub) {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                editor.execCommand("subscript");
+                                            } else if (isMul) {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                editor.insertContent("\u00d7");
+                                            }
+                                        });
+                                    },
                                 }}
                             />
                         </div>
 
                         {/* Right: Sidebar Panel (30%) */}
                         <div className="w-[30%] h-full flex flex-col bg-background overflow-hidden">
-                            <Tabs defaultValue="chemicals" className="flex-1 flex flex-col h-full overflow-hidden">
+                            <Tabs defaultValue="protocol" className="flex-1 flex flex-col h-full overflow-hidden">
                                 <div className="px-4 pt-3 border-b bg-muted/20 shrink-0 h-14 flex items-end pb-0">
                                     <TabsList className="grid w-full grid-cols-2 bg-muted/40 h-10 border-b-0 rounded-b-none">
-                                        <TabsTrigger value="chemicals" className="flex items-center gap-2 data-[state=active]:bg-background transition-all">
-                                            <Beaker className="w-4 h-4" /> {t("technician.workspace.chemicalsBom", { defaultValue: "Hóa chất (BOM)" })}
-                                        </TabsTrigger>
                                         <TabsTrigger value="protocol" className="flex items-center gap-2 data-[state=active]:bg-background transition-all">
                                             <FileText className="w-4 h-4" /> {t("technician.workspace.protocolMethod", { defaultValue: "Phương pháp" })}
+                                        </TabsTrigger>
+                                        <TabsTrigger value="chemicals" className="flex items-center gap-2 data-[state=active]:bg-background transition-all">
+                                            <Beaker className="w-4 h-4" /> {t("technician.workspace.chemicalsBom", { defaultValue: "Hóa chất (BOM)" })}
                                         </TabsTrigger>
                                     </TabsList>
                                 </div>
@@ -777,6 +805,13 @@ ${HEADER_FOOTER}`;
                                                     defaultValue: "Xem nhanh nội dung quy trình thử nghiệm để làm tham chiếu nhập liệu.",
                                                 })}
                                             </p>
+                                            <Button
+                                                variant="secondary"
+                                                className="w-full flex justify-between shadow-sm"
+                                                onClick={insertConfirmationTable}
+                                            >
+                                                {t("technician.workspace.insertConfirmation", { defaultValue: "Chèn xác nhận" })} <PlusCircle className="w-4 h-4" />
+                                            </Button>
                                         </div>
 
                                         {/* Upload .docx from PC or System */}
@@ -810,8 +845,8 @@ ${HEADER_FOOTER}`;
                                             </p>
                                         </div>
 
-                                        <Button variant="outline" className="w-full flex justify-between shadow-sm" onClick={insertResultTable}>
-                                            {t("technician.workspace.insertResultForm", { defaultValue: "Chèn Form Kết quả mẫu" })} <PlusCircle className="w-4 h-4" />
+                                        <Button variant="outline" className="w-full flex justify-between shadow-sm" onClick={() => setShowAnalysisTableInsertModal(true)}>
+                                            {t("technician.workspace.insertAnalysesTable", { defaultValue: "Chèn bảng chỉ tiêu vào mẫu" })} <PlusCircle className="w-4 h-4" />
                                         </Button>
 
                                         <div className="p-4 bg-muted/40 rounded-lg border text-sm prose prose-sm max-w-none">

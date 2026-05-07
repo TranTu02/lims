@@ -380,11 +380,11 @@ export function SampleDetailModal({ open, sampleId, onClose }: Props) {
                                                 ) : (
                                                     analyses.map((a) => (
                                                         <tr key={a.analysisId} className="hover:bg-accent/30 transition-colors">
-                                                            <td className="px-3 py-4 text-sm text-foreground">{toDash(a.parameterName)}</td>
-                                                            <td className="px-3 py-4 text-sm text-muted-foreground">{toDash(a.matrixId)}</td>
-                                                            <td className="px-3 py-4 text-sm text-muted-foreground">{toDash(a.protocolCode)}</td>
+                                                            <td className="px-3 py-4 text-sm text-foreground break-words max-w-[160px]">{toDash(a.parameterName)}</td>
+                                                            <td className="px-3 py-4 text-sm text-muted-foreground break-all">{toDash(a.matrixId)}</td>
+                                                            <td className="px-3 py-4 text-sm text-muted-foreground break-all">{toDash(a.protocolCode)}</td>
                                                             <td className="px-3 py-4 text-sm text-foreground">{toDash(a.technicianIds?.join(", ") ?? a.technicianId)}</td>
-                                                            <td className="px-3 py-4 text-sm text-foreground">{toDash(a.analysisResult)}</td>
+                                                            <td className="px-3 py-4 text-sm text-foreground break-words" dangerouslySetInnerHTML={{ __html: a.analysisResult ? String(a.analysisResult) : toDash(null) }} />
                                                             <td className="px-3 py-4 text-sm text-muted-foreground">{toDash(a.analysisUnit)}</td>
                                                             <td className="px-3 py-4">
                                                                 <AnalysisStatusBadge status={a.analysisStatus ?? null} />

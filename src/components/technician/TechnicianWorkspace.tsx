@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, Loader2, FastForward, FlaskConical, PenLine, Beaker, FilePenLine, RotateCcw } from "lucide-react";
+import { Search, Loader2, FastForward, FlaskConical, PenLine, Beaker, FilePenLine, RotateCcw, RefreshCw, CheckCircle2 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ import { TechnicianChemicalRequestsTab } from "@/components/technician/Technicia
 import { TechnicianChemicalAllocationModal } from "@/components/technician/TechnicianChemicalAllocationModal";
 import { DocumentPreviewButton } from "@/components/document/DocumentPreviewButton";
 import { HelpBubble } from "@/components/inventory/chemical/HelpBubble";
+import { convertResultToHtml } from "@/utils/resultHtml";
 
 function getStatusVariant(status: string) {
     if (status === "Pending") return "warning";
@@ -269,16 +270,56 @@ export function TechnicianWorkspace() {
         setShowProtocolEditor(true);
     };
 
+    const handleMoveToTesting = () => {
+        if (!selectedIds.length) return;
+        const payload = selectedIds.map((id) => ({
+            analysisId: id,
+            analysisStatus: "Testing" as any,
+        }));
+        bulkUpdate(
+            { body: payload },
+            {
+                onSuccess: () => {
+                    setSelectedIds([]);
+                    refetch();
+                },
+            },
+        );
+    };
+
+    const handleSendForReview = () => {
+        if (!selectedIds.length) return;
+        const payload = selectedIds.map((id) => ({
+            analysisId: id,
+            analysisStatus: "TechReview" as any,
+        }));
+        bulkUpdate(
+            { body: payload },
+            {
+                onSuccess: () => {
+                    setSelectedIds([]);
+                    refetch();
+                },
+            },
+        );
+    };
+
     return (
         <div className="flex h-full flex-col gap-4 p-6 bg-background space-y-4 relative">
             <div className="bg-card rounded-lg border border-border p-6 flex flex-col items-start gap-4 shadow-sm">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">{t("technician.workspace.title", { defaultValue: "Không gian làm việc (KTV)" })}</h1>
-                    <p className="text-muted-foreground text-sm flex items-center gap-2 mt-1">
-                        {t("technician.workspace.greeting", { defaultValue: "Xin chào," })}{" "}
-                        <span className="font-semibold text-foreground">{user?.identityName || t("technician.workspace.technician", { defaultValue: "Kỹ thuật viên" })}</span>.{" "}
-                        {t("technician.workspace.subtitle", { defaultValue: "Quản lý công việc phân công tại đây." })}
-                    </p>
+                <div className="flex w-full justify-between items-start">
+                    <div>
+                        <h1 className="text-2xl font-semibold tracking-tight">{t("technician.workspace.title", { defaultValue: "Không gian làm việc (KTV)" })}</h1>
+                        <p className="text-muted-foreground text-sm flex items-center gap-2 mt-1">
+                            {t("technician.workspace.greeting", { defaultValue: "Xin chào," })}{" "}
+                            <span className="font-semibold text-foreground">{user?.identityName || t("technician.workspace.technician", { defaultValue: "Kỹ thuật viên" })}</span>.{" "}
+                            {t("technician.workspace.subtitle", { defaultValue: "Quản lý công việc phân công tại đây." })}
+                        </p>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isAnalysesLoading} className="bg-background">
+                        <RefreshCw className={`w-4 h-4 mr-2 ${isAnalysesLoading ? "animate-spin" : ""}`} />
+                        {t("common.refresh", { defaultValue: "Làm mới" })}
+                    </Button>
                 </div>
 
                 <div className="flex w-full flex-wrap items-center gap-2 border bg-muted/30 p-2 rounded-md">
@@ -315,6 +356,19 @@ export function TechnicianWorkspace() {
                         <FilePenLine className="w-4 h-4 mr-2" />
                         {t("technician.workspace.createProtocolBulk", { defaultValue: "Lập biên bản" })} ({activeTab === "testing" || activeTab === "retest" ? selectedIds.length : 0})
                     </Button>
+
+                    {activeTab === "data-entered" && (
+                        <>
+                            <Button size="sm" variant="secondary" className="bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200" disabled={selectedIds.length === 0 || isUpdating} onClick={handleMoveToTesting}>
+                                <RotateCcw className="w-4 h-4 mr-2" />
+                                {t("technician.workspace.backToTesting", { defaultValue: "Chuyển về đang thực hiện" })} ({selectedIds.length})
+                            </Button>
+                            <Button size="sm" variant="secondary" className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200" disabled={selectedIds.length === 0 || isUpdating} onClick={handleSendForReview}>
+                                <CheckCircle2 className="w-4 h-4 mr-2" />
+                                {t("technician.workspace.sendForReview", { defaultValue: "Gửi duyệt" })} ({selectedIds.length})
+                            </Button>
+                        </>
+                    )}
 
                     {isManager && (
                         <Button size="sm" variant="outline" className="ml-auto" disabled={selectedIds.length === 0} onClick={() => setShowAssignmentModal(true)}>
@@ -356,21 +410,21 @@ export function TechnicianWorkspace() {
                 ) : (
                     <>
                         <div ref={containerRef} className="border-border/50 bg-card z-10 flex flex-1 flex-col overflow-hidden rounded-lg border shadow-sm relative">
-                            <div className="flex-1 overflow-auto">
-                                <Table>
+                            <div className="flex-1 overflow-x-auto overflow-y-auto max-w-full">
+                                <Table className="table-fixed w-full">
                                     <TableHeader className="bg-muted/50 sticky top-0 z-10 shadow-sm">
                                         <TableRow>
-                                            <TableHead className="w-12 ">
+                                            <TableHead className="w-10">
                                                 <Checkbox checked={analysesList.length > 0 && selectedIds.length === analysesList.length} onCheckedChange={handleSelectAll} aria-label="Select all" />
                                             </TableHead>
-                                            <TableHead className="w-16 ">{t("common.stt", { defaultValue: "STT" })}</TableHead>
-                                            <TableHead className="min-w-[120px]">{t("technician.workspace.sampleCode", { defaultValue: "Mã mẫu" })}</TableHead>
-                                            <TableHead className="min-w-[150px]">{t("technician.workspace.parameter", { defaultValue: "Chỉ tiêu" })}</TableHead>
-                                            <TableHead className="min-w-[120px]">{t("technician.workspace.protocolCodeCol", { defaultValue: "Phương pháp" })}</TableHead>
-                                            <TableHead className="min-w-[100px] ">{t("technician.workspace.result", { defaultValue: "Kết quả" })}</TableHead>
-                                            <TableHead className="w-[80px] ">{t("technician.workspace.unit", { defaultValue: "Đơn vị" })}</TableHead>
-                                            <TableHead className="min-w-[150px]">{t("technician.workspace.assignee", { defaultValue: "Người phụ trách" })}</TableHead>
-                                            <TableHead className="min-w-[150px] p-0 align-middle">
+                                            <TableHead className="w-12">{t("common.stt", { defaultValue: "STT" })}</TableHead>
+                                            <TableHead className="w-[110px]">{t("technician.workspace.sampleCode", { defaultValue: "Mã mẫu" })}</TableHead>
+                                            <TableHead className="w-[160px]">{t("technician.workspace.parameter", { defaultValue: "Chỉ tiêu" })}</TableHead>
+                                            <TableHead className="w-[130px]">{t("technician.workspace.protocolCodeCol", { defaultValue: "Phương pháp" })}</TableHead>
+                                            <TableHead className="w-[160px]">{t("technician.workspace.result", { defaultValue: "Kết quả" })}</TableHead>
+                                            <TableHead className="w-[80px]">{t("technician.workspace.unit", { defaultValue: "Đơn vị" })}</TableHead>
+                                            <TableHead className="w-[140px]">{t("technician.workspace.assignee", { defaultValue: "Người phụ trách" })}</TableHead>
+                                            <TableHead className="w-[130px] p-0 align-middle">
                                                 <FilterPopover 
                                                     title={String(t("technician.workspace.assignedGroup", { defaultValue: "Nhóm thực hiện" }))}
                                                     value={technicianGroupId}
@@ -379,14 +433,13 @@ export function TechnicianWorkspace() {
                                                     isLoading={isGroupsLoading}
                                                 />
                                             </TableHead>
-                                            <TableHead className="w-[120px] ">{t("technician.workspace.statusCol", { defaultValue: "Trạng thái" })}</TableHead>
-                                            <TableHead className="w-[80px] ">{t("common.actions", { defaultValue: "Hành động" })}</TableHead>
+                                            <TableHead className="w-[80px]">{t("common.actions", { defaultValue: "Hành động" })}</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {isAnalysesLoading ? (
                                             <TableRow>
-                                                <TableCell colSpan={11} className="h-40 text-center">
+                                                <TableCell colSpan={10} className="h-40 text-center">
                                                     <Loader2 className="text-primary mx-auto h-8 w-8 animate-spin" />
                                                 </TableCell>
                                             </TableRow>
@@ -416,22 +469,21 @@ export function TechnicianWorkspace() {
                                                         onMouseDown={(e) => handleMouseDownRow(item.analysisId, e)}
                                                         className={`select-none cursor-pointer transition-colors ${selectedIds.includes(item.analysisId) ? "bg-primary/5" : ""}`}
                                                     >
-                                                        <TableCell className="">
+                                                        <TableCell className="overflow-hidden">
                                                             <Checkbox className="pointer-events-none" checked={selectedIds.includes(item.analysisId)} />
                                                         </TableCell>
-                                                        <TableCell className="">{(page - 1) * itemsPerPage + index + 1}</TableCell>
-                                                        <TableCell className="font-medium text-primary">{item.sample?.sampleCode || item.sampleId}</TableCell>
-                                                        <TableCell className="font-semibold">{item.parameterName || "-"}</TableCell>
-                                                        <TableCell className="text-muted-foreground italic text-xs">{item.protocolCode || "-"}</TableCell>
-                                                        <TableCell className=" font-mono font-medium text-blue-600">{item.analysisResult ?? "-"}</TableCell>
-                                                        <TableCell className=" text-muted-foreground text-xs">{item.analysisUnit || "-"}</TableCell>
-                                                        <TableCell>{assignedKTV}</TableCell>
-                                                        <TableCell>{assignedGroup}</TableCell>
-                                                        <TableCell className="">
-                                                            <Badge variant={getStatusVariant(item.analysisStatus)} className="font-medium whitespace-nowrap">
-                                                                {t(`technician.workspace.statusMap.${item.analysisStatus}`, { defaultValue: getStatusText(item.analysisStatus) })}
-                                                            </Badge>
+                                                        <TableCell className="text-xs text-muted-foreground">{(page - 1) * itemsPerPage + index + 1}</TableCell>
+                                                        <TableCell className="font-medium text-primary break-all text-xs">{item.sample?.sampleCode || item.sampleId}</TableCell>
+                                                        <TableCell className="font-semibold text-sm break-words whitespace-normal">{item.parameterName || "-"}</TableCell>
+                                                        <TableCell className="text-muted-foreground italic text-xs break-all whitespace-normal">{item.protocolCode || "-"}</TableCell>
+                                                        <TableCell className="font-medium text-blue-600 break-words whitespace-normal">
+                                                            <span
+                                                                dangerouslySetInnerHTML={{ __html: item.analysisResult ? convertResultToHtml(String(item.analysisResult)) : "-" }}
+                                                            />
                                                         </TableCell>
+                                                        <TableCell className="text-muted-foreground text-xs break-all whitespace-normal">{item.analysisUnit || "-"}</TableCell>
+                                                        <TableCell className="text-sm break-words whitespace-normal">{assignedKTV}</TableCell>
+                                                        <TableCell className="text-sm break-words whitespace-normal">{assignedGroup}</TableCell>
                                                         <TableCell className="" onClick={(e) => e.stopPropagation()}>
                                                             <div className="flex items-center gap-1">
                                                                 <Button
@@ -537,6 +589,7 @@ export function TechnicianWorkspace() {
                     onSuccess={() => {
                         setShowProtocolEditor(false);
                         setSelectedAnalysesForProtocol([]);
+                        setSelectedIds([]);
                         refetch();
                     }}
                 />

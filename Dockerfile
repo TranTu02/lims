@@ -2,7 +2,7 @@
 # LIMS Frontend - Dockerfile
 # Base OS  : Debian (bookworm-slim)
 # Node     : 24 (latest 24.x from Docker Hub)
-# Framework: React + Vite (served via vite preview)
+# Framework: React + Vite SPA → served via `serve` (static file server)
 # Port     : 4173
 # =============================================================================
 
@@ -11,40 +11,32 @@ FROM node:24-bookworm-slim AS builder
 
 WORKDIR /app
 
-# Install dependencies first (layer cache optimization)
+# Install ALL dependencies (including devDeps: vite, typescript, etc.)
 COPY package.json package-lock.json ./
 RUN npm ci --frozen-lockfile
 
-# Copy source and build
+# Copy source and build for production
 COPY . .
-
-# Build for production (uses .env.production automatically)
 RUN npm run build
 
 # ─── Stage 2: Runner ─────────────────────────────────────────────────────────
+# Only serves static files — no vite, no node_modules, no devDeps needed
 FROM node:24-bookworm-slim AS runner
 
 WORKDIR /app
 
-# Install only production-required packages
-COPY package.json package-lock.json ./
-RUN npm ci --frozen-lockfile --omit=dev
+# Install `serve` globally — lightweight static file server for SPAs
+RUN npm install -g serve
 
-# Copy built assets from builder stage
+# Copy only the built output from builder stage
 COPY --from=builder /app/dist ./dist
 
-# vite preview reads vite.config.ts from project root
-COPY vite.config.ts ./
-COPY tsconfig.json ./
-COPY tsconfig.app.json ./
-COPY tsconfig.node.json ./
-
-# Expose vite preview port (defined in vite.config.ts → preview.port: 4173)
+# Expose port
 EXPOSE 4173
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:4173 || exit 1
 
-# Run vite preview (serves the production build)
-CMD ["npx", "vite", "preview", "--host", "0.0.0.0", "--port", "4173"]
+# Serve SPA with client-side routing support (-s = single-page app mode)
+CMD ["serve", "-s", "dist", "-l", "4173"]
