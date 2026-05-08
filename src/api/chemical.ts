@@ -112,6 +112,7 @@ export const chemicalApi = {
         allocate: (input: { body: AllocateChemicalPayload }) => api.post<any>("/v2/chemicalinventories/allocate", { body: input.body }),
         return: (input: { body: ReturnChemicalPayload }) => api.post<any>("/v2/chemicalinventories/return", { body: input.body }),
         separate: (input: { body: SeparateChemicalInventoryPayload }) => api.post<any>("/v2/chemicalinventories/separate", { body: input.body }),
+        getTechnicians: () => api.get<any[]>("/v2/chemicalinventories/gettechnicians", { headers: noCacheHeaders }),
     },
     transactionBlocks: {
         list: (input?: any) => api.post<ChemicalTransactionBlock[]>("/v2/chemicaltransactionblocks/get/list", { query: { ...DEFAULT_LIST_QUERY, ...(input?.query ?? {}) }, headers: noCacheHeaders }),
@@ -257,6 +258,14 @@ export function useChemicalInventoryFull(id: string, opts?: { enabled?: boolean 
         queryKey: chemicalKeys.inventories.full(id),
         queryFn: async () => assertSuccess(await chemicalApi.inventories.full({ id })),
         enabled: !!id && (opts?.enabled ?? true),
+    });
+}
+
+export function useChemicalTechnicians() {
+    return useQuery({
+        queryKey: [...chemicalKeys.inventories.all(), "technicians"],
+        queryFn: async () => assertSuccess(await chemicalApi.inventories.getTechnicians()),
+        staleTime: 5 * 60 * 1000,
     });
 }
 

@@ -38,7 +38,34 @@ export function LoginPage() {
             const ok = await login(username, password);
 
             if (ok) {
-                navigate("/reception", { replace: true });
+                // Determine redirect path based on user roles
+                const savedUser = localStorage.getItem("user");
+                const userObj = savedUser ? JSON.parse(savedUser) : null;
+                let redirectPath = "/"; // Default dashboard
+
+                if (userObj) {
+                    // Use identityRoles from the provided API format
+                    const roles: string[] = userObj.identityRoles || [];
+                    
+                    // Priority routing based on MA TRẬN ĐIỀU HƯỚNG
+                    if (roles.some(r => ["ROLE_ADMIN", "ROLE_SUPER_ADMIN", "admin", "superAdmin"].includes(r))) {
+                        redirectPath = "/";
+                    } else if (roles.some(r => ["ROLE_RECEPTIONIST", "ROLE_SAMPLER", "sampleManager"].includes(r))) {
+                        redirectPath = "/reception";
+                    } else if (roles.some(r => ["ROLE_TECHNICIAN", "ROLE_SENIOR_ANALYST", "ROLE_IPC_INSPECTOR", "ROLE_RND_SPECIALIST", "technician"].includes(r))) {
+                        redirectPath = "/technician";
+                    } else if (roles.some(r => ["ROLE_TECH_MANAGER", "ROLE_QA_MANAGER", "ROLE_SECTION_HEAD", "ROLE_MANAGER"].includes(r))) {
+                        redirectPath = "/manager/approvals";
+                    } else if (roles.some(r => ["ROLE_SALES_MANAGER", "ROLE_SALES_EXEC", "ROLE_CS"].includes(r))) {
+                        redirectPath = "/crm";
+                    } else if (roles.some(r => ["ROLE_INVENTORY_MGR", "ROLE_EQUIPMENT_MGR", "ROLE_SAMPLE_CUSTODIAN"].includes(r))) {
+                        redirectPath = "/inventory";
+                    } else if (roles.some(r => ["ROLE_ACCOUNTANT", "ROLE_REPORT_OFFICER"].includes(r))) {
+                        redirectPath = "/accounting";
+                    }
+                }
+                
+                navigate(redirectPath, { replace: true });
             } else {
                 setError(String(t("auth.login.errors.invalid", { defaultValue: "Tên đăng nhập hoặc mật khẩu không đúng." })));
             }

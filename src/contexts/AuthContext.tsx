@@ -1,11 +1,12 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import type { ReactNode } from "react";
 import Cookies from "js-cookie";
 import { login as apiLogin, checkSessionStatus } from "@/api";
 
 export interface User {
     email: string;
-    roles: UserRole;
+    roles: string[];
+    identityRoles: string[];
     identityId: string;
     identityName: string;
 }
@@ -37,40 +38,57 @@ interface AuthContextType {
     logout: () => void;
     hasAccess: (page: string) => boolean;
     loading: boolean;
+    isAdmin: boolean;
+    canEdit: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Role-based access control matrix (Simplified/Updated)
+// Role-based access control matrix (Updated based on UI_ROUTING_MATRIX and real role keys)
 const accessMatrix: Record<string, string[]> = {
     // Admin roles
-    admin: [
-        "dashboard",
-        "clients",
-        "quotes",
-        "quotes-create",
-        "orders",
-        "orders-create",
-        "parameters",
-        "accounting",
-        "settings",
-        "reception",
-        "technician",
-        "manager",
-        "assignment",
-        "handover",
-        "stored-samples",
-        "library",
-        "protocols",
-        "document",
-        "inventory",
-        "hr",
-    ], // Expanded for LIMS paths
-    superAdmin: ["dashboard", "reception", "technician", "manager", "assignment", "handover", "stored-samples", "library", "protocols", "document", "inventory", "hr", "settings"],
+    ROLE_SUPER_ADMIN: ["*"],
+    ROLE_ADMIN: ["*"],
+    admin: ["*"],
+    superAdmin: ["*"],
+    ROLE_DIRECTOR: ["hr", "dashboard", "*"], 
 
-    // Functional Roles
-    technician: ["dashboard", "technician", "library", "protocols"],
-    sampleManager: ["dashboard", "reception", "handover", "stored-samples"],
+    // Management roles
+    ROLE_TECH_MANAGER: ["manager", "assignment", "document", "libraries"],
+    ROLE_QA_MANAGER: ["manager", "document", "libraries"],
+    ROLE_QA: ["manager", "document", "libraries"],
+    ROLE_MANAGER: ["manager", "assignment", "document", "libraries"],
+    ROLE_SECTION_HEAD: ["technician", "manager", "assignment", "handover"],
+    ROLE_VALIDATOR: ["manager"],
+
+    // Functional roles
+    ROLE_TECHNICIAN: ["technician", "handover", "chemical-inventory"],
+    ROLE_SENIOR_ANALYST: ["technician", "handover", "chemical-inventory"],
+    ROLE_IPC_INSPECTOR: ["technician"],
+    ROLE_RND_SPECIALIST: ["technician"],
+    technician: ["technician", "handover", "chemical-inventory"],
+
+    // Reception & Logistics
+    ROLE_RECEPTIONIST: ["reception", "handover", "stored-samples"],
+    ROLE_SAMPLER: ["reception"],
+    sampleManager: ["reception", "handover", "stored-samples"],
+
+    // Inventory
+    ROLE_INVENTORY_MGR: ["inventory", "chemical-inventory", "general-inventory"],
+    ROLE_EQUIPMENT_MGR: ["inventory", "general-inventory"],
+    ROLE_SAMPLE_CUSTODIAN: ["handover", "stored-samples"],
+
+    // Commercial
+    ROLE_SALES_MANAGER: ["crm"],
+    ROLE_SALES_EXEC: ["crm"],
+    ROLE_CS: ["crm", "reception"],
+
+    // Accounting & Reports
+    ROLE_ACCOUNTANT: ["crm", "accounting"],
+    ROLE_REPORT_OFFICER: ["manager", "accounting"],
+
+    // System/Docs
+    ROLE_DOC_CONTROLLER: ["document", "libraries"],
 
     // Default fallback
     guest: ["dashboard"],
@@ -107,8 +125,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                             const updatedUser: User = {
                                 identityId: identity.identityId,
                                 identityName: identity.identityName,
-                                roles: identity.roles,
-                                email: identity.email || "",
+                                roles: identity.identityRoles || [],
+                                identityRoles: identity.identityRoles || [],
+                                email: identity.identityEmail || identity.email || "",
                             };
 
                             localStorage.setItem("user", JSON.stringify(updatedUser));
@@ -149,8 +168,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 const mappedUser: User = {
                     identityId: identity.identityId,
                     identityName: identity.identityName,
-                    roles: identity.roles,
-                    email: identity.email || "",
+                    roles: identity.identityRoles || [],
+                    identityRoles: identity.identityRoles || [],
+                    email: identity.identityEmail || identity.email || "",
                 };
 
                 setUser(mappedUser);
@@ -185,24 +205,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         window.location.href = "/login";
     };
 
-    const hasAccess = (page: string): boolean => {
-        if (isGuest) return accessMatrix.guest.includes(page);
-        if (!user) return false;
+    const hasAccess = useCallback(
+        (page: string): boolean => {
+            // Public sections (Always visible)
+            if (page === "libraries") return true;
 
-        const userRoles = user.roles;
-        // Simple OR check: if any active role has access, grant it.
-        for (const [roleKey, isActive] of Object.entries(userRoles)) {
-            if (isActive) {
+            if (isGuest) return accessMatrix.guest.includes(page) || accessMatrix.guest.includes("*");
+            if (!user) return false;
+
+            const roles = user.identityRoles || user.roles || [];
+
+            // Bypass for Super Admins
+            if (roles.includes("ROLE_SUPER_ADMIN") || roles.includes("ROLE_ADMIN") || roles.includes("admin")) {
+                return true;
+            }
+
+            // Simple OR check: if any active role has access, grant it.
+            for (const roleKey of roles) {
                 const allowedPages = accessMatrix[roleKey] || [];
                 if (allowedPages.includes(page) || allowedPages.includes("*")) {
                     return true;
                 }
             }
-        }
-        return false;
-    };
+            return false;
+        },
+        [isGuest, user],
+    );
 
-    return <AuthContext.Provider value={{ user, isGuest, login, loginAsGuest, logout, hasAccess, loading }}>{children}</AuthContext.Provider>;
+    const isAdmin =
+        user?.identityRoles?.some((r) => ["ROLE_SUPER_ADMIN", "ROLE_ADMIN", "admin", "superAdmin"].includes(r)) || false;
+
+    return (
+        <AuthContext.Provider value={{ user, isGuest, login, loginAsGuest, logout, hasAccess, loading, isAdmin, canEdit: isAdmin }}>
+            {children}
+        </AuthContext.Provider>
+    );
 }
 
 export const useAuth = () => {

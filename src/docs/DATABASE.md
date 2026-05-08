@@ -430,6 +430,7 @@ Danh mục các tiêu chuẩn áp dụng (TCVN, ISO, ASTM...).
 | `protocolCode` | `text` | | Mã hiệu (VD: `TCVN 6661-1:2011`). |
 
 | `protocolSource` | `text` | | Nguồn ban hành (ISO, AOAC, EPA...). |
+| `flow` | `text` | | Nhóm phương pháp/Luồng xử lý (HPLC-DAD, LC-MS/MS, GC-MS, UV-VIS...). |
 
 | `protocolAccreditation` | `jsonb` | | (Snapshot) Phạm vi được công nhận chi tiết `{ [code]: { registrationDate, expirationDate } | boolean }`. |
 
@@ -698,6 +699,9 @@ Lưu trữ công việc phân tích cụ thể. Trạng thái này quan trọng 
 | `parameterName` | `text` | | **(Snapshot)** Tên chỉ tiêu. |
 
 | `analysisLocation` | `text` | | Nơi thực hiện thử nghiệm. |
+| `sampleTypeName` | `text` | | Snapshot tên loại mẫu. |
+| `sampleTypeId` | `text` | | Snapshot ID loại mẫu. |
+| `feeBeforeTax` | `numeric` | | Đơn giá chưa thuế. |
 
 | `protocolCode` | `text` | | **(Snapshot)** Mã phương pháp (ISO/TCVN). |
 
@@ -908,7 +912,7 @@ Liên quan đến các dịch vụ ngoài và hỗ trợ.
 | `chemicalBaseUnit`          | `text`    |        | Đơn vị lưu kho cơ bản (VD: `ml`, `g`).                                      |
 | `chemicalTotalAvailableQty` | `numeric` |        | Tổng tồn kho khả dụng hiện tại.                                             |
 | `chemicalReorderLevel`      | `numeric` |        | Mức cảnh báo tồn tối thiểu.                                                 |
-| `chemicalHazardClass`       | `text`    |        | Phân loại độc hại (`Flammable`, `Toxic`...).                                |
+| `chemicalHazardClass`       | `text`    |        | Phân loại độc hại (`Dễ cháy`, `Độc hại`, `Ăn mòn`, `Oxy hóa`...).            |
 | `openedExpDays`             | `int`     |        | **[MỚI]** Số ngày sử dụng tối đa sau mở nắp mặc định.                       |
 
 #### 2. Bảng `chemicalSuppliers` (Danh mục Nhà cung cấp)
@@ -956,6 +960,7 @@ Liên quan đến các dịch vụ ngoài và hỗ trợ.
 | `inventoryCoaDocumentIds`     | `text[]`  |        | File chứng nhận COA của lô.                                                                 |
 | `inventoryInvoiceDocumentIds` | `text[]`  |        | File hóa đơn của lô.                                                                        |
 | `currentAvailableQty`         | `numeric` |        | Số lượng khả dụng hiện tại trong lọ.                                                        |
+| `parentInventoryIds`          | `text[]`  | **FK** | **[MỚI]** Danh sách ID các hóa chất gốc (Link tới chính bảng này) dùng để pha ra lọ này.    |
 | `totalGrossWeight`            | `numeric` |        | **[MỚI]** Tổng khối lượng cả bì.                                                            |
 | `mfgDate`                     | `date`    |        | Ngày sản xuất.                                                                              |
 | `expDate`                     | `date`    |        | Ngày hết hạn.                                                                               |

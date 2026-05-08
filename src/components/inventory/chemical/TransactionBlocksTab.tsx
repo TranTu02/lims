@@ -1,13 +1,13 @@
 import { useState, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { chemicalApi, useChemicalCreateTransactionBlock, useChemicalTransactionBlocksList } from "@/api/chemical";
+import { chemicalApi, useChemicalCreateTransactionBlock, useChemicalTransactionBlocksList, useChemicalTechnicians } from "@/api/chemical";
 import { chemicalKeys } from "@/api/chemicalKeys";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, X, Package, Printer, Scan, RefreshCw, FileText, Upload } from "lucide-react";
+import { Plus, Search, X, Package, Printer, Scan, RefreshCw, FileText, Upload, User, FlaskConical, Beaker } from "lucide-react";
 import { toast } from "sonner";
 import { useQrScanner } from "@/hooks/useQrScanner";
 import type { ChemicalTransactionBlock, ChemicalInventory } from "@/types/chemical";
@@ -21,8 +21,7 @@ import { TableFilterPopover } from "./TableFilterPopover";
 import { SearchSelectPicker, type PickerItem } from "@/components/shared/SearchSelectPicker";
 import { searchDocuments } from "@/api/documents";
 import { DocumentUploadModal } from "@/components/document/DocumentUploadModal";
-import { ChemicalLogReportEditor } from "./ChemicalLogReportEditor";
-import { HelpBubble } from "./HelpBubble";
+import { ChemicalTransactionBlockReportEditor } from "./ChemicalTransactionBlockReportEditor";
 
 // --- Helper ---
 const generateId = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
@@ -52,6 +51,10 @@ function BlockBadge({ type }: { type?: string | null }) {
         LAB_CONSUMPTION: {
             label: t("inventory.chemical.transactionBlocks.types.LAB_CONSUMPTION", { defaultValue: "Nhật ký sử dụng PTN" }),
             cls: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+        },
+        PREPARATION: {
+            label: t("inventory.chemical.transactionBlocks.types.PREPARATION", { defaultValue: "Sổ pha hóa chất" }),
+            cls: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
         },
     };
     const s = type ? BLOCK_TYPE_MAP[type] : undefined;
@@ -232,6 +235,11 @@ export type EditLineItem = {
     chemicalTransactionBlockDetailNote: string;
     transactionCoaDocumentIds?: string[];
     usageDate?: string;
+    preparationRole?: "PRODUCT" | "MATERIAL";
+    /** Per-item performer name (from usageBy on each transaction) */
+    usageBy?: string;
+    /** Per-item unit (from chemicalTransactionUnit / chemicalTransactionBlockDetailUnit) */
+    transactionUnit?: string;
 };
 
 type ItemCardProps = {
@@ -277,7 +285,7 @@ function ItemCard({ item, transactionType, onUpdate, onRemove, onDuplicate, onUp
             </div>
 
             {/* Fields Grid */}
-            <div className={`grid gap-2 items-end ${transactionType === "EXPORT" || transactionType === "LAB_CONSUMPTION" ? "grid-cols-4" : "grid-cols-3"}`}>
+            <div className={`grid gap-2 items-end ${transactionType === "LAB_CONSUMPTION" ? "grid-cols-5" : transactionType === "EXPORT" ? "grid-cols-4" : "grid-cols-3"}`}>
                 <div className="space-y-0.5">
                     <label className="text-[10px] font-medium text-muted-foreground uppercase">{t("common.quantity", { defaultValue: "Số lượng" })}</label>
                     <Input
@@ -285,6 +293,7 @@ function ItemCard({ item, transactionType, onUpdate, onRemove, onDuplicate, onUp
                         className="h-8 text-xs"
                         placeholder="0"
                         value={item.changeQty ?? ""}
+                        onFocus={(e) => e.target.select()}
                         onChange={(e) => onUpdate("changeQty", e.target.value === "" ? "" : parseFloat(e.target.value))}
                     />
                 </div>
@@ -296,12 +305,13 @@ function ItemCard({ item, transactionType, onUpdate, onRemove, onDuplicate, onUp
                         className="h-8 text-xs"
                         placeholder="0"
                         value={item.totalWeight ?? ""}
+                        onFocus={(e) => e.target.select()}
                         onChange={(e) => onUpdate("totalWeight", e.target.value === "" ? undefined : parseFloat(e.target.value))}
                     />
                 </div>
-                {transactionType === "EXPORT" && (
+                {(transactionType === "EXPORT" || transactionType === "LAB_CONSUMPTION") && (
                     <div className="space-y-0.5">
-                        <label className="text-[10px] font-medium text-muted-foreground uppercase">{t("lab.analyses.parameterId", { defaultValue: "Chỉ tiêu" })}</label>
+                        <label className="text-[10px] font-medium text-muted-foreground uppercase">{t("lab.analyses.parameterId", { defaultValue: "Mã Phép thử" })}</label>
                         <Input
                             className="h-8 text-xs"
                             placeholder={t("inventory.chemical.allocateStock.analysisIdPlaceholder", { defaultValue: "Mã PT..." })}
@@ -365,17 +375,28 @@ function ItemCard({ item, transactionType, onUpdate, onRemove, onDuplicate, onUp
 // --- Create Block Modal (80% w, 90% h, 2-col ≥1536px) ---
 type CreateBlockModalProps = {
     onClose: () => void;
-    initialType?: "IMPORT" | "EXPORT" | "ADJUSTMENT" | "LAB_CONSUMPTION";
+    initialType?: "IMPORT" | "EXPORT" | "ADJUSTMENT" | "LAB_CONSUMPTION" | "PREPARATION";
     initialItems?: ChemicalInventory[];
     initialTxnData?: Record<string, { changeQty: number; chemicalTransactionBlockDetailNote: string; analysisId?: string; totalWeight?: number; usageDate?: string }>;
     initialRef?: string;
+    initialPreparedBy?: { identityId: string; identityName: string };
 };
 
-function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, initialRef }: CreateBlockModalProps) {
+function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, initialRef, initialPreparedBy }: CreateBlockModalProps) {
     const { t } = useTranslation();
-    const [transactionType, setTransactionType] = useState<"IMPORT" | "EXPORT" | "ADJUSTMENT" | "LAB_CONSUMPTION">(initialType ?? "EXPORT");
+    const [transactionType, setTransactionType] = useState<"IMPORT" | "EXPORT" | "ADJUSTMENT" | "LAB_CONSUMPTION" | "PREPARATION">(initialType ?? "EXPORT");
     const [referenceDocument, setReferenceDocument] = useState(initialRef ?? "");
     const [viewMode, setViewMode] = useState<"DETAILS" | "SUMMARY">("DETAILS");
+
+    // Performer (usedById) for ADJUSTMENT / LAB_CONSUMPTION
+    const { data: technicians } = useChemicalTechnicians();
+    const [usedById, setUsedById] = useState<string>(initialPreparedBy?.identityId ?? "");
+    const [selectedPerformer, setSelectedPerformer] = useState<{ id: string; label: string }[]>(() => {
+        if (initialPreparedBy?.identityId) {
+            return [{ id: initialPreparedBy.identityId, label: initialPreparedBy.identityName || initialPreparedBy.identityId }];
+        }
+        return [];
+    });
 
     const [coaDocumentIds, setCoaDocumentIds] = useState<string[]>([]);
     const [selectedCoaDocs, setSelectedCoaDocs] = useState<PickerItem[]>([]);
@@ -387,7 +408,7 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
 
     const [lineItems, setLineItems] = useState<EditLineItem[]>(() => {
         if (initialItems && initialItems.length > 0) {
-            return initialItems.map((inv) => ({
+            return initialItems.map((inv, index) => ({
                 id: generateId(),
                 inventory: inv,
                 changeQty: initialTxnData?.[inv.chemicalInventoryId]?.changeQty ?? 0,
@@ -395,6 +416,7 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                 analysisId: initialTxnData?.[inv.chemicalInventoryId]?.analysisId ?? "",
                 chemicalTransactionBlockDetailNote: initialTxnData?.[inv.chemicalInventoryId]?.chemicalTransactionBlockDetailNote ?? "",
                 usageDate: initialTxnData?.[inv.chemicalInventoryId]?.usageDate ?? new Date().toISOString().split("T")[0],
+                preparationRole: transactionType === "PREPARATION" ? (index === initialItems.length - 1 ? "PRODUCT" : "MATERIAL") : undefined,
             }));
         }
         return [];
@@ -439,6 +461,7 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                             analysisId: "",
                             chemicalTransactionBlockDetailNote: "",
                             usageDate: new Date().toISOString().split("T")[0],
+                            preparationRole: transactionType === "PREPARATION" ? "MATERIAL" : undefined,
                         },
                     ]);
                     toast.success(t("inventory.chemical.inventories.addedByScan", { defaultValue: "Đã thêm: {{id}}", id: scannedId }));
@@ -472,6 +495,10 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
             label: t("inventory.chemical.transactionBlocks.types.ADJUSTMENT", { defaultValue: "Điều chỉnh" }),
             cls: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
         },
+        PREPARATION: {
+            label: t("inventory.chemical.transactionBlocks.types.PREPARATION", { defaultValue: "Nhật ký pha hóa chất" }),
+            cls: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+        },
         LAB_CONSUMPTION: {
             label: t("inventory.chemical.transactionBlocks.types.LAB_CONSUMPTION", { defaultValue: "Nhật ký sử dụng PTN" }),
             cls: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
@@ -494,6 +521,7 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                     analysisId: "",
                     chemicalTransactionBlockDetailNote: "",
                     usageDate: new Date().toISOString().split("T")[0],
+                    preparationRole: transactionType === "PREPARATION" ? "MATERIAL" : undefined,
                 },
             ];
         });
@@ -527,6 +555,8 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                 referenceDocument,
                 chemicalBlockCoaDocumentIds: coaDocumentIds.length > 0 ? coaDocumentIds : undefined,
                 chemicalBlockInvoiceDocumentIds: invoiceDocumentIds.length > 0 ? invoiceDocumentIds : undefined,
+                usedById: (transactionType === "ADJUSTMENT" || transactionType === "LAB_CONSUMPTION" || transactionType === "PREPARATION") && usedById ? usedById : undefined,
+                usageBy: (transactionType === "ADJUSTMENT" || transactionType === "LAB_CONSUMPTION" || transactionType === "PREPARATION") && usedById && selectedPerformer[0]?.label ? selectedPerformer[0].label : undefined,
             },
             chemicalTransactions: lineItems.map((item) => {
                 const inv = item.inventory;
@@ -555,6 +585,8 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                     chemicalTransactionBlockDetailUnit: unit,
                     transactionType: transactionType,
                     transactionCoaDocumentIds: item.transactionCoaDocumentIds,
+                    usedById: (transactionType === "ADJUSTMENT" || transactionType === "LAB_CONSUMPTION" || transactionType === "PREPARATION") && usedById ? usedById : undefined,
+                    usageBy: (transactionType === "ADJUSTMENT" || transactionType === "LAB_CONSUMPTION" || transactionType === "PREPARATION") && usedById && selectedPerformer[0]?.label ? selectedPerformer[0].label : undefined,
                 };
             }),
         };
@@ -601,7 +633,7 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                             <div className="space-y-1.5">
                                 <label className="text-sm font-medium">{t("inventory.chemical.transactionBlocks.type", { defaultValue: "Loại phiếu" })}</label>
                                 <div className="flex gap-2">
-                                    {(["IMPORT", "EXPORT", "ADJUSTMENT", "LAB_CONSUMPTION"] as const).map((type) => (
+                                    {(["IMPORT", "EXPORT", "ADJUSTMENT", "LAB_CONSUMPTION", "PREPARATION"] as const).map((type) => (
                                         <button
                                             key={type}
                                             type="button"
@@ -629,6 +661,37 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                                 </div>
                             </div>
                         </div>
+
+                        {/* Performer field for ADJUSTMENT / LAB_CONSUMPTION / PREPARATION */}
+                        {(transactionType === "ADJUSTMENT" || transactionType === "LAB_CONSUMPTION" || transactionType === "PREPARATION") && (
+                            <div className="border border-border/60 bg-muted/20 rounded-lg p-3 space-y-2">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-1.5 bg-blue-500/10 rounded-md">
+                                        <User className="h-4 w-4 text-blue-500" />
+                                    </div>
+                                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                        {transactionType === "PREPARATION" ? "Người pha chế (không bắt buộc)" : t("inventory.chemical.transactionBlocks.performer", { defaultValue: "Người thực hiện (không bắt buộc)" })}
+                                    </label>
+                                </div>
+                                <SearchSelectPicker
+                                    label={t("inventory.chemical.transactionBlocks.performer", { defaultValue: "Người thực hiện" })}
+                                    selected={selectedPerformer as any}
+                                    onChange={(items) => {
+                                        const first = items[0];
+                                        setSelectedPerformer(items as any);
+                                        setUsedById(first?.id || "");
+                                    }}
+                                    onSearch={async (q) => {
+                                        if (!technicians) return [];
+                                        return technicians
+                                            .filter(t => t.identityName.toLowerCase().includes(q.toLowerCase()) || t.identityId.toLowerCase().includes(q.toLowerCase()))
+                                            .map(t => ({ id: t.identityId, label: t.identityName, sublabel: t.identityId }));
+                                    }}
+                                    placeholder={t("inventory.chemical.transactionBlocks.searchPerformer", { defaultValue: "Tìm tên hoặc mã nhân viên..." })}
+                                    maxItems={1}
+                                />
+                            </div>
+                        )}
 
                         {/* Documents Section */}
                         <div className="grid grid-cols-2 gap-4 border-t border-border pt-3">
@@ -741,19 +804,62 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
 
                             {lineItems.length > 0 ? (
                                 viewMode === "DETAILS" ? (
-                                    <div className={`grid gap-4 ${lineItems.length > 2 ? "grid-cols-2" : "grid-cols-1"}`}>
-                                        {lineItems.map((item) => (
-                                            <ItemCard
-                                                key={item.id}
-                                                item={item}
-                                                transactionType={transactionType}
-                                                onUpdate={(field, value) => updateLineItem(item.id, field, value)}
-                                                onRemove={() => removeLineItem(item.id)}
-                                                onDuplicate={() => duplicateItem(item.id)}
-                                                onUploadCoa={() => setUploadingCoaItemId(item.id)}
-                                            />
-                                        ))}
-                                    </div>
+                                    transactionType === "PREPARATION" ? (
+                                        <div className="space-y-6">
+                                            <div className="space-y-3">
+                                                <h4 className="text-sm font-semibold text-orange-600 flex items-center gap-2">
+                                                    <FlaskConical className="h-4 w-4" />
+                                                    Hóa chất được pha (Thành phẩm)
+                                                </h4>
+                                                <div className={`grid gap-4 ${lineItems.filter(item => item.preparationRole === "PRODUCT").length > 2 ? "grid-cols-2" : "grid-cols-1"}`}>
+                                                    {lineItems.filter(item => item.preparationRole === "PRODUCT").map((item) => (
+                                                        <ItemCard
+                                                            key={item.id}
+                                                            item={item}
+                                                            transactionType={transactionType}
+                                                            onUpdate={(field, value) => updateLineItem(item.id, field, value)}
+                                                            onRemove={() => removeLineItem(item.id)}
+                                                            onDuplicate={() => duplicateItem(item.id)}
+                                                            onUploadCoa={() => setUploadingCoaItemId(item.id)}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="space-y-3">
+                                                <h4 className="text-sm font-semibold text-blue-600 flex items-center gap-2">
+                                                    <Beaker className="h-4 w-4" />
+                                                    Hóa chất dùng để pha (Nguyên liệu)
+                                                </h4>
+                                                <div className={`grid gap-4 ${lineItems.filter(item => item.preparationRole !== "PRODUCT").length > 2 ? "grid-cols-2" : "grid-cols-1"}`}>
+                                                    {lineItems.filter(item => item.preparationRole !== "PRODUCT").map((item) => (
+                                                        <ItemCard
+                                                            key={item.id}
+                                                            item={item}
+                                                            transactionType={transactionType}
+                                                            onUpdate={(field, value) => updateLineItem(item.id, field, value)}
+                                                            onRemove={() => removeLineItem(item.id)}
+                                                            onDuplicate={() => duplicateItem(item.id)}
+                                                            onUploadCoa={() => setUploadingCoaItemId(item.id)}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className={`grid gap-4 ${lineItems.length > 2 ? "grid-cols-2" : "grid-cols-1"}`}>
+                                            {lineItems.map((item) => (
+                                                <ItemCard
+                                                    key={item.id}
+                                                    item={item}
+                                                    transactionType={transactionType}
+                                                    onUpdate={(field, value) => updateLineItem(item.id, field, value)}
+                                                    onRemove={() => removeLineItem(item.id)}
+                                                    onDuplicate={() => duplicateItem(item.id)}
+                                                    onUploadCoa={() => setUploadingCoaItemId(item.id)}
+                                                />
+                                            ))}
+                                        </div>
+                                    )
                                 ) : (
                                     <div className="border border-border rounded-lg overflow-hidden max-h-[calc(100vh-380px)] overflow-y-auto">
                                         <table className="w-full text-sm">
@@ -843,10 +949,13 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
             )}
 
             {logReportOpen && (
-                <ChemicalLogReportEditor
+                <ChemicalTransactionBlockReportEditor
                     open={logReportOpen}
                     onOpenChange={setLogReportOpen}
-                    inventories={Array.from(new Map(lineItems.map((i) => [i.inventory.chemicalInventoryId, i.inventory])).values())}
+                    lineItems={lineItems}
+                    transactionType={transactionType}
+                    usedBy={selectedPerformer[0]?.label || ""}
+                    referenceDocument={referenceDocument}
                 />
             )}
 
@@ -998,9 +1107,11 @@ export function TransactionBlocksTab() {
                                                 type="enum"
                                                 value={filters.transactionType}
                                                 options={[
-                                                    { label: "Nhập kho (IMPORT)", value: "IMPORT" },
-                                                    { label: "Xuất kho (EXPORT)", value: "EXPORT" },
-                                                    { label: "Điều chỉnh (ADJUSTMENT)", value: "ADJUSTMENT" },
+                                                    { label: t("inventory.chemical.transactionBlocks.types.INBOUND", { defaultValue: "Nhập kho" }), value: "IMPORT" },
+                                                    { label: t("inventory.chemical.transactionBlocks.types.OUTBOUND", { defaultValue: "Xuất kho" }), value: "EXPORT" },
+                                                    { label: t("inventory.chemical.transactionBlocks.types.ADJUSTMENT", { defaultValue: "Điều chỉnh" }), value: "ADJUSTMENT" },
+                                                    { label: t("inventory.chemical.transactionBlocks.types.LAB_CONSUMPTION", { defaultValue: "Nhật ký sử dụng PTN" }), value: "LAB_CONSUMPTION" },
+                                                    { label: t("inventory.chemical.transactionBlocks.types.PREPARATION", { defaultValue: "Sổ pha hóa chất" }), value: "PREPARATION" },
                                                 ]}
                                                 onChange={(v) => {
                                                     setFilters((f) => ({ ...f, transactionType: v }));
@@ -1109,7 +1220,7 @@ export function TransactionBlocksTab() {
                 />
             )}
 
-            <HelpBubble guidePath="guide-transaction-blocks.html" label="Hướng dẫn: Phiếu Xuất/Nhập Kho" />
+            {/* <HelpBubble guidePath="guide-transaction-blocks.html" label="Hướng dẫn: Phiếu Xuất/Nhập Kho" /> */}
         </>
     );
 }

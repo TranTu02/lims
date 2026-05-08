@@ -11,7 +11,6 @@ import type { ChemicalTransaction } from "@/types/chemical";
 import { TransactionDetailPanel } from "./TransactionDetailPanel";
 import { Pagination } from "@/components/ui/pagination";
 import { ChemicalTransactionReportEditor } from "./ChemicalTransactionReportEditor";
-import { HelpBubble } from "./HelpBubble";
 
 function TransactionTypeBadge({ type }: { type?: string | null }) {
     const { t } = useTranslation();
@@ -25,6 +24,10 @@ function TransactionTypeBadge({ type }: { type?: string | null }) {
         LAB_CONSUMPTION: {
             label: t("inventory.chemical.transactions.actionTypeLabels.LAB_CONSUMPTION", { defaultValue: "Nhật ký sử dụng PTN" }),
             variant: "outline",
+        },
+        PREPARATION: {
+            label: t("inventory.chemical.transactions.actionTypeLabels.PREPARATION", { defaultValue: "Nhật ký pha hóa chất" }),
+            variant: "secondary",
         },
     };
     const s = type ? TRANSACTION_TYPE_MAP[type] : undefined;
@@ -117,7 +120,7 @@ export function TransactionsTab() {
                             <thead className="bg-muted/50 border-b border-border sticky top-0 z-10">
                                 <tr>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {t("inventory.chemical.transactions.chemicalTransactionId", { defaultValue: "Mã Giao Dịch" })}
+                                        {t("inventory.chemical.transactions.performer", { defaultValue: "Người thực hiện" })}
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                                         {t("inventory.chemical.transactions.chemicalTransactionBlockId", { defaultValue: "Mã Phiếu" })}
@@ -207,7 +210,9 @@ export function TransactionsTab() {
                                             className={`hover:bg-muted/30 cursor-pointer transition-colors ${activeTxn?.chemicalTransactionId === txn.chemicalTransactionId ? "bg-muted" : ""}`}
                                             onClick={() => setActiveTxn(txn)}
                                         >
-                                            <td className="px-3 py-2 whitespace-nowrap font-mono text-xs font-medium text-primary">{txn.chemicalTransactionId ?? "-"}</td>
+                                            <td className="px-3 py-2 whitespace-nowrap text-xs font-medium text-blue-600 dark:text-blue-400">
+                                                {txn.usageBy || txn.usedById || "-"}
+                                            </td>
                                             <td className="px-3 py-2 whitespace-nowrap font-mono text-xs text-muted-foreground">{txn.chemicalTransactionBlockId ?? "-"}</td>
                                             <td className="px-3 py-2 whitespace-nowrap text-xs text-muted-foreground">
                                                 {txn.createdAt
@@ -269,7 +274,7 @@ export function TransactionsTab() {
 
             {isReportOpen && result?.data && <ChemicalTransactionReportEditor open={isReportOpen} onOpenChange={setIsReportOpen} data={result.data as ChemicalTransaction[]} />}
 
-            <HelpBubble guidePath="guide-transactions.html" label="Hướng dẫn: Lịch sử Giao dịch" />
+            {/* <HelpBubble guidePath="guide-transactions.html" label="Hướng dẫn: Lịch sử Giao dịch" /> */}
         </div>
     );
 }

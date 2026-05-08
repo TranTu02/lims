@@ -5,7 +5,7 @@ import { X, Loader2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { chemicalApi } from "@/api/chemical";
+import { chemicalApi, useEnumList } from "@/api/chemical";
 import { chemicalKeys } from "@/api/chemicalKeys";
 import type { ChemicalSku } from "@/types/chemical";
 
@@ -15,13 +15,12 @@ type Props = {
     onSuccess?: (sku: ChemicalSku) => void;
 };
 
-const HAZARD_CLASSES = ["Flammable", "Toxic", "Corrosive", "Oxidizing", "Explosive", "Radioactive", "Biohazard", "Irritant", "Environmental Hazard", "None"];
-const CHEMICAL_TYPES = ["Hóa chất", "Môi trường", "Chất chuẩn", "Chủng chuẩn"];
-
 export function SkuEditModal({ sku, onClose, onSuccess }: Props) {
     const { t } = useTranslation();
     const qc = useQueryClient();
     const isCreate = !sku;
+    const { data: chemicalTypes } = useEnumList("chemicalType");
+    const { data: hazardClasses } = useEnumList("chemicalHazardClass");
 
     const [form, setForm] = useState({
         chemicalSkuId: sku?.chemicalSkuId ?? "",
@@ -124,9 +123,9 @@ export function SkuEditModal({ sku, onClose, onSuccess }: Props) {
                                 className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                             >
                                 <option value="">-- {t("common.select", { defaultValue: "Chọn" })} --</option>
-                                {HAZARD_CLASSES.map((h) => (
+                                {(hazardClasses || []).map((h) => (
                                     <option key={h} value={h}>
-                                        {t(`inventory.chemical.skus.hazardClasses.${h}`, { defaultValue: h })}
+                                        {h}
                                     </option>
                                 ))}
                             </select>
@@ -140,7 +139,7 @@ export function SkuEditModal({ sku, onClose, onSuccess }: Props) {
                                 className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                             >
                                 <option value="">-- {t("common.select", { defaultValue: "Chọn" })} --</option>
-                                {CHEMICAL_TYPES.map((h) => (
+                                {(chemicalTypes || []).map((h) => (
                                     <option key={h} value={h}>
                                         {h}
                                     </option>

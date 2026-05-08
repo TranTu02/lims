@@ -11,7 +11,6 @@ import { InventoryDetailPanel } from "./InventoryDetailPanel";
 import { InventoryEditModal } from "./InventoryEditModal";
 import { PrintLabelModal } from "./PrintLabelModal";
 import { ChemicalLogReportEditor } from "./ChemicalLogReportEditor";
-import { HelpBubble } from "./HelpBubble";
 import { Badge } from "@/components/ui/badge";
 import { TableFilterPopover } from "./TableFilterPopover";
 import { RefreshCw } from "lucide-react";
@@ -386,7 +385,7 @@ export function InventoriesTab() {
                 />
             )}
 
-            <HelpBubble guidePath="guide-inventories.html" label="Hướng dẫn: Quản lý Lọ/Chai" />
+            {/* <HelpBubble guidePath="guide-inventories.html" label="Hướng dẫn: Quản lý Lọ/Chai" /> */}
         </div>
     );
 }

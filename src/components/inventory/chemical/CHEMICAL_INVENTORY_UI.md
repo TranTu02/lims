@@ -160,7 +160,7 @@ placeholderData: keepPreviousData; // giữ data cũ khi chờ data mới
 | `chemicalBaseUnit`          | string | Đơn vị (ml, g, bottle...)                 |
 | `chemicalTotalAvailableQty` | number | Tồn kho tổng (tính từ tất cả chai)        |
 | `chemicalReorderLevel`      | number | Ngưỡng tồn kho tối thiểu                  |
-| `chemicalHazardClass`       | string | Phân loại nguy hiểm (Toxic, Flammable...) |
+| `chemicalHazardClass`       | string | Phân loại nguy hiểm (Độc hại, Dễ cháy, Ăn mòn...) |
 
 **Interaction:**
 

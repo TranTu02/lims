@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/config/theme/ThemeContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SidebarProps {
     activeTab: string;
@@ -64,6 +65,7 @@ type NavItem =
 export function Sidebar({ activeTab, onTabChange, sidebarOpen = true }: SidebarProps) {
     const { t, i18n } = useTranslation();
     const { theme, setTheme } = useTheme();
+    const { hasAccess } = useAuth();
 
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [expandedGroup, setExpandedGroup] = useState<string | null>("libraries");
@@ -78,7 +80,8 @@ export function Sidebar({ activeTab, onTabChange, sidebarOpen = true }: SidebarP
     };
 
     const navigation: NavItem[] = useMemo(
-        () => [
+        () => {
+            const rawNavigation = [
             {
                 type: "section",
                 id: "section-commercial",
@@ -254,8 +257,25 @@ export function Sidebar({ activeTab, onTabChange, sidebarOpen = true }: SidebarP
                     },
                 ],
             },
-        ],
-        [],
+        ] as NavItem[];
+
+            // Filter by role access
+            const filteredItems = rawNavigation.filter((item) => {
+                if (item.type === "section") return true;
+                return hasAccess(item.id);
+            });
+
+            // Remove empty sections
+            return filteredItems.filter((item, index, arr) => {
+                if (item.type === "section") {
+                    const nextSectionIndex = arr.findIndex((v, i) => i > index && v.type === "section");
+                    const endIndex = nextSectionIndex === -1 ? arr.length : nextSectionIndex;
+                    return endIndex > index + 1;
+                }
+                return true;
+            });
+        },
+        [hasAccess],
     );
 
     // Update expanded group if active tab is in a subgroup

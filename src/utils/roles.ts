@@ -40,15 +40,24 @@ export const roleKeys = [
 export type RoleKey = (typeof roleKeys)[number];
 
 export function pickRoles(roles: unknown, keys: readonly RoleKey[]) {
-  const src: Record<string, unknown> =
-    roles && typeof roles === "object"
-      ? (roles as Record<string, unknown>)
-      : {};
-
+  const src = roles;
   const out: Record<RoleKey, boolean> = {} as Record<RoleKey, boolean>;
-  keys.forEach((k) => {
-    out[k] = Boolean(src[k]);
-  });
+  
+  if (Array.isArray(src)) {
+    keys.forEach((k) => {
+      out[k] = src.includes(k);
+    });
+  } else if (src && typeof src === "object") {
+    const obj = src as Record<string, unknown>;
+    keys.forEach((k) => {
+      out[k] = Boolean(obj[k]);
+    });
+  } else {
+    keys.forEach((k) => {
+      out[k] = false;
+    });
+  }
+  
   return out;
 }
 
@@ -60,8 +69,17 @@ export function mergeRoles(
 }
 
 export function activeRoleKeys(roles: unknown): string[] {
-  if (!roles || typeof roles !== "object") return [];
-  return Object.entries(roles as Record<string, unknown>)
-    .filter(([, v]) => Boolean(v))
-    .map(([k]) => k);
+  if (!roles) return [];
+  
+  if (Array.isArray(roles)) {
+    return roles.filter(r => typeof r === 'string');
+  }
+  
+  if (typeof roles === "object") {
+    return Object.entries(roles as Record<string, unknown>)
+      .filter(([, v]) => Boolean(v))
+      .map(([k]) => k);
+  }
+  
+  return [];
 }

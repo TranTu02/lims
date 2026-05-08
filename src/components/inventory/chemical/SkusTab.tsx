@@ -4,15 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, RefreshCw } from "lucide-react";
 import { TableFilterPopover } from "./TableFilterPopover";
-import { useChemicalSkusList } from "@/api/chemical";
+import { useChemicalSkusList, useEnumList } from "@/api/chemical";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ChemicalSku } from "@/types/chemical";
 import { SkuDetailPanel } from "./SkuDetailPanel";
 import { SkuEditModal } from "./SkuEditModal";
 import { Pagination } from "@/components/ui/pagination";
-import { HelpBubble } from "./HelpBubble";
 export function SkusTab() {
     const { t } = useTranslation();
+    const { data: hazardClasses } = useEnumList("chemicalHazardClass");
     const [search, setSearch] = useState("");
     const [submittedSearch, setSubmittedSearch] = useState("");
     const [activeSku, setActiveSku] = useState<ChemicalSku | null>(null);
@@ -108,14 +108,7 @@ export function SkusTab() {
                                             title={t("inventory.chemical.skus.chemicalHazardClass", { defaultValue: "Phân loại nguy hiểm" })}
                                             type="enum"
                                             value={filters.chemicalHazardClass}
-                                            options={[
-                                                { label: "O - Oxidizing", value: "O" },
-                                                { label: "F - Flammable", value: "F" },
-                                                { label: "T - Toxic", value: "T" },
-                                                { label: "C - Corrosive", value: "C" },
-                                                { label: "X - Harmful", value: "X" },
-                                                { label: "N - Environmental", value: "N" },
-                                            ]}
+                                            options={(hazardClasses || []).map((h) => ({ label: h, value: h }))}
                                             onChange={(v) => {
                                                 setFilters((f) => ({ ...f, chemicalHazardClass: v }));
                                                 setPage(1);
@@ -191,7 +184,7 @@ export function SkusTab() {
 
             {createOpen && <SkuEditModal sku={null} onClose={() => setCreateOpen(false)} />}
 
-            <HelpBubble guidePath="guide-skus.html" label="Hướng dẫn: Danh mục Hóa chất" />
+            {/* <HelpBubble guidePath="guide-skus.html" label="Hướng dẫn: Danh mục Hóa chất" /> */}
         </div>
     );
 }

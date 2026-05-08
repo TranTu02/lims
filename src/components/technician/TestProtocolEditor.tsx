@@ -245,17 +245,87 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
 
     const processDocxArrayBuffer = useCallback(async (arrayBuffer: ArrayBuffer) => {
         try {
+            // --- STEP 1: Extract indent/spacing info from raw XML ---
+            // We parse the document.xml inside the docx (zip) to get per-paragraph indent data.
+            // This is done before mammoth conversion so we can apply styles afterwards.
+            const paragraphStyles: Array<{
+                marginLeft: number;
+                marginRight: number;
+                textIndent: number;       // w:firstLine → positive indent
+                hangingIndent: number;    // w:hanging  → hanging indent (negative text-indent)
+                lineHeight: number | null;
+                spaceBefore: number;
+                spaceAfter: number;
+            }> = [];
+
+            try {
+                const { default: JSZip } = await import("jszip").catch(() => ({ default: null }));
+                if (JSZip) {
+                    const zip = await JSZip.loadAsync(arrayBuffer);
+                    const docXml = await zip.file("word/document.xml")?.async("string");
+                    if (docXml) {
+                        const parser = new DOMParser();
+                        const xmlDoc = parser.parseFromString(docXml, "application/xml");
+
+                        // OOXML Word namespace — MUST use this for correct attribute/element lookup
+                        const W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+
+                        // Helper: get a w: attribute value by local name (namespace-safe)
+                        const wAttr = (el: Element | null | undefined, localName: string): string | null => {
+                            if (!el) return null;
+                            // Try namespace-aware first, then fall back to prefixed name
+                            return el.getAttributeNS(W, localName) ?? el.getAttribute(`w:${localName}`);
+                        };
+
+                        // Helper: get first child element by w: local name
+                        const wChild = (el: Element | null | undefined, localName: string): Element | null => {
+                            if (!el) return null;
+                            return el.getElementsByTagNameNS(W, localName)[0] ?? null;
+                        };
+
+                        // 1 twip = 1/20 pt; 1 mm ≈ 56.69 twips
+                        const twipToMm = (v: string | null): number =>
+                            v ? Math.round(parseInt(v) / 56.69 * 10) / 10 : 0;
+
+                        // Collect all w:p elements in document order
+                        const paragraphs = Array.from(xmlDoc.getElementsByTagNameNS(W, "p"));
+
+                        paragraphs.forEach((p) => {
+                            const pPr   = wChild(p, "pPr");
+                            const ind     = wChild(pPr, "ind");
+                            const spacing = wChild(pPr, "spacing");
+
+                            const firstLine   = twipToMm(wAttr(ind, "firstLine"));
+                            const hanging     = twipToMm(wAttr(ind, "hanging"));
+                            const marginLeft  = twipToMm(wAttr(ind, "left"));
+                            const marginRight = twipToMm(wAttr(ind, "right"));
+
+                            const lineVal  = wAttr(spacing, "line");
+                            // 240 twips = single spacing in Word
+                            const lineHeight = lineVal ? Math.round((parseInt(lineVal) / 240) * 100) / 100 : null;
+
+                            paragraphStyles.push({
+                                marginLeft,
+                                marginRight,
+                                textIndent:    firstLine,
+                                hangingIndent: hanging,
+                                lineHeight,
+                                spaceBefore: twipToMm(wAttr(spacing, "before")),
+                                spaceAfter:  twipToMm(wAttr(spacing, "after")),
+                            });
+                        });
+                    }
+                }
+            } catch (zipErr) {
+                console.warn("[DOCX] Could not parse raw XML for indent extraction:", zipErr);
+            }
+
+            // --- STEP 2: Standard mammoth conversion ---
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const transformParagraph = (paragraph: any) => {
-                if (paragraph.alignment === "center" && !paragraph.styleId) {
-                    return { ...paragraph, styleId: "AlignmentCenter", styleName: "Alignment Center" };
-                }
-                if (paragraph.alignment === "right" && !paragraph.styleId) {
-                    return { ...paragraph, styleId: "AlignmentRight", styleName: "Alignment Right" };
-                }
-                if (paragraph.alignment === "justify" && !paragraph.styleId) {
-                    return { ...paragraph, styleId: "AlignmentJustify", styleName: "Alignment Justify" };
-                }
+                if (paragraph.alignment === "center")  return { ...paragraph, styleId: "AlignmentCenter",  styleName: "Alignment Center" };
+                if (paragraph.alignment === "right")   return { ...paragraph, styleId: "AlignmentRight",   styleName: "Alignment Right" };
+                if (paragraph.alignment === "justify") return { ...paragraph, styleId: "AlignmentJustify", styleName: "Alignment Justify" };
                 return paragraph;
             };
 
@@ -263,18 +333,61 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 transformDocument: (mammoth as any).transforms.paragraph(transformParagraph),
                 styleMap: [
-                    "p[style-name='Alignment Center'] => p.text-center:fresh",
-                    "p[style-name='Alignment Right'] => p.text-right:fresh",
+                    "p[style-name='Alignment Center']  => p.text-center:fresh",
+                    "p[style-name='Alignment Right']   => p.text-right:fresh",
                     "p[style-name='Alignment Justify'] => p.text-justify:fresh",
-                    // Also attempt generic preservation if possible
                 ]
             };
 
             const result = await mammoth.convertToHtml({ arrayBuffer }, options);
             if (result.messages?.length > 0) console.warn("Mammoth warnings:", result.messages);
 
+            // --- STEP 3: Inject indent/spacing inline styles into HTML paragraphs ---
+            let htmlOutput = result.value;
+            if (paragraphStyles.length > 0) {
+                const domParser = new DOMParser();
+                const doc = domParser.parseFromString(`<div>${htmlOutput}</div>`, "text/html");
+                const allPs = doc.querySelectorAll("p");
+
+                allPs.forEach((el, idx) => {
+                    const s = paragraphStyles[idx];
+                    if (!s) return;
+
+                    const parts: string[] = [];
+
+                    // Paragraph-level left indent (khoảng cách từ lề trái đến đoạn văn)
+                    if (s.marginLeft > 0) parts.push(`margin-left:${s.marginLeft}mm`);
+                    if (s.marginRight > 0) parts.push(`margin-right:${s.marginRight}mm`);
+
+                    // First-line indent: thụt đầu dòng dương (first line thụt vào hơn)
+                    if (s.textIndent > 0 && s.hangingIndent === 0) {
+                        parts.push(`text-indent:${s.textIndent}mm`);
+                    }
+
+                    // Hanging indent: dòng đầu nhô ra, các dòng sau thụt vào
+                    // CSS: text-indent âm + margin-left bù lại
+                    if (s.hangingIndent > 0) {
+                        const totalLeft = s.marginLeft + s.hangingIndent;
+                        parts.push(`margin-left:${totalLeft}mm`);
+                        parts.push(`text-indent:-${s.hangingIndent}mm`);
+                    }
+
+                    // Line height & spacing
+                    if (s.lineHeight !== null && s.lineHeight > 0) parts.push(`line-height:${s.lineHeight}`);
+                    if (s.spaceBefore > 0) parts.push(`margin-top:${s.spaceBefore}mm`);
+                    if (s.spaceAfter  > 0) parts.push(`margin-bottom:${s.spaceAfter}mm`);
+
+                    if (parts.length > 0) {
+                        const existing = el.getAttribute("style") || "";
+                        el.setAttribute("style", [existing, ...parts].filter(Boolean).join(";"));
+                    }
+                });
+
+                htmlOutput = doc.body.querySelector("div")?.innerHTML || htmlOutput;
+            }
+
             const header = buildHeaderHtml();
-            const wrappedHtml = `${header}\n${result.value}\n${HEADER_FOOTER}`;
+            const wrappedHtml = `${header}\n${htmlOutput}\n${HEADER_FOOTER}`;
 
             if (editorRef.current) {
                 editorRef.current.setContent(wrappedHtml);
@@ -410,6 +523,46 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
         `);
     };
 
+    const insertSampleListTable = () => {
+        if (!editorRef.current) return;
+
+        // Get unique sampleIds in order of first appearance
+        const seenSampleIds = new Set<string>();
+        const uniqueSamples: Array<{ sampleId: string; sampleCode: string }> = [];
+        analyses.forEach((a) => {
+            const sampleCode = (a as any).sample?.sampleCode || a.sampleId;
+            if (!seenSampleIds.has(a.sampleId)) {
+                seenSampleIds.add(a.sampleId);
+                uniqueSamples.push({ sampleId: a.sampleId, sampleCode });
+            }
+        });
+
+        const headerRow = `
+            <tr>
+                <th style="width:7%; border:1px solid black; padding:5px; text-align:center; font-weight:bold;">STT</th>
+                <th style="width:20%; border:1px solid black; padding:5px; text-align:left; font-weight:bold;">Mã mẫu</th>
+                <th style="width:73%; border:1px solid black; padding:5px; text-align:left; font-weight:bold;">Mô tả</th>
+            </tr>`;
+
+        const bodyRows = uniqueSamples.map((s, idx) => `
+            <tr>
+                <td style="width:7%; border:1px solid black; padding:5px; text-align:center;">${idx + 1}</td>
+                <td style="width:20%; border:1px solid black; padding:5px;">${s.sampleCode}</td>
+                <td style="width:73%; border:1px solid black; padding:5px;"></td>
+            </tr>`).join("");
+
+        editorRef.current.insertContent(`
+            <br/>
+            <table style="width:100%; border-collapse:collapse; margin-top:8px;">
+                <thead>${headerRow}</thead>
+                <tbody>${bodyRows}</tbody>
+            </table>
+            <br/>
+        `);
+        toast.success(t("technician.workspace.insertSuccess", { defaultValue: "Đã chèn bảng danh sách mẫu vào biên bản" }));
+    };
+
+
     const finalizeHtmlForExport = (html: string) => {
         // Enforce consistent styles during PDF generation/Print that match editor's CSS
         // Include full CONTENT_STYLE so backend renderer displays exactly what the user sees
@@ -443,6 +596,15 @@ ${CONTENT_STYLE}
             };
         });
 
+        // Build dated filename: "BBTN_<ProtocolCode>_DD/MM/YY"
+        const now = new Date();
+        const dd = String(now.getDate()).padStart(2, "0");
+        const mm = String(now.getMonth() + 1).padStart(2, "0");
+        const yy = String(now.getFullYear()).slice(-2);
+        const dateSuffix = `${dd}/${mm}/${yy}`;
+        const baseProtocol = protocolDetail?.protocolCode || selectedProtocolCode || primaryAnalysis?.parameterName || "BBTN";
+        const exportFilename = `${baseProtocol}_${dateSuffix}`;
+
         // Step 1: Save to DB
         updateBulk(
             { body: payload },
@@ -455,6 +617,7 @@ ${CONTENT_STYLE}
                     generateLabReport({
                         analyses: analyses.map(a => a.analysisId),
                         html: payloadHtml,
+                        filename: exportFilename,
                     }, {
                         onSuccess: async (data: any) => {
                             toast.success(t("technician.workspace.exportSuccess", { defaultValue: "Đã xuất báo cáo và tạo tài liệu thành công." }));
@@ -849,6 +1012,10 @@ ${HEADER_FOOTER}`;
                                             {t("technician.workspace.insertAnalysesTable", { defaultValue: "Chèn bảng chỉ tiêu vào mẫu" })} <PlusCircle className="w-4 h-4" />
                                         </Button>
 
+                                        <Button variant="outline" className="w-full flex justify-between shadow-sm" onClick={insertSampleListTable}>
+                                            {t("technician.workspace.insertSampleTable", { defaultValue: "Chèn bảng danh sách mẫu" })} <PlusCircle className="w-4 h-4" />
+                                        </Button>
+
                                         <div className="p-4 bg-muted/40 rounded-lg border text-sm prose prose-sm max-w-none">
                                             {isLoadingProtocol ? (
                                                 <div className="py-8 flex justify-center">
@@ -868,6 +1035,41 @@ ${HEADER_FOOTER}`;
                                                 </div>
                                             )}
                                         </div>
+
+                                        {/* Selected analyses list below protocol info */}
+                                        {analyses.length > 0 && (
+                                            <div className="border rounded-lg overflow-hidden">
+                                                <div className="bg-muted/40 px-3 py-2 border-b">
+                                                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                                        {t("technician.workspace.selectedAnalyses", { defaultValue: "Chỉ tiêu đã chọn" })} ({analyses.length})
+                                                    </h4>
+                                                </div>
+                                                <div className="overflow-y-auto max-h-52">
+                                                    <table className="w-full text-xs">
+                                                        <thead className="sticky top-0 bg-background/95 backdrop-blur">
+                                                            <tr>
+                                                                <th className="text-left px-2 py-1.5 font-semibold whitespace-nowrap">{t("technician.workspace.sampleCode", { defaultValue: "Mã mẫu" })}</th>
+                                                                <th className="text-left px-2 py-1.5 font-semibold whitespace-nowrap">{t("technician.workspace.parameterName", { defaultValue: "Chỉ tiêu" })}</th>
+                                                                <th className="text-left px-2 py-1.5 font-semibold whitespace-nowrap">{t("technician.workspace.protocolCodeCol", { defaultValue: "PP thử" })}</th>
+                                                                <th className="text-left px-2 py-1.5 font-semibold whitespace-nowrap">{t("technician.workspace.result", { defaultValue: "Kết quả" })}</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y">
+                                                            {analyses.map((a) => (
+                                                                <tr key={a.analysisId} className="hover:bg-muted/20">
+                                                                    <td className="px-2 py-1.5 font-mono text-[11px] text-muted-foreground whitespace-nowrap">{(a as any).sample?.sampleCode || a.sampleId}</td>
+                                                                    <td className="px-2 py-1.5 leading-tight">{a.parameterName}</td>
+                                                                    <td className="px-2 py-1.5 text-muted-foreground whitespace-nowrap">{(a as any).protocolCode || "-"}</td>
+                                                                    <td className="px-2 py-1.5 font-medium text-blue-600 whitespace-nowrap">
+                                                                        <span dangerouslySetInnerHTML={{ __html: a.analysisResult ? String(a.analysisResult) : "-" }} />
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </TabsContent>
                             </Tabs>

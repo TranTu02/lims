@@ -47,11 +47,11 @@ import { convertResultToHtml } from "@/utils/resultHtml";
 // }
 
 export function TechnicianWorkspace() {
-    const { user } = useAuth();
+    const { user, isAdmin } = useAuth();
     const { t } = useTranslation();
 
     // Check if user is a manager of any group. For now, checking roles.
-    const isManager = user?.roles?.admin || user?.roles?.superAdmin;
+    const isManager = isAdmin;
 
     const [activeTab, setActiveTab] = useState("pending"); // pending, testing, retest
     const [page, setPage] = useState(1);

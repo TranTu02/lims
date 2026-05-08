@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { ChemicalTransactionBlock, ChemicalTransactionBlockDetail, ChemicalTransaction } from "@/types/chemical";
 import { useChemicalTransactionBlockFull, useApproveTransactionBlock } from "@/api/chemical";
-import { ChemicalProposalEditor } from "@/components/technician/ChemicalProposalEditor";
+import { ChemicalTransactionBlockReportEditor } from "./ChemicalTransactionBlockReportEditor";
+import type { EditLineItem } from "./TransactionBlocksTab";
 import { DocumentItem } from "@/components/common/DocumentItem";
 
 type Props = {
@@ -152,6 +153,35 @@ export function TransactionBlockDetailPanel({ block, onClose, hideApprove, onApp
 
     if (!displayBlock) return null;
 
+    // Chuyển đổi block details/transactions thành EditLineItem[] để truyền vào report editor
+    const rawItems: any[] = (
+        (displayBlock as any).chemicalTransactions?.length > 0
+            ? (displayBlock as any).chemicalTransactions
+            : (displayBlock as any).chemicalTransactionBlockDetails ?? []
+    );
+
+    const lineItemsForReport: EditLineItem[] = rawItems.map((item: any, index: number) => ({
+        id: item.chemicalTransactionId ?? item.chemicalTransactionBlockDetailId ?? String(index),
+        inventory: {
+            chemicalInventoryId: item.chemicalInventoryId ?? "",
+            chemicalSkuId: item.chemicalSkuId ?? "",
+            chemicalName: item.chemicalName ?? "",
+            chemicalCasNumber: item.chemicalCasNumber ?? item.casNumber ?? "",
+            lotNumber: item.lotNumber ?? "",
+            currentAvailableQty: 0,
+            openedExpDays: 0,
+            chemicalInventoryStatus: "",
+        } as any,
+        changeQty: item.changeQty ?? 0,
+        totalWeight: item.totalWeight,
+        analysisId: item.analysisId ?? "",
+        chemicalTransactionBlockDetailNote: item.chemicalTransactionBlockDetailNote ?? item.chemicalTransactionNote ?? "",
+        usageDate: item.usageDate ?? "",
+        preparationRole: undefined,
+        usageBy: item.usageBy ?? item.usedBy ?? "",
+        transactionUnit: item.chemicalTransactionUnit ?? item.chemicalTransactionBlockDetailUnit ?? "",
+    }));
+
     const isApproved = displayBlock.chemicalTransactionBlockStatus === "APPROVED";
     const hasDetails = displayBlock.chemicalTransactionBlockDetails && displayBlock.chemicalTransactionBlockDetails.length > 0;
     const hasTransactions = displayBlock.chemicalTransactions && displayBlock.chemicalTransactions.length > 0;
@@ -220,7 +250,17 @@ export function TransactionBlockDetailPanel({ block, onClose, hideApprove, onApp
                 </div>
             </div>
 
-            {showProposalEditor && displayBlock && <ChemicalProposalEditor open={showProposalEditor} onOpenChange={setShowProposalEditor} block={displayBlock as any} />}
+            {showProposalEditor && displayBlock && (
+                <ChemicalTransactionBlockReportEditor
+                    open={showProposalEditor}
+                    onOpenChange={setShowProposalEditor}
+                    lineItems={lineItemsForReport}
+                    transactionType={displayBlock.transactionType ?? ""}
+                    usedBy={(displayBlock as any).usageBy || (displayBlock as any).usedBy || ""}
+                    referenceDocument={(displayBlock as any).referenceDocument || displayBlock.chemicalTransactionBlockId}
+                    blockId={displayBlock.chemicalTransactionBlockId}
+                />
+            )}
 
             <div className="flex-1 overflow-y-auto relative">
                 {fullBlockQuery.isLoading ? (

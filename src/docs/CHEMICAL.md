@@ -29,7 +29,7 @@ _Chứa thông tin lõi của hóa chất (SKU), không phụ thuộc vào Hãng
 | `chemicalBaseUnit`          | `text`    |        | Đơn vị lưu kho cơ bản (VD: `ml`, `g`).                       |
 | `chemicalTotalAvailableQty` | `numeric` |        | Tổng tồn kho khả dụng hiện tại (Tự động cộng dồn từ các lọ). |
 | `chemicalReorderLevel`      | `numeric` |        | Mức tồn kho tối thiểu để cảnh báo Mua hàng (PR).             |
-| `chemicalHazardClass`       | `text`    |        | Phân loại độc hại (VD: `Flammable`, `Toxic`, `Corrosive`).   |
+| `chemicalHazardClass`       | `text`    |        | Phân loại nguy hiểm (VD: `Dễ cháy`, `Độc hại`, `Ăn mòn`, `Oxy hóa`).|
 
 ### 2. Bảng `chemicalSuppliers` (Danh mục Nhà cung cấp)
 

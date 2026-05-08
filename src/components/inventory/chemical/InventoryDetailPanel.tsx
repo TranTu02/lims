@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { X, Loader2, Beaker, MapPin, Tag, Calendar, Pencil, FileText } from "lucide-react";
+import { X, Loader2, Beaker, MapPin, Tag, Calendar, Pencil, FileText, FlaskConical } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { ChemicalInventory, ChemicalTransaction, ChemicalTransactionBlockDetail } from "@/types/chemical";
 import { useChemicalInventoryFull } from "@/api/chemical";
 import { InventoryEditModal } from "./InventoryEditModal";
 import { InventorySeparateModal } from "./InventorySeparateModal";
+import { CreateBlockModal } from "./TransactionBlocksTab";
 import { History, GitFork } from "lucide-react";
 import { DocumentItem } from "@/components/common/DocumentItem";
 
@@ -60,7 +61,9 @@ function TransactionRow({ item, type }: { item: ChemicalTransaction | ChemicalTr
                 <div className="flex items-center justify-between mt-1 text-[10px] text-muted-foreground">
                     <span className="font-mono text-primary/80">{a.chemicalInventoryId || "-"}</span>
                     <span>{date ? new Date(date).toLocaleString("vi-VN") : "-"}</span>
-                    <span className="font-mono">{a.chemicalTransactionId || a.chemicalTransactionBlockDetailId}</span>
+                    <span className="font-medium text-blue-600 dark:text-blue-400">
+                        {a.usageBy || a.usedById ? `KTV: ${a.usageBy || a.usedById}` : ""}
+                    </span>
                 </div>
             </div>
         </div>
@@ -71,6 +74,7 @@ export function InventoryDetailPanel({ inventory, onClose }: Props) {
     const { t } = useTranslation();
     const [editOpen, setEditOpen] = useState(false);
     const [separateOpen, setSeparateOpen] = useState(false);
+    const [prepareBlockOpen, setPrepareBlockOpen] = useState(false);
 
     const fullInvQuery = useChemicalInventoryFull(inventory?.chemicalInventoryId || "", {
         enabled: !!inventory?.chemicalInventoryId,
@@ -95,6 +99,18 @@ export function InventoryDetailPanel({ inventory, onClose }: Props) {
                         <p className="text-xs text-muted-foreground mt-0.5 font-mono">{displayInv.chemicalInventoryId}</p>
                     </div>
                     <div className="flex items-center gap-1">
+                        {(displayInv as any).chemicalType === "Hóa chất pha" && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setPrepareBlockOpen(true)}
+                                type="button"
+                                title="Tạo phiếu điều chỉnh pha hóa chất"
+                                className="text-blue-500 hover:text-blue-600 hover:bg-blue-500/10"
+                            >
+                                <FlaskConical className="h-4 w-4" />
+                            </Button>
+                        )}
                         <Button
                             variant="ghost"
                             size="sm"
@@ -142,6 +158,75 @@ export function InventoryDetailPanel({ inventory, onClose }: Props) {
                                 <StatusBadge status={(displayInv as any).chemicalInventoryStatus} />
                             </div>
                         </div>
+
+                        {/* Prepared Chemical Info */}
+                        {(displayInv as any).chemicalType === "Hóa chất pha" && (
+                            <div className="space-y-2 bg-blue-500/5 border border-blue-500/20 rounded-lg p-3">
+                                <h3 className="text-xs font-semibold flex items-center gap-1.5 text-blue-500">
+                                    <FlaskConical className="h-3.5 w-3.5" />
+                                    {t("inventory.chemical.inventories.preparedInfo", { defaultValue: "Thông tin Pha chế" })}
+                                </h3>
+                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                    <div>
+                                        <div className="text-muted-foreground mb-0.5">{t("inventory.chemical.inventories.preparedById", { defaultValue: "Người pha" })}</div>
+                                        <div className="font-medium">
+                                            {typeof (displayInv as any).preparedBy === "string" 
+                                                ? (displayInv as any).preparedBy 
+                                                : (displayInv as any).preparedBy?.identityName || (displayInv as any).preparedById || "-"}
+                                            {typeof (displayInv as any).preparedBy !== "string" && (displayInv as any).preparedBy?.identityRoles?.includes("ROLE_TECHNICIAN") && (
+                                                <span className="ml-1 text-[9px] bg-blue-100 text-blue-700 px-1 rounded">KTV</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className="text-muted-foreground mb-0.5">{t("inventory.chemical.inventories.preparedDate", { defaultValue: "Ngày pha" })}</div>
+                                        <div className="font-medium">
+                                            {(displayInv as any).preparedDate
+                                                ? new Date((displayInv as any).preparedDate).toLocaleString("vi-VN")
+                                                : "-"}
+                                        </div>
+                                    </div>
+                                    <div className="col-span-2 mt-1">
+                                        <div className="text-muted-foreground mb-0.5">{t("inventory.chemical.inventories.preparationLocation", { defaultValue: "Nơi pha hóa chất" })}</div>
+                                        <div className="font-medium">
+                                            {(displayInv as any).preparationLocation || "-"}
+                                        </div>
+                                    </div>
+                                </div>
+                                {(displayInv as any).parentInventoryIds?.length > 0 && (
+                                    <div>
+                                        <div className="text-muted-foreground text-[10px] mb-1">
+                                            {t("inventory.chemical.inventories.parentInventoryIds", { defaultValue: "Hóa chất gốc" })}
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                            {((displayInv as any).parentInventories?.length > 0
+                                                ? (displayInv as any).parentInventories
+                                                : (displayInv as any).parentInventoryIds.map((id: string) => ({ chemicalInventoryId: id }))
+                                            ).map((parent: any) => (
+                                                <div key={parent.chemicalInventoryId} className="flex items-center justify-between bg-blue-500/10 px-2 py-1 rounded border border-blue-500/20">
+                                                    <span className="font-mono text-[10px] text-blue-600 font-medium">
+                                                        {parent.chemicalInventoryId}
+                                                    </span>
+                                                    {parent.chemicalName && (
+                                                        <span className="text-[10px] text-blue-800 truncate ml-2 max-w-[120px]" title={parent.chemicalName}>
+                                                            {parent.chemicalName}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => setPrepareBlockOpen(true)}
+                                    className="w-full mt-1 flex items-center justify-center gap-1.5 text-xs text-blue-500 hover:text-blue-600 border border-blue-500/30 hover:border-blue-500/60 hover:bg-blue-500/5 rounded-md py-1.5 transition-colors"
+                                >
+                                    <FlaskConical className="h-3.5 w-3.5" />
+                                    {t("inventory.chemical.inventories.createPrepareBlock", { defaultValue: "Tạo phiếu xuất hóa chất gốc" })}
+                                </button>
+                            </div>
+                        )}
 
                         {/* Sku Details */}
                         {sku && (
@@ -310,6 +395,33 @@ export function InventoryDetailPanel({ inventory, onClose }: Props) {
 
             {editOpen && <InventoryEditModal inventory={displayInv} onClose={() => setEditOpen(false)} />}
             {separateOpen && <InventorySeparateModal inventory={displayInv} onClose={() => setSeparateOpen(false)} />}
+            {prepareBlockOpen && (
+                <CreateBlockModal
+                    onClose={() => setPrepareBlockOpen(false)}
+                    initialType="PREPARATION"
+                    initialPreparedBy={
+                        typeof (displayInv as any).preparedBy === "string"
+                            ? { identityId: (displayInv as any).preparedById, identityName: (displayInv as any).preparedBy }
+                            : (displayInv as any).preparedBy
+                            ? { identityId: (displayInv as any).preparedBy.identityId, identityName: (displayInv as any).preparedBy.identityName }
+                            : (displayInv as any).preparedById
+                            ? { identityId: (displayInv as any).preparedById, identityName: (displayInv as any).preparedById }
+                            : undefined
+                    }
+                    initialItems={[
+                        ...((displayInv as any).parentInventories?.length > 0
+                            ? (displayInv as any).parentInventories
+                            : (displayInv as any).parentInventoryIds?.map((id: string) => ({
+                                  chemicalInventoryId: id,
+                                  chemicalSkuId: "",
+                                  chemicalName: id,
+                                  lotNumber: "",
+                                  currentAvailableQty: 0,
+                              } as ChemicalInventory)) || []),
+                        displayInv,
+                    ]}
+                />
+            )}
         </>
     );
 }

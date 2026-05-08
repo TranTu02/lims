@@ -22,6 +22,10 @@ type LabelItem = {
     manufacturerName?: string | null;
     mfgDate?: string | null;
     expDate?: string | null;
+    chemicalType?: string | null;
+    preparedBy?: any;
+    preparationLocation?: string | null;
+    preparedDate?: string | null;
 };
 
 type Props = {
@@ -104,18 +108,31 @@ function LabelSingle({ item }: { item: LabelItem }) {
                     {item.chemicalCasNumber && (
                         <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>CAS: {item.chemicalCasNumber}</div>
                     )}
-                    {item.lotNumber && (
+                    {item.chemicalType !== "Hóa chất pha" && item.lotNumber && (
                         <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: "0.1mm" }}>
                             {t("inventory.chemical.inventories.lotShort", { defaultValue: "Lô" })}: {item.lotNumber}
                         </div>
                     )}
-                    {item.manufacturerName && (
+                    {item.chemicalType !== "Hóa chất pha" && item.manufacturerName && (
                         <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>
                             {t("inventory.chemical.skus.mfgPersonShort", { defaultValue: "NhSX" })}: {item.manufacturerName}
                         </div>
                     )}
+                    {item.chemicalType === "Hóa chất pha" && (
+                        <>
+                            <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>
+                                TT Pha: {typeof item.preparedBy === "string" ? item.preparedBy : item.preparedBy?.identityName || ""}
+                            </div>
+                            <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>
+                                {item.preparationLocation || ""}
+                            </div>
+                        </>
+                    )}
                     <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt" }}>
-                        NSX-HSD: {formatDateShort(item.mfgDate)} - {formatDateShort(item.expDate)}
+                        {item.chemicalType === "Hóa chất pha" 
+                            ? `Ngày: ${formatDateShort(item.preparedDate)} - ${formatDateShort(item.expDate)}`
+                            : `NSX-HSD: ${formatDateShort(item.mfgDate)} - ${formatDateShort(item.expDate)}`
+                        }
                     </div>
                 </div>
             </div>

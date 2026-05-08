@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { X, Loader2, Save } from "lucide-react";
+import { X, Loader2, Save, Calendar, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { chemicalApi, useEnumList } from "@/api/chemical";
+import { chemicalApi, useEnumList, useChemicalTechnicians } from "@/api/chemical";
 import { chemicalKeys } from "@/api/chemicalKeys";
 import type { ChemicalInventory } from "@/types/chemical";
 import { SkuSelect } from "./SkuSelect";
@@ -20,13 +20,14 @@ type Props = {
 };
 
 const STATUS_OPTIONS = ["New", "InUse", "Quarantined", "Pending", "Empty", "Expired", "Disposed"];
-const INV_CHEMICAL_TYPES = ["Hóa chất", "Môi trường", "Chất chuẩn", "Chủng chuẩn", "Hóa chất pha", "Hóa chất phụ trợ"];
 
 export function InventoryEditModal({ inventory, onClose }: Props) {
     const { t } = useTranslation();
     const qc = useQueryClient();
     const isCreate = !inventory;
     const { data: binLocations, isLoading: binsLoading } = useEnumList("storageBinLocation");
+    const { data: chemicalTypes } = useEnumList("chemicalType");
+    const { data: technicians } = useChemicalTechnicians();
 
     const [form, setForm] = useState({
         chemicalInventoryId: inventory?.chemicalInventoryId ?? "",
@@ -45,7 +46,7 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
         openedDate: (inventory as any)?.openedDate ? String((inventory as any).openedDate).slice(0, 10) : "",
         openedExpDays: (inventory as any)?.openedExpDays ?? 0,
         openedExpDate: (inventory as any)?.openedExpDate ? String((inventory as any).openedExpDate).slice(0, 10) : "",
-        currentAvailableQty: String((inventory as any)?.currentAvailableQty ?? ""),
+        currentAvailableQty: isCreate ? "0" : String((inventory as any)?.currentAvailableQty ?? ""),
         totalGrossWeight: (inventory as any)?.totalGrossWeight !== undefined && (inventory as any)?.totalGrossWeight !== null ? String((inventory as any)?.totalGrossWeight) : "",
         storageConditions: (inventory as any)?.storageConditions ?? "",
         inventoryCoaDocumentIds: (inventory as any)?.inventoryCoaDocumentIds ?? [],
@@ -60,6 +61,35 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
             label: id,
             sublabel: "",
         })),
+        parentInventoryIds: (inventory as any)?.parentInventoryIds ?? [],
+        selectedParentInventories: (inventory as any)?.parentInventories?.length > 0 
+            ? (inventory as any).parentInventories.map((p: any) => ({
+                  id: p.chemicalInventoryId,
+                  label: p.chemicalInventoryId,
+                  sublabel: p.chemicalName || p.chemicalSkuId || "",
+              }))
+            : ((inventory as any)?.parentInventoryIds ?? []).map((id: string) => ({
+                  id,
+                  label: id,
+                  sublabel: "",
+              })),
+        preparedById: (inventory as any)?.preparedById ?? "",
+        preparedBy: typeof (inventory as any)?.preparedBy === "string" 
+            ? (inventory as any)?.preparedBy 
+            : ((inventory as any)?.preparedBy?.identityName ?? ""),
+        preparationLocation: (inventory as any)?.preparationLocation ?? "",
+        selectedPreparer: (inventory as any)?.preparedById
+            ? [
+                  {
+                      id: (inventory as any).preparedById,
+                      label: typeof (inventory as any)?.preparedBy === "string" 
+                          ? (inventory as any)?.preparedBy 
+                          : ((inventory as any)?.preparedBy?.identityName || (inventory as any).preparedById),
+                      sublabel: "",
+                  },
+              ]
+            : [],
+        preparedDate: (inventory as any)?.preparedDate ? String((inventory as any).preparedDate).slice(0, 16) : "",
     });
 
     const [cloneCount, setCloneCount] = useState(1);
@@ -80,6 +110,19 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
             // Remove helper fields not needed by API
             delete (payload as any).selectedDocuments;
             delete (payload as any).selectedInvoiceDocuments;
+            delete (payload as any).selectedParentInventories;
+            delete (payload as any).selectedPreparer;
+
+            if (payload.chemicalType === "Hóa chất pha") {
+                (payload as any).preparedDate = form.preparedDate ? new Date(form.preparedDate).toISOString() : null;
+                // preparedById and preparedBy and preparationLocation are already in payload from form
+            } else {
+                (payload as any).parentInventoryIds = [];
+                (payload as any).preparedById = null;
+                (payload as any).preparedBy = null;
+                (payload as any).preparationLocation = null;
+                (payload as any).preparedDate = null;
+            }
 
             if (isCreate) {
                 // Batch creation logic
@@ -98,21 +141,21 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
                 toast.error(
                     res.error?.message ||
                         (isCreate
-                            ? t("inventory.chemical.inventories.createFailed", { defaultValue: "Tạo thất bại" })
-                            : t("inventory.chemical.inventories.updateFailed", { defaultValue: "Cập nhật thất bại" })),
+                            ? String(t("inventory.chemical.inventories.createFailed", { defaultValue: "Tạo thất bại" }))
+                            : String(t("inventory.chemical.inventories.updateFailed", { defaultValue: "Cập nhật thất bại" }))),
                 );
                 return;
             }
             toast.success(
                 isCreate
-                    ? t("inventory.chemical.inventories.createSuccess", { defaultValue: "Đã tạo lọ/chai mới thành công" })
-                    : t("inventory.chemical.inventories.updateSuccess", { defaultValue: "Đã cập nhật thông tin lọ/chai thành công" }),
+                    ? String(t("inventory.chemical.inventories.createSuccess", { defaultValue: "Đã tạo lọ/chai mới thành công" }))
+                    : String(t("inventory.chemical.inventories.updateSuccess", { defaultValue: "Đã cập nhật thông tin lọ/chai thành công" })),
             );
             qc.invalidateQueries({ queryKey: chemicalKeys.inventories.all() });
             onClose();
         },
         onError: (err: any) => {
-            toast.error(err?.message || t("common.unknownError", { defaultValue: "Lỗi không xác định" }));
+            toast.error(err?.message || String(t("common.unknownError", { defaultValue: "Lỗi không xác định" })));
         },
     });
 
@@ -165,6 +208,33 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
         } catch {
             return [];
         }
+    };
+
+    const searchInventoriesFn = async (q: string): Promise<PickerItem[]> => {
+        try {
+            const res = await chemicalApi.inventories.list({ query: { search: q, itemsPerPage: 20 } });
+            if (!res.success || !res.data) return [];
+            return res.data.map((inv) => ({
+                id: inv.chemicalInventoryId,
+                label: `${inv.chemicalInventoryId} - ${inv.chemicalName}`,
+                sublabel: `${inv.lotNumber || "No Lot"} | ${inv.chemicalType}`,
+            }));
+        } catch {
+            return [];
+        }
+    };
+
+    const searchIdentitiesFn = async (q: string): Promise<PickerItem[]> => {
+        if (!technicians) return [];
+        const filtered = technicians.filter(t => 
+            t.identityName.toLowerCase().includes(q.toLowerCase()) || 
+            t.identityId.toLowerCase().includes(q.toLowerCase())
+        );
+        return filtered.map((idnt) => ({
+            id: idnt.identityId,
+            label: idnt.identityName,
+            sublabel: `${idnt.identityId}${idnt.identityRoles?.length ? ` - ${idnt.identityRoles.join(", ")}` : ""}`,
+        }));
     };
 
     return (
@@ -262,7 +332,7 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
                                 className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                             >
                                 <option value="">-- {t("common.select", { defaultValue: "Theo SKU gốc" })} --</option>
-                                {INV_CHEMICAL_TYPES.map((s) => (
+                                {(chemicalTypes || []).map((s) => (
                                     <option key={s} value={s}>
                                         {s}
                                     </option>
@@ -328,6 +398,82 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
                             />
                         </div>
                     </div>
+
+                    {form.chemicalType === "Hóa chất pha" && (
+                        <div className="border-t border-border pt-4 space-y-3">
+                            <div className="flex items-center gap-2 mb-1">
+                                <div className="p-1.5 bg-blue-500/10 rounded-md">
+                                    <Search className="h-4 w-4 text-blue-500" />
+                                </div>
+                                <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide">
+                                    {t("inventory.chemical.inventories.preparedInfo", { defaultValue: "Thông tin Hóa chất pha" })}
+                                </p>
+                            </div>
+
+                            <div className="space-y-4 bg-muted/30 p-4 rounded-lg border border-border/50">
+                                <div className="space-y-1">
+                                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                        {t("inventory.chemical.inventories.parentInventoryIds", { defaultValue: "Hóa chất gốc (Quét/Chọn)" })}
+                                    </label>
+                                    <SearchSelectPicker
+                                        label={String(t("inventory.chemical.inventories.selectParent", { defaultValue: "Chọn hóa chất gốc..." }))}
+                                        selected={form.selectedParentInventories}
+                                        onChange={(items) => setForm((f) => ({ ...f, parentInventoryIds: items.map((i) => i.id), selectedParentInventories: items }))}
+                                        onSearch={searchInventoriesFn}
+                                        placeholder={String(t("inventory.chemical.inventories.scanOrSearchParent", { defaultValue: "Quét barcode hoặc tìm tên hóa chất gốc..." }))}
+                                    />
+                                    <p className="text-[10px] text-muted-foreground italic">Dùng để truy vết ISO 17025 - Biết dung dịch này được pha từ những lọ nào.</p>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                            {t("inventory.chemical.inventories.preparedById", { defaultValue: "Người pha chế" })}
+                                        </label>
+                                        <SearchSelectPicker
+                                            label={String(t("inventory.chemical.inventories.selectPreparer", { defaultValue: "Chọn người pha..." }))}
+                                            selected={form.selectedPreparer}
+                                            onChange={(items) => {
+                                                const lastItem = items[items.length - 1];
+                                                setForm((f) => ({ 
+                                                    ...f, 
+                                                    preparedById: lastItem?.id || "", 
+                                                    preparedBy: lastItem?.label || "",
+                                                    selectedPreparer: lastItem ? [{ ...lastItem, sublabel: "" }] : []
+                                                }));
+                                            }}
+                                            onSearch={searchIdentitiesFn}
+                                            placeholder={String(t("inventory.chemical.inventories.searchPreparer", { defaultValue: "Tìm tên hoặc mã nhân viên..." }))}
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                            {t("inventory.chemical.inventories.preparationLocation", { defaultValue: "Nơi pha hóa chất" })}
+                                        </label>
+                                        <Input
+                                            value={form.preparationLocation}
+                                            onChange={(e) => set("preparationLocation", e.target.value)}
+                                            placeholder="VD: Phòng Lab 1, Tủ hút..."
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                            {t("inventory.chemical.inventories.preparedDate", { defaultValue: "Ngày & Giờ pha" })}
+                                        </label>
+                                        <div className="relative">
+                                            <Input
+                                                type="datetime-local"
+                                                value={form.preparedDate}
+                                                onChange={(e) => set("preparedDate", e.target.value)}
+                                                className="pl-9"
+                                            />
+                                            <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="border-t border-border pt-4 space-y-1">
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">

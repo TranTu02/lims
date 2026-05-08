@@ -74,6 +74,9 @@ export interface ChemicalInventory extends BaseEntity {
     chemicalInventoryStatus: ChemicalInventoryStatus;
     storageBinLocation?: string | null;
     chemicalSkuOldId?: string | null;
+    parentInventoryIds?: string[] | null;
+    preparedById?: string | null;
+    preparedDate?: string | null;
 
     // Virtual fields
     chemicalSku?: ChemicalSku;
