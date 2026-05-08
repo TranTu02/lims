@@ -148,8 +148,8 @@ function LabelSingle({ item }: { item: LabelItem }) {
                     justifyContent: "space-between",
                 }}
             >
-                <div style={{ fontSize: "6pt", fontWeight: 900, textAlign: "center", width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>
-                    {item.chemicalSkuId ? item.chemicalSkuId.substring(4) : ""}
+                <div style={{ fontSize: "7pt", fontWeight: 900, textAlign: "center", width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>
+                    {item.chemicalSkuId || ""}
                 </div>
                 {qrSvg ? (
                     <div
@@ -166,7 +166,7 @@ function LabelSingle({ item }: { item: LabelItem }) {
                 <div
                     className="id-text"
                     style={{
-                        fontSize: "6.5pt",
+                        fontSize: "8pt",
                         fontWeight: 900,
                         fontFamily: "monospace",
                         textAlign: "center",
@@ -180,7 +180,7 @@ function LabelSingle({ item }: { item: LabelItem }) {
                         maxWidth: "12mm",
                     }}
                 >
-                    {item.chemicalInventoryId ? item.chemicalInventoryId.substring(4) : ""}
+                    {item.chemicalInventoryId || ""}
                 </div>
             </div>
         </div>
