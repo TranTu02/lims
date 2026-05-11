@@ -502,8 +502,7 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
 
     const insertConfirmationTable = () => {
         if (!editorRef.current) return;
-        // Insert borderless 2-column, 1-row table with 30mm height and centered text
-        editorRef.current.insertContent(`
+        const html = `
             <br/>
             <table style="width: 100%; border-collapse: collapse; border: none; margin-top: 10px;">
                 <tbody>
@@ -520,7 +519,12 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
                 </tbody>
             </table>
             <br/>
-        `);
+        `;
+        // Focus editor first so content inserts at cursor, not at end
+        setTimeout(() => {
+            editorRef.current.focus();
+            editorRef.current.insertContent(html);
+        }, 50);
     };
 
     const insertSampleListTable = () => {
@@ -551,15 +555,20 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
                 <td style="width:73%; border:1px solid black; padding:5px;"></td>
             </tr>`).join("");
 
-        editorRef.current.insertContent(`
+        const html = `
             <br/>
             <table style="width:100%; border-collapse:collapse; margin-top:8px;">
                 <thead>${headerRow}</thead>
                 <tbody>${bodyRows}</tbody>
             </table>
             <br/>
-        `);
-        toast.success(t("technician.workspace.insertSuccess", { defaultValue: "Đã chèn bảng danh sách mẫu vào biên bản" }));
+        `;
+        // Focus editor first so content inserts at cursor, not at end
+        setTimeout(() => {
+            editorRef.current.focus();
+            editorRef.current.insertContent(html);
+            toast.success(t("technician.workspace.insertSuccess", { defaultValue: "Đã chèn bảng danh sách mẫu vào biên bản" }));
+        }, 50);
     };
 
 
@@ -580,23 +589,7 @@ ${CONTENT_STYLE}
         const htmlContent = editorRef.current?.getContent() || "";
         const payloadHtml = finalizeHtmlForExport(htmlContent);
 
-        const payload = analyses.map(a => {
-            const myChems = availableChemicals
-                .filter(c => c.analysisId === a.analysisId)
-                .map(c => ({
-                    ...c,
-                    consumedQty: quantities[c.uniqueKey] || "0",
-                    changeQty: -Math.abs(Number(quantities[c.uniqueKey] || 0)),
-                }));
-            const existingRaw = (a as any).rawData || {};
-            return {
-                analysisId: a.analysisId,
-                consumablesUsed: myChems,
-                rawData: { ...existingRaw, protocolReportHtml: payloadHtml },
-            };
-        });
-
-        // Build dated filename: "BBTN_<ProtocolCode>_DD/MM/YY"
+        // Build dated filename: "<ProtocolCode>_DD/MM/YY"
         const now = new Date();
         const dd = String(now.getDate()).padStart(2, "0");
         const mm = String(now.getMonth() + 1).padStart(2, "0");
@@ -605,60 +598,50 @@ ${CONTENT_STYLE}
         const baseProtocol = protocolDetail?.protocolCode || selectedProtocolCode || primaryAnalysis?.parameterName || "BBTN";
         const exportFilename = `${baseProtocol}_${dateSuffix}`;
 
-        // Step 1: Save to DB
-        updateBulk(
-            { body: payload },
-            {
-                onSuccess: () => {
-                    toast.success(t("technician.workspace.saveProtocolSuccess", { defaultValue: "Đã lưu biên bản. Đang xuất PDF..." }));
-                    onSuccess?.();
+        toast.loading(t("technician.workspace.exporting", { defaultValue: "Đang xuất PDF..." }), { id: "lab-export" });
 
-                    // Step 2: Export PDF right after save
-                    generateLabReport({
-                        analyses: analyses.map(a => a.analysisId),
-                        html: payloadHtml,
-                        filename: exportFilename,
-                    }, {
-                        onSuccess: async (data: any) => {
-                            toast.success(t("technician.workspace.exportSuccess", { defaultValue: "Đã xuất báo cáo và tạo tài liệu thành công." }));
-                            setIsExported(true);
+        generateLabReport({
+            analyses: analyses.map(a => a.analysisId),
+            html: payloadHtml,
+            filename: exportFilename,
+        }, {
+            onSuccess: async (data: any) => {
+                toast.dismiss("lab-export");
+                toast.success(t("technician.workspace.exportSuccess", { defaultValue: "Đã xuất báo cáo thành công." }));
+                setIsExported(true);
 
-                            const docId = data.documentId || data.data?.documentId;
-                            
-                            if (docId) {
-                                try {
-                                    const urlRes = await documentApi.url(docId);
-                                    const urlData = (urlRes as any).data ?? urlRes;
-                                    const finalUrl = urlData?.url || urlData;
+                const docId = data.documentId || data.data?.documentId;
+                if (docId) {
+                    try {
+                        const urlRes = await documentApi.url(docId);
+                        const urlData = (urlRes as any).data ?? urlRes;
+                        const finalUrl = urlData?.url || urlData;
 
-                                    if (typeof finalUrl === 'string' && finalUrl.startsWith('http')) {
-                                        // Robust opening in new tab
-                                        const link = document.createElement('a');
-                                        link.href = finalUrl;
-                                        link.target = '_blank';
-                                        link.rel = 'noopener noreferrer';
-                                        document.body.appendChild(link);
-                                        link.click();
-                                        document.body.removeChild(link);
-                                    } else {
-                                        toast.error(t("common.error.invalidUrl", { defaultValue: "Không lấy được liên kết tài liệu." }));
-                                    }
-                                } catch (e) {
-                                    console.error("Failed to fetch document URL after export:", e);
-                                }
-                            }
-                            // Step 3: Close editor after attempting to open tab
-                            onOpenChange(false);
-                            onSuccess?.();
-                        },
-                        onError: (error) => {
-                            console.error("Export API error:", error);
-                        },
-                    });
-                },
-                onError: () => toast.error(t("common.error.saveFailed", { defaultValue: "Có lỗi xảy ra khi lưu" })),
+                        if (typeof finalUrl === "string" && finalUrl.startsWith("http")) {
+                            const link = document.createElement("a");
+                            link.href = finalUrl;
+                            link.target = "_blank";
+                            link.rel = "noopener noreferrer";
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                        } else {
+                            toast.error(t("common.error.invalidUrl", { defaultValue: "Không lấy được liên kết tài liệu." }));
+                        }
+                    } catch (e) {
+                        console.error("Failed to fetch document URL after export:", e);
+                    }
+                }
+
+                onSuccess?.();
+                onOpenChange(false);
             },
-        );
+            onError: (error) => {
+                toast.dismiss("lab-export");
+                console.error("Export API error:", error);
+                toast.error(t("technician.workspace.exportFailed", { defaultValue: "Xuất PDF thất bại. Vui lòng thử lại." }));
+            },
+        });
     };
 
     const handlePrint = () => {
@@ -762,8 +745,20 @@ ${HEADER_FOOTER}`;
                                     base_url: "/tinymce",
                                     suffix: ".min",
                                     plugins: "table lists code",
-                                    toolbar: "undo redo | bold italic underline superscript subscript | alignleft aligncenter alignright | table | code | multiplication",
-                                    paste_as_text: true,
+                                    // Table operations in main toolbar; context toolbar disabled
+                                    toolbar:
+                                        "undo redo | bold italic underline superscript subscript | " +
+                                        "alignleft aligncenter alignright | " +
+                                        "tableinsertrowbefore tableinsertrowafter tabledeleterow | " +
+                                        "tableinsertcolbefore tableinsertcolafter tabledeletecol | " +
+                                        "tableMergeCells tableUnmergeCells | " +
+                                        "table | code | multiplication",
+                                    // Disable the floating context toolbar that appears on table selection
+                                    // (it intercepts clicks and is unreliable inside dialogs)
+                                    table_toolbar: "",
+                                    contextmenu: false,
+                                    // Disable paste_as_text so that table structure is preserved on paste
+                                    paste_as_text: false,
                                     content_style: CONTENT_STYLE,
                                     branding: false,
                                     promotion: false,
@@ -810,6 +805,52 @@ ${HEADER_FOOTER}`;
                                                 e.stopPropagation();
                                                 editor.insertContent("\u00d7");
                                             }
+                                        });
+
+                                        /**
+                                         * Smart table-column paste:
+                                         * When the clipboard contains multiple lines (copied from a column
+                                         * of cells) and the cursor is inside a table cell, distribute each
+                                         * line into successive cells going downward.
+                                         */
+                                        editor.on("paste", (e: any) => {
+                                            // Only intercept when cursor is inside a table cell
+                                            const sel = editor.selection;
+                                            const node = sel.getNode();
+                                            const td = editor.dom.getParent(node, "td,th");
+                                            if (!td) return; // not in a table — let TinyMCE handle normally
+
+                                            const clipboardData = e.clipboardData || (window as any).clipboardData;
+                                            if (!clipboardData) return;
+
+                                            const text = clipboardData.getData("text/plain");
+                                            if (!text) return;
+
+                                            const lines = text.split(/\r?\n/).filter((l: string) => l !== "");
+                                            if (lines.length <= 1) return; // single line — normal paste
+
+                                            // Multi-line paste inside a table cell: distribute to rows
+                                            e.preventDefault();
+
+                                            const row = editor.dom.getParent(td, "tr");
+                                            const tbody = editor.dom.getParent(row, "tbody,table");
+                                            const startColIndex = Array.from(row.cells).indexOf(td as never);
+
+                                            const rows = Array.from((tbody as HTMLElement).querySelectorAll("tr"));
+                                            const startRowIndex = rows.indexOf(row as never);
+
+                                            lines.forEach((line: string, i: number) => {
+                                                const targetRow = rows[startRowIndex + i] as HTMLTableRowElement | undefined;
+                                                if (!targetRow) return;
+                                                const targetCell = targetRow.cells[startColIndex] as HTMLTableCellElement | undefined;
+                                                if (!targetCell) return;
+                                                targetCell.innerHTML = line
+                                                    .replace(/&/g, "&amp;")
+                                                    .replace(/</g, "&lt;")
+                                                    .replace(/>/g, "&gt;");
+                                            });
+
+                                            editor.undoManager.add();
                                         });
                                     },
                                 }}

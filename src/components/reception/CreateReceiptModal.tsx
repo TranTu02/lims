@@ -58,6 +58,7 @@ type FormAnalysis = {
     parameterName: string;
     protocolCode: string;
     feeAfterTax: number;
+    feeBeforeTax: number;
     _raw?: any;
 };
 
@@ -85,6 +86,7 @@ type FormSample = {
 type FullFormState = {
     orderId: string;
     receiptDate: string;
+    receiptDeadline: string;
 
     clientId: string;
     clientName: string;
@@ -99,7 +101,22 @@ type FullFormState = {
 
     notes: string;
 
-    contactPerson?: any;
+    contactPerson: {
+        contactId?: string;
+        contactName: string;
+        contactPhone: string;
+        contactEmail: string;
+        contactPosition: string;
+        contactAddress: string;
+    };
+
+    reportRecipient: {
+        receiverName: string;
+        receiverPhone: string;
+        receiverAddress: string;
+        receiverEmail: string;
+    };
+
     senderInfo?: any;
 
     samples: FormSample[];
@@ -109,6 +126,36 @@ interface Props {
     onClose: () => void;
     onCreated?: (receipt: ReceiptDetail) => void;
     initialIncomingRequest?: IncomingRequestListItem | null;
+}
+
+const SAMPLE_INFO_LABELS = [
+    "Tên mẫu thử",
+    "Số lô",
+    "Ngày sản xuất",
+    "Nơi sản xuất",
+    "Hạn sử dụng",
+    "Số công bố",
+    "Số đăng ký",
+    "Thông tin khác",
+] as const;
+
+function normalizeSampleInfo(
+    raw: { label?: string; value?: string }[] | null | undefined,
+    sampleName: string
+): FormSampleInfoRow[] {
+    const map = new Map<string, string>();
+    if (Array.isArray(raw)) {
+        for (const r of raw) {
+            if (r.label) map.set(r.label.trim(), r.value ?? "");
+        }
+    }
+    // Luôn dùng sampleName cho "Tên mẫu thử"
+    map.set("Tên mẫu thử", sampleName || map.get("Tên mẫu thử") || "");
+    return SAMPLE_INFO_LABELS.map((label, i) => ({
+        id: `sinfo-${label}-${i}`,
+        label,
+        value: map.get(label) ?? "",
+    }));
 }
 
 function toStr(v: unknown): string {
@@ -150,52 +197,65 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
 
     const DEFAULT_RECEIPT_STATUS: ReceiptStatus = "Draft";
 
-    const [basic, setBasic] = useState<BasicFormState>(() => ({
-        orderId: String(initialIncomingRequest?.orderId || ""),
-        receiptDate: today,
-        receiptDeadline: "",
+    const [basic, setBasic] = useState<BasicFormState>(() => {
+        const c = initialIncomingRequest?.client;
+        const inv = c?.invoiceInfo;
+        const s = initialIncomingRequest?.senderInfo;
+        const cp = initialIncomingRequest?.contactPerson;
 
-        receiptPriority: "",
-        receiptDeliveryMethod: "",
-        trackingNumber: "",
+        return {
+            orderId: String(initialIncomingRequest?.orderId || ""),
+            receiptDate: today,
+            receiptDeadline: "",
 
-        clientId: String(initialIncomingRequest?.client?.clientId || initialIncomingRequest?.clientId || ""),
-        clientName: String(initialIncomingRequest?.client?.clientName || initialIncomingRequest?.senderInfo?.name || ""),
-        clientEmail: String(initialIncomingRequest?.client?.clientEmail || initialIncomingRequest?.senderInfo?.email || ""),
-        clientAddress: String(initialIncomingRequest?.client?.clientAddress || ""),
-        legalId: String(initialIncomingRequest?.client?.legalId || ""),
+            receiptPriority: "",
+            receiptDeliveryMethod: "",
+            trackingNumber: "",
 
-        taxAddress: initialIncomingRequest?.client?.invoiceInfo?.taxAddress || "",
-        taxCode: initialIncomingRequest?.client?.invoiceInfo?.taxCode || "",
-        taxName: initialIncomingRequest?.client?.invoiceInfo?.taxName || "",
-        taxEmail: initialIncomingRequest?.client?.invoiceInfo?.taxEmail || "",
+            clientId: String(c?.clientId || initialIncomingRequest?.clientId || ""),
+            clientName: String(c?.clientName || initialIncomingRequest?.clientName || s?.senderName || s?.name || ""),
+            clientEmail: String(c?.clientEmail || c?.email || initialIncomingRequest?.clientEmail || initialIncomingRequest?.email || s?.senderEmail || s?.email || ""),
+            clientAddress: String(c?.clientAddress || c?.address || initialIncomingRequest?.clientAddress || initialIncomingRequest?.address || s?.senderAddress || s?.address || ""),
+            legalId: String(c?.legalId || initialIncomingRequest?.legalId || ""),
 
-        contactName: initialIncomingRequest?.contactPerson?.contactName || "",
-        contactPhone: initialIncomingRequest?.contactPerson?.contactPhone || "",
-        contactEmail: initialIncomingRequest?.contactPerson?.contactEmail || "",
-        contactPosition: "",
-        contactAddress: "",
-    }));
+            taxAddress: String(inv?.taxAddress || c?.taxAddress || initialIncomingRequest?.taxAddress || ""),
+            taxCode: String(inv?.taxCode || c?.taxCode || initialIncomingRequest?.taxCode || ""),
+            taxName: String(inv?.taxName || c?.taxName || initialIncomingRequest?.taxName || ""),
+            taxEmail: String(inv?.taxEmail || c?.taxEmail || initialIncomingRequest?.taxEmail || ""),
+
+            contactName: String(cp?.contactName || initialIncomingRequest?.contactName || ""),
+            contactPhone: String(cp?.contactPhone || initialIncomingRequest?.contactPhone || ""),
+            contactEmail: String(cp?.contactEmail || initialIncomingRequest?.contactEmail || ""),
+            contactPosition: String(cp?.contactPosition || initialIncomingRequest?.contactPosition || ""),
+            contactAddress: String(cp?.contactAddress || initialIncomingRequest?.contactAddress || ""),
+        };
+    });
 
     const [full, setFull] = useState<FullFormState>(() => {
         if (initialIncomingRequest) {
+            const c = initialIncomingRequest.client;
+            const inv = c?.invoiceInfo;
+            const s = initialIncomingRequest.senderInfo;
+            const cp = initialIncomingRequest.contactPerson;
+            const rr = initialIncomingRequest.reportRecipient;
             const rawSamples = (initialIncomingRequest.samples as any[]) || [];
 
             return {
                 orderId: String(initialIncomingRequest.orderId || ""),
                 receiptDate: today,
-                clientId: String(initialIncomingRequest.client?.clientId || initialIncomingRequest.clientId || ""),
-                clientName: String(initialIncomingRequest.client?.clientName || initialIncomingRequest.senderInfo?.name || ""),
-                clientEmail: String(initialIncomingRequest.client?.clientEmail || initialIncomingRequest.senderInfo?.email || ""),
-                clientAddress: String(initialIncomingRequest.client?.clientAddress || ""),
-                legalId: String(initialIncomingRequest.client?.legalId || ""),
+                clientId: String(c?.clientId || initialIncomingRequest.clientId || ""),
+                clientName: String(c?.clientName || initialIncomingRequest.clientName || s?.senderName || s?.name || ""),
+                clientEmail: String(c?.clientEmail || c?.email || initialIncomingRequest.clientEmail || initialIncomingRequest.email || s?.senderEmail || s?.email || ""),
+                clientAddress: String(c?.clientAddress || c?.address || initialIncomingRequest.clientAddress || initialIncomingRequest.address || s?.senderAddress || s?.address || ""),
+                legalId: String(c?.legalId || initialIncomingRequest.legalId || ""),
 
-                taxAddress: initialIncomingRequest.client?.invoiceInfo?.taxAddress || "",
-                taxCode: initialIncomingRequest.client?.invoiceInfo?.taxCode || "",
-                taxName: initialIncomingRequest.client?.invoiceInfo?.taxName || "",
-                taxEmail: initialIncomingRequest.client?.invoiceInfo?.taxEmail || "",
+                taxAddress: String(inv?.taxAddress || c?.taxAddress || initialIncomingRequest.taxAddress || ""),
+                taxCode: String(inv?.taxCode || c?.taxCode || initialIncomingRequest.taxCode || ""),
+                taxName: String(inv?.taxName || c?.taxName || initialIncomingRequest.taxName || ""),
+                taxEmail: String(inv?.taxEmail || c?.taxEmail || initialIncomingRequest.taxEmail || ""),
 
                 notes: initialIncomingRequest.requestContent || "",
+                receiptDeadline: "",
                 samples:
                     rawSamples.length > 0
                         ? rawSamples.map((s, idx) => ({
@@ -205,15 +265,16 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                               sampleTypeName: s.sampleTypeName || "",
                               sampleVolume: "",
                               samplePreservation: "",
-                              sampleInfo: [{ id: `new-sinfo-${Date.now()}`, label: "", value: "" }],
+                              sampleInfo: normalizeSampleInfo(s.sampleInfo, s.sampleName || ""),
                               analyses:
                                   (s.analyses || []).length > 0
                                       ? s.analyses.map((a: any, aidx: number) => ({
                                             id: `new-analysis-${Date.now()}-${aidx}`,
                                             matrixId: a.matrixId || "",
-                                            parameterName: a.parameterName || "",
-                                            protocolCode: a.protocolCode || "",
-                                            feeAfterTax: 0,
+                                            parameterName: a.analysis?.parameterName || a.parameterName || "",
+                                            protocolCode: a.analysis?.protocolCode || a.protocolCode || "",
+                                            feeAfterTax: Number(a.analysis?.feeAfterTax ?? a.feeAfterTax ?? 0),
+                                            feeBeforeTax: Number(a.analysis?.feeBeforeTax ?? a.feeBeforeTax ?? 0),
                                             _raw: a,
                                         }))
                                       : [
@@ -223,6 +284,7 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                                                 parameterName: "",
                                                 protocolCode: "",
                                                 feeAfterTax: 0,
+                                                feeBeforeTax: 0,
                                                 _raw: null,
                                             },
                                         ],
@@ -250,14 +312,28 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                                   _raw: null,
                               },
                           ],
-                contactPerson: initialIncomingRequest.contactPerson || null,
-                senderInfo: initialIncomingRequest.senderInfo || null,
+                contactPerson: {
+                    contactId: String(cp?.contactId || initialIncomingRequest.contactId || ""),
+                    contactName: String(cp?.contactName || initialIncomingRequest.contactName || ""),
+                    contactPhone: String(cp?.contactPhone || initialIncomingRequest.contactPhone || ""),
+                    contactEmail: String(cp?.contactEmail || initialIncomingRequest.contactEmail || ""),
+                    contactPosition: String(cp?.contactPosition || initialIncomingRequest.contactPosition || ""),
+                    contactAddress: String(cp?.contactAddress || initialIncomingRequest.contactAddress || ""),
+                },
+                reportRecipient: {
+                    receiverName: String(rr?.receiverName || initialIncomingRequest.receiverName || ""),
+                    receiverPhone: String(rr?.receiverPhone || initialIncomingRequest.receiverPhone || ""),
+                    receiverAddress: String(rr?.receiverAddress || initialIncomingRequest.receiverAddress || ""),
+                    receiverEmail: String(rr?.receiverEmail || initialIncomingRequest.receiverEmail || ""),
+                },
+                senderInfo: s || null,
             };
         }
 
         return {
             orderId: "",
             receiptDate: today,
+            receiptDeadline: "",
 
             clientId: "",
             clientName: "",
@@ -271,6 +347,22 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
             taxEmail: "",
 
             notes: "",
+
+            contactPerson: {
+                contactId: "",
+                contactName: "",
+                contactPhone: "",
+                contactEmail: "",
+                contactPosition: "",
+                contactAddress: "",
+            },
+
+            reportRecipient: {
+                receiverName: "",
+                receiverPhone: "",
+                receiverAddress: "",
+                receiverEmail: "",
+            },
 
             samples: [
                 {
@@ -291,6 +383,7 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                             parameterName: "",
                             protocolCode: "",
                             feeAfterTax: 0,
+                            feeBeforeTax: 0,
                         },
                     ],
                 },
@@ -362,12 +455,32 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
             ...prev,
             clientId: (detail.clientId ?? "").trim(),
             clientName: (detail.clientName ?? "").trim(),
+            clientEmail: (detail.clientEmail ?? "").trim(),
+            clientAddress: (detail.clientAddress ?? "").trim(),
+            legalId: (detail.legalId ?? "").trim(),
+
+            taxAddress: detail.invoiceInfo?.taxAddress ?? "",
+            taxCode: detail.invoiceInfo?.taxCode ?? "",
+            taxName: detail.invoiceInfo?.taxName ?? "",
+            taxEmail: detail.invoiceInfo?.taxEmail ?? "",
+
+            contactPerson: {
+                contactId: String(first?.contactId ?? ""),
+                contactName: firstContactName,
+                contactPhone: firstContactPhone,
+                contactEmail: firstContactEmail,
+                contactPosition: firstContactPosition,
+                contactAddress: firstContactAddress,
+            }
         }));
 
         setBasic((prev) => ({
             ...prev,
             clientId: (detail.clientId ?? "").trim(),
             clientName: (detail.clientName ?? "").trim(),
+            clientEmail: (detail.clientEmail ?? "").trim(),
+            clientAddress: (detail.clientAddress ?? "").trim(),
+            legalId: (detail.legalId ?? "").trim(),
 
             taxAddress: detail.invoiceInfo?.taxAddress ?? "",
             taxCode: detail.invoiceInfo?.taxCode ?? "",
@@ -428,15 +541,16 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                     sampleTypeName: s.sampleTypeName || "",
                     sampleVolume: "",
                     samplePreservation: "",
-                    sampleInfo: [{ id: `new-sinfo-${Date.now()}`, label: "", value: "" }],
+                    sampleInfo: normalizeSampleInfo(s.sampleInfo, s.sampleName || ""),
                     analyses:
                         analyses.length > 0
                             ? analyses.map((a: any, aidx: number) => ({
                                   id: `new-analysis-${Date.now()}-${aidx}`,
                                   matrixId: a.matrixId || "",
-                                  parameterName: a.parameterName || "",
-                                  protocolCode: a.protocolCode || "",
-                                  feeAfterTax: 0,
+                                  parameterName: a.analysis?.parameterName || a.parameterName || "",
+                                  protocolCode: a.analysis?.protocolCode || a.protocolCode || "",
+                                  feeAfterTax: Number(a.analysis?.feeAfterTax ?? a.feeAfterTax ?? 0),
+                                  feeBeforeTax: Number(a.analysis?.feeBeforeTax ?? a.feeBeforeTax ?? 0),
                                   _raw: a,
                               }))
                             : [
@@ -446,6 +560,7 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                                       parameterName: "",
                                       protocolCode: "",
                                       feeAfterTax: 0,
+                                      feeBeforeTax: 0,
                                       _raw: null,
                                   },
                               ],
@@ -453,12 +568,39 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                 };
             });
 
+            const c = order.client;
+            const inv = c?.invoiceInfo;
+            const cp = order.contactPerson;
+            const rr = order.reportRecipient;
+
             setFull((prev) => ({
                 ...prev,
                 orderId: order.orderId || "",
-                clientId: order.clientId || "",
-                clientName: order.client?.clientName || "",
-                contactPerson: order.contactPerson || null,
+                clientId: String(c?.clientId || order.clientId || ""),
+                clientName: String(c?.clientName || order.clientName || ""),
+                clientEmail: String(c?.clientEmail || c?.email || ""),
+                clientAddress: String(c?.clientAddress || c?.address || ""),
+                legalId: String(c?.legalId || ""),
+
+                taxAddress: String(inv?.taxAddress || c?.taxAddress || ""),
+                taxCode: String(inv?.taxCode || c?.taxCode || ""),
+                taxName: String(inv?.taxName || c?.taxName || ""),
+                taxEmail: String(inv?.taxEmail || c?.taxEmail || ""),
+
+                contactPerson: {
+                    contactId: String(cp?.contactId || ""),
+                    contactName: String(cp?.contactName || ""),
+                    contactPhone: String(cp?.contactPhone || ""),
+                    contactEmail: String(cp?.contactEmail || ""),
+                    contactPosition: String(cp?.contactPosition || ""),
+                    contactAddress: String(cp?.contactAddress || ""),
+                },
+                reportRecipient: {
+                    receiverName: String(rr?.receiverName || ""),
+                    receiverPhone: String(rr?.receiverPhone || ""),
+                    receiverAddress: String(rr?.receiverAddress || ""),
+                    receiverEmail: String(rr?.receiverEmail || ""),
+                },
                 senderInfo: order.senderInfo || null,
                 samples: newSamples.length > 0 ? newSamples : prev.samples,
             }));
@@ -467,8 +609,20 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                 setBasic((prev) => ({
                     ...prev,
                     orderId: order.orderId || "",
-                    clientId: order.clientId,
-                    clientName: order.client?.clientName || "",
+                    clientId: String(c?.clientId || order.clientId || ""),
+                    clientName: String(c?.clientName || order.clientName || ""),
+                    clientEmail: String(c?.clientEmail || c?.email || ""),
+                    clientAddress: String(c?.clientAddress || c?.address || ""),
+                    legalId: String(c?.legalId || ""),
+
+                    taxAddress: String(inv?.taxAddress || c?.taxAddress || ""),
+                    taxCode: String(inv?.taxCode || c?.taxCode || ""),
+                    taxName: String(inv?.taxName || c?.taxName || ""),
+                    taxEmail: String(inv?.taxEmail || c?.taxEmail || ""),
+
+                    contactName: String(cp?.contactName || ""),
+                    contactPhone: String(cp?.contactPhone || ""),
+                    contactEmail: String(cp?.contactEmail || ""),
                 }));
             }
 
@@ -519,6 +673,7 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                 parameterName: "",
                 protocolCode: "",
                 feeAfterTax: 0,
+                feeBeforeTax: 0,
             },
         ];
         setFull({ ...full, samples: next });
@@ -532,21 +687,7 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
         setFull({ ...full, samples: next });
     };
 
-    const handleAddSampleInfo = (sampleIndex: number) => {
-        const next = [...full.samples];
-        const s = next[sampleIndex];
-        if (!s) return;
-        s.sampleInfo = [...s.sampleInfo, { id: nowId("new-sinfo"), label: "", value: "" }];
-        setFull({ ...full, samples: next });
-    };
 
-    const handleRemoveSampleInfo = (sampleIndex: number, rowIndex: number) => {
-        const next = [...full.samples];
-        const s = next[sampleIndex];
-        if (!s) return;
-        s.sampleInfo = s.sampleInfo.filter((_, idx) => idx !== rowIndex);
-        setFull({ ...full, samples: next });
-    };
 
     const buildBasicBody = (): ReceiptsCreateBody => ({
         receiptStatus: DEFAULT_RECEIPT_STATUS,
@@ -600,10 +741,12 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
             },
         },
 
-        contactPerson: full.contactPerson || undefined,
+        contactPerson: full.contactPerson,
+        reportRecipient: full.reportRecipient,
         senderInfo: full.senderInfo || undefined,
 
         receiptDate: full.receiptDate ? new Date(full.receiptDate).toISOString() : null,
+        receiptDeadline: full.receiptDeadline ? new Date(full.receiptDeadline).toISOString() : null,
 
         samples: full.samples.map((s) => {
             const sampleInfo: SampleInfoItem[] =
@@ -1042,6 +1185,54 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                         <TabsContent value="full" className="mt-0">
                             <div className="flex gap-4">
                                 <div className="w-1/3 space-y-3">
+                                    <div className="bg-muted/30 rounded-lg p-4 border border-border">
+                                        <h3 className="text-sm font-semibold text-foreground mb-3">{t("reception.createReceipt.receiptInfo")}</h3>
+
+                                        <div className="space-y-3 text-sm">
+                                            <div>
+                                                <Label className="text-xs text-muted-foreground">{t("crm.orders.columns.orderId")} <span className="text-destructive">*</span></Label>
+                                                <Input
+                                                    value={full.orderId}
+                                                    onChange={(e) => setFull({ ...full, orderId: e.target.value })}
+                                                    className="mt-1 h-8 text-sm bg-background border border-border"
+                                                    placeholder={t("crm.orders.form.placeholders.orderId")}
+                                                />
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <Label className="text-xs text-muted-foreground">{t("lab.receipts.receiptDate")}</Label>
+                                                    <Input
+                                                        type="date"
+                                                        value={full.receiptDate}
+                                                        onChange={(e) => setFull({ ...full, receiptDate: e.target.value })}
+                                                        className="mt-1 h-8 text-sm bg-background border border-border"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label className="text-xs text-muted-foreground">{t("lab.receipts.receiptDeadline")}</Label>
+                                                    <Input
+                                                        type="date"
+                                                        value={full.receiptDeadline}
+                                                        onChange={(e) => setFull({ ...full, receiptDeadline: e.target.value })}
+                                                        className="mt-1 h-8 text-sm bg-background border border-border"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <Label className="text-xs text-muted-foreground">{t("lab.receipts.receiptNote")}</Label>
+                                                <Textarea
+                                                    value={full.notes}
+                                                    onChange={(e) => setFull({ ...full, notes: e.target.value })}
+                                                    className="mt-1 text-sm bg-background border border-border"
+                                                    rows={3}
+                                                    placeholder={t("lab.receipts.receiptNote")}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div className="bg-muted/30 border border-border rounded-lg p-4">
                                         <div className="flex items-center gap-2 mb-3">
                                             <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -1143,38 +1334,112 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                                         </div>
                                     </div>
 
-                                    <div className="bg-muted/30 rounded-lg p-4 border border-border">
-                                        <h3 className="text-sm font-semibold text-foreground mb-3">{t("reception.createReceipt.receiptInfo")}</h3>
+                                    <div className="bg-muted/30 border border-border rounded-lg p-4">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <User className="h-4 w-4 text-muted-foreground" />
+                                            <h3 className="text-sm font-semibold text-foreground">Người liên hệ</h3>
+                                        </div>
 
                                         <div className="space-y-3 text-sm">
                                             <div>
-                                                <Label className="text-xs text-muted-foreground">{t("crm.orders.columns.orderId")} <span className="text-destructive">*</span></Label>
+                                                <Label className="text-xs text-muted-foreground">Họ tên</Label>
                                                 <Input
-                                                    value={full.orderId}
-                                                    onChange={(e) => setFull({ ...full, orderId: e.target.value })}
+                                                    value={full.contactPerson.contactName}
+                                                    onChange={(e) => setFull({ ...full, contactPerson: { ...full.contactPerson, contactName: e.target.value } })}
                                                     className="mt-1 h-8 text-sm bg-background border border-border"
-                                                    placeholder={t("crm.orders.form.placeholders.orderId")}
+                                                    placeholder="Họ tên người liên hệ"
+                                                />
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <Label className="text-xs text-muted-foreground">Số điện thoại</Label>
+                                                    <Input
+                                                        value={full.contactPerson.contactPhone}
+                                                        onChange={(e) => setFull({ ...full, contactPerson: { ...full.contactPerson, contactPhone: e.target.value } })}
+                                                        className="mt-1 h-8 text-sm bg-background border border-border"
+                                                        placeholder="Số điện thoại"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label className="text-xs text-muted-foreground">Email</Label>
+                                                    <Input
+                                                        value={full.contactPerson.contactEmail}
+                                                        onChange={(e) => setFull({ ...full, contactPerson: { ...full.contactPerson, contactEmail: e.target.value } })}
+                                                        className="mt-1 h-8 text-sm bg-background border border-border"
+                                                        placeholder="Email"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <Label className="text-xs text-muted-foreground">Chức vụ</Label>
+                                                <Input
+                                                    value={full.contactPerson.contactPosition}
+                                                    onChange={(e) => setFull({ ...full, contactPerson: { ...full.contactPerson, contactPosition: e.target.value } })}
+                                                    className="mt-1 h-8 text-sm bg-background border border-border"
+                                                    placeholder="Chức vụ"
                                                 />
                                             </div>
 
                                             <div>
-                                                <Label className="text-xs text-muted-foreground">{t("lab.receipts.receiptDate")}</Label>
+                                                <Label className="text-xs text-muted-foreground">Địa chỉ</Label>
                                                 <Input
-                                                    type="date"
-                                                    value={full.receiptDate}
-                                                    onChange={(e) => setFull({ ...full, receiptDate: e.target.value })}
+                                                    value={full.contactPerson.contactAddress}
+                                                    onChange={(e) => setFull({ ...full, contactPerson: { ...full.contactPerson, contactAddress: e.target.value } })}
                                                     className="mt-1 h-8 text-sm bg-background border border-border"
+                                                    placeholder="Địa chỉ"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-muted/30 border border-border rounded-lg p-4">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <Building2 className="h-4 w-4 text-muted-foreground" />
+                                            <h3 className="text-sm font-semibold text-foreground">Nơi nhận kết quả</h3>
+                                        </div>
+
+                                        <div className="space-y-3 text-sm">
+                                            <div>
+                                                <Label className="text-xs text-muted-foreground">Người nhận</Label>
+                                                <Input
+                                                    value={full.reportRecipient.receiverName}
+                                                    onChange={(e) => setFull({ ...full, reportRecipient: { ...full.reportRecipient, receiverName: e.target.value } })}
+                                                    className="mt-1 h-8 text-sm bg-background border border-border"
+                                                    placeholder="Tên người nhận báo cáo"
                                                 />
                                             </div>
 
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <Label className="text-xs text-muted-foreground">Số điện thoại</Label>
+                                                    <Input
+                                                        value={full.reportRecipient.receiverPhone}
+                                                        onChange={(e) => setFull({ ...full, reportRecipient: { ...full.reportRecipient, receiverPhone: e.target.value } })}
+                                                        className="mt-1 h-8 text-sm bg-background border border-border"
+                                                        placeholder="Số điện thoại"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label className="text-xs text-muted-foreground">Email</Label>
+                                                    <Input
+                                                        value={full.reportRecipient.receiverEmail}
+                                                        onChange={(e) => setFull({ ...full, reportRecipient: { ...full.reportRecipient, receiverEmail: e.target.value } })}
+                                                        className="mt-1 h-8 text-sm bg-background border border-border"
+                                                        placeholder="Email"
+                                                    />
+                                                </div>
+                                            </div>
+
                                             <div>
-                                                <Label className="text-xs text-muted-foreground">{t("lab.receipts.receiptNote")}</Label>
+                                                <Label className="text-xs text-muted-foreground">Địa chỉ nhận</Label>
                                                 <Textarea
-                                                    value={full.notes}
-                                                    onChange={(e) => setFull({ ...full, notes: e.target.value })}
+                                                    value={full.reportRecipient.receiverAddress}
+                                                    onChange={(e) => setFull({ ...full, reportRecipient: { ...full.reportRecipient, receiverAddress: e.target.value } })}
                                                     className="mt-1 text-sm bg-background border border-border"
-                                                    rows={3}
-                                                    placeholder={t("lab.receipts.receiptNote")}
+                                                    rows={2}
+                                                    placeholder="Địa chỉ nhận báo cáo"
                                                 />
                                             </div>
                                         </div>
@@ -1310,78 +1575,40 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                                                     </div>
 
                                                     <div className="mt-2">
-                                                        <div className="flex items-center justify-between mb-2">
-                                                            <Label className="text-xs text-muted-foreground">{t("lab.samples.sampleInfo")}</Label>
-                                                            <Button size="sm" variant="outline" onClick={() => handleAddSampleInfo(sampleIndex)} className="h-7 text-xs" disabled={submitting}>
-                                                                <Plus className="h-3.5 w-3.5 mr-1" />
-                                                                {t("reception.createReceipt.addSampleInfo")}
-                                                            </Button>
-                                                        </div>
-
+                                                        <Label className="text-xs text-muted-foreground mb-2 block">Thông tin mẫu</Label>
                                                         <div className="bg-background rounded-md border border-border p-2">
-                                                            <div className="grid grid-cols-12 gap-2 mb-2">
-                                                                <div className="col-span-5">
-                                                                    <Label className="text-[11px] text-muted-foreground">{t("lab.samples.sampleInfo")}</Label>
-                                                                </div>
-                                                                <div className="col-span-6">
-                                                                    <Label className="text-[11px] text-muted-foreground">{t("lab.samples.sampleVolume")}</Label>
-                                                                </div>
-                                                                <div className="col-span-1" />
+                                                            <div className="grid grid-cols-12 gap-2 mb-1 px-1">
+                                                                <div className="col-span-5"><Label className="text-[11px] text-muted-foreground">Trường</Label></div>
+                                                                <div className="col-span-7"><Label className="text-[11px] text-muted-foreground">Giá trị</Label></div>
                                                             </div>
-
-                                                            <div className="space-y-2">
+                                                            <div className="space-y-1.5">
                                                                 {sample.sampleInfo.map((row, rowIndex) => (
                                                                     <div key={row.id} className="grid grid-cols-12 gap-2 items-center">
                                                                         <div className="col-span-5">
-                                                                            <Input
-                                                                                value={row.label}
-                                                                                onChange={(e) => {
-                                                                                    const next = [...full.samples];
-                                                                                    const s = next[sampleIndex];
-                                                                                    if (!s) return;
-                                                                                    const r = s.sampleInfo[rowIndex];
-                                                                                    if (!r) return;
-                                                                                    s.sampleInfo[rowIndex] = {
-                                                                                        ...r,
-                                                                                        label: e.target.value,
-                                                                                    };
-                                                                                    setFull({ ...full, samples: next });
-                                                                                }}
-                                                                                className="h-7 text-xs bg-background border border-border"
-                                                                                placeholder={t("lab.samples.sampleInfo")}
-                                                                            />
+                                                                            <div className="h-7 flex items-center px-2 text-xs text-muted-foreground bg-muted/30 rounded border border-border/50 truncate">
+                                                                                {row.label}
+                                                                            </div>
                                                                         </div>
-                                                                        <div className="col-span-6">
+                                                                        <div className="col-span-7">
                                                                             <Input
                                                                                 value={row.value}
                                                                                 onChange={(e) => {
                                                                                     const next = [...full.samples];
-                                                                                    const s = next[sampleIndex];
-                                                                                    if (!s) return;
-                                                                                    const r = s.sampleInfo[rowIndex];
+                                                                                    const smp = next[sampleIndex];
+                                                                                    if (!smp) return;
+                                                                                    const r = smp.sampleInfo[rowIndex];
                                                                                     if (!r) return;
-                                                                                    s.sampleInfo[rowIndex] = {
-                                                                                        ...r,
-                                                                                        value: e.target.value,
-                                                                                    };
+                                                                                    smp.sampleInfo[rowIndex] = { ...r, value: e.target.value };
+                                                                                    // Đồng bộ sampleName nếu là "Tên mẫu thử"
+                                                                                    if (row.label === "Tên mẫu thử") {
+                                                                                        next[sampleIndex] = { ...smp, sampleName: e.target.value };
+                                                                                    }
                                                                                     setFull({ ...full, samples: next });
                                                                                 }}
+                                                                                disabled={submitting}
                                                                                 className="h-7 text-xs bg-background border border-border"
-                                                                                placeholder={t("lab.samples.sampleVolume")}
+                                                                                placeholder={row.label}
                                                                             />
-                                                                        </div>
-                                                                        <div className="col-span-1 flex justify-end">
-                                                                            {sample.sampleInfo.length > 1 && (
-                                                                                <Button
-                                                                                    size="sm"
-                                                                                    variant="ghost"
-                                                                                    onClick={() => handleRemoveSampleInfo(sampleIndex, rowIndex)}
-                                                                                    className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                                                                    disabled={submitting}
-                                                                                >
-                                                                                    <Trash2 className="h-3 w-3" />
-                                                                                </Button>
-                                                                            )}
                                                                         </div>
                                                                     </div>
                                                                 ))}
@@ -1398,9 +1625,11 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                                                                     <tr>
                                                                         <th className="px-2 py-1.5 text-left text-xs font-medium text-muted-foreground">{t("lab.analyses.parameterName")}</th>
                                                                         <th className="px-2 py-1.5 text-left text-xs font-medium text-muted-foreground">{t("lab.analyses.protocolCode")}</th>
-                                                                        <th className="px-2 py-1.5 text-left text-xs font-medium text-muted-foreground">{t("lab.analyses.matrixId")}</th>
-                                                                        <th className="px-2 py-1.5 text-left text-xs font-medium text-muted-foreground">{t("lab.analyses.price")}</th>
-                                                                        <th className="px-2 py-1.5 text-center text-xs font-medium text-muted-foreground w-16" />
+                                                                        <th className="px-2 py-1.5 text-left text-xs font-medium text-muted-foreground">Nền mẫu</th>
+                                                                        <th className="px-2 py-1.5 text-left text-xs font-medium text-muted-foreground">Công nhận</th>
+                                                                        <th className="px-2 py-1.5 text-left text-xs font-medium text-muted-foreground">Đơn vị</th>
+                                                                        <th className="px-2 py-1.5 text-right text-xs font-medium text-muted-foreground">Đơn giá</th>
+                                                                        <th className="px-2 py-1.5 text-center text-xs font-medium text-muted-foreground w-10" />
                                                                     </tr>
                                                                 </thead>
 
@@ -1453,51 +1682,31 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                                                                                 />
                                                                             </td>
 
-                                                                            <td className="px-2 py-1.5">
-                                                                                <Input
-                                                                                    value={analysis.matrixId}
-                                                                                    onChange={(e) => {
-                                                                                        const next = [...full.samples];
-                                                                                        const s = next[sampleIndex];
-                                                                                        if (!s) return;
-                                                                                        const a = s.analyses[analysisIndex];
-                                                                                        if (!a) return;
-                                                                                        s.analyses[analysisIndex] = {
-                                                                                            ...a,
-                                                                                            matrixId: e.target.value,
-                                                                                        };
-                                                                                        setFull({
-                                                                                            ...full,
-                                                                                            samples: next,
-                                                                                        });
-                                                                                    }}
-                                                                                    className="h-7 text-xs bg-background border border-border"
-                                                                                    placeholder={t("lab.analyses.matrixId")}
-                                                                                />
+                                                                            <td className="px-2 py-1.5 text-xs text-muted-foreground">
+                                                                                {(analysis._raw?.analysis?.sampleTypeName ?? analysis._raw?.sampleTypeName ?? "") || <span className="italic opacity-40">—</span>}
                                                                             </td>
 
-                                                                            <td className="px-2 py-1.5">
-                                                                                <Input
-                                                                                    type="number"
-                                                                                    value={analysis.feeAfterTax}
-                                                                                    onChange={(e) => {
-                                                                                        const next = [...full.samples];
-                                                                                        const s = next[sampleIndex];
-                                                                                        if (!s) return;
-                                                                                        const a = s.analyses[analysisIndex];
-                                                                                        if (!a) return;
-                                                                                        s.analyses[analysisIndex] = {
-                                                                                            ...a,
-                                                                                            feeAfterTax: Number(e.target.value) || 0,
-                                                                                        };
-                                                                                        setFull({
-                                                                                            ...full,
-                                                                                            samples: next,
-                                                                                        });
-                                                                                    }}
-                                                                                    className="h-7 text-xs text-left bg-background border border-border"
-                                                                                    placeholder="0"
-                                                                                />
+                                                                            <td className="px-2 py-1.5 text-xs">
+                                                                                {(() => {
+                                                                                    const acc = analysis._raw?.analysis?.protocolAccreditation ?? analysis._raw?.protocolAccreditation;
+                                                                                    if (!acc || typeof acc !== "object") return <span className="italic opacity-40">—</span>;
+                                                                                    const keys = Object.entries(acc as Record<string, boolean>)
+                                                                                        .filter(([, v]) => v === true)
+                                                                                        .map(([k]) => k);
+                                                                                    return keys.length > 0
+                                                                                        ? <span className="flex flex-wrap gap-1">{keys.map(k => <span key={k} className="bg-primary/10 text-primary text-[10px] px-1 rounded">{k}</span>)}</span>
+                                                                                        : <span className="italic opacity-40">—</span>;
+                                                                                })()}
+                                                                            </td>
+
+                                                                            <td className="px-2 py-1.5 text-xs text-muted-foreground">
+                                                                                {(analysis._raw?.analysis?.analysisUnit ?? analysis._raw?.analysisUnit ?? "") || <span className="italic opacity-40">—</span>}
+                                                                            </td>
+
+                                                                            <td className="px-2 py-1.5 text-right text-xs font-medium">
+                                                                                {analysis.feeBeforeTax > 0
+                                                                                    ? Number(analysis.feeBeforeTax).toLocaleString("vi-VN")
+                                                                                    : <span className="italic opacity-40">—</span>}
                                                                             </td>
 
                                                                             <td className="px-2 py-1.5 text-center">

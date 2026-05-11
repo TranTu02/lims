@@ -208,6 +208,7 @@ export type ReceiptSample = {
     analyses?: ReceiptAnalysis[] | null;
     reportIds?: string[] | null;
     reports?: any[] | null;
+    documents?: any[] | null;
     sampleNote?: string | null;
 
     [key: string]: unknown;
@@ -250,6 +251,7 @@ export type ReceiptDetail = {
     createdBy?: IdentitySnapshot | null;
 
     samples?: ReceiptSample[] | null;
+    documents?: any[] | null;
 
     [key: string]: unknown;
 };

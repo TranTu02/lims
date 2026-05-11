@@ -169,11 +169,28 @@ export function SampleReception() {
                 />
             )}
 
-            {isCreateReceiptModalOpen && <CreateReceiptModal onClose={() => setIsCreateReceiptModalOpen(false)} />}
+            {isCreateReceiptModalOpen && (
+                <CreateReceiptModal
+                    onClose={() => setIsCreateReceiptModalOpen(false)}
+                    onCreated={(receipt) => {
+                        setIsCreateReceiptModalOpen(false);
+                        void openReceipt(receipt.receiptId);
+                    }}
+                />
+            )}
 
             <ReceiptDeleteModal open={deleteReceiptId !== null} receiptId={deleteReceiptId} onClose={() => setDeleteReceiptId(null)} onDeleted={() => {}} />
 
-            {convertingRequest && <CreateReceiptModal initialIncomingRequest={convertingRequest} onClose={() => setConvertingRequest(null)} onCreated={() => setConvertingRequest(null)} />}
+            {convertingRequest && (
+                <CreateReceiptModal
+                    initialIncomingRequest={convertingRequest}
+                    onClose={() => setConvertingRequest(null)}
+                    onCreated={(receipt) => {
+                        setConvertingRequest(null);
+                        void openReceipt(receipt.receiptId);
+                    }}
+                />
+            )}
 
             {/* Incoming Request Detail Modal */}
             {viewingRequestId && <IncomingRequestDetailModal requestId={viewingRequestId} onClose={() => setViewingRequestId(null)} />}
