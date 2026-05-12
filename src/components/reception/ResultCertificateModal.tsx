@@ -2,7 +2,7 @@ import { useRef, useState, useMemo, useEffect } from "react";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Editor } from "@tinymce/tinymce-react";
 import { useTranslation } from "react-i18next";
-import { Printer, X, FileDown, FlaskConical, Beaker, ClipboardList, Info, Loader2, Eye, Mail, RefreshCw } from "lucide-react";
+import { Printer, X, FileDown, FlaskConical, Beaker, ClipboardList, Info, Loader2, Eye, Mail, RefreshCw, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import { samplesGetFull } from "@/api/samples";
 import { toast } from "sonner";
 import { EmailModal } from "@/components/common/EmailModal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
@@ -259,12 +260,12 @@ function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail,
                             <table style="width: 100%; border-collapse: collapse; font-size: 11px;" class="mce-item-table">
                                 <thead>
                                     <tr>
-                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f2f2f2; font-weight: 500; width: 4%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.stt")}</strong><br/><span style="font-size: 11px; color: #444444;">/ ${t2nd("testReport.table.stt")}</span></th>
-                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f2f2f2; font-weight: 500; width: 30%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.test")}</strong><br/><span style="font-size: 11px; color: #444444;">/ ${t2nd("testReport.table.test")}</span></th>
-                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f2f2f2; font-weight: 500; width: 15%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.result")}</strong><br/><span style="font-size: 11px; color: #444444;">/ ${t2nd("testReport.table.result")}</span></th>
-                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f2f2f2; font-weight: 500; width: 11%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.unit")}</strong><br/><span style="font-size: 11px; color: #444444;">/ ${t2nd("testReport.table.unit")}</span></th>
-                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f2f2f2; font-weight: 500; width: 25%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.protocol")}</strong><br/><span style="font-size: 11px; color: #444444;">/ ${t2nd("testReport.table.protocol")}</span></th>
-                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f2f2f2; font-weight: 500; width: 15%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.scope")}</strong><br/><span style="font-size: 11px; color: #444444;">/ ${t2nd("testReport.table.scope")}</span></th>
+                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f9f9f9; font-weight: 500; width: 6%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.stt")}</strong><br/><span style="font-size: 10px; color: #444444;">/ ${t2nd("testReport.table.stt")}</span></th>
+                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f9f9f9; font-weight: 500; width: 30%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.test")}</strong><br/><span style="font-size: 10px; color: #444444;">/ ${t2nd("testReport.table.test")}</span></th>
+                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f9f9f9; font-weight: 500; width: 15%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.result")}</strong><br/><span style="font-size: 10px; color: #444444;">/ ${t2nd("testReport.table.result")}</span></th>
+                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f9f9f9; font-weight: 500; width: 10%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.unit")}</strong><br/><span style="font-size: 10px; color: #444444;">/ ${t2nd("testReport.table.unit")}</span></th>
+                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f9f9f9; font-weight: 500; width: 25%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.protocol")}</strong><br/><span style="font-size: 10px; color: #444444;">/ ${t2nd("testReport.table.protocol")}</span></th>
+                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f9f9f9; font-weight: 500; width: 14%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.scope")}</strong><br/><span style="font-size: 10px; color: #444444;">/ ${t2nd("testReport.table.scope")}</span></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -283,6 +284,12 @@ function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail,
                             <p style="font-size: 11px; margin: 0; line-height: 1.2;">
                                 ${["kph", "methodLOD", "methodLOQ", "irdop", "ex", "vs", "tdc", "sampleInfo", "validOnly"].map(key => `${tVi(`testReport.notes.${key}`)} / ${t2nd(`testReport.notes.${key}`)}.`).join("<br/>")}
                             </p>
+                            ${(receipt.receiptNote || sample.sampleNote) ? `
+                                <div style="margin-top: 5px; padding-top: 5px; border-top: 0.5px dashed #ccc; font-size: 11px; line-height: 1.3;">
+                                    ${receipt.receiptNote ? `<div style="margin-bottom: 2px;"><strong>Ghi chú phiếu / Receipt Note:</strong> ${receipt.receiptNote}</div>` : ""}
+                                    ${sample.sampleNote ? `<div><strong>Ghi chú mẫu / Sample Note:</strong> ${sample.sampleNote}</div>` : ""}
+                                </div>
+                            ` : ""}
                         </div>
 
                         <div style="height: 4mm;"></div>
@@ -447,11 +454,11 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                         let url = "";
                         if (res.reportId) {
                             const previewRes = await reportApi.getPreview(res.reportId);
-                            url = (previewRes as any).data?.url || (previewRes as any).url;
+                            url = previewRes.data?.url || (previewRes as any).url;
                         } else {
                             const targetId = (res.documentId || res.fileId) as string;
                             const docRes = await documentApi.url(targetId);
-                            url = (docRes as any).data?.url || (docRes as any).url;
+                            url = docRes.data?.url || (docRes as any).url;
                         }
 
                         if (url) {
@@ -521,18 +528,19 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
     };
 
     const handlePreviewReport = async (reportId: string) => {
+        const toastId = toast.loading("Đang chuẩn bị xem báo cáo...");
         try {
             const res = await reportApi.getPreview(reportId);
-            // Handle both { success, data: { url } } and { url }
-            const url = (res as any).data?.url || (res as any).url;
+            const url = res.data?.url || (res as any).url;
             if (url) {
-                setPreviewUrl(url);
+                window.open(url, "_blank");
+                toast.success("Đang mở báo cáo...", { id: toastId });
             } else {
-                toast.error("Không thể lấy liên kết xem báo cáo.", { duration: 1000 });
+                toast.error("Không thể lấy liên kết xem báo cáo.", { id: toastId });
             }
         } catch (error) {
             console.error(error);
-            toast.error("Lỗi khi tải báo cáo.", { duration: 1000 });
+            toast.error("Lỗi khi tải báo cáo.", { id: toastId });
         }
     };
 
@@ -562,23 +570,21 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
         refetch();
     };
 
-    const { data: receiptDocs } = useQuery({
-        queryKey: ["documents", "list", { receiptId: receipt.receiptId }],
-        queryFn: async () => {
-            const res = await documentApi.list({ search: receipt.receiptId, itemsPerPage: 50 });
-            const raw = res as any;
-            return Array.isArray(raw.data) ? raw.data : [];
-        },
-        enabled: open && !!receipt.receiptId,
-    });
+
 
     const handleOpenDocument = async (docId: string) => {
+        const toastId = toast.loading("Đang lấy liên kết tài liệu...");
         try {
             const res = await documentApi.url(docId);
-            const url = (res as any).data?.url || (res as any).url;
-            if (url) window.open(url, "_blank");
+            const url = res.data?.url || (res as any).url;
+            if (url) {
+                window.open(url, "_blank");
+                toast.success("Đang mở tài liệu...", { id: toastId });
+            } else {
+                toast.error("Không tìm thấy liên kết tài liệu", { id: toastId });
+            }
         } catch (e) {
-            toast.error("Không thể mở tài liệu");
+            toast.error("Lỗi khi mở tài liệu", { id: toastId });
         }
     };
 
@@ -597,6 +603,16 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                         <p className="text-xs text-muted-foreground mt-0.5">Mã biên nhận: {receipt.receiptCode}</p>
                     </div>
                     <div className="flex items-center gap-2">
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="gap-1.5" 
+                            onClick={() => handleExport(true)} 
+                            disabled={exportMutation.isPending}
+                        >
+                            <Eye className="h-3.5 w-3.5" />
+                            Xem trước
+                        </Button>
                         <Button variant="outline" size="sm" className="gap-1.5" onClick={handleSendEmail} disabled={exportMutation.isPending || isEmailLoading}>
                             {isEmailLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
                             Gửi Email
@@ -652,31 +668,60 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                             <div className="bg-background rounded-xl border border-border p-4 shadow-sm flex-1 overflow-hidden flex flex-col">
                                 <div className="flex items-center gap-2 mb-3 text-primary font-semibold text-sm shrink-0">
                                     <ClipboardList className="h-4 w-4" />
-                                    Hồ sơ document
+                                    Hồ sơ tài liệu
                                 </div>
-                                <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
-                                    {!!receiptDocs?.length ? (
-                                        receiptDocs.map((doc: any) => (
-                                            <div
-                                                key={`${doc.documentId}`}
-                                                className="group flex items-center justify-between p-2 rounded-lg border border-border hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer"
-                                                onClick={() => handleOpenDocument(String(doc.documentId))}
-                                            >
-                                                <div className="min-w-0 flex-1">
-                                                    <p className="text-[11px] font-medium text-foreground truncate" title={`${String(doc.documentTitle || doc.documentId)}`}>
-                                                        {`${String(doc.documentTitle || doc.documentId)}`}
-                                                    </p>
-                                                    <p className="text-[10px] text-muted-foreground">{`${String(doc.documentStatus || "Issued")}`}</p>
-                                                </div>
-                                                <Eye className="h-3 w-3 text-muted-foreground group-hover:text-primary shrink-0 ml-2" />
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <div className="text-center py-8 text-muted-foreground opacity-50 flex flex-col items-center">
-                                            <ClipboardList className="h-8 w-8 mb-2 stroke-1" />
-                                            <p className="text-[11px]">Chưa có tài liệu liên quan</p>
+                                <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+                                    {/* Receipt Documents */}
+                                    <div>
+                                        <p className="text-[11px] font-bold text-muted-foreground uppercase mb-2 px-1">Tài liệu tiếp nhận</p>
+                                        <div className="space-y-1.5">
+                                            {!!activeReceipt.documents?.length ? (
+                                                activeReceipt.documents.map((doc: any) => (
+                                                    <div
+                                                        key={`${doc.documentId}`}
+                                                        className="group flex items-center justify-between p-2 rounded-lg border border-border hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer"
+                                                        onClick={() => handleOpenDocument(String(doc.documentId))}
+                                                    >
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="text-[11px] font-medium text-foreground truncate" title={`${String(doc.documentTitle || doc.documentId)}`}>
+                                                                {`${String(doc.documentTitle || doc.documentId)}`}
+                                                            </p>
+                                                            <p className="text-[10px] text-muted-foreground">{`${String(doc.documentStatus || "Issued")}`}</p>
+                                                        </div>
+                                                        <Eye className="h-3 w-3 text-muted-foreground group-hover:text-primary shrink-0 ml-2" />
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <p className="text-[10px] text-muted-foreground italic px-2">Không có tài liệu tiếp nhận</p>
+                                            )}
                                         </div>
-                                    )}
+                                    </div>
+
+                                    {/* Sample Documents */}
+                                    <div>
+                                        <p className="text-[11px] font-bold text-muted-foreground uppercase mb-2 px-1">Tài liệu mẫu thử</p>
+                                        <div className="space-y-1.5">
+                                            {!!selectedSample?.documents?.length ? (
+                                                selectedSample.documents.map((doc: any) => (
+                                                    <div
+                                                        key={`${doc.documentId}`}
+                                                        className="group flex items-center justify-between p-2 rounded-lg border border-border hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer"
+                                                        onClick={() => handleOpenDocument(String(doc.documentId))}
+                                                    >
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="text-[11px] font-medium text-foreground truncate" title={`${String(doc.documentTitle || doc.documentId)}`}>
+                                                                {`${String(doc.documentTitle || doc.documentId)}`}
+                                                            </p>
+                                                            <p className="text-[10px] text-muted-foreground">{`${String(doc.documentStatus || "Issued")}`}</p>
+                                                        </div>
+                                                        <Eye className="h-3 w-3 text-muted-foreground group-hover:text-primary shrink-0 ml-2" />
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <p className="text-[10px] text-muted-foreground italic px-2">Không có tài liệu mẫu thử</p>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -742,7 +787,7 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                                                         <Button
                                                             variant={secondLang === "en" ? "default" : "outline"}
                                                             size="sm"
-                                                            className={`flex-1 h-8 text-xs ${secondLang !== "en" ? "bg-background" : ""}`}
+                                                            className="flex-1 h-8 text-xs"
                                                             onClick={() => setSecondLang("en")}
                                                         >
                                                             VI / EN
@@ -750,7 +795,7 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                                                         <Button
                                                             variant={secondLang === "cn" ? "default" : "outline"}
                                                             size="sm"
-                                                            className={`flex-1 h-8 text-xs ${secondLang !== "cn" ? "bg-background" : ""}`}
+                                                            className="flex-1 h-8 text-xs"
                                                             onClick={() => setSecondLang("cn")}
                                                         >
                                                             VI / CN
@@ -761,7 +806,7 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                                                 <div className="space-y-1.5">
                                                     <label className="text-[11px] font-medium text-muted-foreground pl-0.5">Thay thế báo cáo</label>
                                                     <Select value={replacingReportId || "none"} onValueChange={(val) => setReplacingReportId(val === "none" ? null : val)}>
-                                                        <SelectTrigger className="h-8 text-xs bg-background">
+                                                        <SelectTrigger className="h-10 text-sm bg-black! border-white/40! text-white! rounded-lg">
                                                             <SelectValue placeholder="Chọn báo cáo để thay thế" />
                                                         </SelectTrigger>
                                                         <SelectContent className="z-[1200]">
@@ -798,12 +843,26 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                                                     <span>Nền mẫu:</span>
                                                     <Badge variant="outline" className="h-5 text-[10px]">{`${selectedSample.sampleTypeName || "-"}`}</Badge>
                                                 </div>
-                                                {!!selectedSample.sampleNote && (
-                                                    <div className="pt-2 border-t mt-2">
-                                                        <span className="text-[11px] font-semibold mb-1 block">Ghi chú mẫu:</span>
-                                                        <p className="text-xs italic bg-yellow-50/50 p-2 rounded border border-yellow-100">{`${selectedSample.sampleNote || ""}`}</p>
-                                                    </div>
-                                                )}
+                                    <div className="bg-muted/30 p-4 rounded-xl border border-border/50">
+                                        <div className="flex items-center gap-2 mb-3 text-primary font-semibold text-sm">
+                                            <ClipboardList className="h-4 w-4" />
+                                            Ghi chú hệ thống
+                                        </div>
+                                        <div className="space-y-3">
+                                            <div>
+                                                <span className="text-[11px] font-bold text-muted-foreground uppercase mb-1.5 block px-0.5">Ghi chú phiếu</span>
+                                                <div className="text-xs italic bg-muted/60 p-2.5 rounded-lg border border-border/80 whitespace-pre-wrap text-foreground/90">
+                                                    {activeReceipt.receiptNote || "—"}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <span className="text-[11px] font-bold text-muted-foreground uppercase mb-1.5 block px-0.5">Ghi chú mẫu</span>
+                                                <div className="text-xs italic bg-warning/10 p-2.5 rounded-lg border border-warning/30 whitespace-pre-wrap text-warning font-medium">
+                                                    {selectedSample?.sampleNote || "—"}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                                 {(() => {
                                                     const list = selectedSample.reports ? selectedSample.reports.map((r: any) => `${r.reportId || r}`) : selectedSample.reportIds || [];
                                                     if (list.length === 0) return null;
@@ -856,16 +915,37 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                                             </div>
                                             <div className="space-y-3">
                                                 {selectedSample.analyses?.map((a) => (
-                                                    <div key={`${a.analysisId}`} className="bg-background p-3 rounded-lg border border-border shadow-sm">
-                                                        <div className="flex justify-between items-start mb-1">
+                                                    <div key={`${a.analysisId}`} className="bg-background p-3 rounded-lg border border-border shadow-sm flex flex-col gap-1.5">
+                                                        <div className="flex justify-between items-start">
                                                             <div className="font-medium text-sm text-foreground">{`${a.parameterName || ""}`}</div>
                                                             <Badge className="text-[10px] h-5">{`${a.analysisStatus || ""}`}</Badge>
                                                         </div>
-                                                        <div className="flex justify-between items-center text-xs text-muted-foreground">
+                                                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                                                            <span className="font-medium text-primary/70">{selectedSample.sampleTypeName || "Chưa phân loại"}</span>
+                                                            <span className="opacity-40">|</span>
                                                             <span>{`${a.protocolCode || ""}`}</span>
-                                                            <span className="font-bold text-primary">
-                                                                {`${a.analysisResult || ""}`} {`${a.analysisUnit || ""}`}
-                                                            </span>
+                                                        </div>
+                                                        <div className="flex justify-between items-end pt-1">
+                                                            <div className="flex items-baseline gap-1.5">
+                                                                <span 
+                                                                    className="font-bold text-primary text-base"
+                                                                    dangerouslySetInnerHTML={{ __html: String(a.analysisResult || "—") }}
+                                                                />
+                                                                <span className="text-xs text-muted-foreground">{`${a.analysisUnit || ""}`}</span>
+                                                            </div>
+                                                            
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-7 w-7 rounded-full hover:bg-muted"
+                                                                onClick={() => a.analysisDocumentId && handleOpenDocument(a.analysisDocumentId)}
+                                                                title={a.analysisDocumentId ? "Xem tài liệu kết quả" : "Chưa có tài liệu kết quả"}
+                                                            >
+                                                                <FileText className={cn(
+                                                                    "h-4 w-4 transition-colors",
+                                                                    a.analysisDocumentId ? "text-success" : "text-warning"
+                                                                )} />
+                                                            </Button>
                                                         </div>
                                                     </div>
                                                 ))}

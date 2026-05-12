@@ -29,6 +29,7 @@ import type { IncomingRequestListItem } from "@/types/incomingRequest";
 import { useServerPagination } from "@/components/library/hooks/useServerPagination";
 
 import { ReceiptsTable, type TabKey } from "@/components/reception/ReceiptsTable";
+import { type FilterValues } from "@/components/reception/FilterBar";
 
 function isOverdue(deadlineIso?: string | null): boolean {
     if (!deadlineIso) return false;
@@ -57,6 +58,10 @@ export function SampleReception() {
     const [selectedRowKey, setSelectedRowKey] = useState<string | null>(null);
     const [shippingReceiptId, setShippingReceiptId] = useState<string | null>(null);
 
+    // ── Filter state ─────────────────────────────────────────────────────────
+    const emptyFilters = (): FilterValues => ({});
+    const [filterValues, setFilterValues] = useState<FilterValues>(emptyFilters);
+
     const [serverTotalPages, setServerTotalPages] = useState<number | null>(null);
     const pagination = useServerPagination(serverTotalPages, 50);
 
@@ -70,12 +75,15 @@ export function SampleReception() {
             itemsPerPage: pagination.itemsPerPage,
             search: searchQuery.trim().length ? searchQuery.trim() : undefined,
         };
-
+        // Apply incoming filters
+        Object.entries(filterValues).forEach(([col, vals]) => {
+            if (vals && vals.length > 0) query[`${col}[]`] = vals;
+        });
         return {
             query,
             sort: { column: "createdAt", direction: "DESC" as const },
         };
-    }, [pagination.currentPage, pagination.itemsPerPage, searchQuery]);
+    }, [pagination.currentPage, pagination.itemsPerPage, searchQuery, filterValues]);
 
     const incomingQ = useIncomingRequestsList(incomingInput, { enabled: isIncomingTab });
 
@@ -91,11 +99,16 @@ export function SampleReception() {
             query.option = "full";
         }
 
+        // Apply receipt filters
+        Object.entries(filterValues).forEach(([col, vals]) => {
+            if (vals && vals.length > 0) query[`${col}[]`] = vals;
+        });
+
         return {
             query,
             sort: { column: "createdAt", direction: "DESC" as const },
         };
-    }, [pagination.currentPage, pagination.itemsPerPage, searchQuery, searchOption]);
+    }, [pagination.currentPage, pagination.itemsPerPage, searchQuery, searchOption, filterValues]);
 
     const receiptsProcessingQ = useReceiptsProcessing(listInput, { 
         enabled: isProcessingTab && searchOption !== "full" 
@@ -137,7 +150,6 @@ export function SampleReception() {
     const handleSearchKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === "Enter") {
             setSearchQuery(searchTerm);
-            setSearchOption("normal");
             pagination.resetPage();
         }
     };
@@ -237,6 +249,7 @@ export function SampleReception() {
                             onClick={() => {
                                 setActiveTab("incoming-requests");
                                 setSearchOption("normal");
+                                setFilterValues(emptyFilters());
                                 pagination.resetPage();
                             }}
                             className={`flex items-center gap-2 ${activeTab === "incoming-requests" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}
@@ -252,6 +265,7 @@ export function SampleReception() {
                             onClick={() => {
                                 setActiveTab("processing");
                                 setSearchOption("normal");
+                                setFilterValues(emptyFilters());
                                 pagination.resetPage();
                             }}
                             className={`flex items-center gap-2 ${activeTab === "processing" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}
@@ -266,7 +280,8 @@ export function SampleReception() {
                             size="sm"
                             onClick={() => {
                                 setActiveTab("return-results");
-                                setSearchOption("normal");
+                                setSearchOption("full");
+                                setFilterValues(emptyFilters());
                                 pagination.resetPage();
                             }}
                             className={`flex items-center gap-2 ${activeTab === "return-results" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}
@@ -389,6 +404,11 @@ export function SampleReception() {
                             onConvert={(item) => setConvertingRequest(item)}
                             onViewDetail={(requestId) => setViewingRequestId(requestId)}
                             onViewReceipt={(id) => openReceipt(id)}
+                            filterValues={filterValues}
+                            onFilterChange={(col, vals) => {
+                                setFilterValues((prev) => ({ ...prev, [col]: vals }));
+                                pagination.resetPage();
+                            }}
                         />
                     ) : (
                         /* ── Receipts Table ── */
@@ -404,6 +424,11 @@ export function SampleReception() {
                             onDelete={(id) => setDeleteReceiptId(id)}
                             onOpenShipment={(id) => setShippingReceiptId(id)}
                             openingReceiptId={openingReceiptId}
+                            filterValues={filterValues}
+                            onFilterChange={(col, vals) => {
+                                setFilterValues((prev) => ({ ...prev, [col]: vals }));
+                                pagination.resetPage();
+                            }}
                         />
                     )}
 

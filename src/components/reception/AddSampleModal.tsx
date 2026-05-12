@@ -15,6 +15,7 @@ import { libraryApi, type Matrix } from "@/api/library";
 import { samplesCreateFull, samplesGetFull } from "@/api/samples";
 import { receiptsGetFull } from "@/api/receipts";
 import { useDebouncedValue } from "@/components/library/hooks/useDebouncedValue";
+import api from "@/api/client";
 
 import type { ReceiptDetail, ReceiptSample } from "@/types/receipt";
 
@@ -62,19 +63,19 @@ function emptyForm(): FormState {
         sampleNote: "",
         sampleInfo: [
             { label: "Tên mẫu thử", value: "" },
-            { label: "Loại nền mẫu", value: "" },
             { label: "Số lô", value: "" },
-            { label: "Nơi sản xuất", value: "" },
             { label: "Ngày sản xuất", value: "" },
+            { label: "Nơi sản xuất", value: "" },
             { label: "Hạn sử dụng", value: "" },
-            { label: "Trạng thái ngoại quan", value: "" },
+            { label: "Số công bố", value: "" },
+            { label: "Số đăng ký", value: "" },
+            { label: "Thông tin khác", value: "" },
         ],
         sampleReceiptInfo: [
-            { label: "Ngày tiếp nhận", value: "" },
-            { label: "Mẫu lưu", value: "" },
-            { label: "Thời gian thực hiện", value: "" },
+            { label: "Ngày tiếp nhận", value: new Date().toLocaleDateString("vi-VN") },
+            { label: "Ngày thử nghiệm", value: "" },
+            { label: "Tình trạng mẫu lưu", value: "" },
             { label: "Mô tả", value: "" },
-            { label: "Điều kiện mẫu", value: "" },
         ],
         analyses: [],
     };
@@ -126,6 +127,56 @@ export function AddSampleModal({ receipt, onClose, onCreated }: Props) {
             cancelled = true;
         };
     }, [debouncedMatrixSearch]);
+    
+    // ── Load enums for info sections ─────────────────────────────
+    useEffect(() => {
+        (async () => {
+            try {
+                const [infoRes, receiptRes] = await Promise.all([
+                    api.get<any>("/v2/enum/get/list", { query: { enumType: "sampleInfo" } }),
+                    api.get<any>("/v2/enum/get/list", { query: { enumType: "sampleReceiptInfo" } })
+                ]);
+                
+                const infoData = (infoRes as any).data ?? (infoRes as any);
+                const receiptData = (receiptRes as any).data ?? (receiptRes as any);
+                
+                if (Array.isArray(infoData) && infoData.length > 0) {
+                    setForm(prev => ({ 
+                        ...prev, 
+                        sampleInfo: infoData.map((x: any) => ({ 
+                            label: x.label, 
+                            value: x.label === "Tên mẫu thử" ? prev.sampleName : (x.value ?? "") 
+                        })) 
+                    }));
+                }
+                
+                if (Array.isArray(receiptData) && receiptData.length > 0) {
+                    const today = new Date().toLocaleDateString("vi-VN");
+                    setForm(prev => ({ 
+                        ...prev, 
+                        sampleReceiptInfo: receiptData.map((x: any) => ({ 
+                            label: x.label, 
+                            value: x.label === "Ngày tiếp nhận" ? today : (x.value ?? "") 
+                        })) 
+                    }));
+                }
+            } catch (e) {
+                console.error("Failed to fetch enums", e);
+            }
+        })();
+    }, []);
+
+    // ── Sync sampleName to sampleInfo ────────────────────────────
+    useEffect(() => {
+        setForm(prev => {
+            const idx = prev.sampleInfo.findIndex(r => r.label === "Tên mẫu thử");
+            if (idx === -1 || prev.sampleInfo[idx].value === prev.sampleName) return prev;
+            
+            const next = [...prev.sampleInfo];
+            next[idx] = { ...next[idx], value: prev.sampleName };
+            return { ...prev, sampleInfo: next };
+        });
+    }, [form.sampleName]);
 
     // ── Copy from existing sample ────────────────────────────────
     const [showCopyDropdown, setShowCopyDropdown] = useState(false);
@@ -286,7 +337,7 @@ export function AddSampleModal({ receipt, onClose, onCreated }: Props) {
 
     // ── Render ───────────────────────────────────────────────────
     return createPortal(
-        <div className="fixed inset-0 z-[70] flex items-center justify-center">
+        <div className="fixed inset-0 z-[1100] flex items-center justify-center">
             {/* Backdrop */}
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 

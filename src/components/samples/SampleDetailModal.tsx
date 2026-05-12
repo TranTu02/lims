@@ -1,5 +1,5 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { X, AlertCircle, Search, Loader2, Plus } from "lucide-react";
+import { X, AlertCircle, Search, Loader2, Plus, FileText, ExternalLink } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useCallback, useEffect } from "react";
@@ -13,6 +13,8 @@ import { samplesGetFull } from "@/api/samples";
 import { samplesKeys } from "@/api/samplesKeys";
 import { useCreateAnalysis } from "@/api/analyses";
 import { libraryApi, type Matrix } from "@/api/library";
+import { fileApi } from "@/api/files";
+import { toast } from "sonner";
 import { useDebouncedValue } from "@/components/library/hooks/useDebouncedValue";
 import type { SampleAnalysis, SampleDetail } from "@/types/sample";
 
@@ -209,6 +211,17 @@ export function SampleDetailModal({ open, sampleId, onClose }: Props) {
         [sampleId, createAnalysisMut, qc],
     );
 
+    const handlePreviewFile = async (id: string) => {
+        try {
+            const r = await fileApi.url(id, 3600);
+            const url = (r as any)?.data?.url ?? (r as any)?.url;
+            if (url) window.open(url, "_blank");
+        } catch (e) {
+            console.error("Preview failed", e);
+            toast.error("Không thể xem trước tệp");
+        }
+    };
+
     return (
         <DialogPrimitive.Root open={open} onOpenChange={(v) => (!v ? onClose() : undefined)}>
             <DialogPrimitive.Portal>
@@ -258,10 +271,10 @@ export function SampleDetailModal({ open, sampleId, onClose }: Props) {
                                     <div className="text-sm font-medium text-foreground">{t("reception.sampleDetail.sampleList")}</div>
 
                                     <div className="bg-muted/20 border border-border rounded-lg p-4">
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-4">
                                             <div>
                                                 <div className="text-xs text-muted-foreground">{t("lab.samples.sampleId")}</div>
-                                                <div className="text-sm text-foreground mt-1">{toDash(data.sampleId)}</div>
+                                                <div className="text-sm font-semibold text-primary mt-1">{toDash(data.sampleId)}</div>
                                             </div>
                                             <div>
                                                 <div className="text-xs text-muted-foreground">{t("lab.samples.receiptId")}</div>
@@ -278,15 +291,61 @@ export function SampleDetailModal({ open, sampleId, onClose }: Props) {
                                                     <SampleStatusBadge status={data.sampleStatus ?? null} />
                                                 </div>
                                             </div>
-
                                             <div>
                                                 <div className="text-xs text-muted-foreground">{t("lab.samples.sampleVolume")}</div>
                                                 <div className="text-sm text-foreground mt-1">{toDash(data.sampleVolume)}</div>
                                             </div>
+                                            <div>
+                                                <div className="text-xs text-muted-foreground">{t("lab.samples.sampleWeight", { defaultValue: "Khối lượng mẫu" })}</div>
+                                                <div className="text-sm text-foreground mt-1">{toDash(data.sampleWeight)}</div>
+                                            </div>
 
                                             <div>
-                                                <div className="text-xs text-muted-foreground">{t("lab.samples.sampleStorageLoc")}</div>
-                                                <div className="text-sm text-foreground mt-1">{toDash(data.sampleStorageLoc)}</div>
+                                                <div className="text-xs text-muted-foreground">{t("lab.samples.samplePreservation", { defaultValue: "Bảo quản" })}</div>
+                                                <div className="text-sm text-foreground mt-1">{toDash(data.samplePreservation)}</div>
+                                            </div>
+                                            <div>
+                                                <div className="text-xs text-muted-foreground">{t("lab.samples.sampleRetentionDate", { defaultValue: "Hạn lưu mẫu" })}</div>
+                                                <div className="text-sm text-foreground mt-1">{data.sampleRetentionDate ? new Date(data.sampleRetentionDate).toLocaleDateString("vi-VN") : toDash(null)}</div>
+                                            </div>
+                                            <div>
+                                                <div className="text-xs text-muted-foreground">{t("lab.samples.sampleDisposalDate", { defaultValue: "Ngày hủy mẫu" })}</div>
+                                                <div className="text-sm text-foreground mt-1">{data.sampleDisposalDate ? new Date(data.sampleDisposalDate).toLocaleDateString("vi-VN") : toDash(null)}</div>
+                                            </div>
+
+                                            <div>
+                                                <div className="text-xs text-muted-foreground">{t("lab.samples.physicalState", { defaultValue: "Trạng thái vật lý" })}</div>
+                                                <div className="text-sm text-foreground mt-1">{toDash(data.physicalState)}</div>
+                                            </div>
+                                            <div>
+                                                <div className="text-xs text-muted-foreground">{t("lab.samples.samplePriority", { defaultValue: "Độ ưu tiên" })}</div>
+                                                <div className="text-sm text-foreground mt-1">
+                                                    {data.samplePriority === 1 ? "Thấp" : data.samplePriority === 2 ? "Trung bình" : data.samplePriority === 3 ? "Cao" : toDash(data.samplePriority)}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="text-xs text-muted-foreground">{t("lab.samples.sampleIsReference", { defaultValue: "Mẫu lưu / Mẫu chuẩn" })}</div>
+                                                <div className="text-sm text-foreground mt-1">
+                                                    <Badge variant={data.sampleIsReference ? "success" : "outline"} className="text-[10px] h-4">
+                                                        {data.sampleIsReference ? "Có" : "Không"}
+                                                    </Badge>
+                                                </div>
+                                            </div>
+
+                                            <div className="md:col-span-3">
+                                                <div className="text-xs text-muted-foreground">{t("lab.samples.sampleMarks", { defaultValue: "Dấu hiệu mẫu" })}</div>
+                                                <div className="flex flex-wrap gap-1 mt-1.5">
+                                                    {(!data.sampleMarks || data.sampleMarks.length === 0) ? toDash(null) : data.sampleMarks.map((m, i) => (
+                                                        <Badge key={i} variant="secondary" className="text-[10px] bg-blue-50 text-blue-700 border-blue-100">{m}</Badge>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <div className="md:col-span-3">
+                                                <div className="text-xs text-muted-foreground">{t("lab.samples.sampleNote", { defaultValue: "Ghi chú mẫu" })}</div>
+                                                <div className="text-sm text-foreground mt-1 p-2 bg-background/50 rounded border border-border/50 min-h-[40px] italic">
+                                                    {toDash(data.sampleNote)}
+                                                </div>
                                             </div>
 
                                             <div className="md:col-span-3">
@@ -394,6 +453,47 @@ export function SampleDetailModal({ open, sampleId, onClose }: Props) {
                                                 )}
                                             </tbody>
                                         </table>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between font-medium text-foreground">
+                                        <div className="text-sm flex items-center gap-2">
+                                            <FileText className="h-4 w-4" />
+                                            {t("reception.sampleDetail.documentList", { defaultValue: "Danh mục tài liệu" })}
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        {(!data.documents || data.documents.length === 0) ? (
+                                            <div className="col-span-full py-10 flex flex-col items-center justify-center text-muted-foreground border border-dashed border-border rounded-lg bg-muted/5">
+                                                <FileText className="h-8 w-8 mb-2 opacity-20" />
+                                                <p className="text-xs italic">Không có tài liệu liên quan</p>
+                                            </div>
+                                        ) : (
+                                            data.documents.map((doc, idx) => (
+                                                <div key={doc.documentId || idx} className="group flex flex-col p-3 rounded-xl border border-border bg-card hover:border-primary/40 hover:shadow-sm transition-all">
+                                                    <div className="flex items-start justify-between gap-2 mb-2">
+                                                        <div className="min-w-0">
+                                                            <p className="text-[11px] font-bold text-foreground line-clamp-2 leading-tight uppercase tracking-tight">{doc.documentTitle || "Chưa có tiêu đề"}</p>
+                                                            <p className="text-[9px] text-muted-foreground mt-0.5 font-mono">{doc.documentId}</p>
+                                                        </div>
+                                                        <Badge variant="outline" className="shrink-0 text-[8px] h-3.5 px-1 bg-primary/5 text-primary border-primary/20">{doc.documentType || "DOC"}</Badge>
+                                                    </div>
+                                                    <div className="flex items-center justify-between border-t border-border/50 pt-2">
+                                                        <span className="text-[9px] text-muted-foreground italic">{doc.documentStatus || "Draft"}</span>
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="sm" 
+                                                            className="h-6 px-2 text-[10px] gap-1 text-primary hover:bg-primary/10" 
+                                                            onClick={() => doc.fileId && handlePreviewFile(doc.fileId)}
+                                                        >
+                                                            <ExternalLink className="h-3 w-3" />
+                                                            Xem tệp
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
                                     </div>
                                 </div>
                             </>

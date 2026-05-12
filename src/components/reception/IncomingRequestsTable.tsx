@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 
 import type { IncomingRequestListItem } from "@/types/incomingRequest";
 import type { OrderSampleItem } from "@/types/crm";
+import { TableHeaderFilter } from "@/components/reception/TableHeaderFilter";
+import { INCOMING_FILTERS } from "@/components/reception/FilterBar";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -104,12 +106,14 @@ interface IncomingRequestsTableProps {
     onConvert: (item: IncomingRequestListItem) => void;
     onViewDetail?: (requestId: string) => void;
     onViewReceipt?: (receiptId: string) => void;
+    filterValues?: Record<string, string[]>;
+    onFilterChange?: (col: string, vals: string[]) => void;
 }
 
 
 
 // ── Main Table ───────────────────────────────────────────────────────────────
-export function IncomingRequestsTable({ items, isLoading, onConvert, onViewDetail, onViewReceipt }: IncomingRequestsTableProps) {
+export function IncomingRequestsTable({ items, isLoading, onConvert, onViewDetail, onViewReceipt, filterValues = {}, onFilterChange }: IncomingRequestsTableProps) {
     const { t } = useTranslation();
 
     const columns = useMemo(
@@ -117,7 +121,18 @@ export function IncomingRequestsTable({ items, isLoading, onConvert, onViewDetai
             { key: "requestId", label: String(t("reception.incomingRequests.columns.requestId", { defaultValue: "Mã yêu cầu" })), width: "12%" },
             { key: "client", label: String(t("reception.incomingRequests.columns.clientName", { defaultValue: "Khách hàng" })), width: "18%" },
             { key: "salePerson", label: String(t("reception.incomingRequests.columns.salePerson", { defaultValue: "NVKD" })), width: "12%" },
-            { key: "incomingStatus", label: String(t("reception.incomingRequests.columns.incomingStatus", { defaultValue: "Tình trạng" })), width: "10%" },
+            { 
+                key: "incomingStatus", 
+                label: (
+                    <TableHeaderFilter
+                        title={String(t("reception.incomingRequests.columns.incomingStatus", { defaultValue: "Tình trạng" }))}
+                        {...(INCOMING_FILTERS.find((f) => f.column === "incomingStatus") as any)}
+                        value={filterValues["incomingStatus"]}
+                        onChange={(vals) => onFilterChange?.("incomingStatus", vals)}
+                    />
+                ), 
+                width: "10%" 
+            },
             { key: "orderStatus", label: String(t("reception.incomingRequests.columns.orderStatus", { defaultValue: "Đơn hàng" })), width: "10%" },
             { 
                 key: "paymentStatus", 
@@ -132,7 +147,7 @@ export function IncomingRequestsTable({ items, isLoading, onConvert, onViewDetai
                 width: "12%" 
             },
         ],
-        [t],
+        [t, filterValues, onFilterChange],
     );
 
     if (isLoading) {

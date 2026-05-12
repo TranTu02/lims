@@ -45,7 +45,9 @@ export function DocumentPreviewButton({ documentId, variant = "ghost", size = "i
             setDocTitle(`Document ${documentId}`);
             setPreviewOpen(true);
         } catch {
-            window.open(`/api/v2/documents/get/url?id=${documentId}`, "_blank");
+            const res = await documentApi.url(documentId);
+            const url = (res as any).data?.url || (res as any).url;
+            if (url) window.open(url, "_blank");
         } finally {
             setUrlLoading(false);
         }

@@ -25,13 +25,14 @@ import { receiptsKeys } from "@/api/receiptsKeys";
 import { samplesGetFull } from "@/api/samples";
 import { fileApi, buildFileUploadFormData } from "@/api/files";
 
-import type { ReceiptDetail, ReceiptSample, ReceiptAnalysis, ReceiptsUpdateBody, ReceiptStatus, AnalysisStatus } from "@/types/receipt";
+import type { ReceiptDetail, ReceiptSample, ReceiptAnalysis, ReceiptsUpdateBody, ReceiptStatus } from "@/types/receipt";
 import { cn } from "../../lib/utils";
 import { ResultCertificateModal } from "./ResultCertificateModal";
 import { SampleDetailModal } from "./SampleDetailModal";
 import { SamplePrintLabelModal } from "./SamplePrintLabelModal";
 import { AddSampleModal } from "./AddSampleModal";
 import { EmailModal } from "@/components/common/EmailModal";
+import ShipmentManagerModal from "./shipment/ShipmentManagerModal";
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 interface ReceiptDetailModalProps {
@@ -114,9 +115,13 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
     const [bulkUnit, setBulkUnit] = useState("");
     const [bulkGroupId, setBulkGroupId] = useState("");
     const [bulkGroupName, setBulkGroupName] = useState("");
+    const [bulkTechnicianId, setBulkTechnicianId] = useState("");
+    const [bulkTechnician, setBulkTechnician] = useState<any>(null);
+    const [bulkTechnicianIds, setBulkTechnicianIds] = useState<string[]>([]);
     const [bulkDeadline, setBulkDeadline] = useState("");
     const [editedReceipt, setEditedReceipt] = useState<ReceiptDetail>(receipt);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [shippingOpen, setShippingOpen] = useState(false);
 
     useEffect(() => {
         setEditedReceipt(receipt);
@@ -125,6 +130,9 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
         setIsAnalysisEditing(false);
         setAnalysisSelectedIds(new Set());
         setShowBulkPanel(false);
+        setBulkTechnicianId("");
+        setBulkTechnician(null);
+        setBulkTechnicianIds([]);
     }, [receipt]);
 
     // ── Email states ──────────────────────────────────────────────
@@ -381,15 +389,22 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
             const p: Record<string, unknown> = { analysisId: id };
             if (bulkProtocolCode) p.protocolCode = bulkProtocolCode;
             if (bulkUnit) p.analysisUnit = bulkUnit;
-            if (bulkGroupId) { p.technicianGroupId = bulkGroupId; p.technicianGroupName = bulkGroupName; }
+            if (bulkGroupId) { 
+                p.technicianGroupId = bulkGroupId; 
+                p.technicianGroupName = bulkGroupName;
+                p.technicianId = bulkTechnicianId;
+                p.technician = bulkTechnician;
+                p.technicianIds = bulkTechnicianIds;
+            }
             if (bulkDeadline) p.analysisDeadline = bulkDeadline;
             return p;
         });
         await mutateBulk({ body: body as any });
         setShowBulkPanel(false); setAnalysisSelectedIds(new Set());
         setBulkProtocolCode(""); setBulkUnit(""); setBulkGroupId(""); setBulkGroupName(""); setBulkDeadline("");
+        setBulkTechnicianId(""); setBulkTechnician(null); setBulkTechnicianIds([]);
         handleRefresh();
-    }, [analysisSelectedIds, bulkProtocolCode, bulkUnit, bulkGroupId, bulkGroupName, bulkDeadline, mutateBulk, handleRefresh]);
+    }, [analysisSelectedIds, bulkProtocolCode, bulkUnit, bulkGroupId, bulkGroupName, bulkDeadline, bulkTechnicianId, bulkTechnician, bulkTechnicianIds, mutateBulk, handleRefresh]);
 
     // ── Save mutation ─────────────────────────────────────────────
     const updateMut = useMutation({
@@ -485,7 +500,14 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                             <Popover>
                                 <PopoverTrigger asChild><Button variant="outline" size="sm" className="h-8 text-xs w-full justify-between font-normal"><span className="truncate">{bulkGroupName || "Để trống = giữ nguyên"}</span><ChevronsUpDown className="h-3 w-3 opacity-50 shrink-0 ml-1" /></Button></PopoverTrigger>
                                 <PopoverContent className="w-[260px] p-0 z-[1200]" align="start">
-                                    <Command><CommandInput placeholder="Tìm nhóm..." className="h-8" /><CommandList><CommandEmpty>Không tìm thấy</CommandEmpty><CommandGroup>{groups.map(g => (<CommandItem key={g.identityGroupId} value={g.identityGroupName} onSelect={() => { setBulkGroupId(g.identityGroupId); setBulkGroupName(g.identityGroupName); }}><Check className={cn("mr-2 h-3 w-3", bulkGroupId === g.identityGroupId ? "opacity-100" : "opacity-0")} />{g.identityGroupName}</CommandItem>))}</CommandGroup></CommandList></Command>
+                                    <Command><CommandInput placeholder="Tìm nhóm..." className="h-8" /><CommandList><CommandEmpty>Không tìm thấy</CommandEmpty><CommandGroup>{groups.map((g: any) => (
+                                        <CommandItem key={g.identityGroupId} value={g.identityGroupName} onSelect={() => { 
+                                            setBulkGroupId(g.identityGroupId); 
+                                            setBulkGroupName(g.identityGroupName);
+                                            setBulkTechnicianId(g.identityGroupInChargeId);
+                                            setBulkTechnician(g.identityGroupInCharge);
+                                            setBulkTechnicianIds(g.identityIds);
+                                        }}><Check className={cn("mr-2 h-3 w-3", bulkGroupId === g.identityGroupId ? "opacity-100" : "opacity-0")} />{g.identityGroupName}</CommandItem>))}</CommandGroup></CommandList></Command>
                                 </PopoverContent>
                             </Popover>
                         </div>
@@ -503,7 +525,7 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                 <table className="w-full">
                     <thead className="bg-muted/30 border-b border-border">
                         <tr>
-                            {["Thông tin mẫu", "Mã PT", "Chỉ tiêu", "Phương pháp", "Kết quả", "Đơn vị", "STT", "Nhóm KTV", "Hạn trả"].map(h => (
+                            {["Thông tin mẫu", "Mã PT", "Chỉ tiêu", "Phương pháp", "Nơi thực hiện", "Kết quả", "Đơn vị", "STT", "Nhóm KTV", "Người phụ trách", "Hạn trả"].map(h => (
                                 <th key={h} className="px-3 py-2.5 text-left text-[10px] font-semibold text-muted-foreground uppercase">{h}</th>
                             ))}
                             {isAnalysisEditing && <th className="w-8 px-2 py-2.5 text-center"><button onClick={toggleAllAnalyses} className="flex items-center justify-center text-muted-foreground hover:text-foreground mx-auto">{allSelected ? <CheckSquare className="h-4 w-4 text-primary" /> : <Square className="h-4 w-4" />}</button></th>}
@@ -579,9 +601,14 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                                     <td className="px-2 py-1.5">
                                         {isAnalysisEditing
                                             ? <Input className="h-7 text-[11px] bg-background px-2 w-[110px]" value={a.protocolCode ?? ""} onChange={e => handleUpdateAnalysisById(a.analysisId, { protocolCode: e.target.value })} />
-                                            : <span className="text-[10px] text-muted-foreground">{a.protocolCode ?? "—"}</span>}
+                                            : <span className="text-[10px] text-foreground font-medium">{a.protocolCode ?? "—"}</span>}
                                     </td>
-                                    <td className="px-3 py-2 text-xs font-bold text-primary">{a.analysisResult ?? "—"}</td>
+                                    <td className="px-2 py-1.5">
+                                        {isAnalysisEditing
+                                            ? <Input className="h-7 text-[11px] bg-background px-2 w-[100px]" value={a.analysisLocation ?? ""} onChange={e => handleUpdateAnalysisById(a.analysisId, { analysisLocation: e.target.value })} />
+                                            : <span className="text-[10px] text-foreground">{a.analysisLocation ?? "—"}</span>}
+                                    </td>
+                                    <td className="px-3 py-2 text-xs font-bold text-primary" dangerouslySetInnerHTML={{ __html: a.analysisResult ?? "—" }} />
                                     <td className="px-2 py-1.5">
                                         {isAnalysisEditing
                                             ? <Input className="h-7 text-[11px] bg-background px-2 w-[70px]" value={a.analysisUnit ?? ""} onChange={e => handleUpdateAnalysisById(a.analysisId, { analysisUnit: e.target.value })} />
@@ -599,15 +626,24 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                                                 </PopoverTrigger>
                                                 <PopoverContent className="w-[240px] p-0 z-[1200]" align="start">
                                                     <Command><CommandInput placeholder="Tìm nhóm..." className="h-8" /><CommandList><CommandEmpty>Không tìm thấy</CommandEmpty><CommandGroup>
-                                                        {groups.map(g => (
-                                                            <CommandItem key={g.identityGroupId} value={g.identityGroupName} onSelect={() => handleUpdateAnalysisById(a.analysisId, { technicianGroupId: g.identityGroupId, technicianGroupName: g.identityGroupName } as any)}>
+                                                        {groups.map((g: any) => (
+                                                            <CommandItem key={g.identityGroupId} value={g.identityGroupName} onSelect={() => handleUpdateAnalysisById(a.analysisId, { 
+                                                                technicianGroupId: g.identityGroupId, 
+                                                                technicianGroupName: g.identityGroupName,
+                                                                technicianId: g.identityGroupInChargeId,
+                                                                technician: g.identityGroupInCharge,
+                                                                technicianIds: g.identityIds
+                                                            } as any)}>
                                                                 <Check className={cn("mr-2 h-3 w-3", (a as any).technicianGroupId === g.identityGroupId ? "opacity-100" : "opacity-0")} />{g.identityGroupName}
                                                             </CommandItem>
                                                         ))}
                                                     </CommandGroup></CommandList></Command>
                                                 </PopoverContent>
                                             </Popover>
-                                        ) : <span className="text-xs text-muted-foreground">{(a as any).technicianGroupName ?? a.technician?.identityName ?? "—"}</span>}
+                                        ) : <span className="text-xs text-muted-foreground">{(a as any).technicianGroupName ?? "—"}</span>}
+                                    </td>
+                                    <td className="px-3 py-2 text-xs text-foreground">
+                                        {a.technician?.identityName ?? a.technicianId ?? "—"}
                                     </td>
                                     <td className="px-2 py-1.5">
                                         {isAnalysisEditing
@@ -634,6 +670,13 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
     // ─── Render ───────────────────────────────────────────────────
     return (
         <>
+            {/* Shipment Manager Modal */}
+            <ShipmentManagerModal
+                open={shippingOpen}
+                onOpenChange={setShippingOpen}
+                receiptId={receipt.receiptId}
+            />
+
             {/* Full-screen overlay — increased z-index to ensure it covers app footers/sidebars */}
             <div
                 className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-md flex items-center justify-center animate-in fade-in duration-200 w-full h-full"
@@ -868,7 +911,23 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                                             <div className="text-sm font-medium text-foreground mt-0.5">{editedReceipt.receiptDeliveryMethod ?? "—"}</div>
                                         )}
                                     </div>
-                                    <InfoRow label={String(t("lab.receipts.receiptTrackingNo", { defaultValue: "Mã vận đơn" }))} value={editedReceipt.shipmentTrackingNumber} mono />
+                                    {/* Mã vận đơn — click để mở ShipmentManagerModal */}
+                                    <div>
+                                        <Label className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">{String(t("lab.receipts.receiptTrackingNo", { defaultValue: "Mã vận đơn" }))}</Label>
+                                        <div className="mt-1">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-7 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+                                                onClick={() => setShippingOpen(true)}
+                                            >
+                                                <Package className="h-3.5 w-3.5" />
+                                                {editedReceipt.shipmentTrackingNumber
+                                                    ? editedReceipt.shipmentTrackingNumber
+                                                    : "Tạo / Xem vận đơn"}
+                                            </Button>
+                                        </div>
+                                    </div>
                                     <InfoRow label={String(t("lab.receipts.orderId", { defaultValue: "Đơn hàng" }))} value={editedReceipt.order?.orderCode || editedReceipt.orderId} mono />
                                 </section>
 

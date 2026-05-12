@@ -60,7 +60,7 @@ ${content}
             if (!val) setPrintShipmentId(null);
             onOpenChange(val);
         }}>
-            <DialogContent className="max-w-none sm:max-w-none !w-[95vw] !h-[90vh] flex flex-col p-0 gap-0 overflow-hidden bg-background border-none shadow-2xl rounded-xl [&>button]:z-[70]">
+            <DialogContent className="max-w-none sm:max-w-none !w-[95vw] !h-[90vh] flex flex-col p-0 gap-0 overflow-hidden bg-background border-none shadow-2xl rounded-xl [&>button]:z-[70] !z-[1100]" style={{ zIndex: 1100 }}>
                 {/* Header */}
                 <DialogHeader className="px-6 py-4 border-b flex-none bg-accent/30 shadow-sm z-10 relative">
                     <DialogTitle className="text-xl flex items-center gap-3 font-bold text-primary">
@@ -69,7 +69,7 @@ ${content}
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 ml-auto"
+                            className="h-8 w-8 ml-2"
                             onClick={() => refetch()}
                             disabled={isFetching}
                             title="Làm mới"

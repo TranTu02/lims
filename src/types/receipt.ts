@@ -164,6 +164,7 @@ export type ReceiptAnalysis = {
 
     technician?: IdentitySnapshot | null;
 
+    analysisDocumentId?: string | null;
     [key: string]: unknown;
 };
 
@@ -210,6 +211,8 @@ export type ReceiptSample = {
     reports?: any[] | null;
     documents?: any[] | null;
     sampleNote?: string | null;
+    samplePriority?: number | null;
+    sampleMarks?: string[] | null;
 
     [key: string]: unknown;
 };

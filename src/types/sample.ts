@@ -127,6 +127,7 @@ export type SampleDetail = {
 
     sampleMarks?: string[] | null;
     samplePriority?: number | null;
+    sampleNote?: string | null;
 
     createdAt?: IsoDateString | null;
 
@@ -137,6 +138,15 @@ export type SampleDetail = {
     modifiedById?: string | null;
 
     analyses: SampleAnalysis[];
+    documents?: Array<{
+        documentId?: string;
+        documentTitle?: string;
+        documentType?: string;
+        fileId?: string;
+        documentStatus?: string;
+        createdAt?: IsoDateString | null;
+        [key: string]: unknown;
+    }>;
 
     [key: string]: unknown;
 };

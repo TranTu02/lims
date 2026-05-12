@@ -240,6 +240,7 @@ export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentTyp
                 documentId: editDocument.documentId,
                 documentType: type,
                 documentTitle: title,
+                documentStatus,
                 commonKeys: commonKeysArray,
                 jsonContent: {
                     ...editDocument.jsonContent,
@@ -278,6 +279,7 @@ export function DocumentUploadModal({ open, onClose, onSuccess, fixedDocumentTyp
                 fileId: actualFileId,
                 documentType: type,
                 documentTitle: title,
+                documentStatus,
                 refType: String(refType || "").trim() ? String(refType || "").trim() : undefined,
                 refId: String(refId || "").trim() ? String(refId || "").trim() : undefined,
                 commonKeys: commonKeysArray,

@@ -5,7 +5,8 @@ import { FileText, Upload, Download, Eye, Image as ImageIcon, File, Search, Fold
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useQuery } from "@tanstack/react-query";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -13,8 +14,18 @@ import { documentApi } from "@/api/documents";
 import type { DocumentInfo } from "@/api/documents";
 import { fileApi } from "@/api/files";
 import type { FileInfo } from "@/api/files";
+import { useEnumList } from "@/api/chemical";
 import { DEFAULT_PAGINATION_SIZE, DATE_FORMAT } from "@/config/constants";
 import { DocumentUploadModal } from "./DocumentUploadModal";
+import { TableHeaderFilter } from "@/components/reception/TableHeaderFilter";
+
+const DOCUMENT_STATUS_OPTIONS = ["Draft", "Issued", "Revised", "Cancelled"];
+const DOCUMENT_STATUS_MAP: Record<string, string> = {
+    Draft: "Draft (Bản nháp)",
+    Issued: "Issued (Đã ban hành)",
+    Revised: "Revised (Đã sửa đổi)",
+    Cancelled: "Cancelled (Đã huỷ)",
+};
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -105,8 +116,8 @@ function formatFileSize(bytes?: number | null): string {
 // ─── Query Keys ──────────────────────────────────────────────────────────────
 
 const documentCenterKeys = {
-    documents: (page: number, search: string) => ["documentCenter", "documents", page, search] as const,
-    files: (page: number, search: string) => ["documentCenter", "files", page, search] as const,
+    documents: (page: number, search: string, filters: any = {}) => ["documentCenter", "documents", page, search, filters] as const,
+    files: (page: number, search: string, filters: any = {}) => ["documentCenter", "files", page, search, filters] as const,
     fileUrl: (fileId: string) => ["documentCenter", "fileUrl", fileId] as const,
     docUrl: (docId: string) => ["documentCenter", "docUrl", docId] as const,
 };
@@ -119,6 +130,9 @@ export function DocumentCenter() {
     const [viewMode, setViewMode] = useState<ViewMode>("documents");
     const [searchTerm, setSearchTerm] = useState("");
     const [page, setPage] = useState(1);
+    const [filterValues, setFilterValues] = useState<Record<string, string[]>>({});
+
+    const { data: documentTypes } = useEnumList("documentType");
 
     // Documents: selected for preview
     const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
@@ -137,7 +151,7 @@ export function DocumentCenter() {
 
     // ─── Fetch document list ─────────────────────────────────────
     const documentsQuery = useQuery({
-        queryKey: documentCenterKeys.documents(page, searchTerm),
+        queryKey: documentCenterKeys.documents(page, searchTerm, filterValues),
         queryFn: async () =>
             assertSuccessWithMeta(
                 (await documentApi.list({
@@ -146,6 +160,7 @@ export function DocumentCenter() {
                     search: searchTerm || undefined,
                     sortColumn: "createdAt",
                     sortDirection: "DESC",
+                    ...filterValues,
                 })) as any,
             ),
         enabled: viewMode === "documents",
@@ -153,7 +168,7 @@ export function DocumentCenter() {
 
     // ─── Fetch file list ─────────────────────────────────────────
     const filesQuery = useQuery({
-        queryKey: documentCenterKeys.files(page, searchTerm),
+        queryKey: documentCenterKeys.files(page, searchTerm, filterValues),
         queryFn: async () =>
             assertSuccessWithMeta(
                 (await fileApi.list({
@@ -162,6 +177,7 @@ export function DocumentCenter() {
                     search: searchTerm || undefined,
                     sortColumn: "createdAt",
                     sortDirection: "DESC",
+                    ...filterValues,
                 })) as any,
             ),
         enabled: viewMode === "files",
@@ -462,6 +478,12 @@ export function DocumentCenter() {
                             }}
                             previewLoading={previewLoading}
                             t={t}
+                            filterValues={filterValues}
+                            onFilterChange={(col, vals) => {
+                                setFilterValues(prev => ({ ...prev, [col]: vals }));
+                                setPage(1);
+                            }}
+                            documentTypes={documentTypes || []}
                         />
                     ) : (
                         <FilesListView
@@ -523,47 +545,15 @@ export function DocumentCenter() {
                             {/* Modal Body */}
                             <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
                                 {previewDoc && (
-                                    <div className="w-full md:w-[350px] shrink-0 border-b md:border-b-0 md:border-r border-border bg-muted/10 p-5 overflow-y-auto">
-                                        <h4 className="text-sm font-semibold mb-4 text-foreground uppercase tracking-wider">{String(t("documentCenter.preview.infoTitle", { defaultValue: "Thông tin bản ghi" }))}</h4>
-                                        <div className="space-y-4 text-sm">
-                                            <div>
-                                                <div className="text-xs text-muted-foreground mb-1">{String(t("documentCenter.col.id", { defaultValue: "Mã tài liệu" }))}</div>
-                                                <div className="font-mono bg-background px-2 py-1 rounded border shadow-sm text-xs break-all text-muted-foreground">{previewDoc.documentId}</div>
-                                            </div>
-                                            <div>
-                                                <div className="text-xs text-muted-foreground mb-1">{String(t("documentCenter.col.title", { defaultValue: "Tiêu đề" }))}</div>
-                                                <div className="font-medium text-foreground">{previewDoc.documentTitle || "-"}</div>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <div className="text-xs text-muted-foreground mb-1">{String(t("documentCenter.col.type", { defaultValue: "Loại tài liệu" }))}</div>
-                                                    <div>{previewDoc.documentType ? <Badge variant="secondary" className="uppercase text-[10px]">{previewDoc.documentType}</Badge> : "-"}</div>
-                                                </div>
-                                                <div>
-                                                    <div className="text-xs text-muted-foreground mb-1">{String(t("documentCenter.col.status", { defaultValue: "Trạng thái" }))}</div>
-                                                    <div>{previewDoc.documentStatus ? <DocumentStatusBadge status={previewDoc.documentStatus} /> : "-"}</div>
-                                                </div>
-                                            </div>
-                                            {(previewDoc.refType || previewDoc.refId) && (
-                                                <div>
-                                                    <div className="text-xs text-muted-foreground mb-1">{String(t("documentCenter.col.ref", { defaultValue: "Tham chiếu" }))}</div>
-                                                    <Badge variant="outline">{previewDoc.refType ? `${previewDoc.refType}: ` : ""}{previewDoc.refId}</Badge>
-                                                </div>
-                                            )}
-                                            {previewDoc.commonKeys && previewDoc.commonKeys.length > 0 && (
-                                                <div>
-                                                    <div className="text-xs text-muted-foreground mb-1">{String(t("documentCenter.col.tags", { defaultValue: "Từ khóa" }))}</div>
-                                                    <div className="flex flex-wrap gap-1">
-                                                        {previewDoc.commonKeys.map(k => <Badge key={k} variant="outline" className="text-[10px] font-normal">{k}</Badge>)}
-                                                    </div>
-                                                </div>
-                                            )}
-                                            <div>
-                                                <div className="text-xs text-muted-foreground mb-1">{String(t("documentCenter.col.date", { defaultValue: "Ngày tạo" }))}</div>
-                                                <div className="text-foreground">{previewDoc.createdAt ? format(new Date(previewDoc.createdAt), DATE_FORMAT.short) : "-"}</div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <PreviewSidePanel 
+                                        doc={previewDoc} 
+                                        t={t} 
+                                        documentTypes={documentTypes || []} 
+                                        onUpdated={(updatedDoc: DocumentInfo) => {
+                                            setPreviewDoc(updatedDoc);
+                                            // The list query will be invalidated in the mutation, so the table will update.
+                                        }} 
+                                    />
                                 )}
                                 <div className="flex-1 relative bg-muted/20">
                                     {previewType === "pdf" && <iframe src={previewUrl} className="absolute inset-0 w-full h-full border-0" title="PDF Preview" />}
@@ -604,6 +594,9 @@ function DocumentsListView({
     onEdit,
     previewLoading,
     t,
+    filterValues,
+    onFilterChange,
+    documentTypes,
 }: {
     documents: DocumentInfo[];
     isLoading: boolean;
@@ -614,6 +607,9 @@ function DocumentsListView({
     onEdit: (doc: DocumentInfo) => void;
     previewLoading: boolean;
     t: (key: string, opts?: Record<string, unknown>) => unknown;
+    filterValues: Record<string, string[]>;
+    onFilterChange: (col: string, vals: string[]) => void;
+    documentTypes: string[];
 }) {
     if (isLoading) {
         return (
@@ -646,10 +642,34 @@ function DocumentsListView({
             <div className="bg-muted/50 border-b border-border">
                 <div className="grid grid-cols-12 gap-2 px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     <div className="col-span-3">{String(t("documentCenter.col.title", { defaultValue: "Tiêu đề" }))}</div>
-                    <div className="col-span-2">{String(t("documentCenter.col.type", { defaultValue: "Phân loại" }))}</div>
-                    <div className="col-span-1">{String(t("documentCenter.col.status", { defaultValue: "Trạng thái" }))}</div>
+                    <div className="col-span-2">
+                        <TableHeaderFilter
+                            title={String(t("documentCenter.col.type", { defaultValue: "Phân loại" }))}
+                            type="enum"
+                            options={documentTypes}
+                            value={filterValues["documentType"]}
+                            onChange={(vals) => onFilterChange("documentType", vals)}
+                        />
+                    </div>
+                    <div className="col-span-1">
+                        <TableHeaderFilter
+                            title={String(t("documentCenter.col.status", { defaultValue: "Trạng thái" }))}
+                            type="enum"
+                            options={DOCUMENT_STATUS_OPTIONS}
+                            labelMap={DOCUMENT_STATUS_MAP}
+                            value={filterValues["documentStatus"]}
+                            onChange={(vals) => onFilterChange("documentStatus", vals)}
+                        />
+                    </div>
                     <div className="col-span-2">{String(t("documentCenter.col.ref", { defaultValue: "Tham chiếu" }))}</div>
-                    <div className="col-span-2">{String(t("documentCenter.col.date", { defaultValue: "Ngày tạo" }))}</div>
+                    <div className="col-span-2">
+                        <TableHeaderFilter
+                            title={String(t("documentCenter.col.date", { defaultValue: "Ngày tạo" }))}
+                            type="daterange"
+                            value={filterValues["createdAt"]}
+                            onChange={(vals) => onFilterChange("createdAt", vals)}
+                        />
+                    </div>
                     <div className="col-span-2 text-right">{String(t("documentCenter.col.actions", { defaultValue: "Thao tác" }))}</div>
                 </div>
             </div>
@@ -927,4 +947,143 @@ function DocumentStatusBadge({ status }: { status: string }) {
                 </Badge>
             );
     }
+}
+
+function PreviewSidePanel({ doc, t, documentTypes, onUpdated }: { doc: DocumentInfo; t: any; documentTypes: string[]; onUpdated: (doc: DocumentInfo) => void; }) {
+    const [isEditMode, setIsEditMode] = useState(false);
+    const qc = useQueryClient();
+
+    const [title, setTitle] = useState(doc.documentTitle || "");
+    const [type, setType] = useState(doc.documentType || "");
+    const [status, setStatus] = useState<string>(doc.documentStatus || "Issued");
+    const [keys, setKeys] = useState((doc.commonKeys || []).join(", "));
+
+    const updateMut = useMutation({
+        mutationFn: async () => {
+            const commonKeysArray = keys.split(",").map(k => k.trim()).filter(Boolean);
+            const body = {
+                documentId: doc.documentId,
+                documentType: type,
+                documentTitle: title,
+                documentStatus: status as any,
+                commonKeys: commonKeysArray,
+                jsonContent: {
+                    ...doc.jsonContent,
+                    documentTitle: title,
+                    documentStatus: status,
+                    commonKeys: commonKeysArray,
+                }
+            };
+            const res = await documentApi.update(body);
+            if ((res as any)?.success === false) throw new Error((res as any).error?.message || "Error");
+            return { ...doc, documentTitle: title, documentType: type, documentStatus: status as any, commonKeys: commonKeysArray, jsonContent: body.jsonContent };
+        },
+        onSuccess: (newDoc) => {
+            toast.success("Cập nhật thành công");
+            qc.invalidateQueries({ queryKey: ["documentCenter"] });
+            setIsEditMode(false);
+            onUpdated(newDoc);
+        },
+        onError: (err: any) => toast.error(err.message || "Có lỗi xảy ra")
+    });
+
+    if (isEditMode) {
+        return (
+            <div className="w-full md:w-[350px] shrink-0 border-b md:border-b-0 md:border-r border-border bg-muted/10 p-5 overflow-y-auto flex flex-col">
+                <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider">Sửa thông tin</h4>
+                    <Button size="sm" variant="ghost" onClick={() => setIsEditMode(false)} disabled={updateMut.isPending}>Hủy</Button>
+                </div>
+                <div className="space-y-4 text-sm flex-1">
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-foreground">Tiêu đề <span className="text-destructive">*</span></label>
+                        <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Nhập tiêu đề..." disabled={updateMut.isPending} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-foreground">Loại <span className="text-destructive">*</span></label>
+                            <Select value={type} onValueChange={setType} disabled={updateMut.isPending}>
+                                <SelectTrigger className="h-9"><SelectValue placeholder="Chọn" /></SelectTrigger>
+                                <SelectContent>
+                                    {documentTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-foreground">Trạng thái</label>
+                            <Select value={status} onValueChange={setStatus} disabled={updateMut.isPending}>
+                                <SelectTrigger className="h-9"><SelectValue placeholder="Chọn" /></SelectTrigger>
+                                <SelectContent>
+                                    {DOCUMENT_STATUS_OPTIONS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-foreground">Từ khóa</label>
+                        <Input value={keys} onChange={e => setKeys(e.target.value)} placeholder="Tag 1, Tag 2..." disabled={updateMut.isPending} />
+                    </div>
+                </div>
+                <Button className="w-full mt-4" disabled={!title || !type || updateMut.isPending} onClick={() => updateMut.mutate()}>
+                    {updateMut.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Lưu thay đổi
+                </Button>
+            </div>
+        );
+    }
+
+    return (
+        <div className="w-full md:w-[350px] shrink-0 border-b md:border-b-0 md:border-r border-border bg-muted/10 p-5 overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+                <h4 className="text-sm font-semibold text-foreground uppercase tracking-wider">{String(t("documentCenter.preview.infoTitle", { defaultValue: "Thông tin bản ghi" }))}</h4>
+                <Button size="sm" variant="ghost" className="h-8 px-2 -mr-2" onClick={() => {
+                    setTitle(doc.documentTitle || "");
+                    setType(doc.documentType || "");
+                    setStatus(doc.documentStatus || "Issued");
+                    setKeys((doc.commonKeys || []).join(", "));
+                    setIsEditMode(true);
+                }}>
+                    <Edit className="h-4 w-4 mr-1" /> Sửa
+                </Button>
+            </div>
+            <div className="space-y-4 text-sm">
+                <div>
+                    <div className="text-xs text-muted-foreground mb-1">{String(t("documentCenter.col.id", { defaultValue: "Mã tài liệu" }))}</div>
+                    <div className="font-mono bg-background px-2 py-1 rounded border shadow-sm text-xs break-all text-muted-foreground">{doc.documentId}</div>
+                </div>
+                <div>
+                    <div className="text-xs text-muted-foreground mb-1">{String(t("documentCenter.col.title", { defaultValue: "Tiêu đề" }))}</div>
+                    <div className="font-medium text-foreground">{doc.documentTitle || "-"}</div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <div className="text-xs text-muted-foreground mb-1">{String(t("documentCenter.col.type", { defaultValue: "Loại tài liệu" }))}</div>
+                        <div>{doc.documentType ? <Badge variant="secondary" className="uppercase text-[10px]">{doc.documentType}</Badge> : "-"}</div>
+                    </div>
+                    <div>
+                        <div className="text-xs text-muted-foreground mb-1">{String(t("documentCenter.col.status", { defaultValue: "Trạng thái" }))}</div>
+                        <div>{doc.documentStatus ? <DocumentStatusBadge status={doc.documentStatus} /> : "-"}</div>
+                    </div>
+                </div>
+                {(doc.refType || doc.refId) && (
+                    <div>
+                        <div className="text-xs text-muted-foreground mb-1">{String(t("documentCenter.col.ref", { defaultValue: "Tham chiếu" }))}</div>
+                        <Badge variant="outline">{doc.refType ? `${doc.refType}: ` : ""}{doc.refId}</Badge>
+                    </div>
+                )}
+                {doc.commonKeys && doc.commonKeys.length > 0 && (
+                    <div>
+                        <div className="text-xs text-muted-foreground mb-1">{String(t("documentCenter.col.tags", { defaultValue: "Từ khóa" }))}</div>
+                        <div className="flex flex-wrap gap-1">
+                            {doc.commonKeys.map(k => <Badge key={k} variant="outline" className="text-[10px] font-normal">{k}</Badge>)}
+                        </div>
+                    </div>
+                )}
+                <div>
+                    <div className="text-xs text-muted-foreground mb-1">{String(t("documentCenter.col.date", { defaultValue: "Ngày tạo" }))}</div>
+                    <div className="text-foreground">{doc.createdAt ? format(new Date(doc.createdAt), DATE_FORMAT.short) : "-"}</div>
+                </div>
+            </div>
+        </div>
+    );
 }

@@ -39,6 +39,7 @@ export interface DocumentCreateRefBody {
     documentType?: string;
     documentTitle?: string;
     commonKeys?: string[];
+    documentStatus?: DocumentStatus;
     jsonContent?: Record<string, any>;
 }
 
@@ -48,6 +49,7 @@ export interface DocumentUpdateBody {
     documentType?: string;
     documentTitle?: string;
     commonKeys?: string[];
+    documentStatus?: DocumentStatus;
     jsonContent?: Record<string, any>;
 }
 

@@ -2002,9 +2002,26 @@ export default {
             name: "Name of sample",
             lot: "LOT No.",
             mfg: "Mfg. Date",
+            placeOfProduction: "Place of production",
+            exp: "Exp. Date",
+            declarationNo: "Declaration No.",
+            registrationNo: "Registration No.",
+            otherInfo: "Other information",
+            receiptDate: "Date of receipt",
+            storageTime: "Storage time",
+            storageCondition: "Condition of retained sample",
+            testDate: "Date of testing",
+            description: "Description",
+
+
+        },
+        table: {
+            stt: "No.",
+            test: "Parameter",
+            result: "Result",
             unit: "Unit",
-            protocol: "Protocol",
-            scope: "Accreditation"
+            protocol: "Method",
+            scope: "Accreditation",
         },
         noStorage: "No storage",
         notesTitle: "Notes",

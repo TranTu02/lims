@@ -16,6 +16,23 @@ interface DraggableInfoTableProps {
     onChange: (data: InfoRow[]) => void;
 }
 
+const getLabelKey = (label: string) => {
+    const l = label.trim();
+    if (l === "Tên mẫu thử" || l.includes("Tên mẫu")) return "name";
+    if (l === "Số lô") return "lot";
+    if (l === "Ngày sản xuất") return "mfg";
+    if (l === "Nơi sản xuất") return "placeOfProduction";
+    if (l === "Hạn sử dụng") return "exp";
+    if (l === "Số công bố") return "declarationNo";
+    if (l === "Số đăng ký") return "registrationNo";
+    if (l === "Thông tin khác") return "otherInfo";
+    if (l === "Ngày tiếp nhận") return "receiptDate";
+    if (l === "Ngày thử nghiệm") return "testDate";
+    if (l === "Tình trạng mẫu lưu" || l === "Thời gian lưu mẫu") return "storageCondition";
+    if (l === "Mô tả") return "description";
+    return null;
+};
+
 export function DraggableInfoTable({ title, data, isEditing, onChange }: DraggableInfoTableProps) {
     const { t } = useTranslation();
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -103,7 +120,11 @@ export function DraggableInfoTable({ title, data, isEditing, onChange }: Draggab
                                                 placeholder={t("common.placeholder.enterField")}
                                             />
                                         ) : (
-                                            <span className="text-sm text-foreground">{row.label}</span>
+                                            (() => {
+                                                const labelKey = getLabelKey(row.label);
+                                                const displayLabel = labelKey ? t(`testReport.sampleLabels.${labelKey}`) : row.label;
+                                                return <span className="text-sm text-foreground">{displayLabel}</span>;
+                                            })()
                                         )}
                                     </td>
                                     <td className="px-3 py-2">

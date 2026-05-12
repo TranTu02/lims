@@ -109,7 +109,7 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
     const directProtocolId = uniqueProtocols.find(p => p.code === selectedProtocolCode)?.id || (primaryAnalysis as AnalysisListItem & { protocolId?: string })?.protocolId || analysisDetail?.protocolId || matrixFull?.protocolId || null;
     const { data: protocolDetail, isLoading: isLoadingProtocol } = useProtocolDetail({ params: { protocolId: directProtocolId || "" } });
     // Mutators
-    const { mutate: updateBulk, isPending: isUpdating } = useAnalysesUpdateBulk();
+    const { isPending: isUpdating } = useAnalysesUpdateBulk();
     const { mutate: generateLabReport, isPending: isGenerating } = useAnalysesGenerateLabReport();
     const [isExported, setIsExported] = useState(false);
 

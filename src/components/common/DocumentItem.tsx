@@ -36,7 +36,9 @@ export function DocumentItem({ doc }: { doc: any }) {
             }
             setPreviewOpen(true);
         } catch {
-            window.open(`/api/v2/documents/get/url?id=${doc.documentId}`, "_blank");
+            const res = await documentApi.url(doc.documentId);
+            const url = (res as any).data?.url || (res as any).url;
+            if (url) window.open(url, "_blank");
         } finally {
             setUrlLoading(false);
         }
