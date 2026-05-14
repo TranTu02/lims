@@ -495,6 +495,10 @@ export function AnalysesTable({
               </span>
             </th>
 
+            <th className="px-3 py-4 text-left text-xs font-medium text-muted-foreground uppercase">
+              {String(t("lab.analyses.analysisLocation", { defaultValue: "Nơi thực hiện" }))}
+            </th>
+
             <th className="px-3 py-4 text-center text-xs font-medium text-muted-foreground uppercase">
               {String(t("common.actions"))}
             </th>
@@ -532,6 +536,10 @@ export function AnalysesTable({
                   <AnalysisResultStatusBadge status={row.analysisResultStatus ?? null} />
                 </td>
 
+                <td className="px-3 py-4 text-sm text-foreground">
+                  {toDash(row.analysisLocation)}
+                </td>
+
                 <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
                   <RowActionIcons
                     showView={false}
@@ -546,7 +554,7 @@ export function AnalysesTable({
 
           {items.length === 0 ? (
             <tr>
-              <td colSpan={7} className="px-3 py-6 text-center text-sm text-muted-foreground">
+              <td colSpan={8} className="px-3 py-6 text-center text-sm text-muted-foreground">
                 {String(t("common.noData"))}
               </td>
             </tr>

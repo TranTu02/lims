@@ -108,6 +108,7 @@ type BulkValues = {
     technicianGroupId: string;
     technicianGroupName: string;
     analysisDeadline: string;
+    analysisLocation: string;
 };
 
 function BulkEditPanel({
@@ -131,6 +132,7 @@ function BulkEditPanel({
         technicianGroupId: "",
         technicianGroupName: "",
         analysisDeadline: "",
+        analysisLocation: "",
     });
 
     const set = (k: keyof BulkValues, v: string) => setVals((p) => ({ ...p, [k]: v }));
@@ -145,6 +147,7 @@ function BulkEditPanel({
                 technicianGroupId: vals.technicianGroupId || (a as any).technicianGroupId,
                 technicianGroupName: vals.technicianGroupName || (a as any).technicianGroupName,
                 analysisDeadline: vals.analysisDeadline ? vals.analysisDeadline : a.analysisDeadline,
+                analysisLocation: vals.analysisLocation || a.analysisLocation,
             })),
         [selectedAnalyses, vals]
     );
@@ -165,7 +168,7 @@ function BulkEditPanel({
             </div>
 
             {/* Input row */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 <div className="space-y-1">
                     <label className="text-[10px] text-muted-foreground uppercase font-semibold">Phương pháp</label>
                     <Input
@@ -195,13 +198,16 @@ function BulkEditPanel({
                         size="sm"
                     />
                 </div>
-                <div className="space-y-1">
-                    <label className="text-[10px] text-muted-foreground uppercase font-semibold">Hạn trả</label>
-                    <Input
-                        type="date"
-                        className="h-8 text-xs bg-background"
-                        value={vals.analysisDeadline}
                         onChange={(e) => set("analysisDeadline", e.target.value)}
+                    />
+                </div>
+                <div className="space-y-1">
+                    <label className="text-[10px] text-muted-foreground uppercase font-semibold">Nơi thực hiện</label>
+                    <Input
+                        className="h-8 text-xs bg-background"
+                        placeholder="Để trống = giữ nguyên"
+                        value={vals.analysisLocation}
+                        onChange={(e) => set("analysisLocation", e.target.value)}
                     />
                 </div>
             </div>
@@ -215,7 +221,7 @@ function BulkEditPanel({
                     <table className="w-full text-xs">
                         <thead className="sticky top-0 bg-muted/30">
                             <tr>
-                                {["Mã PT", "Chỉ tiêu", "Phương pháp", "Đơn vị", "Nhóm KTV", "Hạn trả"].map((h) => (
+                                {["Mã PT", "Chỉ tiêu", "Phương pháp", "Đơn vị", "Nhóm KTV", "Nơi thực hiện", "Hạn trả"].map((h) => (
                                     <th key={h} className="px-3 py-2 text-left text-[10px] text-muted-foreground font-semibold">
                                         {h}
                                     </th>
@@ -235,6 +241,9 @@ function BulkEditPanel({
                                     </td>
                                     <td className={cn("px-3 py-1.5", vals.technicianGroupName ? "text-primary font-semibold" : "text-muted-foreground")}>
                                         {(a as any).technicianGroupName ?? "—"}
+                                    </td>
+                                    <td className={cn("px-3 py-1.5", vals.analysisLocation ? "text-primary font-semibold" : "text-muted-foreground")}>
+                                        {a.analysisLocation ?? "—"}
                                     </td>
                                     <td className={cn("px-3 py-1.5", vals.analysisDeadline ? "text-destructive font-semibold" : "text-muted-foreground")}>
                                         {fmtDate(a.analysisDeadline)}
@@ -313,6 +322,7 @@ export function AnalysesEditableTable({ analyses, onUpdateAnalysis, onBulkUpdate
                     patch.technicianGroupName = vals.technicianGroupName;
                 }
                 if (vals.analysisDeadline) patch.analysisDeadline = vals.analysisDeadline;
+                if (vals.analysisLocation) patch.analysisLocation = vals.analysisLocation;
                 return patch;
             });
             try {
@@ -421,7 +431,7 @@ export function AnalysesEditableTable({ analyses, onUpdateAnalysis, onBulkUpdate
                                         </button>
                                     </th>
                                 )}
-                                {["Mã PT", "Mẫu", "Chỉ tiêu", "Phương pháp", "Kết quả", "Đơn vị", "STT", "Nhóm KTV", "Hạn trả"].map((h) => (
+                                {["Mã PT", "Mẫu", "Chỉ tiêu", "Phương pháp", "Kết quả", "Đơn vị", "STT", "Nhóm KTV", "Nơi thực hiện", "Hạn trả"].map((h) => (
                                     <th key={h} className="px-3 py-2.5 text-left text-[10px] font-semibold text-muted-foreground uppercase">
                                         {h}
                                     </th>
@@ -522,6 +532,19 @@ export function AnalysesEditableTable({ analyses, onUpdateAnalysis, onBulkUpdate
                                                     <span className="text-xs text-muted-foreground">
                                                         {(a as any).technicianGroupName ?? a.technician?.identityName ?? "—"}
                                                     </span>
+                                                )}
+                                            </td>
+
+                                            {/* Nơi thực hiện — editable */}
+                                            <td className="px-2 py-1.5">
+                                                {isEditing ? (
+                                                    <Input
+                                                        className="h-7 text-[11px] bg-background px-2 w-[100px]"
+                                                        value={a.analysisLocation ?? ""}
+                                                        onChange={(e) => update(a.analysisId, "analysisLocation", e.target.value)}
+                                                    />
+                                                ) : (
+                                                    <span className="text-[10px] text-muted-foreground">{a.analysisLocation ?? "—"}</span>
                                                 )}
                                             </td>
 

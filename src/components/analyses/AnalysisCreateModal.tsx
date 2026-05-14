@@ -38,6 +38,7 @@ type FormValue = {
   analysisResult: string | null;
   analysisResultStatus: AnalysisResultStatusDb | null;
   analysisCompletedAt: string | null;
+  analysisLocation: string | null;
 };
 
 type Props = {
@@ -112,6 +113,7 @@ export function AnalysisCreateModal({
       analysisResult: null,
       analysisResultStatus: "NotEvaluated",
       analysisCompletedAt: null,
+      analysisLocation: null,
     };
   }, []);
 
@@ -153,6 +155,8 @@ export function AnalysisCreateModal({
         : ""
     );
 
+  const [analysisLocation, setAnalysisLocation] = useState("");
+
   const canSubmit = sampleId.trim().length > 0;
 
   const samples = qSamples.data ?? [];
@@ -190,6 +194,7 @@ export function AnalysisCreateModal({
     setAnalysisResult("");
     setAnalysisResultStatus("NotEvaluated");
     setAnalysisCompletedAtDate("");
+    setAnalysisLocation("");
 
     setResetKey((k) => k + 1);
   }
@@ -357,6 +362,16 @@ export function AnalysisCreateModal({
                 className="bg-background"
               />
             </div>
+
+            <div className="space-y-2">
+              <Label>{t("lab.analyses.analysisLocation", { defaultValue: "Nơi thực hiện" })}</Label>
+              <Input
+                value={analysisLocation}
+                onChange={(e) => setAnalysisLocation(e.target.value)}
+                className="bg-background"
+                placeholder={t("common.placeholder.enterValue")}
+              />
+            </div>
           </div>
 
           <div className="p-6 border-t border-border flex items-center justify-end gap-2">
@@ -382,6 +397,7 @@ export function AnalysisCreateModal({
                   analysisResultStatus:
                     analysisResultStatus === "" ? null : analysisResultStatus,
                   analysisCompletedAt: completedAt,
+                  analysisLocation: toNullIfBlank(analysisLocation),
                 });
               }}
               className="flex items-center gap-2">

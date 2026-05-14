@@ -38,6 +38,7 @@ type FormValue = {
   analysisResult: string | null;
   analysisResultStatus: AnalysisResultStatusDb | null;
   analysisCompletedAt: string | null;
+  analysisLocation: string | null;
 };
 
 type Props = {
@@ -158,6 +159,7 @@ export function AnalysisUpdateModal({
 
   const [analysisResult, setAnalysisResult] = useState<string>("");
   const [analysisCompletedAtDate, setAnalysisCompletedAtDate] = useState<string>("");
+  const [analysisLocation, setAnalysisLocation] = useState<string>("");
 
   const [resetKey, setResetKey] = useState<number>(0);
 
@@ -194,6 +196,8 @@ export function AnalysisUpdateModal({
     setAnalysisCompletedAtDate(
       target.analysisCompletedAt ? isoToDateOnly(String(target.analysisCompletedAt)) : "",
     );
+
+    setAnalysisLocation(target.analysisLocation == null ? "" : String(target.analysisLocation));
   }, [open, target]);
 
   useEffect(() => {
@@ -408,6 +412,16 @@ export function AnalysisUpdateModal({
                 className="bg-background"
               />
             </div>
+
+            <div className="space-y-2">
+              <Label>{t("lab.analyses.analysisLocation", { defaultValue: "Nơi thực hiện" })}</Label>
+              <Input
+                value={analysisLocation}
+                onChange={(e) => setAnalysisLocation(e.target.value)}
+                className="bg-background"
+                placeholder={t("common.placeholder.enterValue")}
+              />
+            </div>
           </div>
 
           <div className="p-6 border-t border-border flex items-center justify-end gap-2">
@@ -432,6 +446,7 @@ export function AnalysisUpdateModal({
                   analysisResult: toNullIfBlank(analysisResult),
                   analysisResultStatus: analysisResultStatus === "" ? null : analysisResultStatus,
                   analysisCompletedAt: completedAt,
+                  analysisLocation: toNullIfBlank(analysisLocation),
                 });
               }}
               className="flex items-center gap-2"

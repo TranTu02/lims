@@ -317,6 +317,7 @@ export function AnalysesMainPanel() {
                             analysisResultStatus: (v.analysisResultStatus ?? null) as AnalysisResultStatusDb | null,
                             analysisResult: v.analysisResult,
                             analysisCompletedAt: v.analysisCompletedAt,
+                            analysisLocation: v.analysisLocation,
                         },
                     });
                 }}
@@ -343,6 +344,7 @@ export function AnalysesMainPanel() {
                             analysisResult: v.analysisResult,
                             analysisResultStatus: (v.analysisResultStatus ?? null) as AnalysisResultStatusDb | null,
                             analysisCompletedAt: v.analysisCompletedAt,
+                            analysisLocation: v.analysisLocation,
                         },
                     });
                 }}

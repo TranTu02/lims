@@ -124,7 +124,7 @@ function LabelSingle({ item }: { item: LabelItem }) {
                                 TT Pha: {typeof item.preparedBy === "string" ? item.preparedBy : item.preparedBy?.identityName || ""}
                             </div>
                             <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>
-                                {item.preparationLocation || ""}
+                                {item.preparationLocation ? `Nơi pha: ${item.preparationLocation}` : ""}
                             </div>
                         </>
                     )}
@@ -166,7 +166,7 @@ function LabelSingle({ item }: { item: LabelItem }) {
                 <div
                     className="id-text"
                     style={{
-                        fontSize: "8pt",
+                        fontSize: "6.5pt",
                         fontWeight: 900,
                         fontFamily: "monospace",
                         textAlign: "center",
@@ -176,7 +176,8 @@ function LabelSingle({ item }: { item: LabelItem }) {
                         overflow: "hidden",
                         whiteSpace: "normal",
                         wordBreak: "break-all",
-                        lineHeight: 0.9,
+                        lineHeight: 1.1,
+                        marginTop: "0.5mm",
                         maxWidth: "12mm",
                     }}
                 >
@@ -285,7 +286,8 @@ export function PrintLabelModal({ items, onClose }: Props) {
                         overflow: hidden;
                         white-space: normal;
                         word-break: break-all;
-                        line-height: 0.9;
+                        line-height: 1.1;
+                        margin-top: 0.5mm;
                         max-width: 12mm;
                     }
                     @media print {

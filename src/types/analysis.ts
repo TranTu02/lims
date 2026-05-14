@@ -35,6 +35,7 @@ export type AnalysisListItem = {
 
     analysisDocumentId?: string | null;
     analysisDocument?: Record<string, unknown> | null;
+    analysisLocation?: string | null;
 };
 
 export type AnalysisDetail = {

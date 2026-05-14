@@ -215,6 +215,12 @@ export async function receiptsExportReport(input: { body: ReceiptsExportReportBo
     });
 }
 
+export async function receiptsExportHandover(body: { receiptId: string }): Promise<ApiResponse<{ success: boolean; documentId?: string; fileId?: string; message?: string }>> {
+    return api.post("/v2/receipts/export/handover", {
+        body,
+    });
+}
+
 export type ReceptionEmailFormResponse = {
     from: string;
     to: string;
@@ -448,6 +454,12 @@ export function useDeleteReceipt() {
 export function useExportReport() {
     return useMutation({
         mutationFn: async (input: { body: ReceiptsExportReportBody }) => assertSuccess(await receiptsExportReport(input)),
+    });
+}
+
+export function useExportHandover() {
+    return useMutation({
+        mutationFn: async (body: { receiptId: string }) => assertSuccess(await receiptsExportHandover(body)),
     });
 }
 

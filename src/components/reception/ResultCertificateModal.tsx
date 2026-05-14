@@ -165,7 +165,7 @@ function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail,
                 else if (labelVi === "Ngày thử nghiệm") labelKey = "testDate";
                 else if (labelVi === "Tình trạng mẫu lưu" || labelVi === "Thời gian lưu mẫu") labelKey = "storageCondition";
                 else if (labelVi === "Mô tả") labelKey = "description";
-                
+
                 const transVi = labelKey ? tVi(`testReport.sampleLabels.${labelKey}`) : labelVi;
                 const trans2nd = labelKey ? t2nd(`testReport.sampleLabels.${labelKey}`) : "";
                 const finalLabel = trans2nd ? `${transVi} / ${trans2nd}` : transVi;
@@ -260,12 +260,12 @@ function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail,
                             <table style="width: 100%; border-collapse: collapse; font-size: 11px;" class="mce-item-table">
                                 <thead>
                                     <tr>
-                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f9f9f9; font-weight: 500; width: 6%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.stt")}</strong><br/><span style="font-size: 10px; color: #444444;">/ ${t2nd("testReport.table.stt")}</span></th>
-                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f9f9f9; font-weight: 500; width: 30%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.test")}</strong><br/><span style="font-size: 10px; color: #444444;">/ ${t2nd("testReport.table.test")}</span></th>
-                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f9f9f9; font-weight: 500; width: 15%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.result")}</strong><br/><span style="font-size: 10px; color: #444444;">/ ${t2nd("testReport.table.result")}</span></th>
-                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f9f9f9; font-weight: 500; width: 10%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.unit")}</strong><br/><span style="font-size: 10px; color: #444444;">/ ${t2nd("testReport.table.unit")}</span></th>
-                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f9f9f9; font-weight: 500; width: 25%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.protocol")}</strong><br/><span style="font-size: 10px; color: #444444;">/ ${t2nd("testReport.table.protocol")}</span></th>
-                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #f9f9f9; font-weight: 500; width: 14%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.scope")}</strong><br/><span style="font-size: 10px; color: #444444;">/ ${t2nd("testReport.table.scope")}</span></th>
+                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #e6e6e6; font-weight: 500; width: 6%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.stt")}</strong><br/><span style="font-size: 10px; color: #444444;">/ ${t2nd("testReport.table.stt")}</span></th>
+                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #e6e6e6; font-weight: 500; width: 30%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.test")}</strong><br/><span style="font-size: 10px; color: #444444;">/ ${t2nd("testReport.table.test")}</span></th>
+                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #e6e6e6; font-weight: 500; width: 15%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.result")}</strong><br/><span style="font-size: 10px; color: #444444;">/ ${t2nd("testReport.table.result")}</span></th>
+                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #e6e6e6; font-weight: 500; width: 10%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.unit")}</strong><br/><span style="font-size: 10px; color: #444444;">/ ${t2nd("testReport.table.unit")}</span></th>
+                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #e6e6e6; font-weight: 500; width: 25%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.protocol")}</strong><br/><span style="font-size: 10px; color: #444444;">/ ${t2nd("testReport.table.protocol")}</span></th>
+                                        <th style="border: 1px solid black; padding: 4px 8px; background-color: #e6e6e6; font-weight: 500; width: 14%; text-align: left; font-size: 11px; vertical-align: middle; line-height: 1.2;"><strong>${tVi("testReport.table.scope")}</strong><br/><span style="font-size: 10px; color: #444444;">/ ${t2nd("testReport.table.scope")}</span></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -282,14 +282,18 @@ function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail,
                                 <p style="font-weight: bold; margin: 0; font-size: 11px;">${tVi("testReport.notesTitle")} / ${t2nd("testReport.notesTitle")}</p>
                             </div>
                             <p style="font-size: 11px; margin: 0; line-height: 1.2;">
-                                ${["kph", "methodLOD", "methodLOQ", "irdop", "ex", "vs", "tdc", "sampleInfo", "validOnly"].map(key => `${tVi(`testReport.notes.${key}`)} / ${t2nd(`testReport.notes.${key}`)}.`).join("<br/>")}
+                                ${["kph", "methodLOD", "methodLOQ", "irdop", "ex", "vs", "tdc", "sampleInfo", "validOnly"].map((key) => `${tVi(`testReport.notes.${key}`)} / ${t2nd(`testReport.notes.${key}`)}.`).join("<br/>")}
                             </p>
-                            ${(receipt.receiptNote || sample.sampleNote) ? `
+                            ${
+                                receipt.receiptNote || sample.sampleNote
+                                    ? `
                                 <div style="margin-top: 5px; padding-top: 5px; border-top: 0.5px dashed #ccc; font-size: 11px; line-height: 1.3;">
                                     ${receipt.receiptNote ? `<div style="margin-bottom: 2px;"><strong>Ghi chú phiếu / Receipt Note:</strong> ${receipt.receiptNote}</div>` : ""}
                                     ${sample.sampleNote ? `<div><strong>Ghi chú mẫu / Sample Note:</strong> ${sample.sampleNote}</div>` : ""}
                                 </div>
-                            ` : ""}
+                            `
+                                    : ""
+                            }
                         </div>
 
                         <div style="height: 4mm;"></div>
@@ -400,30 +404,43 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                     contentHtml,
                     replacedByReportId: replacingReportId || undefined,
                 },
-            })) as { url?: string; base64?: string; pdfBase64?: string; reportId?: string; documentId?: string; fileId?: string };
+            })) as any;
 
-            const finalBase64 = res.pdfBase64 || res.base64;
+            // Handle potential stringified response
+            const parsedRes = typeof res === "string" ? JSON.parse(res) : res;
+            const responseData = parsedRes?.data || parsedRes;
+            
+            const finalBase64 = responseData?.pdfBase64 || responseData?.base64;
+            const finalUrl = responseData?.url;
 
             if (preview) {
-                if (res.url) {
-                    window.open(res.url, "_blank");
+                if (finalUrl) {
+                    window.open(finalUrl, "_blank");
                 } else if (finalBase64) {
-                    const byteCharacters = atob(finalBase64);
-                    const byteNumbers = new Array(byteCharacters.length);
-                    for (let i = 0; i < byteCharacters.length; i++) {
-                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    try {
+                        const byteCharacters = atob(finalBase64);
+                        const byteNumbers = new Array(byteCharacters.length);
+                        for (let i = 0; i < byteCharacters.length; i++) {
+                            byteNumbers[i] = byteCharacters.charCodeAt(i);
+                        }
+                        const byteArray = new Uint8Array(byteNumbers);
+                        const blob = new Blob([byteArray], { type: "application/pdf" });
+                        const url = URL.createObjectURL(blob);
+                        setPreviewUrl(url);
+                    } catch (decodeErr) {
+                        console.error("Lỗi giải mã PDF:", decodeErr);
+                        toast.error("Đã xảy ra lỗi khi giải mã PDF (Base64 không hợp lệ).");
                     }
-                    const byteArray = new Uint8Array(byteNumbers);
-                    const blob = new Blob([byteArray], { type: "application/pdf" });
-                    const url = URL.createObjectURL(blob);
-                    setPreviewUrl(url);
+                } else {
+                    console.error("Preview response missing data:", parsedRes);
+                    toast.error("Không nhận được dữ liệu PDF xem trước từ máy chủ");
                 }
-                return res;
+                return parsedRes;
             } else if (!preview) {
                 toast.success(t("common.toast.success", "Xuất báo cáo thành công"), { duration: 1000 });
 
                 // Track generated report for email
-                const fileId = (res.reportId || res.documentId || res.fileId) as string;
+                const fileId = (responseData.reportId || responseData.documentId || responseData.fileId) as string;
                 if (fileId) {
                     setLastGeneratedReport({ fileId, fileName: `Report_${selectedSample?.sampleId || receipt.receiptCode}.pdf` });
                 }
@@ -570,8 +587,6 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
         refetch();
     };
 
-
-
     const handleOpenDocument = async (docId: string) => {
         const toastId = toast.loading("Đang lấy liên kết tài liệu...");
         try {
@@ -603,13 +618,7 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                         <p className="text-xs text-muted-foreground mt-0.5">Mã biên nhận: {receipt.receiptCode}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="gap-1.5" 
-                            onClick={() => handleExport(true)} 
-                            disabled={exportMutation.isPending}
-                        >
+                        <Button variant="outline" size="sm" className="gap-1.5" onClick={() => handleExport(true)} disabled={exportMutation.isPending}>
                             <Eye className="h-3.5 w-3.5" />
                             Xem trước
                         </Button>
@@ -784,20 +793,10 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                                                 <div className="space-y-1.5">
                                                     <label className="text-[11px] font-medium text-muted-foreground pl-0.5">Ngôn ngữ báo cáo</label>
                                                     <div className="flex items-center gap-2">
-                                                        <Button
-                                                            variant={secondLang === "en" ? "default" : "outline"}
-                                                            size="sm"
-                                                            className="flex-1 h-8 text-xs"
-                                                            onClick={() => setSecondLang("en")}
-                                                        >
+                                                        <Button variant={secondLang === "en" ? "default" : "outline"} size="sm" className="flex-1 h-8 text-xs" onClick={() => setSecondLang("en")}>
                                                             VI / EN
                                                         </Button>
-                                                        <Button
-                                                            variant={secondLang === "cn" ? "default" : "outline"}
-                                                            size="sm"
-                                                            className="flex-1 h-8 text-xs"
-                                                            onClick={() => setSecondLang("cn")}
-                                                        >
+                                                        <Button variant={secondLang === "cn" ? "default" : "outline"} size="sm" className="flex-1 h-8 text-xs" onClick={() => setSecondLang("cn")}>
                                                             VI / CN
                                                         </Button>
                                                     </div>
@@ -806,7 +805,7 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                                                 <div className="space-y-1.5">
                                                     <label className="text-[11px] font-medium text-muted-foreground pl-0.5">Thay thế báo cáo</label>
                                                     <Select value={replacingReportId || "none"} onValueChange={(val) => setReplacingReportId(val === "none" ? null : val)}>
-                                                        <SelectTrigger className="h-10 text-sm bg-black! border-white/40! text-white! rounded-lg">
+                                                        <SelectTrigger className="h-10 text-sm rounded-lg">
                                                             <SelectValue placeholder="Chọn báo cáo để thay thế" />
                                                         </SelectTrigger>
                                                         <SelectContent className="z-[1200]">
@@ -843,26 +842,26 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                                                     <span>Nền mẫu:</span>
                                                     <Badge variant="outline" className="h-5 text-[10px]">{`${selectedSample.sampleTypeName || "-"}`}</Badge>
                                                 </div>
-                                    <div className="bg-muted/30 p-4 rounded-xl border border-border/50">
-                                        <div className="flex items-center gap-2 mb-3 text-primary font-semibold text-sm">
-                                            <ClipboardList className="h-4 w-4" />
-                                            Ghi chú hệ thống
-                                        </div>
-                                        <div className="space-y-3">
-                                            <div>
-                                                <span className="text-[11px] font-bold text-muted-foreground uppercase mb-1.5 block px-0.5">Ghi chú phiếu</span>
-                                                <div className="text-xs italic bg-muted/60 p-2.5 rounded-lg border border-border/80 whitespace-pre-wrap text-foreground/90">
-                                                    {activeReceipt.receiptNote || "—"}
+                                                <div className="bg-muted/30 p-4 rounded-xl border border-border/50">
+                                                    <div className="flex items-center gap-2 mb-3 text-primary font-semibold text-sm">
+                                                        <ClipboardList className="h-4 w-4" />
+                                                        Ghi chú hệ thống
+                                                    </div>
+                                                    <div className="space-y-3">
+                                                        <div>
+                                                            <span className="text-[11px] font-bold text-muted-foreground uppercase mb-1.5 block px-0.5">Ghi chú phiếu</span>
+                                                            <div className="text-xs italic bg-muted/60 p-2.5 rounded-lg border border-border/80 whitespace-pre-wrap text-foreground/90">
+                                                                {activeReceipt.receiptNote || "—"}
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-[11px] font-bold text-muted-foreground uppercase mb-1.5 block px-0.5">Ghi chú mẫu</span>
+                                                            <div className="text-xs italic bg-warning/10 p-2.5 rounded-lg border border-warning/30 whitespace-pre-wrap text-warning font-medium">
+                                                                {selectedSample?.sampleNote || "—"}
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div>
-                                                <span className="text-[11px] font-bold text-muted-foreground uppercase mb-1.5 block px-0.5">Ghi chú mẫu</span>
-                                                <div className="text-xs italic bg-warning/10 p-2.5 rounded-lg border border-warning/30 whitespace-pre-wrap text-warning font-medium">
-                                                    {selectedSample?.sampleNote || "—"}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
                                                 {(() => {
                                                     const list = selectedSample.reports ? selectedSample.reports.map((r: any) => `${r.reportId || r}`) : selectedSample.reportIds || [];
                                                     if (list.length === 0) return null;
@@ -927,13 +926,10 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                                                         </div>
                                                         <div className="flex justify-between items-end pt-1">
                                                             <div className="flex items-baseline gap-1.5">
-                                                                <span 
-                                                                    className="font-bold text-primary text-base"
-                                                                    dangerouslySetInnerHTML={{ __html: String(a.analysisResult || "—") }}
-                                                                />
+                                                                <span className="font-bold text-primary text-base" dangerouslySetInnerHTML={{ __html: String(a.analysisResult || "—") }} />
                                                                 <span className="text-xs text-muted-foreground">{`${a.analysisUnit || ""}`}</span>
                                                             </div>
-                                                            
+
                                                             <Button
                                                                 variant="ghost"
                                                                 size="icon"
@@ -941,10 +937,7 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                                                                 onClick={() => a.analysisDocumentId && handleOpenDocument(a.analysisDocumentId)}
                                                                 title={a.analysisDocumentId ? "Xem tài liệu kết quả" : "Chưa có tài liệu kết quả"}
                                                             >
-                                                                <FileText className={cn(
-                                                                    "h-4 w-4 transition-colors",
-                                                                    a.analysisDocumentId ? "text-success" : "text-warning"
-                                                                )} />
+                                                                <FileText className={cn("h-4 w-4 transition-colors", a.analysisDocumentId ? "text-success" : "text-warning")} />
                                                             </Button>
                                                         </div>
                                                     </div>
@@ -967,8 +960,8 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
             {/* PDF Preview Modal */}
             {previewUrl && (
                 <>
-                    <div className="fixed inset-0 bg-black/70 z-[90]" onClick={() => setPreviewUrl(null)} />
-                    <div className="fixed inset-10 bg-background rounded-lg shadow-2xl z-[100] flex flex-col border border-border overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                    <div className="fixed inset-0 bg-black/70 z-[1200]" onClick={() => setPreviewUrl(null)} />
+                    <div className="fixed inset-10 bg-background rounded-lg shadow-2xl z-[1201] flex flex-col border border-border overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                         <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-card">
                             <h3 className="font-semibold">Xem trước PDF</h3>
                             <Button variant="ghost" size="icon" onClick={() => setPreviewUrl(null)}>

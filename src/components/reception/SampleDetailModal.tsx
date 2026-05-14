@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 
-import { X, Edit, Save, Plus, Trash2, Upload, FileText, Download, Search, Loader2, ExternalLink } from "lucide-react";
+import { X, Edit, Save, Plus, Trash2, Upload, FileText, Download, Search, Loader2, ExternalLink, Layers } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
@@ -15,10 +15,12 @@ import { DraggableInfoTable } from "@/components/common/DraggableInfoTable";
 import { libraryApi, type Matrix } from "@/api/library";
 import { useDebouncedValue } from "@/components/library/hooks/useDebouncedValue";
 import { fileApi } from "@/api/files";
+import { samplesUpdate } from "@/api/samples";
 import api from "@/api/client";
 import { toast } from "sonner";
 
 import { useIdentityGroupsList } from "@/api/identityGroups";
+import { useAnalysesUpdateBulk } from "@/api/analyses";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ChevronsUpDown, Check, CheckSquare, Square } from "lucide-react";
@@ -74,9 +76,11 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
     }, [sample.analyses]);
 
     const [sampleAnalyses, setSampleAnalyses] = useState<ReceiptAnalysis[]>(initialAnalyses);
+    const [dirtyAnalysisIds, setDirtyAnalysisIds] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         setSampleAnalyses(initialAnalyses);
+        setDirtyAnalysisIds(new Set());
     }, [initialAnalyses]);
 
     const [attachedFiles] = useState<
@@ -104,30 +108,47 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
         el?.scrollIntoView({ block: "center" });
     }, [focusAnalysisId]);
 
-    const handleSaveInfo = async () => {
-        const updatedSample: ReceiptSample = {
-            ...editedSample,
-            sampleInfo: productDetails.map((r) => ({ label: r.label, value: r.value })),
-            sampleReceiptInfo: testingInfo.map((r) => ({ label: r.label, value: r.value })),
-            analyses: sampleAnalyses,
-        };
-        await onSave(updatedSample);
-        setIsEditingInfo(false);
-    };
-
-    const handleSaveAnalyses = async () => {
-        const updatedSample: ReceiptSample = {
-            ...editedSample,
-            sampleInfo: productDetails.map((r) => ({ label: r.label, value: r.value })),
-            sampleReceiptInfo: testingInfo.map((r) => ({ label: r.label, value: r.value })),
-            analyses: sampleAnalyses,
-        };
-        await onSave(updatedSample);
-        setIsEditingAnalyses(false);
-    };
+    const [isSavingInfo, setIsSavingInfo] = useState(false);
+    const handleSaveInfo = useCallback(async () => {
+        setIsSavingInfo(true);
+        try {
+            await samplesUpdate({
+                sampleId: editedSample.sampleId,
+                sampleName: editedSample.sampleName,
+                sampleStatus: editedSample.sampleStatus,
+                sampleClientInfo: editedSample.sampleClientInfo,
+                sampleVolume: editedSample.sampleVolume,
+                sampleWeight: editedSample.sampleWeight,
+                sampleStorageLoc: editedSample.sampleStorageLoc,
+                samplePreservation: editedSample.samplePreservation,
+                sampleNote: editedSample.sampleNote,
+                sampleTypeName: editedSample.sampleTypeName,
+                sampleInfo: productDetails.map((r) => ({ label: r.label, value: r.value })),
+                sampleReceiptInfo: testingInfo.map((r) => ({ label: r.label, value: r.value })),
+            } as any);
+            toast.success("Lưu thông tin mẫu thành công");
+            setIsEditingInfo(false);
+            // Update local editedSample with saved sampleInfo
+            setEditedSample(prev => ({
+                ...prev,
+                sampleInfo: productDetails.map((r) => ({ label: r.label, value: r.value })),
+                sampleReceiptInfo: testingInfo.map((r) => ({ label: r.label, value: r.value })),
+            }));
+        } catch (e: any) {
+            toast.error(e?.message || "Không thể lưu thông tin mẫu");
+        } finally {
+            setIsSavingInfo(false);
+        }
+    }, [editedSample, productDetails, testingInfo]);
 
     const handleAnalysisChange = (index: number, field: keyof ReceiptAnalysis, value: unknown) => {
-        setSampleAnalyses((prev) => prev.map((a, i) => (i === index ? { ...a, [field]: value } : a)));
+        setSampleAnalyses((prev) => {
+            const updated = prev.map((a, i) => (i === index ? { ...a, [field]: value } : a));
+            // Mark as dirty
+            const analysisId = prev[index]?.analysisId;
+            if (analysisId) setDirtyAnalysisIds(d => new Set([...d, analysisId]));
+            return updated;
+        });
     };
 
     // Matrix search states
@@ -139,9 +160,12 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
 
     // Bulk states
     const [selectedAnalyses, setSelectedAnalyses] = useState<string[]>([]);
+    const [showBulkPanel, setShowBulkPanel] = useState(false);
+    const [openPopoverId, setOpenPopoverId] = useState<string | null>(null); // track open KTV popover per row
     const [bulkProtocolCode, setBulkProtocolCode] = useState("");
     const [bulkUnit, setBulkUnit] = useState("");
     const [bulkDeadline, setBulkDeadline] = useState("");
+    const [bulkLocation, setBulkLocation] = useState("");
     const [bulkGroupId, setBulkGroupId] = useState("");
     const [bulkGroupName, setBulkGroupName] = useState("");
     const [bulkTechnicianId, setBulkTechnicianId] = useState("");
@@ -150,14 +174,16 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
 
     const handleBulkConfirm = () => {
         if (selectedAnalyses.length === 0) return;
+        const idsToUpdate = [...selectedAnalyses];
         setSampleAnalyses((prev) =>
             prev.map((a) => {
-                if (!selectedAnalyses.includes(a.analysisId!)) return a;
+                if (!idsToUpdate.includes(a.analysisId!)) return a;
                 return {
                     ...a,
                     protocolCode: bulkProtocolCode || a.protocolCode,
                     analysisUnit: bulkUnit || a.analysisUnit,
                     analysisDeadline: bulkDeadline || a.analysisDeadline,
+                    analysisLocation: bulkLocation || a.analysisLocation,
                     technicianGroupId: bulkGroupId || (a as any).technicianGroupId,
                     technicianGroupName: bulkGroupName || (a as any).technicianGroupName,
                     technicianId: bulkTechnicianId || a.technicianId,
@@ -166,8 +192,9 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
                 };
             }),
         );
+        // Mark all selected as dirty
+        setDirtyAnalysisIds(prev => new Set([...prev, ...idsToUpdate]));
         setSelectedAnalyses([]);
-        // Reset bulk states
         setBulkProtocolCode("");
         setBulkUnit("");
         setBulkDeadline("");
@@ -176,7 +203,37 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
         setBulkTechnicianId("");
         setBulkTechnician(null);
         setBulkTechnicianIds([]);
+        setBulkLocation("");
+        toast.success(`Đã áp dụng tạm thời cho ${idsToUpdate.length} chỉ tiêu. Nhấn "Cập nhật chỉ tiêu" để lưu.`);
     };
+
+    const { mutateAsync: mutateBulk, isPending: isBulkSaving } = useAnalysesUpdateBulk();
+    const handleSaveAnalysesBulk = useCallback(async () => {
+        if (dirtyAnalysisIds.size === 0) return;
+        const dirtyList = sampleAnalyses.filter(a => a.analysisId && dirtyAnalysisIds.has(a.analysisId));
+        const body = dirtyList.map(a => ({
+            analysisId: a.analysisId,
+            protocolCode: a.protocolCode,
+            analysisUnit: a.analysisUnit,
+            analysisDeadline: a.analysisDeadline,
+            analysisLocation: a.analysisLocation,
+            technicianGroupId: (a as any).technicianGroupId,
+            technicianGroupName: (a as any).technicianGroupName,
+            technicianId: (a as any).technicianId ?? a.technicianId,
+            technicianIds: (a as any).technicianIds ?? a.technicianIds,
+        }));
+        try {
+            await mutateBulk({ body: body as any });
+            toast.success(`Đã cập nhật ${body.length} chỉ tiêu`);
+            // Clear dirty state — DO NOT call onSave() to avoid closing the modal
+            setDirtyAnalysisIds(new Set());
+            setIsEditingAnalyses(false);
+            setSelectedAnalyses([]);
+            // Parent list will refresh automatically via React Query invalidation in the mutation hook
+        } catch {
+            // error handled by hook
+        }
+    }, [dirtyAnalysisIds, sampleAnalyses, mutateBulk]);
 
     useEffect(() => {
         if (!debouncedSearch) {
@@ -286,8 +343,8 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
                             </Button>
                         ) : (
                             <>
-                                <Button size="sm" onClick={() => void handleSaveInfo()} className="flex items-center gap-1.5 text-xs">
-                                    <Save className="h-3.5 w-3.5" />
+                                <Button size="sm" onClick={() => void handleSaveInfo()} disabled={isSavingInfo} className="flex items-center gap-1.5 text-xs">
+                                    {isSavingInfo ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                                     Lưu thông tin
                                 </Button>
                                 <Button size="sm" variant="ghost" onClick={() => { setEditedSample(sample); setProductDetails(toInfoRows(sample.sampleInfo)); setTestingInfo(toInfoRows(sample.sampleReceiptInfo)); setIsEditingInfo(false); }} className="text-xs text-muted-foreground">
@@ -304,11 +361,13 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
                             </Button>
                         ) : (
                             <>
-                                <Button size="sm" onClick={() => void handleSaveAnalyses()} className="flex items-center gap-1.5 text-xs">
-                                    <Save className="h-3.5 w-3.5" />
-                                    Lưu chỉ tiêu
-                                </Button>
-                                <Button size="sm" variant="ghost" onClick={() => { setSampleAnalyses(initialAnalyses); setIsEditingAnalyses(false); }} className="text-xs text-muted-foreground">
+                                {dirtyAnalysisIds.size > 0 && (
+                                    <Button size="sm" onClick={() => void handleSaveAnalysesBulk()} disabled={isBulkSaving} className="flex items-center gap-1.5 text-xs">
+                                        {isBulkSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                                        Cập nhật chỉ tiêu ({dirtyAnalysisIds.size})
+                                    </Button>
+                                )}
+                                <Button size="sm" variant="ghost" onClick={() => { setSampleAnalyses(initialAnalyses); setDirtyAnalysisIds(new Set()); setIsEditingAnalyses(false); setSelectedAnalyses([]); }} className="text-xs text-muted-foreground">
                                     Huỷ
                                 </Button>
                             </>
@@ -541,11 +600,69 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
                         <DraggableInfoTable title={String(t("reception.sampleDetail.testingInfo"))} data={testingInfo} isEditing={isEditingInfo} onChange={setTestingInfo} />
                     </div>
 
-                    <div>
-                            <div className="flex items-center gap-3">
-                                <h3 className="font-semibold text-foreground">{String(t("reception.sampleDetail.analysisList"))}</h3>
+                    <div className="rounded-xl border border-border bg-background shadow-sm overflow-hidden">
+                        {/* Analyses section header */}
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/20 flex-wrap gap-2">
+                            <div className="flex items-center gap-2 text-[10px] font-semibold text-primary uppercase tracking-wider">
+                                <span>{String(t("reception.sampleDetail.analysisList"))}</span>
+                                <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{sampleAnalyses.length}</Badge>
+                                {isEditingAnalyses && selectedAnalyses.length > 0 && (
+                                    <Badge variant="outline" className="text-[10px] h-4 px-1.5 text-primary border-primary/40">{selectedAnalyses.length} đã chọn</Badge>
+                                )}
                             </div>
+                            {isEditingAnalyses && (
+                                <div className="flex items-center gap-1.5">
+                                    {selectedAnalyses.length > 0 && !showBulkPanel && (
+                                        <Button variant="outline" size="sm" onClick={() => setShowBulkPanel(true)} className="h-7 text-xs gap-1.5 border-primary/40 text-primary">
+                                            <Layers className="h-3 w-3" />Sửa hàng loạt ({selectedAnalyses.length})
+                                        </Button>
+                                    )}
+                                    {dirtyAnalysisIds.size > 0 && (
+                                        <Button size="sm" onClick={() => void handleSaveAnalysesBulk()} disabled={isBulkSaving} className="h-7 text-xs gap-1.5">
+                                            {isBulkSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                                            Cập nhật chỉ tiêu ({dirtyAnalysisIds.size})
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
                         </div>
+
+                        {/* Bulk edit panel */}
+                        {isEditingAnalyses && showBulkPanel && (
+                            <div className="border-b border-border bg-primary/5 p-4 space-y-3 animate-in slide-in-from-top-1 duration-150">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+                                        <Layers className="h-4 w-4" />Sửa hàng loạt
+                                        <Badge variant="secondary" className="text-[10px]">{selectedAnalyses.length} chỉ tiêu</Badge>
+                                    </div>
+                                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setShowBulkPanel(false)}><X className="h-3.5 w-3.5" /></Button>
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                                    <div className="space-y-1"><label className="text-[10px] text-muted-foreground uppercase font-semibold">Phương pháp</label><Input className="h-8 text-xs" placeholder="Để trống = giữ nguyên" value={bulkProtocolCode} onChange={e => setBulkProtocolCode(e.target.value)} /></div>
+                                    <div className="space-y-1"><label className="text-[10px] text-muted-foreground uppercase font-semibold">Đơn vị</label><Input className="h-8 text-xs" placeholder="Để trống = giữ nguyên" value={bulkUnit} onChange={e => setBulkUnit(e.target.value)} /></div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-muted-foreground uppercase font-semibold">Nhóm KTV</label>
+                                        <Popover><PopoverTrigger asChild><Button variant="outline" size="sm" className="h-8 text-xs w-full justify-between font-normal"><span className="truncate">{bulkGroupName || "Để trống = giữ nguyên"}</span><ChevronsUpDown className="h-3 w-3 opacity-50 shrink-0 ml-1" /></Button></PopoverTrigger>
+                                            <PopoverContent className="w-[260px] p-0 z-[1300]" align="start">
+                                                <Command><CommandInput placeholder="Tìm nhóm..." className="h-8" /><CommandList><CommandEmpty>Không tìm thấy</CommandEmpty><CommandGroup>
+                                                    {groups.map((g: any) => (
+                                                        <CommandItem key={g.identityGroupId} value={g.identityGroupName} onSelect={() => { setBulkGroupId(g.identityGroupId); setBulkGroupName(g.identityGroupName); setBulkTechnicianId(g.identityGroupInChargeId); setBulkTechnician(g.identityGroupInCharge); setBulkTechnicianIds(g.identityIds); }}>
+                                                            <Check className={cn("mr-2 h-3 w-3", bulkGroupId === g.identityGroupId ? "opacity-100" : "opacity-0")} />{g.identityGroupName}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup></CommandList></Command>
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
+                                    <div className="space-y-1"><label className="text-[10px] text-muted-foreground uppercase font-semibold">Hạn trả</label><Input type="date" className="h-8 text-xs" value={bulkDeadline} onChange={e => setBulkDeadline(e.target.value)} /></div>
+                                    <div className="space-y-1"><label className="text-[10px] text-muted-foreground uppercase font-semibold">Nơi thực hiện</label><Input className="h-8 text-xs" placeholder="Để trống = giữ nguyên" value={bulkLocation} onChange={e => setBulkLocation(e.target.value)} /></div>
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                    <Button variant="outline" size="sm" onClick={() => setShowBulkPanel(false)}>Huỷ</Button>
+                                    <Button size="sm" onClick={() => { handleBulkConfirm(); setShowBulkPanel(false); }} disabled={selectedAnalyses.length === 0}>Áp dụng tạm thời</Button>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="bg-background border border-border rounded-lg overflow-hidden overflow-x-auto">
                             <table className="w-full text-sm">
@@ -704,9 +821,9 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
 
                                                 <td className="px-3 py-2">
                                                     {isEditingAnalyses ? (
-                                                        <Popover>
+                                                        <Popover open={openPopoverId === analysis.analysisId} onOpenChange={(open) => setOpenPopoverId(open ? analysis.analysisId! : null)}>
                                                             <PopoverTrigger asChild>
-                                                                <Button variant="outline" size="sm" className="h-7 text-[11px] px-2 max-w-[150px] justify-between font-normal" onClick={e => e.stopPropagation()}>
+                                                                <Button variant="outline" size="sm" className="h-7 text-[11px] px-2 max-w-[150px] justify-between font-normal" onClick={e => { e.stopPropagation(); setOpenPopoverId(openPopoverId === analysis.analysisId ? null : analysis.analysisId!); }}>
                                                                     <span className="truncate">{(analysis as any).technicianGroupName ?? "Chọn nhóm..."}</span>
                                                                     <ChevronsUpDown className="h-3 w-3 shrink-0 ml-1 opacity-50" />
                                                                 </Button>
@@ -715,6 +832,8 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
                                                                 <Command><CommandInput placeholder="Tìm nhóm..." className="h-8" /><CommandList><CommandEmpty>Không tìm thấy</CommandEmpty><CommandGroup>
                                                                     {groups.map((g: any) => (
                                                                         <CommandItem key={g.identityGroupId} value={g.identityGroupName} onSelect={() => {
+                                                                            // Route through handleAnalysisChange so dirty tracking works
+                                                                            handleAnalysisChange(index, "technicianGroupId" as any, g.identityGroupId);
                                                                             setSampleAnalyses(prev => prev.map((a, i) => i !== index ? a : {
                                                                                 ...a,
                                                                                 technicianGroupId: g.identityGroupId,
@@ -723,6 +842,8 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
                                                                                 technician: g.identityGroupInCharge,
                                                                                 technicianIds: g.identityIds,
                                                                             }));
+                                                                            setDirtyAnalysisIds(d => new Set([...d, analysis.analysisId!]));
+                                                                            setOpenPopoverId(null); // close after select
                                                                         }}>
                                                                             <Check className={cn("mr-2 h-3 w-3", (analysis as any).technicianGroupId === g.identityGroupId ? "opacity-100" : "opacity-0")} />{g.identityGroupName}
                                                                         </CommandItem>
@@ -793,98 +914,6 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
                                 </tbody>
                             </table>
 
-                            {/* Batch Update Panel */}
-                            {isEditingAnalyses && selectedAnalyses.length > 0 && (
-                                <div className="sticky bottom-0 left-0 right-0 z-50 p-3 bg-primary/10 border-t border-primary/20 backdrop-blur-sm animate-in slide-in-from-bottom-2">
-                                    <div className="max-w-screen-2xl mx-auto flex flex-wrap items-center gap-4">
-                                        <div className="flex items-center gap-2">
-                                            <Badge variant="default" className="bg-primary text-primary-foreground h-6 px-2">
-                                                {selectedAnalyses.length}
-                                            </Badge>
-                                            <span className="text-xs font-semibold text-primary">Phép thử đã chọn</span>
-                                        </div>
-
-                                        <div className="h-6 w-px bg-primary/20 mx-1" />
-
-                                        <div className="flex flex-wrap items-center gap-3">
-                                            <div className="flex items-center gap-2">
-                                                <Label className="text-[10px] uppercase font-bold text-primary/70">Phương pháp:</Label>
-                                                <Input 
-                                                    placeholder="Mã PP..." 
-                                                    value={bulkProtocolCode} 
-                                                    onChange={e => setBulkProtocolCode(e.target.value)}
-                                                    className="h-7 text-xs w-28 bg-background border-primary/20"
-                                                />
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Label className="text-[10px] uppercase font-bold text-primary/70">Đơn vị:</Label>
-                                                <Input 
-                                                    placeholder="Unit..." 
-                                                    value={bulkUnit} 
-                                                    onChange={e => setBulkUnit(e.target.value)}
-                                                    className="h-7 text-xs w-20 bg-background border-primary/20"
-                                                />
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Label className="text-[10px] uppercase font-bold text-primary/70">Hạn trả:</Label>
-                                                <Input 
-                                                    type="date"
-                                                    value={bulkDeadline} 
-                                                    onChange={e => setBulkDeadline(e.target.value)}
-                                                    className="h-7 text-xs w-32 bg-background border-primary/20"
-                                                />
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Label className="text-[10px] uppercase font-bold text-primary/70">Nhóm KTV:</Label>
-                                                <Popover>
-                                                    <PopoverTrigger asChild>
-                                                        <Button variant="outline" size="sm" className="h-7 text-[10px] px-2 min-w-[120px] justify-between font-normal bg-background border-primary/20">
-                                                            <span className="truncate">{bulkGroupName || "Chọn nhóm..."}</span>
-                                                            <ChevronsUpDown className="h-3 w-3 shrink-0 ml-1 opacity-50" />
-                                                        </Button>
-                                                    </PopoverTrigger>
-                                                    <PopoverContent className="w-[240px] p-0 z-[1300]" align="start">
-                                                        <Command><CommandInput placeholder="Tìm nhóm..." className="h-8" /><CommandList><CommandEmpty>Không tìm thấy</CommandEmpty><CommandGroup>
-                                                            {groups.map((g: any) => (
-                                                                <CommandItem key={g.identityGroupId} value={g.identityGroupName} onSelect={() => {
-                                                                    setBulkGroupId(g.identityGroupId);
-                                                                    setBulkGroupName(g.identityGroupName);
-                                                                    setBulkTechnicianId(g.identityGroupInChargeId);
-                                                                    setBulkTechnician(g.identityGroupInCharge);
-                                                                    setBulkTechnicianIds(g.identityIds || []);
-                                                                }}>
-                                                                    <Check className={cn("mr-2 h-3 w-3", bulkGroupId === g.identityGroupId ? "opacity-100" : "opacity-0")} />{g.identityGroupName}
-                                                                </CommandItem>
-                                                            ))}
-                                                        </CommandGroup></CommandList></Command>
-                                                    </PopoverContent>
-                                                </Popover>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-2 ml-auto">
-                                            <Button 
-                                                variant="ghost" 
-                                                size="sm" 
-                                                className="h-7 text-xs font-medium text-muted-foreground hover:text-foreground"
-                                                onClick={() => {
-                                                    setSelectedAnalyses([]);
-                                                }}
-                                            >
-                                                Hủy
-                                            </Button>
-                                            <Button 
-                                                variant="default" 
-                                                size="sm" 
-                                                className="h-7 text-xs font-semibold bg-primary hover:bg-primary/90"
-                                                onClick={handleBulkConfirm}
-                                            >
-                                                Cập nhật hàng loạt
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
 
                             {isEditingInfo && (
                                 <div className="p-4 border-t border-border bg-muted/30">
@@ -942,7 +971,7 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
                                 </div>
                             )}
                         </div>
-
+                    </div>
 
                     <div>
                         <div className="flex items-center justify-between mb-2">

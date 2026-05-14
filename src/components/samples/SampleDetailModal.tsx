@@ -426,13 +426,14 @@ export function SampleDetailModal({ open, sampleId, onClose }: Props) {
                                                     <th className="px-3 py-4 text-left text-xs font-medium text-muted-foreground uppercase">{t("lab.analyses.analysisResult")}</th>
                                                     <th className="px-3 py-4 text-left text-xs font-medium text-muted-foreground uppercase">{t("lab.analyses.analysisUnit")}</th>
                                                     <th className="px-3 py-4 text-left text-xs font-medium text-muted-foreground uppercase">{t("lab.analyses.analysisStatus")}</th>
+                                                    <th className="px-3 py-4 text-left text-xs font-medium text-muted-foreground uppercase">{t("lab.analyses.analysisLocation", { defaultValue: "Nơi thực hiện" })}</th>
                                                 </tr>
                                             </thead>
 
                                             <tbody className="divide-y divide-border">
                                                 {analyses.length === 0 ? (
                                                     <tr>
-                                                        <td colSpan={7} className="px-3 py-6 text-center text-sm text-muted-foreground">
+                                                        <td colSpan={8} className="px-10 py-20 text-center text-sm text-muted-foreground">
                                                             {t("reception.createReceipt.noAnalysis")}
                                                         </td>
                                                     </tr>
@@ -447,6 +448,9 @@ export function SampleDetailModal({ open, sampleId, onClose }: Props) {
                                                             <td className="px-3 py-4 text-sm text-muted-foreground">{toDash(a.analysisUnit)}</td>
                                                             <td className="px-3 py-4">
                                                                 <AnalysisStatusBadge status={a.analysisStatus ?? null} />
+                                                            </td>
+                                                            <td className="px-3 py-4 text-sm text-foreground">
+                                                                {toDash(a.analysisLocation)}
                                                             </td>
                                                         </tr>
                                                     ))
