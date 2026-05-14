@@ -289,8 +289,8 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
                                     <p className="text-[10px] text-muted-foreground italic">Nhập số lượng để nhân bản thông tin sang nhiều lọ/chai khác nhau.</p>
                                 </div>
                             )}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
+                            <div className="grid grid-cols-3 gap-4">
+                                <div className="col-span-2 space-y-1">
                                     <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("inventory.chemical.skus.name", { defaultValue: "Tên hóa chất" })}</label>
                                     <Input value={form.chemicalName} onChange={(e) => set("chemicalName", e.target.value)} placeholder="Tên snapshot từ SKU" />
                                 </div>
@@ -301,12 +301,12 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
                             </div>
                         </div>
                     )}
-                    <div className="grid grid-cols-4 gap-4">
-                        <div className="space-y-1">
+                    <div className="grid grid-cols-6 gap-4">
+                        <div className="col-span-2 space-y-1">
                             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("inventory.chemical.inventories.lotNumber", { defaultValue: "Số Lô" })}</label>
                             <Input value={form.lotNumber} onChange={(e) => set("lotNumber", e.target.value)} id="edit-inv-lot" placeholder="LOT-..." />
                         </div>
-                        <div className="space-y-1">
+                        <div className="col-span-2 space-y-1">
                             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                                 {t("inventory.chemical.inventories.chemicalInventoryStatus", { defaultValue: "Trạng thái" })}
                             </label>
@@ -323,7 +323,7 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
                                 ))}
                             </select>
                         </div>
-                        <div className="space-y-1">
+                        <div className="col-span-2 space-y-1">
                             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("inventory.chemical.skus.chemicalType", { defaultValue: "Loại hóa chất" })}</label>
                             <select
                                 id="edit-inv-type"
@@ -339,7 +339,7 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
                                 ))}
                             </select>
                         </div>
-                        <div className="col-span-2 space-y-1">
+                        <div className="col-span-3 space-y-1">
                             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                                 {t("inventory.chemical.inventories.storageBinLocation", { defaultValue: "Vị trí lưu kho" })} <span className="text-destructive">*</span>
                             </label>
@@ -358,35 +358,35 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
                                 ))}
                             </select>
                         </div>
-
-                        <div className="col-span-2 space-y-1">
+                        <div className="col-span-3 space-y-1">
                             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("inventory.chemical.skus.manufacturer", { defaultValue: "Hãng Sản xuất" })}</label>
                             <Input value={form.manufacturerName} onChange={(e) => set("manufacturerName", e.target.value)} id="edit-inv-mfg" />
                         </div>
-                        <div className="space-y-1">
+
+                        <div className="col-span-2 space-y-1">
                             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("inventory.chemical.skus.origin", { defaultValue: "Nước SX" })}</label>
                             <Input value={form.manufacturerCountry} onChange={(e) => set("manufacturerCountry", e.target.value)} id="edit-inv-country" />
                         </div>
-                        <div className="space-y-1">
+                        <div className="col-span-2 space-y-1">
                             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                                 {t("inventory.chemical.inventories.currentAvailableQty", { defaultValue: "Tồn kho" })}
                             </label>
                             <Input type="number" step="any" value={form.currentAvailableQty} onChange={(e) => set("currentAvailableQty", e.target.value)} id="edit-inv-qty" />
                         </div>
-                        <div className="space-y-1">
+                        <div className="col-span-2 space-y-1">
                             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                                 {t("inventory.chemical.inventories.totalGrossWeight", { defaultValue: "KL cả bì" })}
                             </label>
                             <Input type="number" step="any" value={form.totalGrossWeight} onChange={(e) => set("totalGrossWeight", e.target.value)} id="edit-inv-gross" />
                         </div>
-                        <div className="space-y-1">
+                        <div className="col-span-2 space-y-1">
                             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                                 {t("inventory.chemical.inventories.chemicalSkuOldId", { defaultValue: "Mã cũ" })}
                             </label>
                             <Input value={form.chemicalSkuOldId} onChange={(e) => set("chemicalSkuOldId", e.target.value)} id="edit-inv-oldid" />
                         </div>
 
-                        <div className="col-span-4 space-y-1">
+                        <div className="col-span-6 space-y-1">
                             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                                 {t("inventory.chemical.inventories.storageConditions", { defaultValue: "Điều kiện lưu kho" })}
                             </label>

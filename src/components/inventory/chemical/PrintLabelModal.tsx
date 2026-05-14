@@ -92,12 +92,12 @@ function LabelSingle({ item }: { item: LabelItem }) {
                         className="name"
                         style={{
                             display: "-webkit-box",
-                            WebkitLineClamp: 2,
+                            WebkitLineClamp: 3,
                             WebkitBoxOrient: "vertical",
                             overflow: "hidden",
                             whiteSpace: "normal",
                             fontWeight: 900,
-                            fontSize: "8.5pt",
+                            fontSize: "7.5pt",
                             lineHeight: "1.0",
                             marginBottom: "0.2mm",
                             textTransform: "uppercase",
@@ -254,12 +254,12 @@ export function PrintLabelModal({ items, onClose }: Props) {
                     }
                     .label-info .name { 
                         display: -webkit-box;
-                        -webkit-line-clamp: 2;
+                        -webkit-line-clamp: 3;
                         -webkit-box-orient: vertical;
                         overflow: hidden;
                         white-space: normal;
                         font-weight: 900; 
-                        font-size: 8.5pt; 
+                        font-size: 7.5pt; 
                         line-height: 1.0; 
                         margin-bottom: 0.2mm;
                         text-transform: uppercase;

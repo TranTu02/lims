@@ -20,7 +20,7 @@ import api from "@/api/client";
 import { toast } from "sonner";
 
 import { useIdentityGroupsList } from "@/api/identityGroups";
-import { useAnalysesUpdateBulk } from "@/api/analyses";
+import { useAnalysesUpdateBulk, useDeleteAnalysis } from "@/api/analyses";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ChevronsUpDown, Check, CheckSquare, Square } from "lucide-react";
@@ -77,10 +77,12 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
 
     const [sampleAnalyses, setSampleAnalyses] = useState<ReceiptAnalysis[]>(initialAnalyses);
     const [dirtyAnalysisIds, setDirtyAnalysisIds] = useState<Set<string>>(new Set());
+    const [deletedAnalysisIds, setDeletedAnalysisIds] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         setSampleAnalyses(initialAnalyses);
         setDirtyAnalysisIds(new Set());
+        setDeletedAnalysisIds(new Set());
     }, [initialAnalyses]);
 
     const [attachedFiles] = useState<
@@ -208,10 +210,13 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
     };
 
     const { mutateAsync: mutateBulk, isPending: isBulkSaving } = useAnalysesUpdateBulk();
+    const { mutateAsync: mutateDelete } = useDeleteAnalysis();
+    const pendingChangeCount = dirtyAnalysisIds.size + deletedAnalysisIds.size;
+
     const handleSaveAnalysesBulk = useCallback(async () => {
-        if (dirtyAnalysisIds.size === 0) return;
+        if (pendingChangeCount === 0) return;
         const dirtyList = sampleAnalyses.filter(a => a.analysisId && dirtyAnalysisIds.has(a.analysisId));
-        const body = dirtyList.map(a => ({
+        const updateBody = dirtyList.map(a => ({
             analysisId: a.analysisId,
             protocolCode: a.protocolCode,
             analysisUnit: a.analysisUnit,
@@ -223,17 +228,26 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
             technicianIds: (a as any).technicianIds ?? a.technicianIds,
         }));
         try {
-            await mutateBulk({ body: body as any });
-            toast.success(`Đã cập nhật ${body.length} chỉ tiêu`);
-            // Clear dirty state — DO NOT call onSave() to avoid closing the modal
+            await Promise.all([
+                updateBody.length > 0
+                    ? mutateBulk({ body: updateBody as any })
+                    : Promise.resolve(),
+                ...[...deletedAnalysisIds]
+                    .filter(id => !id.startsWith('new-')) // skip locally-added (never persisted)
+                    .map(id => mutateDelete({ body: { analysisId: id } })),
+            ]);
+            const parts: string[] = [];
+            if (updateBody.length > 0) parts.push(`cập nhật ${updateBody.length} chỉ tiêu`);
+            if (deletedAnalysisIds.size > 0) parts.push(`xóa ${deletedAnalysisIds.size} chỉ tiêu`);
+            toast.success(`Đã ${parts.join(' và ')}`);
             setDirtyAnalysisIds(new Set());
+            setDeletedAnalysisIds(new Set());
             setIsEditingAnalyses(false);
             setSelectedAnalyses([]);
-            // Parent list will refresh automatically via React Query invalidation in the mutation hook
         } catch {
-            // error handled by hook
+            // error handled by hooks
         }
-    }, [dirtyAnalysisIds, sampleAnalyses, mutateBulk]);
+    }, [pendingChangeCount, dirtyAnalysisIds, deletedAnalysisIds, sampleAnalyses, mutateBulk, mutateDelete]);
 
     useEffect(() => {
         if (!debouncedSearch) {
@@ -320,7 +334,14 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
     };
 
     const handleDeleteAnalysis = (index: number) => {
-        setSampleAnalyses((prev) => prev.filter((_, i) => i !== index));
+        setSampleAnalyses((prev) => {
+            const analysis = prev[index];
+            if (analysis?.analysisId) {
+                // Track for deletion on save (skip temp-only IDs that were never persisted)
+                setDeletedAnalysisIds(d => new Set([...d, analysis.analysisId!]));
+            }
+            return prev.filter((_, i) => i !== index);
+        });
     };
 
     return createPortal(
@@ -361,13 +382,13 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
                             </Button>
                         ) : (
                             <>
-                                {dirtyAnalysisIds.size > 0 && (
+                                {pendingChangeCount > 0 && (
                                     <Button size="sm" onClick={() => void handleSaveAnalysesBulk()} disabled={isBulkSaving} className="flex items-center gap-1.5 text-xs">
                                         {isBulkSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                                        Cập nhật chỉ tiêu ({dirtyAnalysisIds.size})
+                                        Cập nhật chỉ tiêu ({pendingChangeCount})
                                     </Button>
                                 )}
-                                <Button size="sm" variant="ghost" onClick={() => { setSampleAnalyses(initialAnalyses); setDirtyAnalysisIds(new Set()); setIsEditingAnalyses(false); setSelectedAnalyses([]); }} className="text-xs text-muted-foreground">
+                                <Button size="sm" variant="ghost" onClick={() => { setSampleAnalyses(initialAnalyses); setDirtyAnalysisIds(new Set()); setDeletedAnalysisIds(new Set()); setIsEditingAnalyses(false); setSelectedAnalyses([]); }} className="text-xs text-muted-foreground">
                                     Huỷ
                                 </Button>
                             </>
@@ -617,10 +638,10 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnaly
                                             <Layers className="h-3 w-3" />Sửa hàng loạt ({selectedAnalyses.length})
                                         </Button>
                                     )}
-                                    {dirtyAnalysisIds.size > 0 && (
+                                    {pendingChangeCount > 0 && (
                                         <Button size="sm" onClick={() => void handleSaveAnalysesBulk()} disabled={isBulkSaving} className="h-7 text-xs gap-1.5">
                                             {isBulkSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-                                            Cập nhật chỉ tiêu ({dirtyAnalysisIds.size})
+                                            Cập nhật chỉ tiêu ({pendingChangeCount})
                                         </Button>
                                     )}
                                 </div>
