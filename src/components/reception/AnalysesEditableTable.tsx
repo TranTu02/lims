@@ -198,6 +198,12 @@ function BulkEditPanel({
                         size="sm"
                     />
                 </div>
+                <div className="space-y-1">
+                    <label className="text-[10px] text-muted-foreground uppercase font-semibold">Hạn trả</label>
+                    <Input
+                        type="date"
+                        className="h-8 text-xs bg-background"
+                        value={vals.analysisDeadline}
                         onChange={(e) => set("analysisDeadline", e.target.value)}
                     />
                 </div>

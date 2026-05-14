@@ -53,7 +53,7 @@ function toInfoRows(v: unknown): InfoRow[] {
         .filter((r) => r.label.trim().length > 0);
 }
 
-export function SampleDetailModal({ sample, receipt, onClose, onSave, focusAnalysisId = null }: SampleDetailModalProps) {
+export function SampleDetailModal({ sample, receipt, onClose, onSave: _onSave, focusAnalysisId = null }: SampleDetailModalProps) {
     const { t } = useTranslation();
     const [isEditingInfo, setIsEditingInfo] = useState(false);
     const [isEditingAnalyses, setIsEditingAnalyses] = useState(false);
