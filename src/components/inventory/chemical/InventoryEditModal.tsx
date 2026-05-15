@@ -294,18 +294,18 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
                                     <p className="text-[10px] text-muted-foreground italic">Nhập số lượng để nhân bản thông tin sang nhiều lọ/chai khác nhau.</p>
                                 </div>
                             )}
-                            <div className="grid grid-cols-3 gap-4">
-                                <div className="col-span-2 space-y-1">
-                                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("inventory.chemical.skus.name", { defaultValue: "Tên hóa chất" })}</label>
-                                    <Input value={form.chemicalName} onChange={(e) => set("chemicalName", e.target.value)} placeholder="Tên snapshot từ SKU" />
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("inventory.chemical.skus.cas", { defaultValue: "Số CAS" })}</label>
-                                    <Input value={form.chemicalCasNumber} onChange={(e) => set("chemicalCasNumber", e.target.value)} placeholder="CAS snapshot" />
-                                </div>
                             </div>
+                        )}
+                    <div className="grid grid-cols-3 gap-4">
+                        <div className="col-span-2 space-y-1">
+                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("inventory.chemical.skus.name", { defaultValue: "Tên hóa chất" })}</label>
+                            <Input value={form.chemicalName} onChange={(e) => set("chemicalName", e.target.value)} placeholder="Tên snapshot từ SKU" />
                         </div>
-                    )}
+                        <div className="space-y-1">
+                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("inventory.chemical.skus.cas", { defaultValue: "Số CAS" })}</label>
+                            <Input value={form.chemicalCasNumber} onChange={(e) => set("chemicalCasNumber", e.target.value)} placeholder="CAS snapshot" />
+                        </div>
+                    </div>
                     <div className="grid grid-cols-6 gap-4">
                         <div className="col-span-2 space-y-1">
                             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("inventory.chemical.inventories.lotNumber", { defaultValue: "Số Lô" })}</label>
