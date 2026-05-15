@@ -126,7 +126,7 @@ function LabelSingle({ item }: { item: LabelItem }) {
                                 Người pha: {typeof item.preparedBy === "string" ? item.preparedBy : item.preparedBy?.identityName || ""}
                             </div>
                             <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>
-                                TL pha: {item.preparationDocuments || ""}
+                                Tài liệu pha: {item.preparationDocuments || ""}
                             </div>
                         </>
                     )}
@@ -136,11 +136,9 @@ function LabelSingle({ item }: { item: LabelItem }) {
                             : `NSX-HSD: ${formatDateShort(item.mfgDate)} - ${formatDateShort(item.expDate)}`
                         }
                     </div>
-                    {item.correctionFactorK !== undefined && item.correctionFactorK !== null && (
-                        <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", fontWeight: 900 }}>
-                            Hệ số K: {item.correctionFactorK}
-                        </div>
-                    )}
+                    <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", fontWeight: 900 }}>
+                        Hệ số K: {item.correctionFactorK ?? ""}
+                    </div>
                 </div>
             </div>
 
