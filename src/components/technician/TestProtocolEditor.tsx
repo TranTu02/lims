@@ -697,7 +697,7 @@ ${HEADER_FOOTER}`;
                                         <SelectTrigger className="h-7 text-xs w-44">
                                             <SelectValue />
                                         </SelectTrigger>
-                                        <SelectContent>
+                                        <SelectContent className="z-[1100]">
                                             {uniqueProtocols.map((p) => (
                                                 <SelectItem key={p.code} value={p.code} className="text-xs">
                                                     {p.label}

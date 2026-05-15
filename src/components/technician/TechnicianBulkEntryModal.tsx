@@ -217,7 +217,7 @@ export function TechnicianBulkEntryModal({ open, onOpenChange, selectedAnalyses,
                                                     <SelectTrigger className="w-full h-8 text-[10px] px-2">
                                                         <SelectValue placeholder="..." />
                                                     </SelectTrigger>
-                                                    <SelectContent>
+                                                    <SelectContent className="z-[1100]">
                                                         <SelectItem value="Pass">Pass</SelectItem>
                                                         <SelectItem value="Fail">Fail</SelectItem>
                                                         <SelectItem value="NotEvaluated">{t("technician.workspace.statusNotEvaluated", { defaultValue: "KĐG" })}</SelectItem>

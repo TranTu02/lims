@@ -186,10 +186,20 @@ export function InventoryDetailPanel({ inventory, onClose }: Props) {
                                                 : "-"}
                                         </div>
                                     </div>
+                                    <div className="col-span-2 mt-1 grid grid-cols-2 gap-2">
+                                        <div>
+                                            <div className="text-muted-foreground mb-0.5">{t("inventory.chemical.inventories.preparationLocation", { defaultValue: "Nơi pha" })}</div>
+                                            <div className="font-medium">{(displayInv as any).preparationLocation || "-"}</div>
+                                        </div>
+                                        <div>
+                                            <div className="text-muted-foreground mb-0.5">{t("inventory.chemical.inventories.correctionFactorK", { defaultValue: "Hệ số K" })}</div>
+                                            <div className="font-medium text-blue-600">{(displayInv as any).correctionFactorK ?? "-"}</div>
+                                        </div>
+                                    </div>
                                     <div className="col-span-2 mt-1">
-                                        <div className="text-muted-foreground mb-0.5">{t("inventory.chemical.inventories.preparationLocation", { defaultValue: "Nơi pha hóa chất" })}</div>
-                                        <div className="font-medium">
-                                            {(displayInv as any).preparationLocation || "-"}
+                                        <div className="text-muted-foreground mb-0.5">{t("inventory.chemical.inventories.preparationDocuments", { defaultValue: "TL pha (Tài liệu)" })}</div>
+                                        <div className="font-medium text-xs bg-muted/50 p-1.5 rounded border border-border/50">
+                                            {(displayInv as any).preparationDocuments || "-"}
                                         </div>
                                     </div>
                                 </div>

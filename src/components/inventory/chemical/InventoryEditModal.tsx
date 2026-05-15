@@ -78,6 +78,8 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
             ? (inventory as any)?.preparedBy 
             : ((inventory as any)?.preparedBy?.identityName ?? ""),
         preparationLocation: (inventory as any)?.preparationLocation ?? "",
+        preparationDocuments: (inventory as any)?.preparationDocuments ?? "",
+        correctionFactorK: (inventory as any)?.correctionFactorK !== undefined && (inventory as any)?.correctionFactorK !== null ? String((inventory as any)?.correctionFactorK) : "",
         selectedPreparer: (inventory as any)?.preparedById
             ? [
                   {
@@ -115,12 +117,15 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
 
             if (payload.chemicalType === "Hóa chất pha") {
                 (payload as any).preparedDate = form.preparedDate ? new Date(form.preparedDate).toISOString() : null;
-                // preparedById and preparedBy and preparationLocation are already in payload from form
+                (payload as any).correctionFactorK = form.correctionFactorK ? Number(form.correctionFactorK) : null;
+                // preparedById and preparedBy and preparationLocation and preparationDocuments are already in payload from form
             } else {
                 (payload as any).parentInventoryIds = [];
                 (payload as any).preparedById = null;
                 (payload as any).preparedBy = null;
                 (payload as any).preparationLocation = null;
+                (payload as any).preparationDocuments = null;
+                (payload as any).correctionFactorK = null;
                 (payload as any).preparedDate = null;
             }
 
@@ -469,6 +474,28 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
                                             />
                                             <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
                                         </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                            {t("inventory.chemical.inventories.preparationDocuments", { defaultValue: "TL pha (Tài liệu)" })}
+                                        </label>
+                                        <Input
+                                            value={form.preparationDocuments}
+                                            onChange={(e) => set("preparationDocuments", e.target.value)}
+                                            placeholder="HD pha chế số..."
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                            {t("inventory.chemical.inventories.correctionFactorK", { defaultValue: "Hệ số K" })}
+                                        </label>
+                                        <Input
+                                            type="number"
+                                            step="any"
+                                            value={form.correctionFactorK}
+                                            onChange={(e) => set("correctionFactorK", e.target.value)}
+                                            placeholder="1.000..."
+                                        />
                                     </div>
                                 </div>
                             </div>

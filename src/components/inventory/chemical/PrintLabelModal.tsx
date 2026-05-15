@@ -26,6 +26,8 @@ type LabelItem = {
     preparedBy?: any;
     preparationLocation?: string | null;
     preparedDate?: string | null;
+    preparationDocuments?: string | null;
+    correctionFactorK?: number | string | null;
 };
 
 type Props = {
@@ -105,7 +107,7 @@ function LabelSingle({ item }: { item: LabelItem }) {
                     >
                         {item.chemicalName || ""}
                     </div>
-                    {item.chemicalCasNumber && (
+                    {item.chemicalCasNumber && item.chemicalType !== "Hóa chất pha" && (
                         <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>CAS: {item.chemicalCasNumber}</div>
                     )}
                     {item.chemicalType !== "Hóa chất pha" && item.lotNumber && (
@@ -121,19 +123,24 @@ function LabelSingle({ item }: { item: LabelItem }) {
                     {item.chemicalType === "Hóa chất pha" && (
                         <>
                             <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>
-                                TT Pha: {typeof item.preparedBy === "string" ? item.preparedBy : item.preparedBy?.identityName || ""}
+                                Người pha: {typeof item.preparedBy === "string" ? item.preparedBy : item.preparedBy?.identityName || ""}
                             </div>
                             <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>
-                                {item.preparationLocation ? `Nơi pha: ${item.preparationLocation}` : ""}
+                                TL pha: {item.preparationDocuments || ""}
                             </div>
                         </>
                     )}
-                    <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt" }}>
+                    <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>
                         {item.chemicalType === "Hóa chất pha" 
                             ? `Ngày: ${formatDateShort(item.preparedDate)} - ${formatDateShort(item.expDate)}`
                             : `NSX-HSD: ${formatDateShort(item.mfgDate)} - ${formatDateShort(item.expDate)}`
                         }
                     </div>
+                    {item.correctionFactorK !== undefined && item.correctionFactorK !== null && (
+                        <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", fontWeight: 900 }}>
+                            Hệ số K: {item.correctionFactorK}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -148,7 +155,7 @@ function LabelSingle({ item }: { item: LabelItem }) {
                     justifyContent: "space-between",
                 }}
             >
-                <div style={{ fontSize: "7pt", fontWeight: 900, textAlign: "center", width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>
+                <div style={{ fontSize: "6pt", fontWeight: 900, textAlign: "center", width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>
                     {item.chemicalSkuId || ""}
                 </div>
                 {qrSvg ? (

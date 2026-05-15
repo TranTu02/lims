@@ -268,13 +268,19 @@ export function InventoriesTab() {
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                                         {t("inventory.chemical.inventories.openedExpDays", { defaultValue: "Hạn sau mở (ngày)" })}
                                     </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.inventories.correctionFactorK", { defaultValue: "Hệ số K" })}
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.inventories.preparationDocuments", { defaultValue: "TL pha" })}
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
                                 {isLoading ? (
                                     Array.from({ length: 5 }).map((_, i) => (
                                         <tr key={i}>
-                                            {Array.from({ length: selectMode ? 14 : 13 }).map((__, j) => (
+                                            {Array.from({ length: selectMode ? 16 : 15 }).map((__, j) => (
                                                 <td key={j} className="p-3">
                                                     <Skeleton className="h-4 w-20" />
                                                 </td>
@@ -283,7 +289,7 @@ export function InventoriesTab() {
                                     ))
                                 ) : allItems.length === 0 ? (
                                     <tr>
-                                        <td colSpan={selectMode ? 14 : 13} className="p-6 text-center text-muted-foreground">
+                                        <td colSpan={selectMode ? 16 : 15} className="p-6 text-center text-muted-foreground">
                                             {t("common.noData", { defaultValue: "Không có dữ liệu" })}
                                         </td>
                                     </tr>
@@ -325,6 +331,8 @@ export function InventoriesTab() {
                                                 <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{inv.expDate ? new Date(inv.expDate).toLocaleDateString("vi-VN") : "-"}</td>
                                                 <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{inv.openedDate ? new Date(inv.openedDate).toLocaleDateString("vi-VN") : "-"}</td>
                                                 <td className="px-3 py-2 whitespace-nowrap text-center font-medium">{inv.openedExpDays ?? "-"}</td>
+                                                <td className="px-3 py-2 whitespace-nowrap font-bold text-blue-600">{inv.correctionFactorK ?? "-"}</td>
+                                                <td className="px-3 py-2 whitespace-nowrap text-xs text-muted-foreground truncate max-w-[150px]" title={inv.preparationDocuments}>{inv.preparationDocuments ?? "-"}</td>
                                             </tr>
                                         );
                                     })

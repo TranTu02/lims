@@ -1,17 +1,18 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useChemicalAuditBlocksList, useChemicalAuditBlockFull } from "@/api/chemical";
+import { useChemicalAuditBlocksList, useChemicalAuditBlockFull, useChemicalAuditBlockApprove } from "@/api/chemical";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Search, X, Loader2, ListOrdered, Calendar, User, Target, CheckCircle2, Plus, Pencil } from "lucide-react";
-import type { ChemicalAuditBlock, ChemicalInventory } from "@/types/chemical";
+import type { ChemicalAuditBlock } from "@/types/chemical";
 import { Pagination } from "@/components/ui/pagination";
 import { AuditBlockEditModal } from "./AuditBlockEditModal";
-import { CreateBlockModal } from "./TransactionBlocksTab";
+// import { CreateBlockModal } from "./TransactionBlocksTab";
 import { RefreshCw } from "lucide-react";
 import { TableFilterPopover } from "./TableFilterPopover";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Status badge
 function AuditStatusBadge({ status }: { status?: string | null }) {
@@ -209,7 +210,8 @@ export function AuditBlocksTab() {
     const [activeBlock, setActiveBlock] = useState<ChemicalAuditBlock | null>(null);
     const [createOpen, setCreateOpen] = useState(false);
     const [editTarget, setEditTarget] = useState<ChemicalAuditBlock | null>(null);
-    const [approveTarget, setApproveTarget] = useState<ChemicalAuditBlock | null>(null);
+    const { user } = useAuth();
+    const approveMutation = useChemicalAuditBlockApprove();
     const [page, setPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(20);
 
@@ -234,6 +236,22 @@ export function AuditBlocksTab() {
     if (error) {
         return <div className="p-4 text-destructive bg-destructive/10 rounded-md">{(error as any).message || "Failed to load"}</div>;
     }
+
+    const handleApprove = (block: ChemicalAuditBlock) => {
+        if (!block?.chemicalAuditBlockId) return;
+        if (!window.confirm("Bạn có chắc chắn muốn duyệt đợt kiểm kê này? Tồn kho sẽ được cập nhật tự động.")) return;
+
+        approveMutation.mutate({
+            body: {
+                chemicalAuditBlockId: block.chemicalAuditBlockId,
+                approvedBy: user?.identityId || "system",
+            },
+        }, {
+            onSuccess: () => {
+                setActiveBlock(null);
+            }
+        });
+    };
 
     return (
         <div className="h-full flex gap-4 overflow-hidden">
@@ -364,7 +382,7 @@ export function AuditBlocksTab() {
                 </div>
             </div>
 
-            {activeBlock && <AuditBlockDetailPanel block={activeBlock} onClose={() => setActiveBlock(null)} onEdit={(b) => setEditTarget(b)} onApprove={(b) => setApproveTarget(b)} />}
+            {activeBlock && <AuditBlockDetailPanel block={activeBlock} onClose={() => setActiveBlock(null)} onEdit={(b) => setEditTarget(b)} onApprove={handleApprove} />}
 
             {/* Create modal */}
             {createOpen && <AuditBlockEditModal auditBlock={null} onClose={() => setCreateOpen(false)} />}
@@ -372,40 +390,7 @@ export function AuditBlocksTab() {
             {/* Edit modal */}
             {editTarget && <AuditBlockEditModal auditBlock={editTarget} onClose={() => setEditTarget(null)} />}
 
-            {/* Approve modal (Create Adjustment Transaction) */}
-            {approveTarget &&
-                (() => {
-                    const discrepantItems =
-                        approveTarget.details?.filter((d) => {
-                            const variance = d.varianceQty ?? (d.actualAvailableQty != null && d.systemAvailableQty != null ? d.actualAvailableQty - d.systemAvailableQty : null);
-                            return variance != null && variance !== 0;
-                        }) || [];
 
-                    const initialItems = discrepantItems.map(
-                        (d: any) =>
-                            ({
-                                chemicalInventoryId: d.chemicalInventoryId,
-                                chemicalSkuId: d.chemicalSkuId,
-                                currentAvailableQty: d.systemAvailableQty,
-                            }) as ChemicalInventory,
-                    );
-
-                    const initialTxnData = discrepantItems.reduce((acc, d) => {
-                        const variance = d.varianceQty ?? (d.actualAvailableQty != null && d.systemAvailableQty != null ? d.actualAvailableQty - d.systemAvailableQty : null);
-                        acc[d.chemicalInventoryId!] = { changeQty: variance!, note: `Điều chỉnh sau kiểm kê ${approveTarget.chemicalAuditBlockId}` };
-                        return acc;
-                    }, {} as any);
-
-                    return (
-                        <CreateBlockModal
-                            initialType="ADJUSTMENT"
-                            initialRef={approveTarget.chemicalAuditBlockId ?? undefined}
-                            initialItems={initialItems}
-                            initialTxnData={initialTxnData}
-                            onClose={() => setApproveTarget(null)}
-                        />
-                    );
-                })()}
         </div>
     );
 }

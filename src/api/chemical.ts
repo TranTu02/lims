@@ -136,6 +136,7 @@ export const chemicalApi = {
         full: (input: { id: string }) => api.post<ChemicalAuditBlock>("/v2/chemicalauditblocks/get/full", { query: { id: input.id }, headers: noCacheHeaders }),
         create: (input: { body: any }) => api.post<ChemicalAuditBlock>("/v2/chemicalauditblocks/create", { body: input.body }),
         update: (input: { body: any }) => api.post<ChemicalAuditBlock>("/v2/chemicalauditblocks/update", { body: input.body }),
+        approve: (input: { body: { chemicalAuditBlockId: string; approvedBy: string } }) => api.post<ChemicalAuditBlock>("/v2/chemicalauditblocks/approve", { body: input.body }),
     },
     auditDetails: {
         list: (input?: any) => api.post<ChemicalAuditDetail[]>("/v2/chemicalauditdetails/get/list", { query: { ...DEFAULT_LIST_QUERY, ...(input?.query ?? {}) }, headers: noCacheHeaders }),
@@ -338,6 +339,21 @@ export function useChemicalAuditDetailUpdate() {
             qc.invalidateQueries({ queryKey: chemicalKeys.auditBlocks.all() });
             qc.invalidateQueries({ queryKey: chemicalKeys.auditDetails.all() });
             toast.success(String(t("common.saveSuccess")));
+        },
+        onError: (err: any) => toast.error(err.message || String(t("common.error"))),
+    });
+}
+
+export function useChemicalAuditBlockApprove() {
+    const qc = useQueryClient();
+    const { t } = useTranslation();
+    return useMutation({
+        mutationFn: async (input: { body: { chemicalAuditBlockId: string; approvedBy: string } }) => assertSuccess(await chemicalApi.auditBlocks.approve(input)),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: chemicalKeys.auditBlocks.all() });
+            qc.invalidateQueries({ queryKey: chemicalKeys.inventories.all() });
+            qc.invalidateQueries({ queryKey: chemicalKeys.skus.all() });
+            toast.success("Đợt kiểm kê đã được duyệt và cập nhật tồn kho");
         },
         onError: (err: any) => toast.error(err.message || String(t("common.error"))),
     });
