@@ -253,6 +253,7 @@ export type ReceiptsSendEmailBody = {
     body: string;
     attachments: string[];
     type: "RECEPTION" | "FINAL_RESULT";
+    refId?: string[];
 };
 
 export async function receiptsSendEmail(body: ReceiptsSendEmailBody): Promise<ApiResponse<{ success: boolean; message?: string }>> {

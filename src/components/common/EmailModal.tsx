@@ -41,6 +41,7 @@ export function EmailModal({
     defaultSubject = "",
     defaultContent = "",
     attachments = [],
+    refId,
     type,
     images = [],
     documents = [],
@@ -123,6 +124,7 @@ export function EmailModal({
             body: form.content,
             attachments: selectedFiles.map((a) => a.fileId),
             type,
+            refId: refId ? [refId] : undefined,
         });
     };
 

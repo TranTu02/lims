@@ -262,7 +262,14 @@ export function ReceiptsTable({ items, activeTab, selectedRowKey, onSelectRow, o
                             {isReturnResults && (
                                 <>
                                     <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider" style={{ minWidth: 140 }}>
-                                        Vận đơn
+                                        <TableHeaderFilter
+                                            title="Vận đơn"
+                                            type="enum"
+                                            options={["IS NOT NULL", "IS NULL"]}
+                                            labelMap={{ "IS NOT NULL": "Đã tạo vận đơn", "IS NULL": "Chưa tạo vận đơn" }}
+                                            value={filterValues["shipmentTrackingNumber"]}
+                                            onChange={(vals) => onFilterChange?.("shipmentTrackingNumber", vals)}
+                                        />
                                     </th>
                                     <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider" style={{ minWidth: 140 }}>
                                         Mã mẫu

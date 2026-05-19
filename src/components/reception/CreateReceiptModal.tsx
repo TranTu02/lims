@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { X, Plus, Copy, Trash2, Building2, User } from "lucide-react";
+import { X, Plus, Copy, Trash2, Building2, User, FileText, ExternalLink } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -15,6 +15,7 @@ import { receiptsCreate, receiptsCreateFull } from "@/api/receipts";
 import { clientsGetList, clientsGetDetail } from "@/api/crm/clients";
 import { ordersGetFull } from "@/api/crm/orders";
 import { useIncomingRequestConvert } from "@/api/incomingRequests";
+import { documentApi } from "@/api/documents";
 
 import type { ReceiptDetail, ReceiptsCreateBody, ReceiptsCreateFullBody, ReceiptPriority, ReceiptDeliveryMethod, SampleInfoItem, ReceiptStatus } from "@/types/receipt";
 
@@ -396,6 +397,12 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
 
     const [orderCodeInput, setOrderCodeInput] = useState("");
     const [fetchingOrder, setFetchingOrder] = useState(false);
+    const [fetchedOrderDocuments, setFetchedOrderDocuments] = useState<any[]>(
+        // Pre-populate from initialIncomingRequest if available
+        Array.isArray((initialIncomingRequest as any)?.documents)
+            ? (initialIncomingRequest as any).documents
+            : []
+    );
 
     const clientFetchSeq = useRef(0);
 
@@ -627,6 +634,10 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
             }
 
             toast.success("Đã tải dữ liệu đơn hàng thành công");
+            // Save documents from fetched order
+            if (Array.isArray(order.documents) && order.documents.length > 0) {
+                setFetchedOrderDocuments(order.documents);
+            }
         } catch (e) {
             toast.error("Lỗi khi tải thông tin đơn hàng", { description: getErrorMessage(e, t("common.tryAgain")) });
         } finally {
@@ -905,6 +916,37 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                             Nhập mã đơn hàng L/K (yêu cầu phân tích) để tự động điền danh sách mẫu và thông tin khách hàng sang chế độ <strong className="text-foreground">Tạo đầy đủ</strong>.
                         </div>
                     </div>
+
+                    {/* Documents bar - from order fetch or initialIncomingRequest */}
+                    {fetchedOrderDocuments.length > 0 && (
+                        <div className="bg-muted/20 border border-border rounded-lg p-3 mb-4">
+                            <p className="text-[11px] font-semibold text-muted-foreground uppercase mb-2 flex items-center gap-1.5">
+                                <FileText className="h-3.5 w-3.5" />
+                                Tài liệu đính kèm ({fetchedOrderDocuments.length})
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                {fetchedOrderDocuments.map((doc: any) => (
+                                    <button
+                                        key={doc.documentId}
+                                        type="button"
+                                        className="flex items-center gap-1.5 text-xs bg-background border border-border hover:border-primary/60 hover:bg-primary/5 text-foreground px-2.5 py-1.5 rounded-md transition-colors"
+                                        onClick={async () => {
+                                            try {
+                                                const res = await documentApi.url(String(doc.documentId));
+                                                const url = res?.data?.url || (res as any)?.url;
+                                                if (url) window.open(url, "_blank");
+                                            } catch { /* silent */ }
+                                        }}
+                                        title={doc.documentTitle || String(doc.documentId)}
+                                    >
+                                        <FileText className="h-3 w-3 text-primary/70 shrink-0" />
+                                        <span className="truncate max-w-[180px]">{doc.documentTitle || doc.documentId}</span>
+                                        <ExternalLink className="h-2.5 w-2.5 text-muted-foreground shrink-0" />
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     <Tabs value={mode} onValueChange={(v) => setMode(v as Mode)}>
                         <div className="flex items-center justify-between mb-3">

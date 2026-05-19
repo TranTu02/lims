@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { X, Search, FileText } from "lucide-react";
+import { X, Search, FileText, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 
 import { ordersGetFull } from "@/api/crm/orders";
 import { incomingRequestsCreate, incomingRequestsKeys } from "@/api/incomingRequests";
+import { documentApi } from "@/api/documents";
 import { 
     countSamples, 
     countAnalyses, 
@@ -168,6 +169,37 @@ export function CreateIncomingRequestFromOrderModal({ open, onClose }: CreateInc
                             </div>
 
                             <div className="p-4 space-y-4">
+                                {/* Documents Row */}
+                                {Array.isArray(fetchedOrder.documents) && fetchedOrder.documents.length > 0 && (
+                                    <div className="bg-muted/20 border border-border rounded-lg p-3">
+                                        <p className="text-[11px] font-semibold text-muted-foreground uppercase mb-2 flex items-center gap-1">
+                                            <FileText className="h-3.5 w-3.5" />
+                                            Tài liệu đính kèm ({fetchedOrder.documents.length})
+                                        </p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {fetchedOrder.documents.map((doc: any) => (
+                                                <button
+                                                    key={doc.documentId}
+                                                    type="button"
+                                                    className="flex items-center gap-1.5 text-xs bg-background border border-border hover:border-primary/60 hover:bg-primary/5 text-foreground px-2.5 py-1.5 rounded-md transition-colors"
+                                                    onClick={async () => {
+                                                        try {
+                                                            const res = await documentApi.url(String(doc.documentId));
+                                                            const url = res?.data?.url || (res as any)?.url;
+                                                            if (url) window.open(url, "_blank");
+                                                        } catch { /* silent */ }
+                                                    }}
+                                                    title={doc.documentTitle || String(doc.documentId)}
+                                                >
+                                                    <FileText className="h-3 w-3 text-primary/70 shrink-0" />
+                                                    <span className="truncate max-w-[160px]">{doc.documentTitle || doc.documentId}</span>
+                                                    <ExternalLink className="h-2.5 w-2.5 text-muted-foreground shrink-0" />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="grid grid-cols-2 gap-4 text-sm">
                                     <div className="space-y-1">
                                         <p className="text-xs text-muted-foreground uppercase font-semibold">Khách hàng</p>

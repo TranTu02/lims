@@ -297,6 +297,13 @@ export const RECEIPT_FILTERS: FilterDef[] = [
         column: "createdAt",
         label: "Ngày tạo",
     },
+    {
+        type: "enum",
+        column: "shipmentTrackingNumber",
+        label: "Mã vận đơn",
+        options: [],
+        labelMap: { "IS NOT NULL": "Đã tạo vận đơn", "IS NULL": "Chưa tạo vận đơn" },
+    },
 ];
 
 export const INCOMING_FILTERS: FilterDef[] = [

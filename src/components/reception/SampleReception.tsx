@@ -281,7 +281,7 @@ export function SampleReception() {
                             onClick={() => {
                                 setActiveTab("return-results");
                                 setSearchOption("full");
-                                setFilterValues(emptyFilters());
+                                setFilterValues({ receiptStatus: ["Completed", "Reported"] });
                                 pagination.resetPage();
                             }}
                             className={`flex items-center gap-2 ${activeTab === "return-results" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}

@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, Loader2, FastForward, FlaskConical, PenLine, Beaker, FilePenLine, RotateCcw, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Search, Loader2, FastForward, FlaskConical, PenLine, Beaker, FilePenLine, RotateCcw, RefreshCw, CheckCircle2, ChevronUp, ChevronDown } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 // import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ import { TechnicianChemicalAllocationModal } from "@/components/technician/Techn
 import { DocumentPreviewButton } from "@/components/document/DocumentPreviewButton";
 import { HelpBubble } from "@/components/inventory/chemical/HelpBubble";
 import { convertResultToHtml } from "@/utils/resultHtml";
+import { TableHeaderFilter } from "@/components/reception/TableHeaderFilter";
 
 // function getStatusVariant(status: string) {
 //     if (status === "Pending") return "warning";
@@ -59,7 +60,12 @@ export function TechnicianWorkspace() {
     const [search, setSearch] = useState("");
     const debouncedSearch = useDebounce(search, 300);
 
-    const [technicianGroupId, setTechnicianGroupId] = useState<string | null>(null);
+    const [sortColumn, setSortColumn] = useState<string>("createdAt");
+    const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
+    const [filterValues, setFilterValues] = useState<Record<string, string[]>>({});
+
+    const technicianGroupIdStorage = localStorage.getItem("technicianGroupId");
+    const [technicianGroupId, setTechnicianGroupId] = useState<string | null>(technicianGroupIdStorage || null);
 
     const { data: groupsRes, isLoading: isGroupsLoading } = useIdentityGroupsList({
         query: { identityGroupMainRole: ["ROLE_TECHNICIAN"], option: "full", itemsPerPage: 100 }
@@ -97,10 +103,11 @@ export function TechnicianWorkspace() {
     } = useAnalysesProcessing({
         query: {
             analysisStatus: statusFilter as unknown as "Pending", // send as array
-            sortColumn: "createdAt",
-            sortDirection: "DESC",
+            sortColumn,
+            sortDirection,
             search: debouncedSearch || undefined,
             technicianGroupId: technicianGroupId ? [technicianGroupId] : undefined,
+            analysisDeadline: filterValues["analysisDeadline"]?.length ? filterValues["analysisDeadline"] : undefined,
             itemsPerPage,
             page,
         },
@@ -117,7 +124,37 @@ export function TechnicianWorkspace() {
         setPage(1);
         setSelectedIds([]);
         setSearch("");
+        setSortColumn("createdAt");
+        setSortDirection("DESC");
     }, [activeTab, technicianGroupId]);
+
+    const handleSort = (col: string) => {
+        if (sortColumn === col) {
+            if (sortDirection === "ASC") {
+                setSortDirection("DESC");
+            } else {
+                setSortColumn("createdAt");
+                setSortDirection("DESC");
+            }
+        } else {
+            setSortColumn(col);
+            setSortDirection("ASC");
+        }
+    };
+
+    const renderSortableHeader = (label: string, col: string, className?: string) => {
+        const isSorted = sortColumn === col;
+        return (
+            <TableHead className={`cursor-pointer select-none hover:bg-muted/50 ${className || ""}`} onClick={() => handleSort(col)}>
+                <div className="flex items-center gap-1">
+                    {label}
+                    {isSorted && (
+                        sortDirection === "ASC" ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />
+                    )}
+                </div>
+            </TableHead>
+        );
+    };
 
     // Drag-to-select state and logic
     const [isSelecting, setIsSelecting] = useState(false);
@@ -419,11 +456,19 @@ export function TechnicianWorkspace() {
                                             </TableHead>
                                             <TableHead className="w-12">{t("common.stt", { defaultValue: "STT" })}</TableHead>
                                             <TableHead className="w-[110px]">{t("technician.workspace.sampleCode", { defaultValue: "Mã mẫu" })}</TableHead>
-                                            <TableHead className="w-[160px]">{t("technician.workspace.parameter", { defaultValue: "Chỉ tiêu" })}</TableHead>
-                                            <TableHead className="w-[130px]">{t("technician.workspace.protocolCodeCol", { defaultValue: "Phương pháp" })}</TableHead>
+                                            {renderSortableHeader(String(t("technician.workspace.parameter", { defaultValue: "Chỉ tiêu" })), "parameterName", "w-[160px]")}
+                                            {renderSortableHeader(String(t("technician.workspace.protocolCodeCol", { defaultValue: "Phương pháp" })), "protocolCode", "w-[130px]")}
                                             <TableHead className="w-[160px]">{t("technician.workspace.result", { defaultValue: "Kết quả" })}</TableHead>
                                             <TableHead className="w-[80px]">{t("technician.workspace.unit", { defaultValue: "Đơn vị" })}</TableHead>
-                                            <TableHead className="w-[140px]">{t("technician.workspace.assignee", { defaultValue: "Người phụ trách" })}</TableHead>
+                                            <TableHead className="w-[120px] px-2">
+                                                <TableHeaderFilter
+                                                    title={String(t("technician.workspace.deadline", { defaultValue: "Hạn trả" }))}
+                                                    type="daterange"
+                                                    value={filterValues["analysisDeadline"]}
+                                                    onChange={(vals) => setFilterValues(prev => ({ ...prev, analysisDeadline: vals }))}
+                                                />
+                                            </TableHead>
+                                            {renderSortableHeader(String(t("technician.workspace.assignee", { defaultValue: "Người phụ trách" })), "technicianId", "w-[140px]")}
                                             <TableHead className="w-[130px] p-0 align-middle">
                                                 <FilterPopover 
                                                     title={String(t("technician.workspace.assignedGroup", { defaultValue: "Nhóm thực hiện" }))}
@@ -439,13 +484,13 @@ export function TechnicianWorkspace() {
                                     <TableBody>
                                         {isAnalysesLoading ? (
                                             <TableRow>
-                                                <TableCell colSpan={10} className="h-40 text-center">
+                                                <TableCell colSpan={11} className="h-40 text-center">
                                                     <Loader2 className="text-primary mx-auto h-8 w-8 animate-spin" />
                                                 </TableCell>
                                             </TableRow>
                                         ) : analysesList.length === 0 ? (
                                             <TableRow>
-                                                <TableCell colSpan={11} className="text-muted-foreground h-40 text-center">
+                                                <TableCell colSpan={12} className="text-muted-foreground h-40 text-center">
                                                     {t("common.noData", { defaultValue: "Không có dữ liệu" })}
                                                 </TableCell>
                                             </TableRow>
@@ -458,6 +503,7 @@ export function TechnicianWorkspace() {
                                                     protocolId?: string;
                                                     protocolCode?: string;
                                                     analysisUnit?: string;
+                                                    analysisDeadline?: string;
                                                 };
                                                 const assignedKTV = item.technician?.identityName ?? "-";
                                                 const assignedGroup = item.technicianGroupName ?? "-";
@@ -482,6 +528,9 @@ export function TechnicianWorkspace() {
                                                             />
                                                         </TableCell>
                                                         <TableCell className="text-muted-foreground text-xs break-all whitespace-normal">{item.analysisUnit || "-"}</TableCell>
+                                                        <TableCell className="text-muted-foreground text-xs break-words whitespace-normal">
+                                                            {item.analysisDeadline ? new Date(item.analysisDeadline).toLocaleDateString("vi-VN") : "-"}
+                                                        </TableCell>
                                                         <TableCell className="text-sm break-words whitespace-normal">{assignedKTV}</TableCell>
                                                         <TableCell className="text-sm break-words whitespace-normal">{assignedGroup}</TableCell>
                                                         <TableCell className="" onClick={(e) => e.stopPropagation()}>

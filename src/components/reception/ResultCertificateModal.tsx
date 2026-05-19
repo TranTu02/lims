@@ -102,22 +102,31 @@ const CONTENT_STYLE = `
   }
 `;
 
-function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail, tVi: any, t2nd: any, replacingReportId?: string | null, secondLang: "en" | "cn" = "en"): string {
+function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail, tVi: any, t2nd: any, replacingReportId?: string | null, secondLang: "en" | "cn" = "en", displayMode: "standard" | "legacy" = "standard"): string {
     const analyses = sample.analyses ?? [];
     const rows = analyses
         .map((a, i) => {
-            let nameVie = a.parameterName || "-";
-            let name2nd = "";
-            if (a.displayStyle && typeof a.displayStyle === "object") {
-                nameVie = (a.displayStyle as any).vie || (a.displayStyle as any).vi || a.parameterName || "-";
-                if (secondLang === "en") {
-                    name2nd = (a.displayStyle as any).eng || (a.displayStyle as any).en || "";
-                } else if (secondLang === "cn") {
-                    name2nd = (a.displayStyle as any).cn || (a.displayStyle as any).chn || (a.displayStyle as any).zho || "";
+            let displayName: string;
+            if (displayMode === "legacy") {
+                // Legacy mode: only use displayStyle.default / displayStyle.vi / parameterName — no secondLang
+                let nameLegacy = a.parameterName || "-";
+                if (a.displayStyle && typeof a.displayStyle === "object") {
+                    nameLegacy = (a.displayStyle as any).default || (a.displayStyle as any).vi || (a.displayStyle as any).vie || a.parameterName || "-";
                 }
+                displayName = `<strong>${nameLegacy}</strong>`;
+            } else {
+                let nameVie = a.parameterName || "-";
+                let name2nd = "";
+                if (a.displayStyle && typeof a.displayStyle === "object") {
+                    nameVie = (a.displayStyle as any).vie || (a.displayStyle as any).vi || a.parameterName || "-";
+                    if (secondLang === "en") {
+                        name2nd = (a.displayStyle as any).eng || (a.displayStyle as any).en || "";
+                    } else if (secondLang === "cn") {
+                        name2nd = (a.displayStyle as any).cn || (a.displayStyle as any).chn || (a.displayStyle as any).zho || "";
+                    }
+                }
+                displayName = `<strong>${nameVie}</strong><br/><span style="font-size: 10px; color: #444;">/ ${name2nd || "-"}</span>`;
             }
-
-            let displayName = `<strong>${nameVie}</strong><br/><span style="font-size: 10px; color: #444;">/ ${name2nd || "-"}</span>`;
 
             let loc = a.analysisLocation || "";
             let accKeys: string[] = [];
@@ -240,18 +249,16 @@ function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail,
                         </div>
  
                         <div id="sample-section" class="info-box">
-                            <div style="display: flex; justify-content: space-between; border-bottom: 0.5px solid #000; margin-bottom: 4px; padding-bottom: 2px;">
+                             <div style="display: flex; justify-content: space-between; border-bottom: 0.5px solid #000; margin-bottom: 4px; padding-bottom: 2px;">
                                 <p style="font-size: 11px; margin: 0;">${tVi("testReport.sampleInfo")} / ${t2nd("testReport.sampleInfo")}</p>
                                 <p style="font-size: 11px; margin: 0;"><strong>${sample.sampleId ?? "-"}</strong></p>
                             </div>
  
-                            <div style="margin-bottom: 6px;">
-                                <p style="font-size: 10px; font-style: italic; margin-bottom: 2px; color: #555;">${tVi("testReport.clientProvidedInfo")} / ${t2nd("testReport.clientProvidedInfo")}:</p>
+                            <div style="margin-bottom: 4px;">
                                 ${sampleInfoHtml || `<div class="grid-container"><div class="grid-item"><strong>Tên mẫu</strong></div><div class="grid-item" style="grid-column: span 3;">${sample.sampleName || "--"}</div></div>`}
                             </div>
  
-                            <div style="border-top: 0.5px dashed #ccc; padding-top: 4px;">
-                                <p style="font-size: 10px; font-style: italic; margin-bottom: 2px; color: #555;">${tVi("testReport.receiptInformation")} / ${t2nd("testReport.receiptInformation")}:</p>
+                            <div style="padding-top: 4px;">
                                 ${receiptInfoHtml || `<div class="grid-container"><div class="grid-item"><strong>Ngày tiếp nhận</strong></div><div class="grid-item">${receipt.receiptDate ? new Date(receipt.receiptDate).toLocaleDateString("vi-VN") : "--"}</div><div class="grid-item"></div><div class="grid-item"></div></div>`}
                             </div>
                         </div>
@@ -323,6 +330,7 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
     const { t, i18n } = useTranslation();
     const tVi = i18n.getFixedT("vi");
     const [secondLang, setSecondLang] = useState<"en" | "cn">("en");
+    const [displayMode, setDisplayMode] = useState<"standard" | "legacy">("standard");
     const t2nd = i18n.getFixedT(secondLang);
 
     const samples = receipt.samples ?? [];
@@ -369,10 +377,10 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                     </table>
                 `);
             } else {
-                editorRef.current.setContent(generateSampleResultHtml(selectedSample, activeReceipt, tVi, t2nd, replacingReportId, secondLang));
+                editorRef.current.setContent(generateSampleResultHtml(selectedSample, activeReceipt, tVi, t2nd, replacingReportId, secondLang, displayMode));
             }
         }
-    }, [replacingReportId, selectedSample?.sampleId, activeReceipt, tVi, t2nd, secondLang, selectedPastReport]);
+    }, [replacingReportId, selectedSample?.sampleId, activeReceipt, tVi, t2nd, secondLang, displayMode, selectedPastReport]);
 
     const extractHtmlParts = (html: string) => {
         const parser = new DOMParser();
@@ -751,7 +759,7 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                                                     </table>
                                                 `;
                                             }
-                                            return generateSampleResultHtml(selectedSample, activeReceipt, tVi, t2nd, replacingReportId, secondLang);
+                                            return generateSampleResultHtml(selectedSample, activeReceipt, tVi, t2nd, replacingReportId, secondLang, displayMode);
                                         })()}
                                         init={{
                                             height: "100%",
@@ -793,11 +801,14 @@ export function ResultCertificateModal({ open, onOpenChange, receipt }: Props) {
                                                 <div className="space-y-1.5">
                                                     <label className="text-[11px] font-medium text-muted-foreground pl-0.5">Ngôn ngữ báo cáo</label>
                                                     <div className="flex items-center gap-2">
-                                                        <Button variant={secondLang === "en" ? "default" : "outline"} size="sm" className="flex-1 h-8 text-xs" onClick={() => setSecondLang("en")}>
+                                                        <Button variant={displayMode === "standard" && secondLang === "en" ? "default" : "outline"} size="sm" className="flex-1 h-8 text-xs" onClick={() => { setDisplayMode("standard"); setSecondLang("en"); }}>
                                                             VI / EN
                                                         </Button>
-                                                        <Button variant={secondLang === "cn" ? "default" : "outline"} size="sm" className="flex-1 h-8 text-xs" onClick={() => setSecondLang("cn")}>
+                                                        <Button variant={displayMode === "standard" && secondLang === "cn" ? "default" : "outline"} size="sm" className="flex-1 h-8 text-xs" onClick={() => { setDisplayMode("standard"); setSecondLang("cn"); }}>
                                                             VI / CN
+                                                        </Button>
+                                                        <Button variant={displayMode === "legacy" ? "default" : "outline"} size="sm" className="flex-1 h-8 text-xs" onClick={() => setDisplayMode("legacy")} title="Chỉ hiện tên tiếng Việt (displayStyle.default / vi / parameterName), không có phần dịch">
+                                                            Form cũ
                                                         </Button>
                                                     </div>
                                                 </div>

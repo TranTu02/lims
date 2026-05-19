@@ -99,7 +99,7 @@ export function HandoverManagement() {
 
     const { data: analysesRes, isLoading: isAnalysesLoading, refetch } = useAnalysesList({
         query: {
-            analysisStatus: ["Ready"] as any,
+            analysisStatus: ["Pending", "Ready"] as any,
             listOption: "full" as any,
             sortColumn: "technicianId",
             sortDirection: "DESC",

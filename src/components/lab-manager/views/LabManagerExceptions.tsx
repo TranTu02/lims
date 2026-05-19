@@ -121,6 +121,7 @@ export function LabManagerExceptions() {
         {
             query: {
                 analysisMarks: marksFilter,
+                analysisLocation: activeTab === "subcontract-analysis" ? ["EX"] : undefined,
                 search: debouncedSearch || undefined,
                 technicianId: technicianId ? [technicianId] : undefined,
                 technicianGroupId: technicianGroupId ? [technicianGroupId] : undefined,
@@ -284,7 +285,6 @@ export function LabManagerExceptions() {
                                                 <TableCell className="font-medium text-primary text-xs break-all">{(item as any).sample?.sampleCode || item.sampleId}</TableCell>
                                                 <TableCell>
                                                     <div className="font-semibold text-sm break-words whitespace-normal">{item.parameterName ?? "-"}</div>
-                                                    <div className="text-muted-foreground italic text-[11px] break-all">{item.protocolCode ?? "-"}</div>
                                                 </TableCell>
                                                 <TableCell className="text-muted-foreground italic text-xs break-all whitespace-normal">{item.protocolCode ?? "-"}</TableCell>
                                                 <TableCell className="font-medium text-blue-600 break-words whitespace-normal">

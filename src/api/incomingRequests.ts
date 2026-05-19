@@ -51,7 +51,7 @@ export async function incomingRequestsGetList(input: IncomingRequestsGetListInpu
         if (input.sort.direction) finalQuery.sortDirection = String(input.sort.direction);
     }
 
-    const res = await api.getRaw<ListResponse<IncomingRequestListItem>>("/v2/incoming-orders/get/list", { query: finalQuery, headers: noCacheHeaders });
+    const res = await api.getRaw<ListResponse<IncomingRequestListItem>>("/v2/incoming-orders/get/list", { query: { ...finalQuery, option: "full" }, headers: noCacheHeaders });
 
     return assertList(res);
 }

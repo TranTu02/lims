@@ -1,9 +1,9 @@
 // src/components/reception/FastConvertModal.tsx
 // Modal xác nhận trước khi chuyển đổi IncomingRequest → Receipt (full: receipt + samples + analyses)
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Zap, Package, FlaskConical, X, Calendar, AlertTriangle } from "lucide-react";
+import { Zap, Package, FlaskConical, X, Calendar, AlertTriangle, FileText, ExternalLink } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { useIncomingRequestConvert } from "@/api/incomingRequests";
+import { incomingRequestsGetDetail } from "@/api/incomingRequests";
+import { documentApi } from "@/api/documents";
 import type { IncomingRequestListItem } from "@/types/incomingRequest";
 import type { ReceiptsCreateFullBody } from "@/types/receipt";
 
@@ -24,6 +26,25 @@ interface FastConvertModalProps {
 export function FastConvertModal({ request, onClose }: FastConvertModalProps) {
     const { t } = useTranslation();
     const convertMutation = useIncomingRequestConvert();
+
+    // Fetch full detail to get documents snapshot
+    const [fullRequest, setFullRequest] = useState<any>(request);
+    useEffect(() => {
+        let cancelled = false;
+        incomingRequestsGetDetail({ params: { requestId: request.requestId } })
+            .then((data) => { if (!cancelled) setFullRequest(data as any); })
+            .catch(() => { /* use list data as fallback */ });
+        return () => { cancelled = true; };
+    }, [request.requestId]);
+
+    const documents: any[] = (() => {
+        // getRaw may return { success, data: {...} } or the entity directly
+        const raw = fullRequest as any;
+        const entity = raw?.data ?? raw;
+        if (Array.isArray(entity?.documents) && entity.documents.length > 0) return entity.documents;
+        if (Array.isArray((request as any).documents)) return (request as any).documents;
+        return [];
+    })();
 
     // Form state
     const [receiptDate, setReceiptDate] = useState(() => {
@@ -129,6 +150,36 @@ export function FastConvertModal({ request, onClose }: FastConvertModalProps) {
 
                 {/* ── Content ──────────────────────────────────────────── */}
                 <div className="px-5 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
+                    {/* Documents Row */}
+                    {documents.length > 0 && (
+                        <div className="bg-muted/20 border border-border rounded-lg p-3">
+                            <p className="text-[11px] font-semibold text-muted-foreground uppercase mb-2 flex items-center gap-1">
+                                <FileText className="h-3.5 w-3.5" />
+                                Tài liệu đính kèm ({documents.length})
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                                {documents.map((doc: any) => (
+                                    <button
+                                        key={doc.documentId}
+                                        type="button"
+                                        className="flex items-center gap-1.5 text-xs bg-background border border-border hover:border-primary/60 hover:bg-primary/5 text-foreground px-2.5 py-1.5 rounded-md transition-colors"
+                                        onClick={async () => {
+                                            try {
+                                                const res = await documentApi.url(String(doc.documentId));
+                                                const url = res?.data?.url || (res as any)?.url;
+                                                if (url) window.open(url, "_blank");
+                                            } catch { /* silent */ }
+                                        }}
+                                        title={doc.documentTitle || String(doc.documentId)}
+                                    >
+                                        <FileText className="h-3 w-3 text-primary/70 shrink-0" />
+                                        <span className="truncate max-w-[140px]">{doc.documentTitle || doc.documentId}</span>
+                                        <ExternalLink className="h-2.5 w-2.5 text-muted-foreground shrink-0" />
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                     {/* Summary Stats */}
                     <div className="grid grid-cols-3 gap-3">
                         <div className="bg-background border border-border rounded-lg p-3 text-center">

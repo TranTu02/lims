@@ -98,7 +98,7 @@ export function LabManagerApprovals() {
 
     const handleBulkReject = () => {
         if (!selectedIds.length) return;
-        const payload = selectedIds.map((id) => ({ analysisId: id, analysisStatus: "Testing" as const }));
+        const payload = selectedIds.map((id) => ({ analysisId: id, analysisStatus: "ReTest" as const }));
         bulkUpdate({ body: payload }, { onSuccess: () => { setSelectedIds([]); refetch(); toast.success(`Đã trả lại ${payload.length} chỉ tiêu`); } });
     };
 
@@ -132,7 +132,7 @@ export function LabManagerApprovals() {
     const handleModalReject = async (analysisId: string, reason: string) => {
         if (!reason.trim()) { toast.warning("Vui lòng nhập lý do"); return; }
         setProcessing(true);
-        singleUpdate({ body: { analysisId, analysisStatus: "Testing", analysisNotes: reason } }, { onSuccess: () => { setModalOpen(false); refetch(); toast.success("Đã trả lại"); }, onSettled: () => setProcessing(false) });
+        singleUpdate({ body: { analysisId, analysisStatus: "ReTest", analysisNotes: reason } }, { onSuccess: () => { setModalOpen(false); refetch(); toast.success("Đã trả lại"); }, onSettled: () => setProcessing(false) });
     };
 
     const handleQuickApprove = (analysisId: string) => {

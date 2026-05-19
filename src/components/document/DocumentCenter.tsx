@@ -619,23 +619,6 @@ function DocumentsListView({
         );
     }
 
-    if (!documents.length) {
-        return (
-            <div className="bg-card rounded-lg border border-border flex-1 flex items-center justify-center">
-                <div className="text-center text-muted-foreground py-12">
-                    <FileText className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
-                    <p>
-                        {String(
-                            t("documentCenter.noData", {
-                                defaultValue: "Không có tài liệu nào",
-                            }),
-                        )}
-                    </p>
-                </div>
-            </div>
-        );
-    }
-
     return (
         <div className="bg-card rounded-lg border border-border flex-1 overflow-hidden flex flex-col">
             {/* Table Header */}
@@ -675,107 +658,120 @@ function DocumentsListView({
             </div>
 
             {/* Table Body */}
-            <div className="flex-1 overflow-y-auto divide-y divide-border">
-                {documents.map((doc) => (
-                    <div
-                        key={doc.documentId}
-                        className={`grid grid-cols-12 gap-2 px-4 py-3 items-center hover:bg-muted/30 cursor-pointer transition-colors ${
-                            selectedId === doc.documentId ? "bg-primary/5 border-l-2 border-l-primary" : ""
-                        }`}
-                        onClick={() => onSelect(doc.documentId)}
-                    >
-                        {/* Title + ID */}
-                        <div className="col-span-3 flex items-center gap-3 min-w-0">
-                            <div className="shrink-0">{getFileIcon(null, doc.documentTitle)}</div>
-                            <div className="min-w-0 flex flex-col gap-1 items-start py-0.5">
-                                <div className="text-sm font-semibold text-foreground truncate w-full" title={doc.documentTitle || doc.documentId}>
-                                    {doc.documentTitle ?? doc.documentId}
+            <div className="flex-1 overflow-y-auto divide-y divide-border flex flex-col">
+                {!documents.length ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center text-muted-foreground py-12">
+                        <FileText className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
+                        <p>
+                            {String(
+                                t("documentCenter.noData", {
+                                    defaultValue: "Không có tài liệu nào",
+                                }),
+                            )}
+                        </p>
+                    </div>
+                ) : (
+                    documents.map((doc) => (
+                        <div
+                            key={doc.documentId}
+                            className={`grid grid-cols-12 gap-2 px-4 py-3 items-center hover:bg-muted/30 cursor-pointer transition-colors ${
+                                selectedId === doc.documentId ? "bg-primary/5 border-l-2 border-l-primary" : ""
+                            }`}
+                            onClick={() => onSelect(doc.documentId)}
+                        >
+                            {/* Title + ID */}
+                            <div className="col-span-3 flex items-center gap-3 min-w-0">
+                                <div className="shrink-0">{getFileIcon(null, doc.documentTitle)}</div>
+                                <div className="min-w-0 flex flex-col gap-1 items-start py-0.5">
+                                    <div className="text-sm font-semibold text-foreground truncate w-full" title={doc.documentTitle || doc.documentId}>
+                                        {doc.documentTitle ?? doc.documentId}
+                                    </div>
+                                    <span className="text-[10px] bg-background border text-muted-foreground px-1.5 py-0.5 rounded shadow-sm leading-none">{doc.documentId}</span>
                                 </div>
-                                <span className="text-[10px] bg-background border text-muted-foreground px-1.5 py-0.5 rounded shadow-sm leading-none">{doc.documentId}</span>
+                            </div>
+
+                            {/* Type */}
+                            <div className="col-span-2">
+                                {doc.documentType ? <Badge variant="secondary" className="text-[10px] font-bold uppercase">{doc.documentType}</Badge> : <span className="text-xs text-muted-foreground">-</span>}
+                            </div>
+
+                            {/* Status */}
+                            <div className="col-span-1">{doc.documentStatus ? <DocumentStatusBadge status={doc.documentStatus} /> : <span className="text-xs text-muted-foreground">-</span>}</div>
+
+                            {/* Ref */}
+                            <div className="col-span-2">
+                                {doc.commonKeys && doc.commonKeys.length > 0 ? (
+                                    <div className="flex flex-wrap gap-1" title={doc.commonKeys.join(", ")}>
+                                        {doc.commonKeys.slice(0, 3).map((key, idx) => (
+                                            <Badge key={idx} variant="outline" className="text-[10px] uppercase font-normal">
+                                                {key}
+                                            </Badge>
+                                        ))}
+                                        {doc.commonKeys.length > 3 && (
+                                            <Badge variant="outline" className="text-[10px] text-muted-foreground bg-muted/30 font-normal">
+                                                +{doc.commonKeys.length - 3}
+                                            </Badge>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <span className="text-xs text-muted-foreground">-</span>
+                                )}
+                            </div>
+
+                            {/* Date */}
+                            <div className="col-span-2 text-sm text-muted-foreground">{doc.createdAt ? format(new Date(doc.createdAt), DATE_FORMAT.short) : "-"}</div>
+
+                            {/* Actions */}
+                            <div className="col-span-2 flex justify-end gap-1">
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-8 w-8 p-0"
+                                    disabled={previewLoading}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onPreview(doc);
+                                    }}
+                                    title={String(
+                                        t("documentCenter.preview.preview", {
+                                            defaultValue: "Xem trước",
+                                        }),
+                                    )}
+                                >
+                                    <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-8 w-8 p-0"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onEdit(doc);
+                                    }}
+                                    title={String(t("common.edit", { defaultValue: "Chỉnh sửa" }))}
+                                >
+                                    <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-8 w-8 p-0"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onDownload(doc);
+                                    }}
+                                    title={String(
+                                        t("documentCenter.preview.download", {
+                                            defaultValue: "Tải xuống",
+                                        }),
+                                    )}
+                                >
+                                    <Download className="h-4 w-4" />
+                                </Button>
                             </div>
                         </div>
-
-                        {/* Type */}
-                        <div className="col-span-2">
-                            {doc.documentType ? <Badge variant="secondary" className="text-[10px] font-bold uppercase">{doc.documentType}</Badge> : <span className="text-xs text-muted-foreground">-</span>}
-                        </div>
-
-                        {/* Status */}
-                        <div className="col-span-1">{doc.documentStatus ? <DocumentStatusBadge status={doc.documentStatus} /> : <span className="text-xs text-muted-foreground">-</span>}</div>
-
-                        {/* Ref */}
-                        <div className="col-span-2">
-                            {doc.commonKeys && doc.commonKeys.length > 0 ? (
-                                <div className="flex flex-wrap gap-1" title={doc.commonKeys.join(", ")}>
-                                    {doc.commonKeys.slice(0, 3).map((key, idx) => (
-                                        <Badge key={idx} variant="outline" className="text-[10px] uppercase font-normal">
-                                            {key}
-                                        </Badge>
-                                    ))}
-                                    {doc.commonKeys.length > 3 && (
-                                        <Badge variant="outline" className="text-[10px] text-muted-foreground bg-muted/30 font-normal">
-                                            +{doc.commonKeys.length - 3}
-                                        </Badge>
-                                    )}
-                                </div>
-                            ) : (
-                                <span className="text-xs text-muted-foreground">-</span>
-                            )}
-                        </div>
-
-                        {/* Date */}
-                        <div className="col-span-2 text-sm text-muted-foreground">{doc.createdAt ? format(new Date(doc.createdAt), DATE_FORMAT.short) : "-"}</div>
-
-                        {/* Actions */}
-                        <div className="col-span-2 flex justify-end gap-1">
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0"
-                                disabled={previewLoading}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onPreview(doc);
-                                }}
-                                title={String(
-                                    t("documentCenter.preview.preview", {
-                                        defaultValue: "Xem trước",
-                                    }),
-                                )}
-                            >
-                                <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onEdit(doc);
-                                }}
-                                title={String(t("common.edit", { defaultValue: "Chỉnh sửa" }))}
-                            >
-                                <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onDownload(doc);
-                                }}
-                                title={String(
-                                    t("documentCenter.preview.download", {
-                                        defaultValue: "Tải xuống",
-                                    }),
-                                )}
-                            >
-                                <Download className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    </div>
-                ))}
+                    ))
+                )}
             </div>
         </div>
     );
@@ -808,23 +804,6 @@ function FilesListView({
         );
     }
 
-    if (!files.length) {
-        return (
-            <div className="bg-card rounded-lg border border-border flex-1 flex items-center justify-center">
-                <div className="text-center text-muted-foreground py-12">
-                    <Files className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
-                    <p>
-                        {String(
-                            t("documentCenter.noFiles", {
-                                defaultValue: "Không có file nào",
-                            }),
-                        )}
-                    </p>
-                </div>
-            </div>
-        );
-    }
-
     return (
         <div className="bg-card rounded-lg border border-border flex-1 overflow-hidden flex flex-col">
             {/* Table Header */}
@@ -839,84 +818,97 @@ function FilesListView({
             </div>
 
             {/* Table Body */}
-            <div className="flex-1 overflow-y-auto divide-y divide-border">
-                {files.map((file) => (
-                    <div
-                        key={file.fileId}
-                        className={`grid grid-cols-12 gap-2 px-4 py-3 items-center hover:bg-muted/30 cursor-pointer transition-colors ${
-                            selectedId === file.fileId ? "bg-primary/5 border-l-2 border-l-primary" : ""
-                        }`}
-                        onClick={() => onSelect(file.fileId)}
-                    >
-                        {/* File name */}
-                        <div className="col-span-4 flex items-center gap-3 min-w-0">
-                            <div className="shrink-0">{getFileIcon(file.mimeType, file.fileName)}</div>
-                            <div className="min-w-0 flex flex-col gap-1 items-start py-0.5">
-                                <div className="text-sm font-semibold text-foreground truncate w-full" title={file.fileName || file.fileId}>
-                                    {file.fileName || file.fileId}
+            <div className="flex-1 overflow-y-auto divide-y divide-border flex flex-col">
+                {!files.length ? (
+                    <div className="flex-1 flex flex-col items-center justify-center text-center text-muted-foreground py-12">
+                        <Files className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
+                        <p>
+                            {String(
+                                t("documentCenter.noFiles", {
+                                    defaultValue: "Không có file nào",
+                                }),
+                            )}
+                        </p>
+                    </div>
+                ) : (
+                    files.map((file) => (
+                        <div
+                            key={file.fileId}
+                            className={`grid grid-cols-12 gap-2 px-4 py-3 items-center hover:bg-muted/30 cursor-pointer transition-colors ${
+                                selectedId === file.fileId ? "bg-primary/5 border-l-2 border-l-primary" : ""
+                            }`}
+                            onClick={() => onSelect(file.fileId)}
+                        >
+                            {/* File name */}
+                            <div className="col-span-4 flex items-center gap-3 min-w-0">
+                                <div className="shrink-0">{getFileIcon(file.mimeType, file.fileName)}</div>
+                                <div className="min-w-0 flex flex-col gap-1 items-start py-0.5">
+                                    <div className="text-sm font-semibold text-foreground truncate w-full" title={file.fileName || file.fileId}>
+                                        {file.fileName || file.fileId}
+                                    </div>
+                                    <span className="text-[10px] bg-background border text-muted-foreground px-1.5 py-0.5 rounded shadow-sm leading-none">{file.fileId}</span>
                                 </div>
-                                <span className="text-[10px] bg-background border text-muted-foreground px-1.5 py-0.5 rounded shadow-sm leading-none">{file.fileId}</span>
+                            </div>
+
+                            {/* Type */}
+                            <div className="col-span-2">
+                                <Badge variant="secondary" className="text-xs max-w-full truncate">
+                                    {(() => {
+                                        // Prefer extension from fileName
+                                        const ext = file.fileName?.split(".").pop();
+                                        if (ext && ext.length <= 8) return ext.toUpperCase();
+                                        // Fallback: extract short suffix from mimeType
+                                        const sub = file.mimeType?.split("/").pop() || "-";
+                                        return sub.length > 8 ? sub.slice(0, 8).toUpperCase() + "…" : sub.toUpperCase();
+                                    })()}
+                                </Badge>
+                            </div>
+
+                            {/* Size */}
+                            <div className="col-span-2 text-sm text-muted-foreground">{formatFileSize(file.fileSize)}</div>
+
+                            {/* Date */}
+                            <div className="col-span-2 text-sm text-muted-foreground">{file.createdAt ? format(new Date(file.createdAt), DATE_FORMAT.short) : "-"}</div>
+
+                            {/* Actions */}
+                            <div className="col-span-2 flex justify-end gap-1">
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-8 w-8 p-0"
+                                    disabled={previewLoading}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onPreview(file);
+                                    }}
+                                    title={String(
+                                        t("documentCenter.preview.preview", {
+                                            defaultValue: "Xem trước",
+                                        }),
+                                    )}
+                                >
+                                    <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-8 w-8 p-0"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onDownload(file);
+                                    }}
+                                    title={String(
+                                        t("documentCenter.preview.download", {
+                                            defaultValue: "Tải xuống",
+                                        }),
+                                    )}
+                                >
+                                    <Download className="h-4 w-4" />
+                                </Button>
                             </div>
                         </div>
-
-                        {/* Type */}
-                        <div className="col-span-2">
-                            <Badge variant="secondary" className="text-xs max-w-full truncate">
-                                {(() => {
-                                    // Prefer extension from fileName
-                                    const ext = file.fileName?.split(".").pop();
-                                    if (ext && ext.length <= 8) return ext.toUpperCase();
-                                    // Fallback: extract short suffix from mimeType
-                                    const sub = file.mimeType?.split("/").pop() || "-";
-                                    return sub.length > 8 ? sub.slice(0, 8).toUpperCase() + "…" : sub.toUpperCase();
-                                })()}
-                            </Badge>
-                        </div>
-
-                        {/* Size */}
-                        <div className="col-span-2 text-sm text-muted-foreground">{formatFileSize(file.fileSize)}</div>
-
-                        {/* Date */}
-                        <div className="col-span-2 text-sm text-muted-foreground">{file.createdAt ? format(new Date(file.createdAt), DATE_FORMAT.short) : "-"}</div>
-
-                        {/* Actions */}
-                        <div className="col-span-2 flex justify-end gap-1">
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0"
-                                disabled={previewLoading}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onPreview(file);
-                                }}
-                                title={String(
-                                    t("documentCenter.preview.preview", {
-                                        defaultValue: "Xem trước",
-                                    }),
-                                )}
-                            >
-                                <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onDownload(file);
-                                }}
-                                title={String(
-                                    t("documentCenter.preview.download", {
-                                        defaultValue: "Tải xuống",
-                                    }),
-                                )}
-                            >
-                                <Download className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    </div>
-                ))}
+                    ))
+                )}
             </div>
         </div>
     );
