@@ -39,51 +39,55 @@ const ProtectedRoute = () => {
     return <RouterLayout />;
 };
 
+import { SerialBalanceProvider } from "@/contexts/SerialBalanceContext";
+
 function App() {
     return (
         <AuthProvider>
-            <BrowserRouter>
-                <Routes>
-                    {/* Public Routes */}
-                    <Route path="/login" element={<LoginPage />} />
+            <SerialBalanceProvider>
+                <BrowserRouter>
+                    <Routes>
+                        {/* Public Routes */}
+                        <Route path="/login" element={<LoginPage />} />
 
-                    {/* Private Dashboard Routes */}
-                    <Route element={<ProtectedRoute />}>
-                        <Route path="/" element={<Navigate to="/crm" replace />} />
+                        {/* Private Dashboard Routes */}
+                        <Route element={<ProtectedRoute />}>
+                            <Route path="/" element={<Navigate to="/crm" replace />} />
 
-                        <Route path="/reception" element={<ReceptionPage />} />
-                        <Route path="/technician" element={<TechnicianPage />} />
-                        <Route path="/manager/*" element={<LabManagerPage />} />
-                        <Route path="/assignment" element={<AssignmentPage />} />
-                        <Route path="/handover" element={<HandoverPage />} />
-                        <Route path="/stored-samples" element={<StoredSamplesPage />} />
-                        <Route path="/crm" element={<CRMPage />} />
+                            <Route path="/reception" element={<ReceptionPage />} />
+                            <Route path="/technician" element={<TechnicianPage />} />
+                            <Route path="/manager/*" element={<LabManagerPage />} />
+                            <Route path="/assignment" element={<AssignmentPage />} />
+                            <Route path="/handover" element={<HandoverPage />} />
+                            <Route path="/stored-samples" element={<StoredSamplesPage />} />
+                            <Route path="/crm" element={<CRMPage />} />
 
-                        <Route path="/library" element={<LibraryPage />}>
-                            <Route index element={<Navigate to="parameters" replace />} />
+                            <Route path="/library" element={<LibraryPage />}>
+                                <Route index element={<Navigate to="parameters" replace />} />
 
-                            <Route path="parameters" element={<ParametersPage />} />
-                            <Route path="protocols" element={<ProtocolsPage />} />
-                            <Route path="matrices" element={<MatricesPage />} />
-                            <Route path="sample-types" element={<SampleTypesPage />} />
-                            <Route path="parameter-groups" element={<ParameterGroupsPage />} />
+                                <Route path="parameters" element={<ParametersPage />} />
+                                <Route path="protocols" element={<ProtocolsPage />} />
+                                <Route path="matrices" element={<MatricesPage />} />
+                                <Route path="sample-types" element={<SampleTypesPage />} />
+                                <Route path="parameter-groups" element={<ParameterGroupsPage />} />
+                            </Route>
+
+                            <Route path="/document" element={<DocumentPage />} />
+                            <Route path="/inventory" element={<InventoryPage />} />
+                            <Route path="/chemical-inventory" element={<ChemicalInventoryPage />} />
+                            <Route path="/general-inventory" element={<GeneralInventoryPage />} />
+                            <Route path="/hr" element={<IdentityPage />} />
                         </Route>
 
-                        <Route path="/document" element={<DocumentPage />} />
-                        <Route path="/inventory" element={<InventoryPage />} />
-                        <Route path="/chemical-inventory" element={<ChemicalInventoryPage />} />
-                        <Route path="/general-inventory" element={<GeneralInventoryPage />} />
-                        <Route path="/hr" element={<IdentityPage />} />
-                    </Route>
+                        {/* Print Routes */}
+                        <Route path="/print/shipment/:shipmentId" element={<ShipmentPrintPage />} />
 
-                    {/* Print Routes */}
-                    <Route path="/print/shipment/:shipmentId" element={<ShipmentPrintPage />} />
-
-                    {/* Fallback */}
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-                <Toaster position="top-right" expand={true} richColors />
-            </BrowserRouter>
+                        {/* Fallback */}
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                    <Toaster position="top-right" expand={true} richColors />
+                </BrowserRouter>
+            </SerialBalanceProvider>
         </AuthProvider>
     );
 }

@@ -102,7 +102,6 @@ function LabelSingle({ item }: { item: LabelItem }) {
                             fontSize: "7.5pt",
                             lineHeight: "1.0",
                             marginBottom: "0.2mm",
-                            textTransform: "uppercase",
                         }}
                     >
                         {item.chemicalName || ""}
@@ -267,7 +266,6 @@ export function PrintLabelModal({ items, onClose }: Props) {
                         font-size: 7.5pt; 
                         line-height: 1.0; 
                         margin-bottom: 0.2mm;
-                        text-transform: uppercase;
                     }
                     .label-info div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
                     .label-qr {
@@ -352,7 +350,7 @@ export function PrintLabelModal({ items, onClose }: Props) {
                         {items.map((item) => (
                             <div key={item.chemicalInventoryId} className="bg-background border border-border p-3 rounded-lg flex items-center justify-between gap-3 shadow-sm">
                                 <div className="min-w-0 flex-1">
-                                    <div className="text-xs font-bold truncate text-foreground uppercase">{item.chemicalName}</div>
+                                    <div className="text-xs font-bold truncate text-foreground">{item.chemicalName}</div>
                                     <div className="text-[10px] text-muted-foreground mt-0.5 font-mono">ID: {item.chemicalInventoryId}</div>
                                 </div>
                                 <div className="flex items-center gap-2">

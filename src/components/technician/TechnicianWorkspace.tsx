@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, Loader2, FastForward, FlaskConical, PenLine, Beaker, FilePenLine, RotateCcw, RefreshCw, CheckCircle2, ChevronUp, ChevronDown } from "lucide-react";
+import { Scale, Search, Loader2, FastForward, FlaskConical, PenLine, Beaker, FilePenLine, RotateCcw, RefreshCw, CheckCircle2, ChevronUp, ChevronDown } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 // import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,8 @@ import { DocumentPreviewButton } from "@/components/document/DocumentPreviewButt
 import { HelpBubble } from "@/components/inventory/chemical/HelpBubble";
 import { convertResultToHtml } from "@/utils/resultHtml";
 import { TableHeaderFilter } from "@/components/reception/TableHeaderFilter";
+import { useSerialBalance } from "@/contexts/SerialBalanceContext";
+import { AnalyticalBalanceStreamer } from "@/components/technician/AnalyticalBalanceStreamer";
 
 // function getStatusVariant(status: string) {
 //     if (status === "Pending") return "warning";
@@ -50,6 +52,7 @@ import { TableHeaderFilter } from "@/components/reception/TableHeaderFilter";
 export function TechnicianWorkspace() {
     const { user, isAdmin } = useAuth();
     const { t } = useTranslation();
+    const { isConnected } = useSerialBalance();
 
     // Check if user is a manager of any group. For now, checking roles.
     const isManager = isAdmin;
@@ -418,13 +421,20 @@ export function TechnicianWorkspace() {
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                    <TabsList className="grid w-full grid-cols-6 md:w-[850px]">
+                    <TabsList className="grid w-full grid-cols-7 md:w-[1020px]">
                         <TabsTrigger value="pending">{t("technician.workspace.tabs.pending", { defaultValue: "Chờ nhận" })}</TabsTrigger>
                         <TabsTrigger value="handedover">{t("technician.workspace.tabs.handedover", { defaultValue: "Đã nhận bàn giao" })}</TabsTrigger>
                         <TabsTrigger value="testing">{t("technician.workspace.tabs.testing", { defaultValue: "Đang thử nghiệm" })}</TabsTrigger>
                         <TabsTrigger value="data-entered">{t("technician.workspace.tabs.dataEntered", { defaultValue: "Đã nhập kết quả" })}</TabsTrigger>
                         <TabsTrigger value="retest">{t("technician.workspace.tabs.retest", { defaultValue: "Cần làm lại" })}</TabsTrigger>
                         <TabsTrigger value="chemical-requests">{t("technician.workspace.tabs.chemicalRequests", { defaultValue: "Yêu cầu hóa chất" })}</TabsTrigger>
+                        <TabsTrigger value="balance-streamer" className="relative flex items-center gap-1">
+                            <Scale className="w-3.5 h-3.5" />
+                            <span>{String(t("technician.workspace.balance.tabTitle", { defaultValue: "Cân phân tích" }))}</span>
+                            {isConnected && (
+                                <span className="absolute top-1 right-1 w-2 h-2 bg-success rounded-full animate-pulse border border-background" />
+                            )}
+                        </TabsTrigger>
                     </TabsList>
 
                     <div className="relative w-full md:w-80">
@@ -433,7 +443,9 @@ export function TechnicianWorkspace() {
                             placeholder={
                                 activeTab === "chemical-requests"
                                     ? t("inventory.chemical.transactionBlocks.searchPlaceholder", { defaultValue: "Tìm mã phiếu, tham chiếu..." })
-                                    : t("technician.workspace.searchPlaceholder", { defaultValue: "Tìm mã mẫu, tên chỉ tiêu..." })
+                                    : activeTab === "balance-streamer"
+                                        ? "Lọc luồng dữ liệu..."
+                                        : t("technician.workspace.searchPlaceholder", { defaultValue: "Tìm mã mẫu, tên chỉ tiêu..." })
                             }
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
@@ -444,6 +456,8 @@ export function TechnicianWorkspace() {
 
                 {activeTab === "chemical-requests" ? (
                     <TechnicianChemicalRequestsTab search={debouncedSearch} />
+                ) : activeTab === "balance-streamer" ? (
+                    <AnalyticalBalanceStreamer />
                 ) : (
                     <>
                         <div ref={containerRef} className="border-border/50 bg-card z-10 flex flex-1 flex-col overflow-hidden rounded-lg border shadow-sm relative">

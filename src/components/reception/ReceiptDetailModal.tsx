@@ -309,7 +309,7 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
             const newLoaded: LoadedImage[] = [];
             const newFileIds: string[] = [];
             for (const file of files) {
-                const fd = buildFileUploadFormData(file, { commonKeys: [editedReceipt.receiptCode ?? ""], fileTags: ["Received Image"] });
+                const fd = buildFileUploadFormData(file, { commonKeys: [editedReceipt.receiptId ?? ""], fileTags: ["Received Image"] });
                 const up = await fileApi.upload(fd);
                 const fid = (up as any)?.data?.fileId ?? (up as any)?.fileId;
                 if (fid) {

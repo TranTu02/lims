@@ -8,6 +8,7 @@ interface HtmlResultCellProps {
     placeholder?: string;
     className?: string;
     inputClassName?: string;
+    onFocus?: () => void;
 }
 
 /**
@@ -18,7 +19,7 @@ interface HtmlResultCellProps {
  *     `^` → toggle <sup>,  `_` → toggle <sub>,  `*` → ×
  * - On **blur**: the raw input is converted to HTML and stored.
  */
-export function HtmlResultCell({ value, onChange, placeholder = "Nhập KQ...", className = "", inputClassName = "" }: HtmlResultCellProps) {
+export function HtmlResultCell({ value, onChange, placeholder = "Nhập KQ...", className = "", inputClassName = "", onFocus }: HtmlResultCellProps) {
     const [editing, setEditing] = useState(false);
     // Raw shorthand text while editing
     const [draft, setDraft] = useState("");
@@ -28,6 +29,7 @@ export function HtmlResultCell({ value, onChange, placeholder = "Nhập KQ...", 
         // Convert stored HTML → shorthand for editing
         setDraft(htmlToResultShorthand(value || ""));
         setEditing(true);
+        onFocus?.();
         // focus happens automatically via autoFocus
     };
 
