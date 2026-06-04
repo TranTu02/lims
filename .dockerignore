@@ -1,8 +1,0 @@
-node_modules
-dist
-.git
-.env*
-README.md
-npm-debug.log
-docker-compose*
-Dockerfile*
