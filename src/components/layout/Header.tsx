@@ -1,4 +1,4 @@
-import { Bell, Search, User } from "lucide-react";
+import { Bell, Search, User, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,9 +7,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 interface HeaderProps {
     title: string;
     description: string;
+    onToggleMobileSidebar?: () => void;
 }
 
-export function Header({ title, description }: HeaderProps) {
+export function Header({ title, description, onToggleMobileSidebar }: HeaderProps) {
     const { logout, user } = useAuth(); // Assuming useAuth is available and consistent with other files
 
     const handleLogout = () => {
@@ -18,11 +19,22 @@ export function Header({ title, description }: HeaderProps) {
     };
 
     return (
-        <header className="h-16 px-6 bg-background border-b border-border flex items-center justify-between sticky top-0 z-10">
+        <header className="h-16 px-4 md:px-6 bg-background border-b border-border flex items-center justify-between sticky top-0 z-10">
             {/* Title Section */}
-            <div className="flex flex-col">
-                <h1 className="text-lg font-semibold text-foreground">{title}</h1>
-                <p className="text-xs text-muted-foreground">{description}</p>
+            <div className="flex items-center gap-3 min-w-0">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="md:hidden h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
+                    onClick={onToggleMobileSidebar}
+                    type="button"
+                >
+                    <Menu className="h-5 w-5" />
+                </Button>
+                <div className="flex flex-col min-w-0">
+                    <h1 className="text-sm md:text-lg font-semibold text-foreground truncate leading-none">{title}</h1>
+                    <p className="text-[10px] md:text-xs text-muted-foreground truncate mt-1 leading-none">{description}</p>
+                </div>
             </div>
 
             {/* Actions Section */}

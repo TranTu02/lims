@@ -29,6 +29,7 @@ interface SidebarProps {
     activeTab: string;
     onTabChange: (tab: string) => void;
     sidebarOpen?: boolean;
+    onMobileClose?: () => void;
 }
 
 type LucideIcon = ComponentType<{ className?: string }>;
@@ -62,7 +63,7 @@ type NavItem =
           titleKey: string;
       };
 
-export function Sidebar({ activeTab, onTabChange, sidebarOpen = true }: SidebarProps) {
+export function Sidebar({ activeTab, onTabChange, sidebarOpen = true, onMobileClose }: SidebarProps) {
     const { t, i18n } = useTranslation();
     const { theme, setTheme } = useTheme();
     const { hasAccess } = useAuth();
@@ -298,7 +299,7 @@ export function Sidebar({ activeTab, onTabChange, sidebarOpen = true }: SidebarP
                             </div>
                         </div>
 
-                        <button onClick={() => setSidebarCollapsed(true)} className="p-1.5 hover:bg-muted rounded transition-colors shrink-0" title={t("nav.sidebar.collapse")} type="button">
+                        <button onClick={() => { if (onMobileClose) onMobileClose(); else setSidebarCollapsed(true); }} className="p-1.5 hover:bg-muted rounded transition-colors shrink-0" title={t("nav.sidebar.collapse")} type="button">
                             <ChevronLeft className="h-4 w-4 text-muted-foreground" />
                         </button>
                     </div>

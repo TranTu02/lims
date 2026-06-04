@@ -64,6 +64,31 @@ export function SkuEditModal({ sku, onClose, onSuccess }: Props) {
 
     const set = (key: string, val: string) => setForm((f) => ({ ...f, [key]: val }));
 
+    const insertChar = (char: string, inputId: string) => {
+        const input = document.getElementById(inputId) as HTMLInputElement | null;
+        if (input) {
+            const start = input.selectionStart ?? 0;
+            const end = input.selectionEnd ?? 0;
+            const text = input.value;
+            const before = text.substring(0, start);
+            const after = text.substring(end, text.length);
+            const newVal = before + char + after;
+            set("chemicalName", newVal);
+            setTimeout(() => {
+                input.focus();
+                input.setSelectionRange(start + char.length, start + char.length);
+            }, 0);
+        } else {
+            set("chemicalName", form.chemicalName + char);
+        }
+    };
+
+    const SPECIAL_CHARS = {
+        superscript: ["⁰", "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "⁹", "⁺", "⁻"],
+        subscript: ["₀", "₁", "₂", "₃", "₄", "₅", "₆", "₇", "₈", "₉", "₊", "₋"],
+        greek: ["α", "β", "γ", "δ", "λ", "μ", "π", "Ω", "°", "℃", "→", "⇌", "±", "•", "·"]
+    };
+
     return (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
             <div className="bg-background rounded-xl shadow-2xl border border-border w-[520px] max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
@@ -81,7 +106,7 @@ export function SkuEditModal({ sku, onClose, onSuccess }: Props) {
                         <X className="h-4 w-4" />
                     </button>
                 </div>
-
+                
                 {/* Body */}
                 <div className="p-5 space-y-4 flex-1 overflow-y-auto">
                     <div className="space-y-1">
@@ -94,6 +119,47 @@ export function SkuEditModal({ sku, onClose, onSuccess }: Props) {
                             id="edit-sku-name"
                             placeholder={t("inventory.chemical.skus.namePlaceholder", { defaultValue: "VD: Methanol HPLC Grade" })}
                         />
+                        <div className="p-2 bg-muted/40 rounded-lg border border-border/50 text-[10px] space-y-1.5 mt-1">
+                            <div className="flex flex-wrap items-center gap-1">
+                                <span className="text-[10px] text-muted-foreground mr-1 select-none font-medium">Chỉ số trên:</span>
+                                {SPECIAL_CHARS.superscript.map((char) => (
+                                    <button
+                                        key={char}
+                                        type="button"
+                                        onClick={() => insertChar(char, "edit-sku-name")}
+                                        className="w-5 h-5 flex items-center justify-center bg-background border border-border rounded hover:bg-primary hover:text-primary-foreground font-bold transition-all text-[11px]"
+                                    >
+                                        {char}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-1">
+                                <span className="text-[10px] text-muted-foreground mr-1 select-none font-medium">Chỉ số dưới:</span>
+                                {SPECIAL_CHARS.subscript.map((char) => (
+                                    <button
+                                        key={char}
+                                        type="button"
+                                        onClick={() => insertChar(char, "edit-sku-name")}
+                                        className="w-5 h-5 flex items-center justify-center bg-background border border-border rounded hover:bg-primary hover:text-primary-foreground font-bold transition-all text-[11px]"
+                                    >
+                                        {char}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-1">
+                                <span className="text-[10px] text-muted-foreground mr-1 select-none font-medium">Ký hiệu:</span>
+                                {SPECIAL_CHARS.greek.map((char) => (
+                                    <button
+                                        key={char}
+                                        type="button"
+                                        onClick={() => insertChar(char, "edit-sku-name")}
+                                        className="w-5 h-5 flex items-center justify-center bg-background border border-border rounded hover:bg-primary hover:text-primary-foreground font-bold transition-all text-[11px]"
+                                    >
+                                        {char}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">

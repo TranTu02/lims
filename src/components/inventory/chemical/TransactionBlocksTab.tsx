@@ -571,11 +571,15 @@ function CreateBlockModal({ onClose, initialType, initialItems, initialTxnData, 
                     casNumber,
                     lotNumber: inv.lotNumber || "",
                     changeQty:
-                        transactionType === "EXPORT" || transactionType === "LAB_CONSUMPTION"
-                            ? -Math.abs(item.changeQty || 0)
-                            : transactionType === "IMPORT"
-                              ? Math.abs(item.changeQty || 0)
-                              : item.changeQty || 0,
+                        transactionType === "PREPARATION"
+                            ? item.preparationRole === "PRODUCT"
+                                ? Math.abs(item.changeQty || 0)
+                                : -Math.abs(item.changeQty || 0)
+                            : transactionType === "EXPORT" || transactionType === "LAB_CONSUMPTION"
+                              ? -Math.abs(item.changeQty || 0)
+                              : transactionType === "IMPORT"
+                                ? Math.abs(item.changeQty || 0)
+                                : item.changeQty || 0,
                     totalWeight: item.totalWeight ? Number(item.totalWeight) : undefined,
                     chemicalTransactionNote: item.chemicalTransactionBlockDetailNote || "",
                     chemicalTransactionBlockDetailNote: item.chemicalTransactionBlockDetailNote || "",

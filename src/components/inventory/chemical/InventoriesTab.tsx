@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, Printer, CheckSquare, FileText } from "lucide-react";
-import { useChemicalInventoriesList } from "@/api/chemical";
+import { useChemicalInventoriesList, useEnumList, chemicalApi } from "@/api/chemical";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ChemicalInventory } from "@/types/chemical";
 import { Pagination } from "@/components/ui/pagination";
@@ -11,25 +11,12 @@ import { InventoryDetailPanel } from "./InventoryDetailPanel";
 import { InventoryEditModal } from "./InventoryEditModal";
 import { PrintLabelModal } from "./PrintLabelModal";
 import { ChemicalLogReportEditor } from "./ChemicalLogReportEditor";
+import { PrintA4LabelModal } from "./PrintA4LabelModal";
 import { Badge } from "@/components/ui/badge";
 import { TableFilterPopover } from "./TableFilterPopover";
 import { RefreshCw } from "lucide-react";
 
-function StatusBadge({ status }: { status?: string | null }) {
-    const { t } = useTranslation();
-    const STATUS_MAP: Record<string, { label: string; cls: string }> = {
-        Quarantined: { label: t("inventory.chemical.inventories.status.Quarantined", { defaultValue: "Kiểm dịch" }), cls: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300" },
-        New: { label: t("inventory.chemical.inventories.status.New", { defaultValue: "Mới" }), cls: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" },
-        InUse: { label: t("inventory.chemical.inventories.status.InUse", { defaultValue: "Đang dùng" }), cls: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
-        Empty: { label: t("inventory.chemical.inventories.status.Empty", { defaultValue: "Hết" }), cls: "bg-muted text-muted-foreground" },
-        Expired: { label: t("inventory.chemical.inventories.status.Expired", { defaultValue: "Hết hạn" }), cls: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" },
-        Disposed: { label: t("inventory.chemical.inventories.status.Disposed", { defaultValue: "Đã huỷ" }), cls: "bg-gray-200 text-gray-600" },
-        Pending: { label: t("inventory.chemical.inventories.status.Pending", { defaultValue: "Chờ kiểm kê" }), cls: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300" },
-    };
-    const s = status ? STATUS_MAP[status] : undefined;
-    if (s) return <Badge className={s.cls}>{s.label}</Badge>;
-    return <Badge variant="outline">{status ?? "-"}</Badge>;
-}
+
 
 export function InventoriesTab() {
     const { t } = useTranslation();
@@ -44,13 +31,21 @@ export function InventoriesTab() {
         chemicalInventoryStatus: string[];
         expDate: string[];
         openedDate: string[];
-    }>({ chemicalInventoryStatus: [], expDate: [], openedDate: [] });
+        chemicalType: string[];
+        storageBinLocation: string[];
+    }>({ chemicalInventoryStatus: [], expDate: [], openedDate: [], chemicalType: [], storageBinLocation: [] });
+
+    const { data: chemicalTypesList } = useEnumList("chemicalType");
+    const { data: binLocationsList } = useEnumList("storageBinLocation");
+
+
 
     // Label print state
     const [selectMode, setSelectMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [printOpen, setPrintOpen] = useState(false);
     const [logReportOpen, setLogReportOpen] = useState(false);
+    const [printA4Open, setPrintA4Open] = useState(false);
 
     const {
         data: result,
@@ -62,6 +57,58 @@ export function InventoriesTab() {
     });
 
     const allItems = (result?.data as any[] | undefined) ?? [];
+
+    // QR/Barcode Scanner Global Keydown Listener
+    useEffect(() => {
+        let buffer = "";
+        let lastKeyTime = Date.now();
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            const activeEl = document.activeElement;
+            if (activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" || activeEl.tagName === "SELECT")) {
+                return;
+            }
+
+            if (e.key === "Control" || e.key === "Alt" || e.key === "Shift" || e.key === "Meta") {
+                return;
+            }
+
+            const now = Date.now();
+            if (now - lastKeyTime > 100) {
+                buffer = "";
+            }
+            lastKeyTime = now;
+
+            if (e.key === "Enter") {
+                if (buffer.trim()) {
+                    const scannedId = buffer.trim();
+                    const foundItem = allItems.find((inv: any) => inv.chemicalInventoryId === scannedId);
+                    if (foundItem) {
+                        setActiveInv(foundItem);
+                    } else {
+                        setSearch(scannedId);
+                        setSubmittedSearch(scannedId);
+                        setPage(1);
+                        chemicalApi.inventories.getTechnicians().then(() => {
+                            chemicalApi.inventories.full({ id: scannedId }).then((res) => {
+                                if (res.success && res.data) {
+                                    setActiveInv(res.data as ChemicalInventory);
+                                }
+                            });
+                        });
+                    }
+                    buffer = "";
+                }
+            } else if (e.key.length === 1) {
+                buffer += e.key;
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => {
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [allItems]);
 
     const handleSearch = () => {
         setSubmittedSearch(search);
@@ -112,8 +159,8 @@ export function InventoriesTab() {
         <div className="h-full flex gap-4 overflow-hidden">
             <div className="flex flex-col flex-1 space-y-3 min-w-0 overflow-hidden">
                 {/* Toolbar */}
-                <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 flex-1">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 w-full lg:flex-1">
                         <div className="relative flex-1 max-w-sm">
                             <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                             <Input
@@ -132,7 +179,7 @@ export function InventoriesTab() {
                             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
                         </Button>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center flex-wrap gap-2 w-full lg:w-auto">
                         {selectMode && (
                             <Button variant="ghost" size="sm" type="button" onClick={exitSelectMode}>
                                 {t("common.cancelSelect", { defaultValue: "Hủy chọn" })}
@@ -141,6 +188,10 @@ export function InventoriesTab() {
                         <Button variant={selectMode ? "secondary" : "outline"} type="button" onClick={handleLogReportClick}>
                             <FileText className="h-4 w-4 mr-2" />
                             {selectMode ? (selectedIds.size > 0 ? `In Sổ Nhật ký (${selectedIds.size})` : `In Sổ Nhật ký`) : `In Sổ Nhật ký`}
+                        </Button>
+                        <Button variant="outline" type="button" onClick={() => setPrintA4Open(true)}>
+                            <Printer className="h-4 w-4 mr-2" />
+                            In Mẫu Dán Nhãn
                         </Button>
                         <Button variant={selectMode ? "default" : "outline"} type="button" onClick={handleLabelClick}>
                             <Printer className="h-4 w-4 mr-2" />
@@ -194,56 +245,45 @@ export function InventoriesTab() {
                                         </th>
                                     )}
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {t("inventory.chemical.inventories.chemicalInventoryId", { defaultValue: "Barcode / Item ID" })}
+                                        {t("inventory.chemical.inventories.chemicalInventoryId", { defaultValue: "Mã" })}
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                                         {t("inventory.chemical.skus.chemicalName", { defaultValue: "Tên hóa chất" })}
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {t("inventory.chemical.skus.chemicalCasNumber", { defaultValue: "Số CAS" })}
-                                    </th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {t("inventory.chemical.skus.chemicalType", { defaultValue: "Loại hóa chất" })}
-                                    </th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {t("inventory.chemical.inventories.chemicalSkuId", { defaultValue: "Mã SKU" })}
-                                    </th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {t("inventory.chemical.inventories.chemicalSkuOldId", { defaultValue: "Mã cũ" })}
-                                    </th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {t("inventory.chemical.inventories.lotNumber", { defaultValue: "Số Lô" })}
-                                    </th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {t("inventory.chemical.inventories.storageBinLocation", { defaultValue: "Vị trí" })}
-                                    </th>
-                                    <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {t("inventory.chemical.inventories.currentAvailableQty", { defaultValue: "Lượng còn lại" })}
-                                    </th>
-                                    <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {t("inventory.chemical.inventories.totalGrossWeight", { defaultValue: "Lượng còn lại cả bì" })}
-                                    </th>
-                                    <th className="px-3 py-2 text-center text-xs font-medium text-muted-foreground whitespace-nowrap">
                                         <TableFilterPopover
-                                            title={t("inventory.chemical.inventories.chemicalInventoryStatus", { defaultValue: "Trạng thái" })}
+                                            title={t("inventory.chemical.skus.chemicalType", { defaultValue: "Loại hóa chất" })}
                                             type="enum"
-                                            value={filters.chemicalInventoryStatus}
-                                            options={[
-                                                { label: "Kiểm dịch (Quarantined)", value: "Quarantined" },
-                                                { label: "Mới (New)", value: "New" },
-                                                { label: "Đang dùng (InUse)", value: "InUse" },
-                                                { label: "Chờ kiểm kê (Pending)", value: "Pending" },
-                                                { label: "Hết (Empty)", value: "Empty" },
-                                                { label: "Hết hạn (Expired)", value: "Expired" },
-                                                { label: "Đã hủy (Disposed)", value: "Disposed" },
-                                            ]}
+                                            value={filters.chemicalType}
+                                            options={(chemicalTypesList || []).map((t) => ({ label: t, value: t }))}
                                             onChange={(v) => {
-                                                setFilters((f) => ({ ...f, chemicalInventoryStatus: v }));
+                                                setFilters((f) => ({ ...f, chemicalType: v }));
                                                 setPage(1);
                                             }}
                                         />
                                     </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.inventories.chemicalSkuId", { defaultValue: "Mã SKU" })}
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">
+                                        {t("inventory.chemical.inventories.lotNumber", { defaultValue: "Số Lô" })}
+                                    </th>
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.inventories.currentAvailableQty", { defaultValue: "Lượng còn lại" })}
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        <TableFilterPopover
+                                            title={t("inventory.chemical.inventories.storageBinLocation", { defaultValue: "Vị trí lưu kho" })}
+                                            type="enum"
+                                            value={filters.storageBinLocation}
+                                            options={(binLocationsList || []).map((l) => ({ label: l, value: l }))}
+                                            onChange={(v) => {
+                                                setFilters((f) => ({ ...f, storageBinLocation: v }));
+                                                setPage(1);
+                                            }}
+                                        />
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">
                                         <TableFilterPopover
                                             title={t("inventory.chemical.inventories.expiryDate", { defaultValue: "Hạn sử dụng" })}
                                             type="date"
@@ -254,25 +294,8 @@ export function InventoriesTab() {
                                             }}
                                         />
                                     </th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        <TableFilterPopover
-                                            title={t("inventory.chemical.inventories.openedAt", { defaultValue: "Ngày mở nắp" })}
-                                            type="date"
-                                            value={filters.openedDate}
-                                            onChange={(v) => {
-                                                setFilters((f) => ({ ...f, openedDate: v }));
-                                                setPage(1);
-                                            }}
-                                        />
-                                    </th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {t("inventory.chemical.inventories.openedExpDays", { defaultValue: "Hạn sau mở (ngày)" })}
-                                    </th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {t("inventory.chemical.inventories.correctionFactorK", { defaultValue: "Hệ số K" })}
-                                    </th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {t("inventory.chemical.inventories.preparationDocuments", { defaultValue: "TL pha" })}
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">
+                                        {t("inventory.chemical.inventories.storageConditions", { defaultValue: "Điều kiện bảo quản" })}
                                     </th>
                                 </tr>
                             </thead>
@@ -280,16 +303,21 @@ export function InventoriesTab() {
                                 {isLoading ? (
                                     Array.from({ length: 5 }).map((_, i) => (
                                         <tr key={i}>
-                                            {Array.from({ length: selectMode ? 16 : 15 }).map((__, j) => (
-                                                <td key={j} className="p-3">
-                                                    <Skeleton className="h-4 w-20" />
-                                                </td>
-                                            ))}
+                                            {selectMode && <td className="p-3"><Skeleton className="h-4 w-4" /></td>}
+                                            <td className="p-3"><Skeleton className="h-4 w-12" /></td>
+                                            <td className="p-3"><Skeleton className="h-4 w-32" /></td>
+                                            <td className="p-3"><Skeleton className="h-4 w-20" /></td>
+                                            <td className="p-3"><Skeleton className="h-4 w-16" /></td>
+                                            <td className="p-3 hidden md:table-cell"><Skeleton className="h-4 w-16" /></td>
+                                            <td className="p-3"><Skeleton className="h-4 w-16" /></td>
+                                            <td className="p-3"><Skeleton className="h-4 w-12" /></td>
+                                            <td className="p-3 hidden md:table-cell"><Skeleton className="h-4 w-20" /></td>
+                                            <td className="p-3 hidden md:table-cell"><Skeleton className="h-4 w-24" /></td>
                                         </tr>
                                     ))
                                 ) : allItems.length === 0 ? (
                                     <tr>
-                                        <td colSpan={selectMode ? 16 : 15} className="p-6 text-center text-muted-foreground">
+                                        <td colSpan={selectMode ? 10 : 9} className="p-6 text-center text-muted-foreground">
                                             {t("common.noData", { defaultValue: "Không có dữ liệu" })}
                                         </td>
                                     </tr>
@@ -317,22 +345,13 @@ export function InventoriesTab() {
                                                 )}
                                                 <td className="px-3 py-2 whitespace-nowrap font-mono text-xs font-medium text-primary">{inv.chemicalInventoryId ?? "-"}</td>
                                                 <td className="px-3 py-2 whitespace-nowrap font-medium">{inv.chemicalName || (inv as any).chemicalSku?.chemicalName || "-"}</td>
-                                                <td className="px-3 py-2 whitespace-nowrap font-mono text-xs">{inv.chemicalCasNumber || (inv as any).chemicalSku?.chemicalCASNumber || "-"}</td>
                                                 <td className="px-3 py-2 whitespace-nowrap text-xs text-muted-foreground">{inv.chemicalType || (inv as any).chemicalSku?.chemicalType || "-"}</td>
                                                 <td className="px-3 py-2 whitespace-nowrap text-xs text-muted-foreground">{inv.chemicalSkuId ?? "-"}</td>
-                                                <td className="px-3 py-2 whitespace-nowrap text-xs text-muted-foreground">{inv.chemicalSkuOldId ?? "-"}</td>
-                                                <td className="px-3 py-2 whitespace-nowrap">{inv.lotNumber ?? "-"}</td>
+                                                <td className="px-3 py-2 whitespace-nowrap hidden md:table-cell">{inv.lotNumber ?? "-"}</td>
                                                 <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{inv.storageBinLocation ?? "-"}</td>
                                                 <td className="px-3 py-2 whitespace-nowrap text-right font-medium text-foreground">{inv.currentAvailableQty ?? 0}</td>
-                                                <td className="px-3 py-2 whitespace-nowrap text-right text-muted-foreground">{inv.totalGrossWeight ?? "-"}</td>
-                                                <td className="px-3 py-2 whitespace-nowrap text-center">
-                                                    <StatusBadge status={inv.chemicalInventoryStatus} />
-                                                </td>
-                                                <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{inv.expDate ? new Date(inv.expDate).toLocaleDateString("vi-VN") : "-"}</td>
-                                                <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{inv.openedDate ? new Date(inv.openedDate).toLocaleDateString("vi-VN") : "-"}</td>
-                                                <td className="px-3 py-2 whitespace-nowrap text-center font-medium">{inv.openedExpDays ?? "-"}</td>
-                                                <td className="px-3 py-2 whitespace-nowrap font-bold text-blue-600">{inv.correctionFactorK ?? "-"}</td>
-                                                <td className="px-3 py-2 whitespace-nowrap text-xs text-muted-foreground truncate max-w-[150px]" title={inv.preparationDocuments}>{inv.preparationDocuments ?? "-"}</td>
+                                                <td className="px-3 py-2 whitespace-nowrap text-muted-foreground hidden md:table-cell">{inv.expDate ? new Date(inv.expDate).toLocaleDateString("vi-VN") : "-"}</td>
+                                                <td className="px-3 py-2 whitespace-nowrap text-xs text-muted-foreground truncate max-w-[150px] hidden md:table-cell" title={inv.storageConditions}>{inv.storageConditions ?? "-"}</td>
                                             </tr>
                                         );
                                     })
@@ -390,6 +409,13 @@ export function InventoriesTab() {
                         if (!open) exitSelectMode();
                     }}
                     inventories={selectedItems}
+                />
+            )}
+
+            {/* Print A4 labels modal */}
+            {printA4Open && (
+                <PrintA4LabelModal
+                    onClose={() => setPrintA4Open(false)}
                 />
             )}
 

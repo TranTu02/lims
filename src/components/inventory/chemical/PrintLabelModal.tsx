@@ -37,14 +37,14 @@ type Props = {
 
 // mm to px constant removed as we use mm units directly for better accuracy in printing
 
-function LabelSingle({ item }: { item: LabelItem }) {
+function LabelSingle({ item, mode }: { item: LabelItem; mode: "NORMAL" | "PREPARED" | "SUPPLEMENTARY" }) {
     const { t } = useTranslation();
     const [qrSvg, setQrSvg] = useState<string>("");
 
     const formatDateShort = (dateStr: string | null | undefined) => {
-        if (!dateStr) return "__/__/__";
+        if (!dateStr) return "_ _ / _ _ / _ _ _ _";
         const d = new Date(dateStr);
-        if (isNaN(d.getTime())) return "__/__/__";
+        if (isNaN(d.getTime())) return "_ _ / _ _ / _ _ _ _";
         const day = String(d.getDate()).padStart(2, "0");
         const month = String(d.getMonth() + 1).padStart(2, "0");
         const year = String(d.getFullYear()).slice(-2);
@@ -78,74 +78,85 @@ function LabelSingle({ item }: { item: LabelItem }) {
         >
             {/* Left: 36mm info section (38mm - 2mm padding) */}
             <div
-                className="label-info flex flex-col justify-between overflow-hidden"
+                className={`label-info flex flex-col justify-between overflow-hidden ${mode === "SUPPLEMENTARY" ? "supplementary" : ""}`}
                 style={{
-                    width: "35mm",
+                    width: "36.2mm",
                     paddingRight: "1mm",
                     fontSize: "7pt",
                     lineHeight: "0.95",
                     display: "flex",
                     flexDirection: "column",
                     fontWeight: 700,
+                    ...(mode === "SUPPLEMENTARY" ? { justifyContent: "center", alignItems: "center", textAlign: "center" } : {})
                 }}
             >
-                <div style={{ overflow: "hidden" }}>
-                    <div
-                        className="name"
-                        style={{
-                            display: "-webkit-box",
-                            WebkitLineClamp: 3,
-                            WebkitBoxOrient: "vertical",
-                            overflow: "hidden",
-                            whiteSpace: "normal",
-                            fontWeight: 900,
-                            fontSize: "7.5pt",
-                            lineHeight: "1.0",
-                            marginBottom: "0.2mm",
-                        }}
-                    >
-                        {item.chemicalName || ""}
+                {mode === "SUPPLEMENTARY" ? (
+                    <div className="supplementary flex flex-col justify-center items-center text-center w-full h-full" style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", height: "100%" }}>
+                        <div style={{ fontWeight: 900, fontSize: "11pt", lineHeight: "1.1" }}>IDROP</div>
+                        <div style={{ fontWeight: 900, fontSize: "8pt", lineHeight: "1.1", marginTop: "1mm" }}>PHÒNG KIỂM NGHIỆM</div>
                     </div>
-                    {item.chemicalCasNumber && item.chemicalType !== "Hóa chất pha" && (
-                        <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>CAS: {item.chemicalCasNumber}</div>
-                    )}
-                    {item.chemicalType !== "Hóa chất pha" && item.lotNumber && (
-                        <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: "0.1mm" }}>
-                            {t("inventory.chemical.inventories.lotShort", { defaultValue: "Lô" })}: {item.lotNumber}
+                ) : (
+                    <div style={{ overflow: "hidden" }}>
+                        <div
+                            className="name"
+                            style={{
+                                display: "-webkit-box",
+                                WebkitLineClamp: 3,
+                                WebkitBoxOrient: "vertical",
+                                overflow: "hidden",
+                                whiteSpace: "normal",
+                                fontWeight: 900,
+                                fontSize: "8.5pt",
+                                lineHeight: "1.0",
+                                marginBottom: "0.2mm",
+                            }}
+                        >
+                            {item.chemicalName || ""}
                         </div>
-                    )}
-                    {item.chemicalType !== "Hóa chất pha" && item.manufacturerName && (
-                        <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>
-                            {t("inventory.chemical.skus.mfgPersonShort", { defaultValue: "NhSX" })}: {item.manufacturerName}
-                        </div>
-                    )}
-                    {item.chemicalType === "Hóa chất pha" && (
-                        <>
-                            <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>
-                                Người pha: {typeof item.preparedBy === "string" ? item.preparedBy : item.preparedBy?.identityName || ""}
-                            </div>
-                            <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>
-                                Tài liệu pha: {item.preparationDocuments || ""}
-                            </div>
-                        </>
-                    )}
-                    <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>
-                        {item.chemicalType === "Hóa chất pha" 
-                            ? `Ngày: ${formatDateShort(item.preparedDate)} - ${formatDateShort(item.expDate)}`
-                            : `NSX-HSD: ${formatDateShort(item.mfgDate)} - ${formatDateShort(item.expDate)}`
-                        }
+                        {mode === "PREPARED" ? (
+                            <>
+                                <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>
+                                    Người pha: {typeof item.preparedBy === "string" ? item.preparedBy : item.preparedBy?.identityName || ""}
+                                </div>
+                                <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>
+                                    Tài liệu pha: {item.preparationDocuments || ""}
+                                </div>
+                                <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>
+                                    Ngày: {formatDateShort(item.preparedDate)} - {formatDateShort(item.expDate)}
+                                </div>
+                                <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", fontWeight: 900 }}>
+                                    K: {item.correctionFactorK ?? ""}
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                {item.chemicalCasNumber && (
+                                    <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>CAS: {item.chemicalCasNumber}</div>
+                                )}
+                                {item.lotNumber && (
+                                    <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: "0.1mm" }}>
+                                        {t("inventory.chemical.inventories.lotShort", { defaultValue: "Lô" })}: {item.lotNumber}
+                                    </div>
+                                )}
+                                {item.manufacturerName && (
+                                    <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>
+                                        {t("inventory.chemical.skus.mfgPersonShort", { defaultValue: "NhSX" })}: {item.manufacturerName}
+                                    </div>
+                                )}
+                                <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>
+                                    NSX-HSD: {formatDateShort(item.mfgDate)} - {formatDateShort(item.expDate)}
+                                </div>
+                            </>
+                        )}
                     </div>
-                    <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", fontWeight: 900 }}>
-                        Hệ số K: {item.correctionFactorK ?? ""}
-                    </div>
-                </div>
+                )}
             </div>
 
             {/* Right: 10mm section - ID + QR */}
             <div
                 className="label-qr flex flex-col items-center justify-between shrink-0"
                 style={{
-                    width: "12mm",
+                    width: "10.8mm",
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
@@ -170,7 +181,7 @@ function LabelSingle({ item }: { item: LabelItem }) {
                 <div
                     className="id-text"
                     style={{
-                        fontSize: "6.5pt",
+                        fontSize: "5.8pt",
                         fontWeight: 900,
                         fontFamily: "monospace",
                         textAlign: "center",
@@ -182,7 +193,7 @@ function LabelSingle({ item }: { item: LabelItem }) {
                         wordBreak: "break-all",
                         lineHeight: 1.1,
                         marginTop: "0.5mm",
-                        maxWidth: "12mm",
+                        maxWidth: "10.8mm",
                     }}
                 >
                     {item.chemicalInventoryId || ""}
@@ -196,6 +207,11 @@ export function PrintLabelModal({ items, onClose }: Props) {
     const { t } = useTranslation();
     const [quantities, setQuantities] = useState<Record<string, number>>(Object.fromEntries(items.map((it) => [it.chemicalInventoryId, 1])));
     const printRef = useRef<HTMLDivElement>(null);
+
+    const initialTab = useMemo(() => {
+        return items.some(it => it.chemicalType === "Hóa chất pha") ? "PREPARED" : "NORMAL";
+    }, [items]);
+    const [activeTab, setActiveTab] = useState<"NORMAL" | "PREPARED" | "SUPPLEMENTARY">(initialTab);
 
     // Final list of items based on quantities
     const finalItems = useMemo(() => {
@@ -225,6 +241,10 @@ export function PrintLabelModal({ items, onClose }: Props) {
                         size: 100mm 22mm;
                         margin: 0;
                     }
+                    html, body {
+                        margin: 0 !important;
+                        padding: 0 !important;
+                    }
                     * { box-sizing: border-box; margin: 0; padding: 0; }
                     body { font-family: 'Inter', 'Segoe UI', sans-serif; -webkit-print-color-adjust: exact; }
                     .label-row {
@@ -233,6 +253,8 @@ export function PrintLabelModal({ items, onClose }: Props) {
                         display: flex;
                         flex-direction: row;
                         page-break-after: always;
+                        page-break-inside: avoid;
+                        break-inside: avoid;
                         overflow: hidden;
                     }
                     .label-single {
@@ -246,7 +268,7 @@ export function PrintLabelModal({ items, onClose }: Props) {
                         box-sizing: border-box;
                     }
                     .label-info {
-                        width: 35mm;
+                        width: 36.2mm;
                         padding-right: 1mm;
                         display: flex;
                         flex-direction: column;
@@ -256,6 +278,11 @@ export function PrintLabelModal({ items, onClose }: Props) {
                         line-height: 0.95;
                         font-weight: 700;
                     }
+                    .label-info.supplementary {
+                        justify-content: center !important;
+                        align-items: center !important;
+                        text-align: center !important;
+                    }
                     .label-info .name { 
                         display: -webkit-box;
                         -webkit-line-clamp: 3;
@@ -263,13 +290,13 @@ export function PrintLabelModal({ items, onClose }: Props) {
                         overflow: hidden;
                         white-space: normal;
                         font-weight: 900; 
-                        font-size: 7.5pt; 
+                        font-size: 8.5pt; 
                         line-height: 1.0; 
                         margin-bottom: 0.2mm;
                     }
                     .label-info div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
                     .label-qr {
-                        width: 12mm;
+                        width: 10.8mm;
                         display: flex;
                         flex-direction: column;
                         align-items: center;
@@ -279,7 +306,7 @@ export function PrintLabelModal({ items, onClose }: Props) {
                     .label-qr .svg-container { width: 9.5mm; height: 9.5mm; display: block; }
                     .label-qr svg { width: 9.5mm !important; height: 9.5mm !important; display: block; }
                     .label-qr .id-text {
-                        font-size: 6.5pt;
+                        font-size: 5.8pt;
                         font-weight: 900;
                         font-family: monospace;
                         text-align: center;
@@ -291,7 +318,7 @@ export function PrintLabelModal({ items, onClose }: Props) {
                         word-break: break-all;
                         line-height: 1.1;
                         margin-top: 0.5mm;
-                        max-width: 12mm;
+                        max-width: 10.8mm;
                     }
                     @media print {
                         .label-single { border: none; }
@@ -339,6 +366,37 @@ export function PrintLabelModal({ items, onClose }: Props) {
                             <X className="h-4 w-4" />
                         </button>
                     </div>
+                </div>
+
+                {/* Tab Switcher */}
+                <div className="px-5 border-b border-border flex gap-4 bg-muted/20 shrink-0 overflow-x-auto whitespace-nowrap scrollbar-none">
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab("NORMAL")}
+                        className={`py-3 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all shrink-0 ${
+                            activeTab === "NORMAL" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+                        }`}
+                    >
+                        Mẫu thông thường
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab("PREPARED")}
+                        className={`py-3 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all shrink-0 ${
+                            activeTab === "PREPARED" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+                        }`}
+                    >
+                        Mẫu hóa chất pha
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab("SUPPLEMENTARY")}
+                        className={`py-3 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all shrink-0 ${
+                            activeTab === "SUPPLEMENTARY" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+                        }`}
+                    >
+                        Mẫu dán bổ sung
+                    </button>
                 </div>
 
                 <div className="flex-1 overflow-hidden flex divide-x divide-border">
@@ -395,7 +453,7 @@ export function PrintLabelModal({ items, onClose }: Props) {
                                 {rows.map((row, ri) => (
                                     <div key={ri} className="label-row flex border-b border-gray-100 last:border-b-0" style={{ width: "100mm", height: "22mm" }}>
                                         {row.map((item) => (
-                                            <LabelSingle key={`row-${ri}-it-${item.chemicalInventoryId}`} item={item} />
+                                            <LabelSingle key={`row-${ri}-it-${item.chemicalInventoryId}`} item={item} mode={activeTab} />
                                         ))}
                                         {/* Fill empty slot if odd number */}
                                         {row.length === 1 && <div style={{ width: "50mm", height: "22mm" }} className="label-single border-l border-gray-100" />}
