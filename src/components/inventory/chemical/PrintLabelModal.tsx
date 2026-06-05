@@ -28,6 +28,12 @@ type LabelItem = {
     preparedDate?: string | null;
     preparationDocuments?: string | null;
     correctionFactorK?: number | string | null;
+    chemicalSku?: {
+        chemicalSkuId: string;
+        chemicalName: string;
+        chemicalType?: string | null;
+        chemicalCasNumber?: string | null;
+    } | null;
 };
 
 type Props = {
@@ -37,7 +43,7 @@ type Props = {
 
 // mm to px constant removed as we use mm units directly for better accuracy in printing
 
-function LabelSingle({ item, mode }: { item: LabelItem; mode: "NORMAL" | "PREPARED" | "SUPPLEMENTARY" }) {
+function LabelSingle({ item, mode, labelSize }: { item: LabelItem; mode: "NORMAL" | "PREPARED" | "SUPPLEMENTARY" | "STANDARD_SOLUTION" | "REAGENT"; labelSize: "50x22" | "50x30" | "50x70" }) {
     const { t } = useTranslation();
     const [qrSvg, setQrSvg] = useState<string>("");
 
@@ -53,21 +59,226 @@ function LabelSingle({ item, mode }: { item: LabelItem; mode: "NORMAL" | "PREPAR
 
     useEffect(() => {
         if (item.chemicalInventoryId) {
-            QRCode.toString(item.chemicalInventoryId, {
-                type: "svg",
-                margin: 0,
-                color: { dark: "#000000", light: "#ffffff" },
-                errorCorrectionLevel: "M",
-            }).then(setQrSvg);
+            try {
+                const code = QRCode.create(item.chemicalInventoryId, { errorCorrectionLevel: "L" });
+                const size = code.modules.size;
+                const rects: string[] = [];
+                for (let r = 0; r < size; r++) {
+                    for (let c = 0; c < size; c++) {
+                        if (code.modules.get(c, r)) {
+                            rects.push(`<rect x="${c}" y="${r}" width="1.05" height="1.05" fill="#000000" />`);
+                        }
+                    }
+                }
+                const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="100%" height="100%" style="shape-rendering:crispEdges;"><rect width="${size}" height="${size}" fill="#ffffff" />${rects.join("")}</svg>`;
+                setQrSvg(svg);
+            } catch (err) {
+                console.error("Failed to generate QR Code", err);
+            }
         }
     }, [item.chemicalInventoryId]);
+
+    const chemType = item.chemicalType || item.chemicalSku?.chemicalType || "";
+    const isPreparedLayout = mode === "PREPARED" || 
+        ((mode === "STANDARD_SOLUTION" || mode === "REAGENT") && ["Hóa chất pha", "Dung dịch chuẩn độ", "Thuốc thử"].includes(chemType));
+
+    // Common text logic
+    const displayName = `${(item.chemicalName || "").normalize("NFC")}${mode === "STANDARD_SOLUTION" ? " (CĐ)" : mode === "REAGENT" ? " (TT)" : ""}`;
+
+    if (labelSize === "50x70") {
+        return (
+            <div
+                className="label-single inline-flex bg-white overflow-hidden shrink-0"
+                style={{
+                    width: "50mm",
+                    height: "70mm",
+                    padding: "0",
+                    fontFamily: "'Inter', 'Segoe UI', sans-serif",
+                    color: "#000",
+                    display: "flex",
+                    flexDirection: "row",
+                    boxSizing: "border-box",
+                    position: "relative",
+                }}
+            >
+                <div
+                    style={{
+                        width: "70mm",
+                        height: "50mm",
+                        transform: "rotate(90deg) translateY(-50mm)",
+                        transformOrigin: "top left",
+                        display: "flex",
+                        flexDirection: "column",
+                        padding: "0",
+                        boxSizing: "border-box",
+                    }}
+                >
+                    {/* Top Row: 3.0 cm (30mm) for Chemical Name */}
+                    <div
+                        style={{
+                            height: "30mm",
+                            width: "70mm",
+                            display: "flex",
+                            flexDirection: "column",
+                            justifyContent: "flex-start",
+                            overflow: "hidden",
+                            padding: "1mm 3mm 1.5mm 3mm",
+                            boxSizing: "border-box",
+                        }}
+                    >
+                        <div
+                            className="name"
+                            style={{
+                                display: "-webkit-box",
+                                WebkitLineClamp: 4,
+                                WebkitBoxOrient: "vertical",
+                                overflow: "hidden",
+                                whiteSpace: "normal",
+                                fontWeight: 950,
+                                fontSize: "12.57pt",
+                                lineHeight: "1.15",
+                            }}
+                        >
+                            {displayName}
+                        </div>
+                    </div>
+
+                    {/* Bottom Row: 2.0 cm (20mm) split into QR (1.3cm) and Info */}
+                    <div
+                        style={{
+                            height: "20mm",
+                            width: "70mm",
+                            display: "flex",
+                            flexDirection: "row",
+                            alignItems: "stretch",
+                            padding: "0 3mm 2mm 3mm",
+                            boxSizing: "border-box",
+                        }}
+                    >
+                        {/* QR Section: 1.3cm (13mm) */}
+                        <div
+                            className="label-qr flex flex-col items-center justify-between shrink-0"
+                            style={{
+                                width: "13mm",
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                height: "100%",
+                                paddingRight: "1mm",
+                            }}
+                        >
+                            <div style={{ fontSize: "5pt", fontWeight: 900, textAlign: "center", width: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1 }}>
+                                {item.chemicalSkuId || ""}
+                            </div>
+                            {qrSvg ? (
+                                <div
+                                    className="svg-container"
+                                    style={{
+                                        width: "10mm",
+                                        height: "10mm",
+                                        display: "block",
+                                    }}
+                                    dangerouslySetInnerHTML={{ __html: qrSvg }}
+                                />
+                            ) : (
+                                <div className="svg-container" style={{ width: "10mm", height: "10mm", background: "#f5f5f5" }} />
+                            )}
+                            <div
+                                className="id-text"
+                                style={{
+                                    fontSize: "5pt",
+                                    fontWeight: 900,
+                                    fontFamily: "monospace",
+                                    textAlign: "center",
+                                    display: "-webkit-box",
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: "vertical",
+                                    overflow: "hidden",
+                                    whiteSpace: "normal",
+                                    wordBreak: "break-all",
+                                    lineHeight: 1.1,
+                                    maxWidth: "13mm",
+                                }}
+                            >
+                                {item.chemicalInventoryId || ""}
+                            </div>
+                        </div>
+
+                        {/* Info Section: Remaining width */}
+                        <div
+                            className={`label-info flex flex-col justify-center overflow-hidden ${mode === "SUPPLEMENTARY" ? "supplementary" : ""}`}
+                            style={{
+                                flex: 1,
+                                paddingLeft: "1.5mm",
+                                fontSize: "8.75pt",
+                                lineHeight: "1.44",
+                                display: "flex",
+                                flexDirection: "column",
+                                fontWeight: 700,
+                                height: "100%",
+                                ...(mode === "SUPPLEMENTARY" ? { justifyContent: "center", alignItems: "center", textAlign: "center" } : {})
+                            }}
+                        >
+                            {mode === "SUPPLEMENTARY" ? (
+                                <div className="supplementary flex flex-col justify-center items-center text-center w-full h-full" style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", height: "100%" }}>
+                                    <div style={{ fontWeight: 900, fontSize: "13.75pt", lineHeight: "1.38" }}>IDROP</div>
+                                    <div style={{ fontWeight: 900, fontSize: "10pt", lineHeight: "1.38", marginTop: "1.25mm" }}>PHÒNG KIỂM NGHIỆM</div>
+                                </div>
+                            ) : (
+                                <div style={{ overflow: "hidden", display: "flex", flexDirection: "column", justifyContent: "center", height: "100%" }}>
+                                    {isPreparedLayout ? (
+                                        <>
+                                            <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "7.25pt", marginBottom: "0.2mm" }}>
+                                                Người pha: {(typeof item.preparedBy === "string" ? item.preparedBy : item.preparedBy?.identityName || "").normalize("NFC")}
+                                            </div>
+                                            <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "7.25pt", marginBottom: "0.2mm" }}>
+                                                Tài liệu pha: {(item.preparationDocuments || "").normalize("NFC")}
+                                            </div>
+                                            <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "7.25pt", marginBottom: "0.2mm" }}>
+                                                Ngày: {formatDateShort(item.preparedDate)} - {formatDateShort(item.expDate)}
+                                            </div>
+                                            {mode !== "REAGENT" && (
+                                                <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "7.25pt", fontWeight: 900 }}>
+                                                    K: {item.correctionFactorK ?? ""}
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <>
+                                            {item.chemicalCasNumber && (
+                                                <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "8.12pt", marginBottom: "0.2mm" }}>CAS: {item.chemicalCasNumber}</div>
+                                            )}
+                                            {item.lotNumber && (
+                                                <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "8.12pt", marginBottom: "0.2mm" }}>
+                                                    {t("inventory.chemical.inventories.lotShort", { defaultValue: "Lô" })}: {item.lotNumber}
+                                                </div>
+                                            )}
+                                            {item.manufacturerName && (
+                                                <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "8.12pt", marginBottom: "0.2mm" }}>
+                                                    {t("inventory.chemical.skus.mfgPersonShort", { defaultValue: "NhSX" })}: {item.manufacturerName}
+                                                </div>
+                                            )}
+                                            <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "8.12pt", marginBottom: "0.2mm" }}>
+                                                NSX-HSD: {formatDateShort(item.mfgDate)} - {formatDateShort(item.expDate)}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div
             className="label-single inline-flex bg-white overflow-hidden shrink-0"
             style={{
                 width: "50mm",
-                height: "22mm",
+                height: labelSize === "50x30" ? "30mm" : "22mm",
                 padding: "1.5mm",
                 fontFamily: "'Inter', 'Segoe UI', sans-serif",
                 color: "#000",
@@ -76,14 +287,14 @@ function LabelSingle({ item, mode }: { item: LabelItem; mode: "NORMAL" | "PREPAR
                 boxSizing: "border-box",
             }}
         >
-            {/* Left: 36mm info section (38mm - 2mm padding) */}
+            {/* Left: 38.1mm info section */}
             <div
                 className={`label-info flex flex-col justify-between overflow-hidden ${mode === "SUPPLEMENTARY" ? "supplementary" : ""}`}
                 style={{
-                    width: "36.2mm",
+                    width: "38.1mm",
                     paddingRight: "1mm",
-                    fontSize: "7pt",
-                    lineHeight: "0.95",
+                    fontSize: labelSize === "50x30" ? "8.05pt" : "7pt",
+                    lineHeight: labelSize === "50x30" ? "1.32" : "1.15",
                     display: "flex",
                     flexDirection: "column",
                     fontWeight: 700,
@@ -101,49 +312,51 @@ function LabelSingle({ item, mode }: { item: LabelItem; mode: "NORMAL" | "PREPAR
                             className="name"
                             style={{
                                 display: "-webkit-box",
-                                WebkitLineClamp: 3,
+                                WebkitLineClamp: labelSize === "50x30" ? 4 : 3,
                                 WebkitBoxOrient: "vertical",
                                 overflow: "hidden",
                                 whiteSpace: "normal",
                                 fontWeight: 900,
-                                fontSize: "8.5pt",
-                                lineHeight: "1.0",
+                                fontSize: labelSize === "50x30" ? "11.27pt" : "9.8pt",
+                                lineHeight: labelSize === "50x30" ? "1.32" : "1.15",
                                 marginBottom: "0.2mm",
                             }}
                         >
-                            {item.chemicalName || ""}
+                            {displayName}
                         </div>
-                        {mode === "PREPARED" ? (
+                        {isPreparedLayout ? (
                             <>
-                                <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>
-                                    Người pha: {typeof item.preparedBy === "string" ? item.preparedBy : item.preparedBy?.identityName || ""}
+                                <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: labelSize === "50x30" ? "6.67pt" : "5.8pt", marginBottom: "0.1mm" }}>
+                                    Người pha: {(typeof item.preparedBy === "string" ? item.preparedBy : item.preparedBy?.identityName || "").normalize("NFC")}
                                 </div>
-                                <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>
-                                    Tài liệu pha: {item.preparationDocuments || ""}
+                                <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: labelSize === "50x30" ? "6.67pt" : "5.8pt", marginBottom: "0.1mm" }}>
+                                    Tài liệu pha: {(item.preparationDocuments || "").normalize("NFC")}
                                 </div>
-                                <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>
+                                <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: labelSize === "50x30" ? "6.67pt" : "5.8pt", marginBottom: "0.1mm" }}>
                                     Ngày: {formatDateShort(item.preparedDate)} - {formatDateShort(item.expDate)}
                                 </div>
-                                <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", fontWeight: 900 }}>
-                                    K: {item.correctionFactorK ?? ""}
-                                </div>
+                                {mode !== "REAGENT" && (
+                                    <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: labelSize === "50x30" ? "6.67pt" : "5.8pt", fontWeight: 900 }}>
+                                        K: {item.correctionFactorK ?? ""}
+                                    </div>
+                                )}
                             </>
                         ) : (
                             <>
                                 {item.chemicalCasNumber && (
-                                    <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>CAS: {item.chemicalCasNumber}</div>
+                                    <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: labelSize === "50x30" ? "7.47pt" : "6.5pt", marginBottom: "0.1mm" }}>CAS: {item.chemicalCasNumber}</div>
                                 )}
                                 {item.lotNumber && (
-                                    <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: "0.1mm" }}>
+                                    <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: labelSize === "50x30" ? "7.47pt" : "6.5pt", marginBottom: "0.1mm" }}>
                                         {t("inventory.chemical.inventories.lotShort", { defaultValue: "Lô" })}: {item.lotNumber}
                                     </div>
                                 )}
                                 {item.manufacturerName && (
-                                    <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>
+                                    <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: labelSize === "50x30" ? "7.47pt" : "6.5pt", marginBottom: "0.1mm" }}>
                                         {t("inventory.chemical.skus.mfgPersonShort", { defaultValue: "NhSX" })}: {item.manufacturerName}
                                     </div>
                                 )}
-                                <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "6.5pt", marginBottom: "0.1mm" }}>
+                                <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: labelSize === "50x30" ? "7.47pt" : "6.5pt", marginBottom: "0.1mm" }}>
                                     NSX-HSD: {formatDateShort(item.mfgDate)} - {formatDateShort(item.expDate)}
                                 </div>
                             </>
@@ -152,11 +365,11 @@ function LabelSingle({ item, mode }: { item: LabelItem; mode: "NORMAL" | "PREPAR
                 )}
             </div>
 
-            {/* Right: 10mm section - ID + QR */}
+            {/* Right: 8.9mm section - ID + QR */}
             <div
                 className="label-qr flex flex-col items-center justify-between shrink-0"
                 style={{
-                    width: "10.8mm",
+                    width: "8.9mm",
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
@@ -168,20 +381,21 @@ function LabelSingle({ item, mode }: { item: LabelItem; mode: "NORMAL" | "PREPAR
                 </div>
                 {qrSvg ? (
                     <div
+                        className="svg-container"
                         style={{
-                            width: "9.5mm",
-                            height: "9.5mm",
+                            width: "7.8mm",
+                            height: "7.8mm",
                             display: "block",
                         }}
                         dangerouslySetInnerHTML={{ __html: qrSvg }}
                     />
                 ) : (
-                    <div style={{ width: "9.5mm", height: "9.5mm", background: "#f5f5f5" }} />
+                    <div className="svg-container" style={{ width: "7.8mm", height: "7.8mm", background: "#f5f5f5" }} />
                 )}
                 <div
                     className="id-text"
                     style={{
-                        fontSize: "5.8pt",
+                        fontSize: labelSize === "50x30" ? "6pt" : "5.22pt",
                         fontWeight: 900,
                         fontFamily: "monospace",
                         textAlign: "center",
@@ -193,7 +407,7 @@ function LabelSingle({ item, mode }: { item: LabelItem; mode: "NORMAL" | "PREPAR
                         wordBreak: "break-all",
                         lineHeight: 1.1,
                         marginTop: "0.5mm",
-                        maxWidth: "10.8mm",
+                        maxWidth: "8.9mm",
                     }}
                 >
                     {item.chemicalInventoryId || ""}
@@ -209,9 +423,10 @@ export function PrintLabelModal({ items, onClose }: Props) {
     const printRef = useRef<HTMLDivElement>(null);
 
     const initialTab = useMemo(() => {
-        return items.some(it => it.chemicalType === "Hóa chất pha") ? "PREPARED" : "NORMAL";
+        return items.some(it => ["Hóa chất pha", "Dung dịch chuẩn độ", "Thuốc thử"].includes(it.chemicalType || it.chemicalSku?.chemicalType || "")) ? "PREPARED" : "NORMAL";
     }, [items]);
-    const [activeTab, setActiveTab] = useState<"NORMAL" | "PREPARED" | "SUPPLEMENTARY">(initialTab);
+    const [activeTab, setActiveTab] = useState<"NORMAL" | "PREPARED" | "SUPPLEMENTARY" | "STANDARD_SOLUTION" | "REAGENT">(initialTab);
+    const [labelSize, setLabelSize] = useState<"50x22" | "50x30" | "50x70">("50x22");
 
     // Final list of items based on quantities
     const finalItems = useMemo(() => {
@@ -235,10 +450,12 @@ export function PrintLabelModal({ items, onClose }: Props) {
             <!DOCTYPE html>
             <html>
             <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>${t("inventory.chemical.inventories.printLabelTitle", { defaultValue: "In tem vật tư" })}</title>
                 <style>
                     @page {
-                        size: 100mm 22mm;
+                        size: 100mm ${labelSize === "50x70" ? "70mm" : labelSize === "50x30" ? "30mm" : "22mm"};
                         margin: 0;
                     }
                     html, body {
@@ -249,7 +466,7 @@ export function PrintLabelModal({ items, onClose }: Props) {
                     body { font-family: 'Inter', 'Segoe UI', sans-serif; -webkit-print-color-adjust: exact; }
                     .label-row {
                         width: 100mm;
-                        height: 22mm;
+                        height: ${labelSize === "50x70" ? "70mm" : labelSize === "50x30" ? "30mm" : "22mm"};
                         display: flex;
                         flex-direction: row;
                         page-break-after: always;
@@ -259,23 +476,21 @@ export function PrintLabelModal({ items, onClose }: Props) {
                     }
                     .label-single {
                         width: 50mm;
-                        height: 22mm;
-                        padding: 1.5mm;
+                        height: ${labelSize === "50x70" ? "70mm" : labelSize === "50x30" ? "30mm" : "22mm"};
+                        padding: ${labelSize === "50x70" ? "0" : "1.5mm"};
                         display: flex;
                         flex-direction: row;
                         border: 0.1mm solid #eee;
                         overflow: hidden;
                         box-sizing: border-box;
+                        position: relative;
                     }
                     .label-info {
-                        width: 36.2mm;
                         padding-right: 1mm;
                         display: flex;
                         flex-direction: column;
                         justify-content: space-between;
                         overflow: hidden;
-                        font-size: 7pt;
-                        line-height: 0.95;
                         font-weight: 700;
                     }
                     .label-info.supplementary {
@@ -285,28 +500,36 @@ export function PrintLabelModal({ items, onClose }: Props) {
                     }
                     .label-info .name { 
                         display: -webkit-box;
-                        -webkit-line-clamp: 3;
+                        -webkit-line-clamp: ${labelSize === "50x70" ? "4" : labelSize === "50x30" ? "4" : "3"};
                         -webkit-box-orient: vertical;
                         overflow: hidden;
                         white-space: normal;
                         font-weight: 900; 
-                        font-size: 8.5pt; 
-                        line-height: 1.0; 
-                        margin-bottom: 0.2mm;
+                        font-size: ${labelSize === "50x70" ? "12.57pt" : labelSize === "50x30" ? "11.27pt" : "9.8pt"}; 
+                        line-height: ${labelSize === "50x70" ? "1.15" : labelSize === "50x30" ? "1.32" : "1.15"}; 
+                        margin-bottom: 0.25mm;
                     }
                     .label-info div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
                     .label-qr {
-                        width: 10.8mm;
                         display: flex;
                         flex-direction: column;
                         align-items: center;
                         justify-content: space-between;
                         flex-shrink: 0;
                     }
-                    .label-qr .svg-container { width: 9.5mm; height: 9.5mm; display: block; }
-                    .label-qr svg { width: 9.5mm !important; height: 9.5mm !important; display: block; }
+                    .label-qr .svg-container { 
+                        width: ${labelSize === "50x70" ? "10mm" : "7.8mm"}; 
+                        height: ${labelSize === "50x70" ? "10mm" : "7.8mm"}; 
+                        display: block; 
+                    }
+                    .label-qr svg { 
+                        width: ${labelSize === "50x70" ? "10mm" : "7.8mm"} !important; 
+                        height: ${labelSize === "50x70" ? "10mm" : "7.8mm"} !important; 
+                        display: block; 
+                        shape-rendering: crispEdges; 
+                    }
                     .label-qr .id-text {
-                        font-size: 5.8pt;
+                        font-size: ${labelSize === "50x70" ? "6.5pt" : labelSize === "50x30" ? "6pt" : "5.22pt"};
                         font-weight: 900;
                         font-family: monospace;
                         text-align: center;
@@ -318,7 +541,7 @@ export function PrintLabelModal({ items, onClose }: Props) {
                         word-break: break-all;
                         line-height: 1.1;
                         margin-top: 0.5mm;
-                        max-width: 10.8mm;
+                        max-width: ${labelSize === "50x70" ? "16mm" : "8.9mm"};
                     }
                     @media print {
                         .label-single { border: none; }
@@ -397,12 +620,45 @@ export function PrintLabelModal({ items, onClose }: Props) {
                     >
                         Mẫu dán bổ sung
                     </button>
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab("STANDARD_SOLUTION")}
+                        className={`py-3 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all shrink-0 ${
+                            activeTab === "STANDARD_SOLUTION" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+                        }`}
+                    >
+                        Dung dịch chuẩn độ
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab("REAGENT")}
+                        className={`py-3 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all shrink-0 ${
+                            activeTab === "REAGENT" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+                        }`}
+                    >
+                        Thuốc thử
+                    </button>
                 </div>
 
                 <div className="flex-1 overflow-hidden flex divide-x divide-border">
                     {/* Left: Input quantities */}
-                    <div className="w-[350px] overflow-y-auto p-4 bg-muted/10 space-y-3">
-                        <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2 px-1">
+                    <div className="w-[350px] overflow-y-auto p-4 bg-muted/10 space-y-4">
+                        <div className="bg-background border border-border p-3 rounded-lg shadow-sm space-y-2">
+                            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block">
+                                Khổ nhãn (Kích thước)
+                            </label>
+                            <select
+                                value={labelSize}
+                                onChange={(e) => setLabelSize(e.target.value as "50x22" | "50x30" | "50x70")}
+                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            >
+                                <option value="50x22">Khổ tiêu chuẩn 50x22 mm</option>
+                                <option value="50x30">Khổ lớn 50x30 mm (Chữ & giãn hàng +15%)</option>
+                                <option value="50x70">Khổ dọc 50x70 mm (Xoay ngang, Chữ +25%, Tên +50%)</option>
+                            </select>
+                        </div>
+
+                        <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">
                             {t("inventory.chemical.inventories.configQuantities", { defaultValue: "Cấu hình số lượng tem" })}
                         </div>
                         {items.map((item) => (
@@ -446,21 +702,31 @@ export function PrintLabelModal({ items, onClose }: Props) {
                     {/* Right: Preview */}
                     <div className="flex-1 overflow-y-auto p-6 bg-muted/20 flex flex-col items-center">
                         <div className="w-full max-w-[500px] flex items-center justify-between mb-4">
-                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{t("common.preview", { defaultValue: "Xem trước bản in (Grid 100x22mm)" })}</span>
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                {t("common.preview", { defaultValue: `Xem trước bản in (Grid 100x${labelSize === "50x70" ? "70" : labelSize === "50x30" ? "30" : "22"}mm)` })}
+                            </span>
                         </div>
                         <div className="bg-white shadow-2xl p-6 border border-border border-dashed inline-block">
                             <div ref={printRef} className="space-y-0">
+                                <style dangerouslySetInnerHTML={{ __html: `
+                                    .label-qr svg {
+                                        width: ${labelSize === "50x70" ? "10mm" : "7.1mm"} !important;
+                                        height: ${labelSize === "50x70" ? "10mm" : "7.1mm"} !important;
+                                        display: block !important;
+                                        shape-rendering: crispEdges !important;
+                                    }
+                                `}} />
                                 {rows.map((row, ri) => (
-                                    <div key={ri} className="label-row flex border-b border-gray-100 last:border-b-0" style={{ width: "100mm", height: "22mm" }}>
+                                    <div key={ri} className="label-row flex border-b border-gray-100 last:border-b-0" style={{ width: "100mm", height: labelSize === "50x70" ? "70mm" : labelSize === "50x30" ? "30mm" : "22mm" }}>
                                         {row.map((item) => (
-                                            <LabelSingle key={`row-${ri}-it-${item.chemicalInventoryId}`} item={item} mode={activeTab} />
+                                            <LabelSingle key={`row-${ri}-it-${item.chemicalInventoryId}`} item={item} mode={activeTab} labelSize={labelSize} />
                                         ))}
                                         {/* Fill empty slot if odd number */}
-                                        {row.length === 1 && <div style={{ width: "50mm", height: "22mm" }} className="label-single border-l border-gray-100" />}
+                                        {row.length === 1 && <div style={{ width: "50mm", height: labelSize === "50x70" ? "70mm" : labelSize === "50x30" ? "30mm" : "22mm" }} className="label-single border-l border-gray-100" />}
                                     </div>
                                 ))}
                                 {rows.length === 0 && (
-                                    <div className="w-[100mm] h-[22mm] flex items-center justify-center text-muted-foreground text-xs italic bg-gray-50 uppercase tracking-widest">
+                                    <div className="flex items-center justify-center text-muted-foreground text-xs italic bg-gray-50 uppercase tracking-widest" style={{ width: "100mm", height: labelSize === "50x70" ? "70mm" : labelSize === "50x30" ? "30mm" : "22mm" }}>
                                         {t("inventory.chemical.inventories.noLabels", { defaultValue: "Chưa có tem nào để in" })}
                                     </div>
                                 )}
@@ -474,7 +740,7 @@ export function PrintLabelModal({ items, onClose }: Props) {
                     <div className="flex items-center gap-4">
                         <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
                             {t("inventory.chemical.inventories.sheetSpecFull", {
-                                defaultValue: "Giấy: 100×22mm | Tem: 50×22mm | Lề: 1.5mm | {{count}} bản in",
+                                defaultValue: `Giấy: 100×${labelSize === "50x70" ? "70" : labelSize === "50x30" ? "30" : "22"}mm | Tem: 50×${labelSize === "50x70" ? "70" : labelSize === "50x30" ? "30" : "22"}mm | Lề: 1.5mm | {{count}} bản in`,
                                 count: finalItems.length,
                             })}
                         </span>

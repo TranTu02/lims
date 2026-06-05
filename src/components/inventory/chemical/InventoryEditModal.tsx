@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { X, Loader2, Save, Calendar, Search } from "lucide-react";
@@ -13,13 +13,38 @@ import { searchDocuments } from "@/api/documents";
 import { SearchSelectPicker, type PickerItem } from "@/components/library/protocols/SearchSelectPicker";
 import { DocumentUploadModal } from "@/components/document/DocumentUploadModal";
 import { Upload } from "lucide-react";
+const formatDateTimeDMYHM = (dateStr: string | null | undefined): string => {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
+};
 
-type Props = {
-    inventory?: ChemicalInventory | null; // null/undefined → create mode
-    onClose: () => void;
+const parseDateTimeDMYHM = (dmyhm: string): string => {
+    if (!dmyhm) return "";
+    const regex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{1,2})$/;
+    const match = dmyhm.trim().match(regex);
+    if (match) {
+        const [_, day, month, year, hours, minutes] = match;
+        const d = new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes));
+        if (!isNaN(d.getTime())) {
+            return d.toISOString();
+        }
+    }
+    return dmyhm;
 };
 
 const STATUS_OPTIONS = ["New", "InUse", "Quarantined", "Pending", "Empty", "Expired", "Disposed"];
+
+type Props = {
+    inventory?: ChemicalInventory | null;
+    onClose: () => void;
+};
 
 export function InventoryEditModal({ inventory, onClose }: Props) {
     const { t } = useTranslation();
@@ -30,12 +55,40 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
     const { data: technicians } = useChemicalTechnicians();
     const { data: storageConditionsList } = useEnumList("storageConditions");
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const pickerRef = useRef<HTMLInputElement>(null);
+
+    const handlePreparedDateTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        const prevVal = form.preparedDate;
+        if (val.length < prevVal.length) {
+            set("preparedDate", val);
+            return;
+        }
+        let cleaned = val.replace(/\D/g, "");
+        let formatted = "";
+        if (cleaned.length > 0) {
+            formatted += cleaned.slice(0, 2);
+        }
+        if (cleaned.length > 2) {
+            formatted += "/" + cleaned.slice(2, 4);
+        }
+        if (cleaned.length > 4) {
+            formatted += "/" + cleaned.slice(4, 8);
+        }
+        if (cleaned.length > 8) {
+            formatted += " " + cleaned.slice(8, 10);
+        }
+        if (cleaned.length > 10) {
+            formatted += ":" + cleaned.slice(10, 12);
+        }
+        set("preparedDate", formatted);
+    };
 
     const [form, setForm] = useState({
         chemicalInventoryId: inventory?.chemicalInventoryId ?? "",
         chemicalSkuId: (inventory as any)?.chemicalSkuId ?? "",
         chemicalName: (inventory as any)?.chemicalName ?? "",
-        chemicalType: (inventory as any)?.chemicalType ?? "",
+        chemicalType: (inventory as any)?.chemicalType || (inventory as any)?.chemicalSku?.chemicalType || "",
         chemicalCasNumber: (inventory as any)?.chemicalCasNumber ?? "",
         lotNumber: (inventory as any)?.lotNumber ?? "",
         chemicalSkuOldId: (inventory as any)?.chemicalSkuOldId ?? "",
@@ -76,9 +129,9 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
                   sublabel: "",
               })),
         preparedById: (inventory as any)?.preparedById ?? "",
-        preparedBy: typeof (inventory as any)?.preparedBy === "string" 
+        preparedBy: (typeof (inventory as any)?.preparedBy === "string" 
             ? (inventory as any)?.preparedBy 
-            : ((inventory as any)?.preparedBy?.identityName ?? ""),
+            : ((inventory as any)?.preparedBy?.identityName ?? "")).normalize("NFC"),
         preparationLocation: (inventory as any)?.preparationLocation ?? "",
         preparationDocuments: (inventory as any)?.preparationDocuments ?? "",
         correctionFactorK: (inventory as any)?.correctionFactorK !== undefined && (inventory as any)?.correctionFactorK !== null ? String((inventory as any)?.correctionFactorK) : "",
@@ -86,14 +139,14 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
             ? [
                   {
                       id: (inventory as any).preparedById,
-                      label: typeof (inventory as any)?.preparedBy === "string" 
+                      label: (typeof (inventory as any)?.preparedBy === "string" 
                           ? (inventory as any)?.preparedBy 
-                          : ((inventory as any)?.preparedBy?.identityName || (inventory as any).preparedById),
+                          : ((inventory as any)?.preparedBy?.identityName || (inventory as any).preparedById)).normalize("NFC"),
                       sublabel: "",
                   },
               ]
             : [],
-        preparedDate: (inventory as any)?.preparedDate ? String((inventory as any).preparedDate).slice(0, 16) : "",
+        preparedDate: (inventory as any)?.preparedDate ? formatDateTimeDMYHM(String((inventory as any).preparedDate)) : "",
     });
 
     const [cloneCount, setCloneCount] = useState(1);
@@ -117,10 +170,25 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
             delete (payload as any).selectedParentInventories;
             delete (payload as any).selectedPreparer;
 
-            if (payload.chemicalType === "Hóa chất pha") {
-                (payload as any).preparedDate = form.preparedDate ? new Date(form.preparedDate).toISOString() : null;
-                (payload as any).correctionFactorK = form.correctionFactorK ? Number(form.correctionFactorK) : null;
-                // preparedById and preparedBy and preparationLocation and preparationDocuments are already in payload from form
+            const isPreparedType = ["Hóa chất pha", "Dung dịch chuẩn độ", "Thuốc thử"].includes(payload.chemicalType);
+            if (isPreparedType) {
+                const parsedPreparedDate = parseDateTimeDMYHM(form.preparedDate);
+                let isoPreparedDate = null;
+                if (parsedPreparedDate) {
+                    const d = new Date(parsedPreparedDate);
+                    if (!isNaN(d.getTime())) {
+                        isoPreparedDate = d.toISOString();
+                    }
+                }
+                (payload as any).preparedDate = isoPreparedDate;
+                (payload as any).mfgDate = isoPreparedDate ? isoPreparedDate.slice(0, 10) : null;
+                (payload as any).correctionFactorK = (payload.chemicalType !== "Thuốc thử" && form.correctionFactorK) ? Number(form.correctionFactorK) : null;
+                
+                // Normalize empty strings to null to prevent FK constraint/validation errors
+                (payload as any).preparedById = form.preparedById?.trim() || null;
+                (payload as any).preparedBy = form.preparedBy?.trim() || null;
+                (payload as any).preparationLocation = form.preparationLocation?.trim() || null;
+                (payload as any).preparationDocuments = form.preparationDocuments?.trim() || null;
             } else {
                 (payload as any).parentInventoryIds = [];
                 (payload as any).preparedById = null;
@@ -489,7 +557,7 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
                         </div>
                     </div>
 
-                    {form.chemicalType === "Hóa chất pha" && (
+                    {["Hóa chất pha", "Dung dịch chuẩn độ", "Thuốc thử"].includes(form.chemicalType) && (
                         <div className="border-t border-border pt-4 space-y-3">
                             <div className="flex items-center gap-2 mb-1">
                                 <div className="p-1.5 bg-blue-500/10 rounded-md">
@@ -552,12 +620,36 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
                                         </label>
                                         <div className="relative">
                                             <Input
-                                                type="datetime-local"
+                                                type="text"
+                                                placeholder="DD/MM/YYYY HH:MM"
                                                 value={form.preparedDate}
-                                                onChange={(e) => set("preparedDate", e.target.value)}
+                                                onChange={handlePreparedDateTextChange}
                                                 className="pl-9"
                                             />
-                                            <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+                                            <button
+                                                type="button"
+                                                className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
+                                                onClick={() => {
+                                                    try {
+                                                        pickerRef.current?.showPicker();
+                                                    } catch {
+                                                        pickerRef.current?.click();
+                                                    }
+                                                }}
+                                            >
+                                                <Calendar className="h-4 w-4" />
+                                            </button>
+                                            <input
+                                                ref={pickerRef}
+                                                type="datetime-local"
+                                                className="sr-only absolute"
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    if (val) {
+                                                        set("preparedDate", formatDateTimeDMYHM(val));
+                                                    }
+                                                }}
+                                            />
                                         </div>
                                     </div>
                                     <div className="space-y-1">
@@ -570,18 +662,20 @@ export function InventoryEditModal({ inventory, onClose }: Props) {
                                             placeholder="HD pha chế số..."
                                         />
                                     </div>
-                                    <div className="space-y-1">
-                                        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                                            {t("inventory.chemical.inventories.correctionFactorK", { defaultValue: "Hệ số K" })}
-                                        </label>
-                                        <Input
-                                            type="number"
-                                            step="any"
-                                            value={form.correctionFactorK}
-                                            onChange={(e) => set("correctionFactorK", e.target.value)}
-                                            placeholder="1.000..."
-                                        />
-                                    </div>
+                                    {form.chemicalType !== "Thuốc thử" && (
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                                {t("inventory.chemical.inventories.correctionFactorK", { defaultValue: "Hệ số K" })}
+                                            </label>
+                                            <Input
+                                                type="number"
+                                                step="any"
+                                                value={form.correctionFactorK}
+                                                onChange={(e) => set("correctionFactorK", e.target.value)}
+                                                placeholder="1.000..."
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

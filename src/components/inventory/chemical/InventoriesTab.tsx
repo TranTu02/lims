@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Printer, CheckSquare, FileText } from "lucide-react";
+import { Plus, Search, Printer, CheckSquare, FileText, Scan, X } from "lucide-react";
 import { useChemicalInventoriesList, useEnumList, chemicalApi } from "@/api/chemical";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ChemicalInventory } from "@/types/chemical";
@@ -15,8 +15,111 @@ import { PrintA4LabelModal } from "./PrintA4LabelModal";
 import { Badge } from "@/components/ui/badge";
 import { TableFilterPopover } from "./TableFilterPopover";
 import { RefreshCw } from "lucide-react";
+import { Html5Qrcode } from "html5-qrcode";
+
+function CameraScannerModal({ onClose, onScanSuccess }: { onClose: () => void; onScanSuccess: (text: string) => void }) {
+    const qrRegionRef = useRef<HTMLDivElement>(null);
+    const html5QrcodeRef = useRef<Html5Qrcode | null>(null);
+
+    useEffect(() => {
+        const qrId = "camera-qr-reader";
+        let isStopped = false;
+
+        const startScanning = async () => {
+            try {
+                await new Promise((resolve) => setTimeout(resolve, 350));
+                if (isStopped) return;
+
+                const html5QrCode = new Html5Qrcode(qrId);
+                html5QrcodeRef.current = html5QrCode;
+
+                await html5QrCode.start(
+                    { facingMode: "environment" },
+                    {
+                        fps: 10,
+                        qrbox: (width, height) => {
+                            const size = Math.min(width, height) * 0.7;
+                            return { width: size, height: size };
+                        },
+                    },
+                    (decodedText) => {
+                        onScanSuccess(decodedText);
+                        stopScanning();
+                        onClose();
+                    },
+                    () => {}
+                );
+            } catch (err) {
+                console.error("Camera scan start error:", err);
+            }
+        };
+
+        const stopScanning = async () => {
+            isStopped = true;
+            if (html5QrcodeRef.current && html5QrcodeRef.current.isScanning) {
+                try {
+                    await html5QrcodeRef.current.stop();
+                } catch (e) {
+                    console.error("Failed to stop html5-qrcode scanner:", e);
+                }
+            }
+        };
+
+        startScanning();
+
+        return () => {
+            stopScanning();
+        };
+    }, [onClose, onScanSuccess]);
+
+    return (
+        <div className="fixed inset-0 z-[100] bg-black flex flex-col justify-between p-4">
+            <div className="flex items-center justify-between text-white pb-4 shrink-0">
+                <h3 className="text-sm font-semibold">Quét mã QR hóa chất</h3>
+                <button type="button" onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                    <X className="h-6 w-6 text-white" />
+                </button>
+            </div>
+            
+            <div className="flex-1 flex items-center justify-center relative overflow-hidden rounded-lg bg-zinc-950 border border-zinc-800">
+                <div id="camera-qr-reader" className="w-full h-full" ref={qrRegionRef} />
+                <div className="absolute inset-0 border-[3px] border-dashed border-primary/40 pointer-events-none rounded-lg" style={{ margin: "20%" }} />
+            </div>
+
+            <div className="pt-4 text-center text-xs text-muted-foreground shrink-0">
+                Hướng camera mặt sau về phía mã QR để quét tự động
+            </div>
+        </div>
+    );
+}
 
 
+
+function StatusBadge({ status }: { status?: string | null }) {
+    const { t } = useTranslation();
+    const STATUS_MAP: Record<string, { label: string; cls: string }> = {
+        Quarantined: { label: t("inventory.chemical.inventories.status.Quarantined", { defaultValue: "Kiểm dịch" }), cls: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300" },
+        New: { label: t("inventory.chemical.inventories.status.New", { defaultValue: "Mới" }), cls: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" },
+        InUse: { label: t("inventory.chemical.inventories.status.InUse", { defaultValue: "Đang dùng" }), cls: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
+        Empty: { label: t("inventory.chemical.inventories.status.Empty", { defaultValue: "Hết" }), cls: "bg-muted text-muted-foreground" },
+        Expired: { label: t("inventory.chemical.inventories.status.Expired", { defaultValue: "Hết hạn" }), cls: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" },
+        Disposed: { label: t("inventory.chemical.inventories.status.Disposed", { defaultValue: "Đã huỷ" }), cls: "bg-gray-200 text-gray-600" },
+        Pending: { label: t("inventory.chemical.inventories.status.Pending", { defaultValue: "Chờ kiểm kê" }), cls: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300" },
+    };
+    const s = status ? STATUS_MAP[status] : undefined;
+    if (s) return <Badge className={`${s.cls} hover:${s.cls} transition-none shadow-none border-none`}>{s.label}</Badge>;
+    return <Badge variant="outline">{status ?? "-"}</Badge>;
+}
+
+const STATUS_FILTER_OPTIONS = [
+    { label: "Mới", value: "New" },
+    { label: "Đang dùng", value: "InUse" },
+    { label: "Kiểm dịch", value: "Quarantined" },
+    { label: "Chờ kiểm kê", value: "Pending" },
+    { label: "Hết", value: "Empty" },
+    { label: "Hết hạn", value: "Expired" },
+    { label: "Đã huỷ", value: "Disposed" },
+];
 
 export function InventoriesTab() {
     const { t } = useTranslation();
@@ -46,6 +149,7 @@ export function InventoriesTab() {
     const [printOpen, setPrintOpen] = useState(false);
     const [logReportOpen, setLogReportOpen] = useState(false);
     const [printA4Open, setPrintA4Open] = useState(false);
+    const [scanOpen, setScanOpen] = useState(false);
 
     const {
         data: result,
@@ -172,6 +276,9 @@ export function InventoriesTab() {
                                 className="pl-8"
                             />
                         </div>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground flex md:hidden shrink-0 border border-border items-center justify-center rounded-md hover:bg-muted" onClick={() => setScanOpen(true)} title="Quét mã QR">
+                            <Scan className="h-4 w-4" />
+                        </Button>
                         <Button variant="outline" size="sm" type="button" onClick={handleSearch}>
                             {t("common.search", { defaultValue: "Tìm kiếm" })}
                         </Button>
@@ -268,9 +375,6 @@ export function InventoriesTab() {
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">
                                         {t("inventory.chemical.inventories.lotNumber", { defaultValue: "Số Lô" })}
                                     </th>
-                                    <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground whitespace-nowrap">
-                                        {t("inventory.chemical.inventories.currentAvailableQty", { defaultValue: "Lượng còn lại" })}
-                                    </th>
                                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
                                         <TableFilterPopover
                                             title={t("inventory.chemical.inventories.storageBinLocation", { defaultValue: "Vị trí lưu kho" })}
@@ -279,6 +383,21 @@ export function InventoriesTab() {
                                             options={(binLocationsList || []).map((l) => ({ label: l, value: l }))}
                                             onChange={(v) => {
                                                 setFilters((f) => ({ ...f, storageBinLocation: v }));
+                                                setPage(1);
+                                            }}
+                                        />
+                                    </th>
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        {t("inventory.chemical.inventories.currentAvailableQty", { defaultValue: "Lượng còn lại" })}
+                                    </th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground whitespace-nowrap">
+                                        <TableFilterPopover
+                                            title={t("inventory.chemical.inventories.chemicalInventoryStatus", { defaultValue: "Trạng thái" })}
+                                            type="enum"
+                                            value={filters.chemicalInventoryStatus}
+                                            options={STATUS_FILTER_OPTIONS}
+                                            onChange={(v) => {
+                                                setFilters((f) => ({ ...f, chemicalInventoryStatus: v }));
                                                 setPage(1);
                                             }}
                                         />
@@ -309,15 +428,16 @@ export function InventoriesTab() {
                                             <td className="p-3"><Skeleton className="h-4 w-20" /></td>
                                             <td className="p-3"><Skeleton className="h-4 w-16" /></td>
                                             <td className="p-3 hidden md:table-cell"><Skeleton className="h-4 w-16" /></td>
-                                            <td className="p-3"><Skeleton className="h-4 w-16" /></td>
-                                            <td className="p-3"><Skeleton className="h-4 w-12" /></td>
+                                            <td className="p-3"><Skeleton className="h-4 w-24" /></td>
+                                            <td className="p-3 text-right"><Skeleton className="h-4 w-16" /></td>
+                                            <td className="p-3"><Skeleton className="h-4 w-20" /></td>
                                             <td className="p-3 hidden md:table-cell"><Skeleton className="h-4 w-20" /></td>
                                             <td className="p-3 hidden md:table-cell"><Skeleton className="h-4 w-24" /></td>
                                         </tr>
                                     ))
                                 ) : allItems.length === 0 ? (
                                     <tr>
-                                        <td colSpan={selectMode ? 10 : 9} className="p-6 text-center text-muted-foreground">
+                                        <td colSpan={selectMode ? 11 : 10} className="p-6 text-center text-muted-foreground">
                                             {t("common.noData", { defaultValue: "Không có dữ liệu" })}
                                         </td>
                                     </tr>
@@ -350,6 +470,9 @@ export function InventoriesTab() {
                                                 <td className="px-3 py-2 whitespace-nowrap hidden md:table-cell">{inv.lotNumber ?? "-"}</td>
                                                 <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">{inv.storageBinLocation ?? "-"}</td>
                                                 <td className="px-3 py-2 whitespace-nowrap text-right font-medium text-foreground">{inv.currentAvailableQty ?? 0}</td>
+                                                <td className="px-3 py-2 whitespace-nowrap">
+                                                    <StatusBadge status={inv.chemicalInventoryStatus} />
+                                                </td>
                                                 <td className="px-3 py-2 whitespace-nowrap text-muted-foreground hidden md:table-cell">{inv.expDate ? new Date(inv.expDate).toLocaleDateString("vi-VN") : "-"}</td>
                                                 <td className="px-3 py-2 whitespace-nowrap text-xs text-muted-foreground truncate max-w-[150px] hidden md:table-cell" title={inv.storageConditions}>{inv.storageConditions ?? "-"}</td>
                                             </tr>
@@ -388,6 +511,31 @@ export function InventoriesTab() {
             )}
 
             {createOpen && <InventoryEditModal inventory={null} onClose={() => setCreateOpen(false)} />}
+
+            {scanOpen && (
+                <CameraScannerModal
+                    onClose={() => setScanOpen(false)}
+                    onScanSuccess={(decodedText) => {
+                        console.log("Camera QR Scanned:", decodedText);
+                        const scannedId = decodedText.trim();
+                        const foundItem = allItems.find((inv: any) => inv.chemicalInventoryId === scannedId);
+                        if (foundItem) {
+                            setActiveInv(foundItem);
+                        } else {
+                            setSearch(scannedId);
+                            setSubmittedSearch(scannedId);
+                            setPage(1);
+                            chemicalApi.inventories.getTechnicians().then(() => {
+                                chemicalApi.inventories.full({ id: scannedId }).then((res) => {
+                                    if (res.success && res.data) {
+                                        setActiveInv(res.data as ChemicalInventory);
+                                    }
+                                });
+                            });
+                        }
+                    }}
+                />
+            )}
 
             {/* Print label modal */}
             {printOpen && (
