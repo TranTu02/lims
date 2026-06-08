@@ -22,6 +22,8 @@ function CameraScannerModal({ onClose, onScanSuccess }: { onClose: () => void; o
     const html5QrcodeRef = useRef<Html5Qrcode | null>(null);
     const [zoom, setZoom] = useState(1);
     const [maxZoom, setMaxZoom] = useState(5);
+    const [cameras, setCameras] = useState<{ id: string; label: string }[]>([]);
+    const [activeCameraId, setActiveCameraId] = useState<string>("");
 
     const applyZoom = useCallback((zoomValue: number) => {
         const html5QrCode = html5QrcodeRef.current;
@@ -55,58 +57,80 @@ function CameraScannerModal({ onClose, onScanSuccess }: { onClose: () => void; o
         }
     }, []);
 
+    // Effect to query available camera devices
     useEffect(() => {
+        let isStopped = false;
+        const queryCameras = async () => {
+            try {
+                const devices = await Html5Qrcode.getCameras();
+                if (isStopped) return;
+                
+                if (devices && devices.length > 0) {
+                    setCameras(devices);
+                    
+                    // Default to back/rear camera heuristics
+                    let defaultId = devices[0].id;
+                    const hasLabels = devices.some(d => d.label);
+                    if (hasLabels) {
+                        const backCameras = devices.filter(device => {
+                            const lbl = device.label.toLowerCase();
+                            return !lbl.includes("front") && !lbl.includes("trước") && !lbl.includes("user");
+                        });
+                        
+                        if (backCameras.length > 0) {
+                            const explicitBack = backCameras.find(device => 
+                                device.label.toLowerCase().includes("back") || 
+                                device.label.toLowerCase().includes("rear") || 
+                                device.label.toLowerCase().includes("environment") ||
+                                device.label.toLowerCase().includes("sau")
+                            );
+                            defaultId = explicitBack ? explicitBack.id : backCameras[0].id;
+                        } else {
+                            defaultId = devices[devices.length - 1].id;
+                        }
+                    } else {
+                        // If no labels, fall back to environment constraint natively or pick the last one
+                        defaultId = "environment";
+                    }
+                    setActiveCameraId(defaultId);
+                } else {
+                    setActiveCameraId("environment");
+                }
+            } catch (err) {
+                console.warn("Failed to query cameras, falling back to environment string constraint:", err);
+                setActiveCameraId("environment");
+            }
+        };
+
+        queryCameras();
+        return () => {
+            isStopped = true;
+        };
+    }, []);
+
+    // Effect to start and stop the scanner when activeCameraId changes
+    useEffect(() => {
+        if (!activeCameraId) return;
+
         const qrId = "camera-qr-reader";
         let isStopped = false;
+        let html5QrCode: Html5Qrcode | null = null;
 
-        const startScanning = async () => {
+        const start = async () => {
             try {
                 await new Promise((resolve) => setTimeout(resolve, 350));
                 if (isStopped) return;
 
-                const html5QrCode = new Html5Qrcode(qrId);
+                html5QrCode = new Html5Qrcode(qrId);
                 html5QrcodeRef.current = html5QrCode;
 
-                // Query all camera devices for explicit rear camera selection on mobile devices
-                let cameraIdOrConfig: any = { facingMode: "environment" };
-                try {
-                    const devices = await Html5Qrcode.getCameras();
-                    if (devices && devices.length > 0) {
-                        const hasLabels = devices.some(device => device.label);
-                        if (hasLabels) {
-                            // Filter out front-facing cameras
-                            const backCameras = devices.filter(device => {
-                                const lbl = device.label.toLowerCase();
-                                return !lbl.includes("front") && !lbl.includes("trước") && !lbl.includes("user");
-                            });
-                            
-                            if (backCameras.length > 0) {
-                                // Prefer cameras with explicit back/rear labels
-                                const explicitBack = backCameras.find(device => 
-                                    device.label.toLowerCase().includes("back") || 
-                                    device.label.toLowerCase().includes("rear") || 
-                                    device.label.toLowerCase().includes("environment") ||
-                                    device.label.toLowerCase().includes("sau")
-                                );
-                                cameraIdOrConfig = explicitBack ? explicitBack.id : backCameras[0].id;
-                            } else {
-                                cameraIdOrConfig = devices[devices.length - 1].id;
-                            }
-                        } else {
-                            // If no labels are available yet, let facingMode: "environment" do the job natively
-                            cameraIdOrConfig = { facingMode: "environment" };
-                        }
-                    }
-                } catch (cameraErr) {
-                    console.warn("Failed to get cameras list, falling back to facingMode constraint:", cameraErr);
-                }
+                const targetCamera = activeCameraId === "environment" ? { facingMode: "environment" } : activeCameraId;
 
                 await html5QrCode.start(
-                    cameraIdOrConfig,
+                    targetCamera,
                     {
                         fps: 15,
                         qrbox: { width: 180, height: 180 },
-                        // Request maximum/ideal resolution, 16:9 aspect ratio, and continuous autofocus mode
                         videoConstraints: {
                             width: { ideal: 1920 },
                             height: { ideal: 1080 },
@@ -119,25 +143,23 @@ function CameraScannerModal({ onClose, onScanSuccess }: { onClose: () => void; o
                     },
                     (decodedText) => {
                         onScanSuccess(decodedText);
-                        stopScanning();
+                        cleanup();
                         onClose();
                     },
                     () => {}
                 );
 
-                // Detect zoom and focus capabilities after starting and force continuous autofocus on running track
                 if (!isStopped) {
                     try {
                         const track = (html5QrCode as any).getRunningTrack();
                         if (track) {
                             const capabilities = track.getCapabilities() as any;
                             
-                            // Explicitly force continuous autofocus if hardware track supports it
                             if (capabilities && capabilities.focusMode && capabilities.focusMode.includes("continuous")) {
                                 track.applyConstraints({
                                     advanced: [{ focusMode: "continuous" }]
-                                }).catch((focusErr: any) => {
-                                    console.warn("Failed to apply continuous focus mode on track:", focusErr);
+                                }).catch((fErr: any) => {
+                                    console.warn("Failed to apply continuous focus mode on track:", fErr);
                                 });
                             }
 
@@ -150,27 +172,26 @@ function CameraScannerModal({ onClose, onScanSuccess }: { onClose: () => void; o
                     }
                 }
             } catch (err: any) {
-                console.error("Camera scan start error:", err);
+                console.error("Camera start failed:", err);
             }
         };
 
-        const stopScanning = async () => {
+        const cleanup = async () => {
             isStopped = true;
-            if (html5QrcodeRef.current && html5QrcodeRef.current.isScanning) {
+            if (html5QrCode && html5QrCode.isScanning) {
                 try {
-                    await html5QrcodeRef.current.stop();
-                } catch (e: any) {
-                    console.error("Failed to stop html5-qrcode scanner:", e);
+                    await html5QrCode.stop();
+                } catch (e) {
+                    console.error("Stop scanning failed on cleanup:", e);
                 }
             }
         };
 
-        startScanning();
-
+        start();
         return () => {
-            stopScanning();
+            cleanup();
         };
-    }, [onClose, onScanSuccess]);
+    }, [activeCameraId, onClose, onScanSuccess]);
 
     return (
         <div className="fixed inset-0 z-[100] bg-zinc-950 flex flex-col justify-between p-4 safe-area-inset pb-safe">
@@ -227,8 +248,26 @@ function CameraScannerModal({ onClose, onScanSuccess }: { onClose: () => void; o
                 </div>
             </div>
 
-            {/* Slider zoom and helper text */}
+            {/* Controls panel: Zoom and Camera Selection */}
             <div className="mt-4 flex flex-col gap-3 shrink-0">
+                {/* Camera Selector Dropdown if multiple cameras are available */}
+                {cameras.length > 1 && (
+                    <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl px-4 py-2 flex items-center justify-between">
+                        <span className="text-[11px] text-zinc-400 font-medium">Chọn thiết bị Camera</span>
+                        <select
+                            value={activeCameraId}
+                            onChange={(e) => setActiveCameraId(e.target.value)}
+                            className="bg-zinc-800 text-white text-[11px] font-medium py-1.5 px-3 rounded-lg border border-zinc-700 outline-none focus:border-emerald-500 max-w-[65%]"
+                        >
+                            {cameras.map((camera) => (
+                                <option key={camera.id} value={camera.id}>
+                                    {camera.label || `Camera ${camera.id.substring(0, 5)}...`}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+
                 {/* Zoom Controller */}
                 <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl px-4 py-3 space-y-2">
                     <div className="flex items-center justify-between text-[11px]">
@@ -263,7 +302,7 @@ function CameraScannerModal({ onClose, onScanSuccess }: { onClose: () => void; o
                 </div>
 
                 <div className="text-center text-[10px] text-zinc-500">
-                    Sử dụng thanh trượt để phóng to và căn chỉnh chính xác mã QR
+                    Sử dụng thanh trượt để phóng to và bộ lọc camera để thay đổi góc quay
                 </div>
             </div>
         </div>
