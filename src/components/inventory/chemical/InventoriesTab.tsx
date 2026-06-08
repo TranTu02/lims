@@ -72,17 +72,29 @@ function CameraScannerModal({ onClose, onScanSuccess }: { onClose: () => void; o
                 try {
                     const devices = await Html5Qrcode.getCameras();
                     if (devices && devices.length > 0) {
-                        const backCamera = devices.find(device => 
-                            device.label.toLowerCase().includes("back") || 
-                            device.label.toLowerCase().includes("rear") || 
-                            device.label.toLowerCase().includes("environment") ||
-                            device.label.toLowerCase().includes("sau")
-                        );
-                        if (backCamera) {
-                            cameraIdOrConfig = backCamera.id;
+                        const hasLabels = devices.some(device => device.label);
+                        if (hasLabels) {
+                            // Filter out front-facing cameras
+                            const backCameras = devices.filter(device => {
+                                const lbl = device.label.toLowerCase();
+                                return !lbl.includes("front") && !lbl.includes("trước") && !lbl.includes("user");
+                            });
+                            
+                            if (backCameras.length > 0) {
+                                // Prefer cameras with explicit back/rear labels
+                                const explicitBack = backCameras.find(device => 
+                                    device.label.toLowerCase().includes("back") || 
+                                    device.label.toLowerCase().includes("rear") || 
+                                    device.label.toLowerCase().includes("environment") ||
+                                    device.label.toLowerCase().includes("sau")
+                                );
+                                cameraIdOrConfig = explicitBack ? explicitBack.id : backCameras[0].id;
+                            } else {
+                                cameraIdOrConfig = devices[devices.length - 1].id;
+                            }
                         } else {
-                            // Usually the last camera in the list is the main rear camera
-                            cameraIdOrConfig = devices[devices.length - 1].id;
+                            // If no labels are available yet, let facingMode: "environment" do the job natively
+                            cameraIdOrConfig = { facingMode: "environment" };
                         }
                     }
                 } catch (cameraErr) {
