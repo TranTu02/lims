@@ -6,6 +6,9 @@ export default {
         technicianTitle: "KTV Workspace",
         technicianDescription: "Testing work",
 
+        equipmentTitle: "Equipment",
+        equipmentDescription: "Lab equipment & devices",
+
         managerTitle: "Lab Management",
         managerDescription: "Review results & Reports",
         managerApprovals: "Review & Approve",
@@ -2062,6 +2065,19 @@ export default {
         signatures: {
             qaManager: "Quality Assurance Manager",
             vicePresident: "Vice President"
+        }
+    },
+    equipment: {
+        title: "Lab Equipment",
+        subtitle: "Manage device data streams, calibration, and status.",
+        tabs: {
+            balance: "Analytical Balance",
+            microscope: "Microscope",
+            tlc: "Thin Layer Chromatography (TLC)",
+        },
+        pending: {
+            title: "Feature Under Development",
+            description: "The connection and data streaming system for this device is currently being developed. Please check back later.",
         }
     }
 };

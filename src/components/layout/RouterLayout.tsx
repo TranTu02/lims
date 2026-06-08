@@ -6,6 +6,7 @@ import { Layout } from "./Layout";
 type TabKey =
     | "reception"
     | "technician"
+    | "equipment"
     | "manager-approvals"
     | "manager-exceptions"
     | "manager-samples"
@@ -50,6 +51,8 @@ function getTabFromPath(pathname: string): TabKey {
             return "reception";
         case "/technician":
             return "technician";
+        case "/equipment":
+            return "equipment";
         case "/assignment":
             return "assignment";
         case "/handover":
@@ -116,6 +119,10 @@ export function RouterLayout() {
             technician: {
                 title: t("nav.technicianTitle"),
                 description: t("nav.technicianDescription"),
+            },
+            equipment: {
+                title: t("nav.equipmentTitle"),
+                description: t("nav.equipmentDescription"),
             },
             "manager-approvals": {
                 title: t("nav.managerApprovals"),

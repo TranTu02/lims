@@ -20,6 +20,7 @@ import {
     Microscope,
     Monitor,
     Wrench,
+    Cpu,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/config/theme/ThemeContext";
@@ -106,6 +107,13 @@ export function Sidebar({ activeTab, onTabChange, sidebarOpen = true, onMobileCl
                 icon: TestTube2,
                 titleKey: "nav.technicianTitle",
                 descriptionKey: "nav.technicianDescription",
+            },
+            {
+                type: "item",
+                id: "equipment",
+                icon: Cpu,
+                titleKey: "nav.equipmentTitle",
+                descriptionKey: "nav.equipmentDescription",
             },
             {
                 type: "group",

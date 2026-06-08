@@ -7,6 +7,7 @@ import { Toaster } from "sonner";
 import { LoginPage } from "@/pages/LoginPage";
 import { ReceptionPage } from "@/pages/ReceptionPage";
 import { TechnicianPage } from "@/pages/TechnicianPage";
+import { EquipmentPage } from "@/pages/EquipmentPage";
 import { LabManagerPage } from "@/pages/LabManagerPage";
 import { AssignmentPage } from "@/pages/AssignmentPage";
 import { HandoverPage } from "@/pages/HandoverPage";
@@ -56,6 +57,7 @@ function App() {
 
                             <Route path="/reception" element={<ReceptionPage />} />
                             <Route path="/technician" element={<TechnicianPage />} />
+                            <Route path="/equipment" element={<EquipmentPage />} />
                             <Route path="/manager/*" element={<LabManagerPage />} />
                             <Route path="/assignment" element={<AssignmentPage />} />
                             <Route path="/handover" element={<HandoverPage />} />

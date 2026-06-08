@@ -6,6 +6,9 @@ export default {
         technicianTitle: "Bàn làm việc KTV",
         technicianDescription: "Công việc kiểm nghiệm",
 
+        equipmentTitle: "Thiết bị",
+        equipmentDescription: "Thiết bị & máy móc phòng Lab",
+
         managerTitle: "Quản lý Lab",
         managerDescription: "Duyệt KQ & Báo cáo",
         managerApprovals: "Kiểm soát & Duyệt KQ",
@@ -2096,4 +2099,17 @@ export default {
             vicePresident: "KT.VIỆN TRƯỞNG<br>PHÓ VIỆN TRƯỞNG",
         },
     },
+    equipment: {
+        title: "Thiết bị phòng Lab",
+        subtitle: "Quản lý luồng dữ liệu, hiệu chuẩn và trạng thái thiết bị.",
+        tabs: {
+            balance: "Cân phân tích",
+            microscope: "Kính hiển vi",
+            tlc: "Sắc ký lớp mỏng (TLC)",
+        },
+        pending: {
+            title: "Tính năng đang phát triển",
+            description: "Hệ thống kết nối và thu thập dữ liệu cho thiết bị này đang được hoàn thiện. Vui lòng quay lại sau.",
+        }
+    }
 };

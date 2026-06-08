@@ -58,15 +58,15 @@ const accessMatrix: Record<string, string[]> = {
     ROLE_QA_MANAGER: ["manager", "document", "libraries"],
     ROLE_QA: ["manager", "document", "libraries"],
     ROLE_MANAGER: ["manager", "assignment", "document", "libraries"],
-    ROLE_SECTION_HEAD: ["technician", "manager", "assignment", "handover"],
+    ROLE_SECTION_HEAD: ["technician", "manager", "assignment", "handover", "equipment"],
     ROLE_VALIDATOR: ["manager"],
 
     // Functional roles
-    ROLE_TECHNICIAN: ["technician", "handover", "chemical-inventory"],
-    ROLE_SENIOR_ANALYST: ["technician", "handover", "chemical-inventory"],
-    ROLE_IPC_INSPECTOR: ["technician"],
-    ROLE_RND_SPECIALIST: ["technician"],
-    technician: ["technician", "handover", "chemical-inventory"],
+    ROLE_TECHNICIAN: ["technician", "handover", "chemical-inventory", "equipment"],
+    ROLE_SENIOR_ANALYST: ["technician", "handover", "chemical-inventory", "equipment"],
+    ROLE_IPC_INSPECTOR: ["technician", "equipment"],
+    ROLE_RND_SPECIALIST: ["technician", "equipment"],
+    technician: ["technician", "handover", "chemical-inventory", "equipment"],
 
     // Reception & Logistics
     ROLE_RECEPTIONIST: ["reception", "handover", "stored-samples"],

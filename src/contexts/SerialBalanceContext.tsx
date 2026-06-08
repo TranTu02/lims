@@ -10,6 +10,8 @@ export interface ParsedReading {
     unit: string;
     isStable: boolean;
     sampleId?: string;
+    identityId?: string;
+    identityName?: string;
 }
 
 export interface SerialConfig {
@@ -220,6 +222,17 @@ export function SerialBalanceProvider({ children }: { children: React.ReactNode 
                             const timePart = now.toLocaleTimeString("vi-VN", { hour12: false });
                             const msPart = String(now.getMilliseconds()).padStart(3, "0");
 
+                            let identityId = "";
+                            let identityName = "";
+                            try {
+                                const savedUser = localStorage.getItem("user");
+                                if (savedUser) {
+                                    const parsedUser = JSON.parse(savedUser);
+                                    identityId = parsedUser.identityId || "";
+                                    identityName = parsedUser.identityName || "";
+                                }
+                            } catch {}
+
                             const newReading: ParsedReading = {
                                 id: Math.random().toString(36).substring(2, 9),
                                 date: datePart,
@@ -229,6 +242,8 @@ export function SerialBalanceProvider({ children }: { children: React.ReactNode 
                                 unit: parsed.unit,
                                 isStable: parsed.isStable,
                                 sampleId: activeSampleIdRef.current || undefined,
+                                identityId,
+                                identityName,
                             };
 
                             setLatestReading(newReading);
