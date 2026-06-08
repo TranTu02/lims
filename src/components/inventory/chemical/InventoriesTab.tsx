@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -92,8 +92,18 @@ function CameraScannerModal({ onClose, onScanSuccess }: { onClose: () => void; o
                 await html5QrCode.start(
                     cameraIdOrConfig,
                     {
-                        fps: 10,
-                        qrbox: { width: 180, height: 180 }
+                        fps: 15,
+                        qrbox: { width: 180, height: 180 },
+                        // Request maximum/ideal resolution, 16:9 aspect ratio, and continuous autofocus mode
+                        videoConstraints: {
+                            width: { ideal: 1920 },
+                            height: { ideal: 1080 },
+                            aspectRatio: { ideal: 1.777777778 },
+                            focusMode: { ideal: "continuous" } as any,
+                            advanced: [
+                                { focusMode: "continuous" } as any
+                            ]
+                        } as any
                     },
                     (decodedText) => {
                         onScanSuccess(decodedText);
@@ -103,18 +113,28 @@ function CameraScannerModal({ onClose, onScanSuccess }: { onClose: () => void; o
                     () => {}
                 );
 
-                // Detect zoom capability after starting
+                // Detect zoom and focus capabilities after starting and force continuous autofocus on running track
                 if (!isStopped) {
                     try {
                         const track = (html5QrCode as any).getRunningTrack();
                         if (track) {
                             const capabilities = track.getCapabilities() as any;
+                            
+                            // Explicitly force continuous autofocus if hardware track supports it
+                            if (capabilities && capabilities.focusMode && capabilities.focusMode.includes("continuous")) {
+                                track.applyConstraints({
+                                    advanced: [{ focusMode: "continuous" }]
+                                }).catch((focusErr: any) => {
+                                    console.warn("Failed to apply continuous focus mode on track:", focusErr);
+                                });
+                            }
+
                             if (capabilities && capabilities.zoom) {
                                 setMaxZoom(capabilities.zoom.max || 5);
                             }
                         }
                     } catch (e: any) {
-                        console.warn("Could not query zoom capabilities", e);
+                        console.warn("Could not query zoom/focus capabilities", e);
                     }
                 }
             } catch (err: any) {
@@ -290,7 +310,8 @@ export function InventoriesTab() {
 
     // Label print state
     const [selectMode, setSelectMode] = useState(false);
-    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [selectedItemsMap, setSelectedItemsMap] = useState<Record<string, ChemicalInventory>>({});
+    const selectedIds = useMemo(() => new Set(Object.keys(selectedItemsMap)), [selectedItemsMap]);
     const [printOpen, setPrintOpen] = useState(false);
     const [logReportOpen, setLogReportOpen] = useState(false);
     const [printA4Open, setPrintA4Open] = useState(false);
@@ -365,10 +386,16 @@ export function InventoriesTab() {
     };
 
     const toggleSelect = (id: string) => {
-        setSelectedIds((prev) => {
-            const next = new Set(prev);
-            if (next.has(id)) next.delete(id);
-            else next.add(id);
+        setSelectedItemsMap((prev) => {
+            const next = { ...prev };
+            if (id in next) {
+                delete next[id];
+            } else {
+                const item = allItems.find((inv: any) => inv.chemicalInventoryId === id);
+                if (item) {
+                    next[id] = item;
+                }
+            }
             return next;
         });
     };
@@ -376,9 +403,9 @@ export function InventoriesTab() {
     const handleLabelClick = () => {
         if (!selectMode) {
             setSelectMode(true);
-            setSelectedIds(new Set());
+            setSelectedItemsMap({});
         } else {
-            if (selectedIds.size === 0) setSelectMode(false);
+            if (Object.keys(selectedItemsMap).length === 0) setSelectMode(false);
             else setPrintOpen(true);
         }
     };
@@ -386,19 +413,19 @@ export function InventoriesTab() {
     const handleLogReportClick = () => {
         if (!selectMode) {
             setSelectMode(true);
-            setSelectedIds(new Set());
+            setSelectedItemsMap({});
         } else {
-            if (selectedIds.size === 0) setSelectMode(false);
+            if (Object.keys(selectedItemsMap).length === 0) setSelectMode(false);
             else setLogReportOpen(true);
         }
     };
 
     const exitSelectMode = () => {
         setSelectMode(false);
-        setSelectedIds(new Set());
+        setSelectedItemsMap({});
     };
 
-    const selectedItems = allItems.filter((inv: any) => selectedIds.has(inv.chemicalInventoryId));
+    const selectedItems = useMemo(() => Object.values(selectedItemsMap), [selectedItemsMap]);
 
     if (error) {
         return <div className="p-4 text-destructive bg-destructive/10 rounded-md">{(error as any).message || t("common.loadError", { defaultValue: "Không thể tải dữ liệu" })}</div>;
@@ -488,9 +515,21 @@ export function InventoriesTab() {
                                                 checked={allItems.length > 0 && allItems.every((inv: any) => selectedIds.has(inv.chemicalInventoryId))}
                                                 onChange={(e) => {
                                                     if (e.target.checked) {
-                                                        setSelectedIds(new Set(allItems.map((inv: any) => inv.chemicalInventoryId)));
+                                                        setSelectedItemsMap((prev) => {
+                                                            const next = { ...prev };
+                                                            allItems.forEach((inv: any) => {
+                                                                next[inv.chemicalInventoryId] = inv;
+                                                            });
+                                                            return next;
+                                                        });
                                                     } else {
-                                                        setSelectedIds(new Set());
+                                                        setSelectedItemsMap((prev) => {
+                                                            const next = { ...prev };
+                                                            allItems.forEach((inv: any) => {
+                                                                delete next[inv.chemicalInventoryId];
+                                                            });
+                                                            return next;
+                                                        });
                                                     }
                                                 }}
                                             />
