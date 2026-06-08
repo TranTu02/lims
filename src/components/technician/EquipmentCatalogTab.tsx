@@ -5,7 +5,6 @@ import {
     Edit, 
     Trash2, 
     Loader2, 
-    Calendar, 
     Settings, 
     Wrench,
     FileText,
@@ -47,11 +46,25 @@ export function EquipmentCatalogTab() {
     // Form state
     const [formData, setFormData] = useState<Partial<Equipment>>({
         equipmentName: "",
-        equipmentManufactuer: "",
-        equipmentModel: "",
+        stt: "",
         equipmentSpecification: "",
-        equipmentLastCalibration: "",
-        identityChargeIds: []
+        equipmentManufactuer: "",
+        receivedDate: "",
+        operatingDate: "",
+        inspectionFrequency: "",
+        calibrationFrequency: "",
+        nextCalibrationDate: "",
+        calibrationCertificateNumber: "",
+        calibrationParameters: "",
+        department: "",
+        usageLogBook: "",
+        equipmentBackground: "",
+        evaluationReport: "",
+        purposeChangeAfterCalibration: "",
+        status: "",
+        equipmentModel: "",
+        identityChargeIds: [],
+        equipmentDocumentIds: []
     });
 
     // Queries
@@ -71,14 +84,39 @@ export function EquipmentCatalogTab() {
     const updateMutation = useUpdateEquipment();
     const deleteMutation = useDeleteEquipment();
 
+    const formatDateForInput = (dateStr?: string | null) => {
+        if (!dateStr) return "";
+        try {
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return "";
+            return d.toISOString().slice(0, 10);
+        } catch {
+            return "";
+        }
+    };
+
     const handleOpenCreate = () => {
         setFormData({
             equipmentName: "",
-            equipmentManufactuer: "",
-            equipmentModel: "",
+            stt: "",
             equipmentSpecification: "",
-            equipmentLastCalibration: "",
-            identityChargeIds: []
+            equipmentManufactuer: "",
+            receivedDate: "",
+            operatingDate: "",
+            inspectionFrequency: "",
+            calibrationFrequency: "",
+            nextCalibrationDate: "",
+            calibrationCertificateNumber: "",
+            calibrationParameters: "",
+            department: "",
+            usageLogBook: "",
+            equipmentBackground: "",
+            evaluationReport: "",
+            purposeChangeAfterCalibration: "",
+            status: "",
+            equipmentModel: "",
+            identityChargeIds: [],
+            equipmentDocumentIds: []
         });
         setSelectedEquipmentId(null);
         setModalMode("create");
@@ -89,12 +127,26 @@ export function EquipmentCatalogTab() {
         setSelectedEquipmentId(eq.equipmentId);
         setFormData({
             equipmentId: eq.equipmentId,
+            stt: eq.stt ?? "",
             equipmentName: eq.equipmentName,
-            equipmentManufactuer: eq.equipmentManufactuer ?? "",
-            equipmentModel: eq.equipmentModel ?? "",
             equipmentSpecification: eq.equipmentSpecification ?? "",
-            equipmentLastCalibration: eq.equipmentLastCalibration ? new Date(eq.equipmentLastCalibration).toISOString().slice(0, 10) : "",
-            identityChargeIds: eq.identityChargeIds ?? []
+            equipmentManufactuer: eq.equipmentManufactuer ?? "",
+            receivedDate: formatDateForInput(eq.receivedDate),
+            operatingDate: formatDateForInput(eq.operatingDate),
+            inspectionFrequency: eq.inspectionFrequency ?? "",
+            calibrationFrequency: eq.calibrationFrequency ?? "",
+            nextCalibrationDate: formatDateForInput(eq.nextCalibrationDate),
+            calibrationCertificateNumber: eq.calibrationCertificateNumber ?? "",
+            calibrationParameters: eq.calibrationParameters ?? "",
+            department: eq.department ?? "",
+            usageLogBook: eq.usageLogBook ?? "",
+            equipmentBackground: eq.equipmentBackground ?? "",
+            evaluationReport: eq.evaluationReport ?? "",
+            purposeChangeAfterCalibration: eq.purposeChangeAfterCalibration ?? "",
+            status: eq.status ?? "",
+            equipmentModel: eq.equipmentModel ?? "",
+            identityChargeIds: eq.identityChargeIds ?? [],
+            equipmentDocumentIds: eq.equipmentDocumentIds ?? []
         });
         setModalMode("edit");
         setModalOpen(true);
@@ -104,12 +156,26 @@ export function EquipmentCatalogTab() {
         setSelectedEquipmentId(eq.equipmentId);
         setFormData({
             equipmentId: eq.equipmentId,
+            stt: eq.stt ?? "",
             equipmentName: eq.equipmentName,
-            equipmentManufactuer: eq.equipmentManufactuer ?? "",
-            equipmentModel: eq.equipmentModel ?? "",
             equipmentSpecification: eq.equipmentSpecification ?? "",
-            equipmentLastCalibration: eq.equipmentLastCalibration ? new Date(eq.equipmentLastCalibration).toISOString().slice(0, 10) : "",
-            identityChargeIds: eq.identityChargeIds ?? []
+            equipmentManufactuer: eq.equipmentManufactuer ?? "",
+            receivedDate: formatDateForInput(eq.receivedDate),
+            operatingDate: formatDateForInput(eq.operatingDate),
+            inspectionFrequency: eq.inspectionFrequency ?? "",
+            calibrationFrequency: eq.calibrationFrequency ?? "",
+            nextCalibrationDate: formatDateForInput(eq.nextCalibrationDate),
+            calibrationCertificateNumber: eq.calibrationCertificateNumber ?? "",
+            calibrationParameters: eq.calibrationParameters ?? "",
+            department: eq.department ?? "",
+            usageLogBook: eq.usageLogBook ?? "",
+            equipmentBackground: eq.equipmentBackground ?? "",
+            evaluationReport: eq.evaluationReport ?? "",
+            purposeChangeAfterCalibration: eq.purposeChangeAfterCalibration ?? "",
+            status: eq.status ?? "",
+            equipmentModel: eq.equipmentModel ?? "",
+            identityChargeIds: eq.identityChargeIds ?? [],
+            equipmentDocumentIds: eq.equipmentDocumentIds ?? []
         });
         setModalMode("view");
         setModalOpen(true);
@@ -135,7 +201,9 @@ export function EquipmentCatalogTab() {
 
         const payload = {
             ...formData,
-            equipmentLastCalibration: formData.equipmentLastCalibration ? new Date(formData.equipmentLastCalibration).toISOString() : null
+            receivedDate: formData.receivedDate ? new Date(formData.receivedDate).toISOString() : null,
+            operatingDate: formData.operatingDate ? new Date(formData.operatingDate).toISOString() : null,
+            nextCalibrationDate: formData.nextCalibrationDate ? new Date(formData.nextCalibrationDate).toISOString() : null
         };
 
         try {
@@ -196,8 +264,9 @@ export function EquipmentCatalogTab() {
                             <TableHead className="w-64">Tên thiết bị</TableHead>
                             <TableHead className="w-40">Hãng sản xuất</TableHead>
                             <TableHead className="w-40">Model / Dòng</TableHead>
+
                             <TableHead className="w-48">Người phụ trách</TableHead>
-                            <TableHead className="w-44">Hiệu chuẩn gần nhất</TableHead>
+                            <TableHead className="w-44">Hiệu chuẩn tiếp theo</TableHead>
                             <TableHead className="w-24 text-right">Thao tác</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -223,7 +292,7 @@ export function EquipmentCatalogTab() {
                                     <TableCell className="text-xs">{eq.equipmentModel ?? "-"}</TableCell>
                                     <TableCell className="text-xs max-w-xs truncate">{getTechNames(eq.identityChargeIds)}</TableCell>
                                     <TableCell className="text-xs">
-                                        {eq.equipmentLastCalibration ? new Date(eq.equipmentLastCalibration).toLocaleDateString("vi-VN") : "-"}
+                                        {eq.nextCalibrationDate ? new Date(eq.nextCalibrationDate).toLocaleDateString("vi-VN") : "-"}
                                     </TableCell>
                                     <TableCell className="text-right" onClick={e => e.stopPropagation()}>
                                         <div className="flex justify-end gap-1.5">
@@ -285,118 +354,289 @@ export function EquipmentCatalogTab() {
                         <div className="flex-1 overflow-y-auto p-6 min-h-0 bg-background">
                             <TabsContent value="info" className="m-0 h-full flex flex-col justify-between">
                                 <form onSubmit={handleSubmit} className="space-y-6 flex-1">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* Left col fields */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                        {/* Column 1: Basic Info & Specs */}
                                         <div className="space-y-4">
-                                            <div className="space-y-1.5">
-                                                <Label htmlFor="equipmentName" className="text-xs font-semibold">Tên thiết bị <span className="text-destructive">*</span></Label>
-                                                <Input
-                                                    id="equipmentName"
-                                                    disabled={modalMode === "view"}
-                                                    value={formData.equipmentName ?? ""}
-                                                    onChange={e => setFormData({ ...formData, equipmentName: e.target.value })}
-                                                    placeholder="Nhập tên thiết bị..."
-                                                    className="h-9 bg-background text-xs"
-                                                />
-                                            </div>
+                                            <div className="bg-muted/10 p-4 rounded-lg border border-border/50 space-y-4">
+                                                <h4 className="text-xs font-bold text-primary uppercase tracking-wider border-b border-border/80 pb-2">Thông tin chung</h4>
+                                                
+                                                <div className="grid grid-cols-3 gap-3">
+                                                    <div className="space-y-1">
+                                                        <Label htmlFor="stt" className="text-[11px] font-semibold">STT</Label>
+                                                        <Input
+                                                            id="stt"
+                                                            disabled={modalMode === "view"}
+                                                            value={formData.stt ?? ""}
+                                                            onChange={e => setFormData({ ...formData, stt: e.target.value })}
+                                                            placeholder="STT"
+                                                            className="h-8 bg-background text-xs"
+                                                        />
+                                                    </div>
+                                                    <div className="col-span-2 space-y-1">
+                                                        <Label htmlFor="status" className="text-[11px] font-semibold">Tình trạng</Label>
+                                                        <Input
+                                                            id="status"
+                                                            disabled={modalMode === "view"}
+                                                            value={formData.status ?? ""}
+                                                            onChange={e => setFormData({ ...formData, status: e.target.value })}
+                                                            placeholder="Tình trạng thiết bị..."
+                                                            className="h-8 bg-background text-xs"
+                                                        />
+                                                    </div>
+                                                </div>
 
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-1.5">
-                                                    <Label htmlFor="equipmentManufactuer" className="text-xs font-semibold">Hãng sản xuất</Label>
+                                                <div className="space-y-1">
+                                                    <Label htmlFor="equipmentName" className="text-[11px] font-semibold">Tên thiết bị <span className="text-destructive">*</span></Label>
                                                     <Input
-                                                        id="equipmentManufactuer"
+                                                        id="equipmentName"
                                                         disabled={modalMode === "view"}
-                                                        value={formData.equipmentManufactuer ?? ""}
-                                                        onChange={e => setFormData({ ...formData, equipmentManufactuer: e.target.value })}
-                                                        placeholder="Nhập hãng sản xuất..."
-                                                        className="h-9 bg-background text-xs"
+                                                        value={formData.equipmentName ?? ""}
+                                                        onChange={e => setFormData({ ...formData, equipmentName: e.target.value })}
+                                                        placeholder="Nhập tên thiết bị..."
+                                                        className="h-8 bg-background text-xs"
                                                     />
                                                 </div>
-                                                <div className="space-y-1.5">
-                                                    <Label htmlFor="equipmentModel" className="text-xs font-semibold">Model / Dòng máy</Label>
-                                                    <Input
-                                                        id="equipmentModel"
-                                                        disabled={modalMode === "view"}
-                                                        value={formData.equipmentModel ?? ""}
-                                                        onChange={e => setFormData({ ...formData, equipmentModel: e.target.value })}
-                                                        placeholder="Nhập model..."
-                                                        className="h-9 bg-background text-xs"
-                                                    />
+
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="space-y-1">
+                                                        <Label htmlFor="equipmentManufactuer" className="text-[11px] font-semibold">Hãng sản xuất</Label>
+                                                        <Input
+                                                            id="equipmentManufactuer"
+                                                            disabled={modalMode === "view"}
+                                                            value={formData.equipmentManufactuer ?? ""}
+                                                            onChange={e => setFormData({ ...formData, equipmentManufactuer: e.target.value })}
+                                                            placeholder="Nhập hãng sản xuất..."
+                                                            className="h-8 bg-background text-xs"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <Label htmlFor="equipmentModel" className="text-[11px] font-semibold">Model / Dòng máy</Label>
+                                                        <Input
+                                                            id="equipmentModel"
+                                                            disabled={modalMode === "view"}
+                                                            value={formData.equipmentModel ?? ""}
+                                                            onChange={e => setFormData({ ...formData, equipmentModel: e.target.value })}
+                                                            placeholder="Nhập model..."
+                                                            className="h-8 bg-background text-xs"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="space-y-1">
+                                                        <Label htmlFor="department" className="text-[11px] font-semibold">Bộ phận sử dụng</Label>
+                                                        <Input
+                                                            id="department"
+                                                            disabled={modalMode === "view"}
+                                                            value={formData.department ?? ""}
+                                                            onChange={e => setFormData({ ...formData, department: e.target.value })}
+                                                            placeholder="Phòng ban..."
+                                                            className="h-8 bg-background text-xs"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <Label htmlFor="usageLogBook" className="text-[11px] font-semibold">Tên sổ theo dõi</Label>
+                                                        <Input
+                                                            id="usageLogBook"
+                                                            disabled={modalMode === "view"}
+                                                            value={formData.usageLogBook ?? ""}
+                                                            onChange={e => setFormData({ ...formData, usageLogBook: e.target.value })}
+                                                            placeholder="Sổ theo dõi..."
+                                                            className="h-8 bg-background text-xs"
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
 
-                                            <div className="space-y-1.5">
-                                                <Label htmlFor="equipmentLastCalibration" className="text-xs font-semibold">Ngày hiệu chuẩn gần nhất</Label>
-                                                <div className="relative">
-                                                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                                    <Input
-                                                        id="equipmentLastCalibration"
-                                                        type="date"
+                                            <div className="bg-muted/10 p-4 rounded-lg border border-border/50 space-y-4">
+                                                <h4 className="text-xs font-bold text-primary uppercase tracking-wider border-b border-border/80 pb-2">Thông số & Lý lịch</h4>
+                                                
+                                                <div className="space-y-1">
+                                                    <Label htmlFor="equipmentSpecification" className="text-[11px] font-semibold">Thông số kỹ thuật</Label>
+                                                    <Textarea
+                                                        id="equipmentSpecification"
                                                         disabled={modalMode === "view"}
-                                                        value={formData.equipmentLastCalibration ?? ""}
-                                                        onChange={e => setFormData({ ...formData, equipmentLastCalibration: e.target.value })}
-                                                        className="pl-10 h-9 bg-background text-xs"
+                                                        value={formData.equipmentSpecification ?? ""}
+                                                        onChange={e => setFormData({ ...formData, equipmentSpecification: e.target.value })}
+                                                        placeholder="Thông số kỹ thuật chi tiết..."
+                                                        className="min-h-16 text-xs bg-background"
                                                     />
                                                 </div>
-                                            </div>
 
-                                            <div className="space-y-1.5">
-                                                <Label htmlFor="equipmentSpecification" className="text-xs font-semibold">Thông số kỹ thuật</Label>
-                                                <Textarea
-                                                    id="equipmentSpecification"
-                                                    disabled={modalMode === "view"}
-                                                    value={formData.equipmentSpecification ?? ""}
-                                                    onChange={e => setFormData({ ...formData, equipmentSpecification: e.target.value })}
-                                                    placeholder="Mô tả thông số kỹ thuật chi tiết của thiết bị..."
-                                                    className="min-h-28 text-xs bg-background"
-                                                />
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="space-y-1">
+                                                        <Label htmlFor="equipmentBackground" className="text-[11px] font-semibold">Lý lịch thiết bị</Label>
+                                                        <Input
+                                                            id="equipmentBackground"
+                                                            disabled={modalMode === "view"}
+                                                            value={formData.equipmentBackground ?? ""}
+                                                            onChange={e => setFormData({ ...formData, equipmentBackground: e.target.value })}
+                                                            placeholder="Lý lịch..."
+                                                            className="h-8 bg-background text-xs"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <Label htmlFor="evaluationReport" className="text-[11px] font-semibold">Biên bản thẩm định</Label>
+                                                        <Input
+                                                            id="evaluationReport"
+                                                            disabled={modalMode === "view"}
+                                                            value={formData.evaluationReport ?? ""}
+                                                            onChange={e => setFormData({ ...formData, evaluationReport: e.target.value })}
+                                                            placeholder="Biên bản..."
+                                                            className="h-8 bg-background text-xs"
+                                                        />
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        {/* Right col: Technicians in charge */}
-                                        <div className="flex flex-col space-y-3">
-                                            <Label className="text-xs font-semibold">Nhân sự phụ trách vận hành</Label>
-                                            
-                                            {isTechLoading ? (
-                                                <div className="flex items-center gap-2 text-xs text-muted-foreground p-3 border border-border rounded bg-muted/10 justify-center h-48">
-                                                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                                                    Đang tải danh sách nhân sự...
-                                                </div>
-                                            ) : (
-                                                <div className="flex-1 overflow-y-auto border border-border p-3 rounded-lg bg-muted/10 h-48 space-y-2">
-                                                    <p className="text-[10px] text-muted-foreground mb-2">
-                                                        Chọn những nhân viên phụ trách chính để vận hành thiết bị này:
-                                                    </p>
-                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                                        {technicians?.map(tech => {
-                                                            const isChecked = formData.identityChargeIds?.includes(tech.identityId) ?? false;
-                                                            return (
-                                                                <label 
-                                                                    key={tech.identityId} 
-                                                                    className={`flex items-center gap-2 p-2 rounded border cursor-pointer select-none transition-all ${
-                                                                        isChecked 
-                                                                            ? "bg-primary/5 border-primary/30" 
-                                                                            : "border-border/60 hover:bg-card bg-background"
-                                                                    }`}
-                                                                >
-                                                                    <Checkbox
-                                                                        disabled={modalMode === "view"}
-                                                                        checked={isChecked}
-                                                                        onCheckedChange={(checked) => {
-                                                                            const current = formData.identityChargeIds || [];
-                                                                            const next = checked 
-                                                                                ? [...current, tech.identityId]
-                                                                                : current.filter(id => id !== tech.identityId);
-                                                                            setFormData({ ...formData, identityChargeIds: next });
-                                                                        }}
-                                                                    />
-                                                                    <span className="text-xs font-medium truncate">{tech.identityName}</span>
-                                                                </label>
-                                                            );
-                                                        })}
+                                        {/* Column 2: Operation, Calibration & Staffs */}
+                                        <div className="space-y-4">
+                                            <div className="bg-muted/10 p-4 rounded-lg border border-border/50 space-y-4">
+                                                <h4 className="text-xs font-bold text-primary uppercase tracking-wider border-b border-border/80 pb-2">Vận hành & Hiệu chuẩn</h4>
+
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="space-y-1">
+                                                        <Label htmlFor="receivedDate" className="text-[11px] font-semibold">Ngày nhận</Label>
+                                                        <Input
+                                                            id="receivedDate"
+                                                            type="date"
+                                                            disabled={modalMode === "view"}
+                                                            value={formData.receivedDate ?? ""}
+                                                            onChange={e => setFormData({ ...formData, receivedDate: e.target.value })}
+                                                            className="h-8 bg-background text-xs"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <Label htmlFor="operatingDate" className="text-[11px] font-semibold">Ngày đưa vào vận hành</Label>
+                                                        <Input
+                                                            id="operatingDate"
+                                                            type="date"
+                                                            disabled={modalMode === "view"}
+                                                            value={formData.operatingDate ?? ""}
+                                                            onChange={e => setFormData({ ...formData, operatingDate: e.target.value })}
+                                                            className="h-8 bg-background text-xs"
+                                                        />
                                                     </div>
                                                 </div>
-                                            )}
+
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="space-y-1">
+                                                        <Label htmlFor="inspectionFrequency" className="text-[11px] font-semibold">Tần suất kiểm định</Label>
+                                                        <Input
+                                                            id="inspectionFrequency"
+                                                            disabled={modalMode === "view"}
+                                                            value={formData.inspectionFrequency ?? ""}
+                                                            onChange={e => setFormData({ ...formData, inspectionFrequency: e.target.value })}
+                                                            placeholder="Tần suất..."
+                                                            className="h-8 bg-background text-xs"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <Label htmlFor="calibrationFrequency" className="text-[11px] font-semibold">Tần suất hiệu chuẩn</Label>
+                                                        <Input
+                                                            id="calibrationFrequency"
+                                                            disabled={modalMode === "view"}
+                                                            value={formData.calibrationFrequency ?? ""}
+                                                            onChange={e => setFormData({ ...formData, calibrationFrequency: e.target.value })}
+                                                            placeholder="Tần suất..."
+                                                            className="h-8 bg-background text-xs"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="space-y-1">
+                                                        <Label htmlFor="nextCalibrationDate" className="text-[11px] font-semibold">Ngày hiệu chuẩn tiếp theo</Label>
+                                                        <Input
+                                                            id="nextCalibrationDate"
+                                                            type="date"
+                                                            disabled={modalMode === "view"}
+                                                            value={formData.nextCalibrationDate ?? ""}
+                                                            onChange={e => setFormData({ ...formData, nextCalibrationDate: e.target.value })}
+                                                            className="h-8 bg-background text-xs"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <Label htmlFor="calibrationCertificateNumber" className="text-[11px] font-semibold">Số chứng nhận hiệu chuẩn</Label>
+                                                        <Input
+                                                            id="calibrationCertificateNumber"
+                                                            disabled={modalMode === "view"}
+                                                            value={formData.calibrationCertificateNumber ?? ""}
+                                                            onChange={e => setFormData({ ...formData, calibrationCertificateNumber: e.target.value })}
+                                                            placeholder="Số chứng nhận..."
+                                                            className="h-8 bg-background text-xs"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="space-y-1">
+                                                        <Label htmlFor="calibrationParameters" className="text-[11px] font-semibold">Chỉ tiêu hiệu chuẩn</Label>
+                                                        <Input
+                                                            id="calibrationParameters"
+                                                            disabled={modalMode === "view"}
+                                                            value={formData.calibrationParameters ?? ""}
+                                                            onChange={e => setFormData({ ...formData, calibrationParameters: e.target.value })}
+                                                            placeholder="Chỉ tiêu..."
+                                                            className="h-8 bg-background text-xs"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <Label htmlFor="purposeChangeAfterCalibration" className="text-[11px] font-semibold">Thay đổi mục đích sau hiệu chuẩn</Label>
+                                                        <Input
+                                                            id="purposeChangeAfterCalibration"
+                                                            disabled={modalMode === "view"}
+                                                            value={formData.purposeChangeAfterCalibration ?? ""}
+                                                            onChange={e => setFormData({ ...formData, purposeChangeAfterCalibration: e.target.value })}
+                                                            placeholder="Thay đổi mục đích..."
+                                                            className="h-8 bg-background text-xs"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-muted/10 p-4 rounded-lg border border-border/50 flex flex-col space-y-3">
+                                                <h4 className="text-xs font-bold text-primary uppercase tracking-wider border-b border-border/80 pb-1.5">Nhân sự phụ trách vận hành</h4>
+                                                
+                                                {isTechLoading ? (
+                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground p-3 border border-border rounded bg-muted/10 justify-center h-28">
+                                                        <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                                                        Đang tải danh sách nhân sự...
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex-1 overflow-y-auto border border-border p-3 rounded bg-muted/10 h-28 space-y-2">
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                            {technicians?.map(tech => {
+                                                                const isChecked = formData.identityChargeIds?.includes(tech.identityId) ?? false;
+                                                                return (
+                                                                    <label 
+                                                                        key={tech.identityId} 
+                                                                        className={`flex items-center gap-2 p-1.5 rounded border cursor-pointer select-none transition-all ${
+                                                                            isChecked 
+                                                                                ? "bg-primary/5 border-primary/30" 
+                                                                                : "border-border/60 hover:bg-card bg-background"
+                                                                        }`}
+                                                                    >
+                                                                        <Checkbox
+                                                                            disabled={modalMode === "view"}
+                                                                            checked={isChecked}
+                                                                            onCheckedChange={(checked) => {
+                                                                                const current = formData.identityChargeIds || [];
+                                                                                const next = checked 
+                                                                                    ? [...current, tech.identityId]
+                                                                                    : current.filter(id => id !== tech.identityId);
+                                                                                setFormData({ ...formData, identityChargeIds: next });
+                                                                            }}
+                                                                        />
+                                                                        <span className="text-xs font-medium truncate">{tech.identityName}</span>
+                                                                    </label>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
 

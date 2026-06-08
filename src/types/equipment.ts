@@ -1,10 +1,23 @@
 export interface Equipment {
     equipmentId: string;
+    stt?: string | null;
     equipmentName: string;
-    equipmentManufactuer?: string | null;
-    equipmentModel?: string | null;
     equipmentSpecification?: string | null;
-    equipmentLastCalibration?: string | null;
+    equipmentManufactuer?: string | null;
+    receivedDate?: string | null;
+    operatingDate?: string | null;
+    inspectionFrequency?: string | null;
+    calibrationFrequency?: string | null;
+    nextCalibrationDate?: string | null;
+    calibrationCertificateNumber?: string | null;
+    calibrationParameters?: string | null;
+    department?: string | null;
+    usageLogBook?: string | null;
+    equipmentBackground?: string | null;
+    evaluationReport?: string | null;
+    purposeChangeAfterCalibration?: string | null;
+    status?: string | null;
+    equipmentModel?: string | null;
     equipmentDocumentIds?: string[] | null;
     identityChargeIds?: string[] | null;
     createdAt?: string;
@@ -39,4 +52,6 @@ export interface TechnicianOption {
     identityId: string;
     identityName: string;
     identityRoles: string[];
+    email?: string;
 }
+

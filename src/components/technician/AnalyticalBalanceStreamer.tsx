@@ -26,14 +26,59 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { useQrScanner } from "@/hooks/useQrScanner";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAnalyticaBalances, useCreateEquipmentLog, useEquipmentLogsList } from "@/api/equipments";
+import { useAnalyticaBalances, useCreateEquipmentLog, useEquipmentLogsList, useEquipmentTechnicians } from "@/api/equipments";
 import api from "@/api/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Pagination } from "@/components/ui/pagination";
 
 export function AnalyticalBalanceStreamer() {
     const { t } = useTranslation();
-    const { user } = useAuth();
+    const { user, login } = useAuth();
+
+    // Change operator states
+    const { data: technicians = [] } = useEquipmentTechnicians();
+    const [showChangeOperatorModal, setShowChangeOperatorModal] = useState(false);
+    const [selectedOperatorId, setSelectedOperatorId] = useState<string>("");
+    const [selectedOperatorEmail, setSelectedOperatorEmail] = useState<string>("");
+    const [operatorPassword, setOperatorPassword] = useState<string>("");
+    const [isLoggingIn, setIsLoggingIn] = useState(false);
+    const [loginError, setLoginError] = useState("");
+
+    const handleSelectOperator = (techId: string) => {
+        setSelectedOperatorId(techId);
+        const tech = technicians.find(t => t.identityId === techId);
+        if (tech) {
+            setSelectedOperatorEmail(tech.email || tech.identityId);
+        }
+    };
+
+    const handleOperatorLoginSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoginError("");
+        if (!selectedOperatorEmail) {
+            setLoginError("Vui lòng chọn kỹ thuật viên hoặc nhập email/tên đăng nhập");
+            return;
+        }
+        if (!operatorPassword) {
+            setLoginError("Vui lòng nhập mật khẩu");
+            return;
+        }
+        setIsLoggingIn(true);
+        try {
+            const success = await login(selectedOperatorEmail, operatorPassword);
+            if (success) {
+                toast.success("Chuyển đổi người thực hiện thành công!");
+                setShowChangeOperatorModal(false);
+                setOperatorPassword("");
+            } else {
+                setLoginError("Mật khẩu không chính xác hoặc tài khoản không hợp lệ.");
+            }
+        } catch (err: any) {
+            setLoginError(err?.message || "Đăng nhập thất bại.");
+        } finally {
+            setIsLoggingIn(false);
+        }
+    };
 
     const formatActionTime = (isoString?: string) => {
         if (!isoString) return "-";
@@ -152,9 +197,10 @@ export function AnalyticalBalanceStreamer() {
                 const rowsHtml = logsList.map((log, index) => {
                     const rowSTT = (historyPage - 1) * historyItemsPerPage + index + 1;
                     const dataObj = log.equipmentLogData || {};
+
                     const opId = dataObj.identityId || log.createdById || "-";
                     const opName = dataObj.identityName || "-";
-                    const smpId = dataObj.sampleId || log.commonKeys?.[0] || "-";
+                    const smpId = dataObj.commonKeys || dataObj.sampleId || log.commonKeys?.[0] || "-";
                     const rawData = dataObj.raw || "-";
                     const valStr = dataObj.value !== undefined && dataObj.value !== null ? dataObj.value : "-";
                     const unitStr = dataObj.unit || "-";
@@ -240,7 +286,8 @@ export function AnalyticalBalanceStreamer() {
                                 <th style="width: 140px;">Thời gian</th>
                                 <th style="width: 80px;">Mã NV</th>
                                 <th style="width: 110px;">Họ tên</th>
-                                <th style="width: 90px;">Mã mẫu</th>
+                                <th style="width: 90px;">Mã vật cân</th>
+
                                 <th style="width: 100px;">Dữ liệu gốc</th>
                                 <th style="width: 70px;">Giá trị</th>
                                 <th style="width: 50px;">Đơn vị</th>
@@ -301,14 +348,14 @@ export function AnalyticalBalanceStreamer() {
                 createLogMutation.mutate({
                     equipmentId: selectedEquipmentId,
                     equipmentLogType: "Usage",
-                    equipmentLogDescription: `Số liệu cân trực tiếp: ${latestReading.value !== null ? latestReading.value.toFixed(4) : "-"} ${latestReading.unit} (Mẫu: ${sampleIdVal || "Không có"})`,
+                    equipmentLogDescription: `Số liệu cân trực tiếp: ${latestReading.value !== null ? latestReading.value.toFixed(4) : "-"} ${latestReading.unit} (Vật cân: ${sampleIdVal || "Không có"})`,
                     equipmentLogLocation: "Phòng thí nghiệm",
                     commonKeys: sampleIdVal ? [sampleIdVal] : [],
                     equipmentLogData: {
                         raw: latestReading.raw,
                         value: latestReading.value,
                         unit: latestReading.unit,
-                        sampleId: sampleIdVal,
+                        commonKeys: sampleIdVal,
                         identityId: latestReading.identityId || user?.identityId,
                         identityName: latestReading.identityName || user?.identityName,
                         isStable: latestReading.isStable
@@ -321,10 +368,8 @@ export function AnalyticalBalanceStreamer() {
 
     // Auto capture QR/Barcode scanner globally when the tab is active
     useQrScanner((scannedValue) => {
-        if (scannedValue.toUpperCase().startsWith("SP")) {
-            setActiveSampleId(scannedValue);
-            toast.success(`Đã nhận mã mẫu từ máy quét: ${scannedValue}`);
-        }
+        setActiveSampleId(scannedValue);
+        toast.success(`Đã nhận mã vật cân từ máy quét: ${scannedValue}`);
     }, { enabled: true });
 
     const handleExportCSV = async () => {
@@ -332,7 +377,6 @@ export function AnalyticalBalanceStreamer() {
             toast.error(t("common.noData", { defaultValue: "Không có dữ liệu để xuất" }));
             return;
         }
-
         try {
             // Build CSV rows
             const headers = [
@@ -340,7 +384,7 @@ export function AnalyticalBalanceStreamer() {
                 "Thời gian",
                 "Mã Nhân viên",
                 "Họ tên",
-                "Mã mẫu",
+                "Mã vật cân",
                 "Dữ liệu gốc",
                 "Giá trị",
                 "Đơn vị",
@@ -377,14 +421,14 @@ export function AnalyticalBalanceStreamer() {
                             await createLogMutation.mutateAsync({
                                 equipmentId: selectedEquipmentId,
                                 equipmentLogType: "Usage",
-                                equipmentLogDescription: `Xuất số liệu cân: ${r.value !== null ? r.value.toFixed(4) : "-"} ${r.unit} (Mẫu: ${r.sampleId || "Không có"})`,
+                                equipmentLogDescription: `Xuất số liệu cân: ${r.value !== null ? r.value.toFixed(4) : "-"} ${r.unit} (Vật cân: ${r.sampleId || "Không có"})`,
                                 equipmentLogLocation: "Phòng thí nghiệm",
                                 commonKeys: r.sampleId ? [r.sampleId] : [],
                                 equipmentLogData: {
                                     raw: r.raw,
                                     value: r.value,
                                     unit: r.unit,
-                                    sampleId: r.sampleId,
+                                    commonKeys: r.sampleId,
                                     identityId: r.identityId || user?.identityId,
                                     identityName: r.identityName || user?.identityName,
                                     isStable: r.isStable
@@ -550,21 +594,20 @@ export function AnalyticalBalanceStreamer() {
                         </Button>
                     </div>
                 </div>
-
                 {/* Barcode Scanner Input */}
                 <div className="bg-card border border-border rounded-xl p-5 flex flex-col gap-3.5 shadow-sm">
                     <div className="flex items-center gap-2 border-b border-border pb-2.5">
                         <QrCode className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                        <h3 className="font-semibold text-sm text-foreground">Đầu đọc Mã mẫu (Barcode)</h3>
+                        <h3 className="font-semibold text-sm text-foreground">Đầu đọc Barcode</h3>
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="barcodeInput" className="text-xs text-muted-foreground">
-                            Quét mã vạch mẫu (khi ở Tab này) hoặc nhập thủ công:
+                            Quét barcode vật cân (mẫu/hóa chất) hoặc nhập thủ công:
                         </Label>
                         <div className="relative">
                             <Input
                                 id="barcodeInput"
-                                placeholder="Nhập/Quét mã mẫu ở đây..."
+                                placeholder="Nhập/Quét mã vật cân (commonKeys)..."
                                 value={activeSampleId}
                                 onChange={(e) => setActiveSampleId(e.target.value)}
                                 className="pr-10 h-9 text-xs bg-background"
@@ -585,7 +628,7 @@ export function AnalyticalBalanceStreamer() {
                             </div>
                         </div>
                         <p className="text-[10px] text-muted-foreground">
-                            Dữ liệu cân từ serial sẽ tự động gắn với mã mẫu đang hiển thị.
+                            Dữ liệu cân từ serial sẽ tự động gắn với mã vật cân đang hiển thị.
                         </p>
                     </div>
                 </div>
@@ -629,13 +672,30 @@ export function AnalyticalBalanceStreamer() {
 
                     {/* Active Operator */}
                     <div className="bg-muted/45 p-3 rounded-lg border border-border/60 text-xs space-y-1">
-                        <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Người vận hành thiết bị</span>
+                        <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Người vận hành thiết bị</span>
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-5 px-1.5 text-[10px] text-primary hover:text-primary-foreground hover:bg-primary"
+                                onClick={() => {
+                                    if (user) {
+                                        setSelectedOperatorId(user.identityId);
+                                        setSelectedOperatorEmail(user.email || user.identityId);
+                                    }
+                                    setOperatorPassword("");
+                                    setLoginError("");
+                                    setShowChangeOperatorModal(true);
+                                }}
+                            >
+                                Đổi người
+                            </Button>
+                        </div>
                         <div className="flex justify-between items-center mt-1">
                             <span className="font-bold text-foreground">{user?.identityName ?? "N/A"}</span>
                             <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded border border-border font-mono text-muted-foreground">{user?.identityId ?? "N/A"}</span>
                         </div>
                     </div>
-
                 </div>
             </div>
 
@@ -643,20 +703,45 @@ export function AnalyticalBalanceStreamer() {
             <div className="flex-1 min-w-0 bg-card border border-border rounded-xl shadow-sm flex flex-col overflow-hidden max-h-full">
                 {/* Sheet Tool Bar */}
                 <div className="p-3 border-b border-border bg-muted/20 flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-2">
-                        <div className="p-1 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 rounded">
-                            <FileSpreadsheet className="w-4 h-4" />
+                    <div className="flex items-center gap-4 flex-wrap">
+                        <div className="flex items-center gap-2">
+                            <div className="p-1 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 rounded">
+                                <FileSpreadsheet className="w-4 h-4" />
+                            </div>
+                            <span className="font-semibold text-xs text-foreground tracking-wide">
+                                {String(t("technician.workspace.balance.liveStream", { defaultValue: "Bảng dữ liệu Excel Data Streamer" }))}
+                            </span>
+                            <span className="text-[10px] bg-muted border border-border/80 text-muted-foreground px-2 py-0.5 rounded font-mono font-semibold">
+                                ROWS: {readingsList.length}
+                            </span>
                         </div>
-                        <span className="font-semibold text-xs text-foreground tracking-wide">
-                            {String(t("technician.workspace.balance.liveStream", { defaultValue: "Bảng dữ liệu Excel Data Streamer" }))}
-                        </span>
-                        <span className="text-[10px] bg-muted border border-border/80 text-muted-foreground px-2 py-0.5 rounded font-mono font-semibold">
-                            ROWS: {readingsList.length}
-                        </span>
+
+                        {/* Active Operator display in header of data streaming section */}
+                        <div className="flex items-center gap-2 text-xs border-l border-border pl-4">
+                            <span className="text-muted-foreground text-[10px] uppercase font-semibold">Người vận hành:</span>
+                            <span className="font-bold text-foreground">{user?.identityName ?? "N/A"}</span>
+                            <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded border border-border font-mono text-muted-foreground">{user?.identityId ?? "N/A"}</span>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-6 px-2 text-[10px] text-primary border-primary/20 hover:bg-primary hover:text-white"
+                                onClick={() => {
+                                    if (user) {
+                                        setSelectedOperatorId(user.identityId);
+                                        setSelectedOperatorEmail(user.email || user.identityId);
+                                    }
+                                    setOperatorPassword("");
+                                    setLoginError("");
+                                    setShowChangeOperatorModal(true);
+                                }}
+                            >
+                                Đổi người
+                            </Button>
+                        </div>
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <Button 
+                        <Button
                             variant="outline" 
                             size="sm" 
                             onClick={() => setShowHistoryModal(true)} 
@@ -700,7 +785,7 @@ export function AnalyticalBalanceStreamer() {
                                 <th className="w-[120px] border-r border-b border-border h-6 text-muted-foreground leading-6 font-medium">A (TIME)</th>
                                 <th className="w-[110px] border-r border-b border-border h-6 text-muted-foreground leading-6 font-medium">B (MÃ NV)</th>
                                 <th className="w-[135px] border-r border-b border-border h-6 text-muted-foreground leading-6 font-medium">C (HỌ TÊN)</th>
-                                <th className="w-[130px] border-r border-b border-border h-6 text-muted-foreground leading-6 font-medium">D (SAMPLE ID)</th>
+                                <th className="w-[130px] border-r border-b border-border h-6 text-muted-foreground leading-6 font-medium">D (MÃ VẬT CÂN)</th>
                                 <th className="w-[170px] border-r border-b border-border h-6 text-muted-foreground leading-6 font-medium">E (RAW DATA)</th>
                                 <th className="w-[100px] border-r border-b border-border h-6 text-muted-foreground leading-6 font-medium">F (VALUE)</th>
                                 <th className="w-[60px] border-r border-b border-border h-6 text-muted-foreground leading-6 font-medium">G (UNIT)</th>
@@ -897,9 +982,10 @@ export function AnalyticalBalanceStreamer() {
                                     <tr>
                                         <th className="px-3 w-12 text-center">STT</th>
                                         {renderHistorySortableHeader("Thời gian", "actionTime", "w-40")}
+
                                         <th className="px-3 w-28">Mã NV</th>
                                         <th className="px-3 w-36">Họ tên</th>
-                                        <th className="px-3 w-28">Mã mẫu</th>
+                                        <th className="px-3 w-28">Mã vật cân</th>
                                         <th className="px-3 w-32">Dữ liệu gốc</th>
                                         <th className="px-3 w-24 text-right">Giá trị</th>
                                         <th className="px-3 w-16 text-center">Đơn vị</th>
@@ -925,7 +1011,7 @@ export function AnalyticalBalanceStreamer() {
                                             const dataObj = log.equipmentLogData || {};
                                             const opId = dataObj.identityId || log.createdById || "-";
                                             const opName = dataObj.identityName || "-";
-                                            const smpId = dataObj.sampleId || log.commonKeys?.[0] || "-";
+                                            const smpId = dataObj.commonKeys || dataObj.sampleId || log.commonKeys?.[0] || "-";
                                             const rawData = dataObj.raw || "-";
                                             const valueData = dataObj.value !== undefined && dataObj.value !== null ? dataObj.value : "-";
                                             const unitData = dataObj.unit || "-";
@@ -976,6 +1062,106 @@ export function AnalyticalBalanceStreamer() {
                             />
                         </div>
                     )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Change Operator Modal */}
+            <Dialog open={showChangeOperatorModal} onOpenChange={setShowChangeOperatorModal}>
+                <DialogContent className="sm:max-w-md bg-card border-border text-foreground">
+                    <DialogHeader>
+                        <DialogTitle className="text-lg font-bold flex items-center gap-2">
+                            <Scale className="w-5 h-5 text-emerald-600 dark:text-emerald-400 animate-pulse" />
+                            Đổi người thực hiện
+                        </DialogTitle>
+                    </DialogHeader>
+                    
+                    <form onSubmit={handleOperatorLoginSubmit} className="space-y-4 pt-2">
+                        {/* Technician Dropdown Selection */}
+                        <div className="space-y-2">
+                            <Label htmlFor="operatorSelect" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                Chọn Kỹ thuật viên
+                            </Label>
+                            <Select
+                                value={selectedOperatorId}
+                                onValueChange={handleSelectOperator}
+                            >
+                                <SelectTrigger id="operatorSelect" className="h-9 w-full bg-background border-border text-xs">
+                                    <SelectValue placeholder="Chọn kỹ thuật viên..." />
+                                </SelectTrigger>
+                                <SelectContent className="z-[9999]">
+                                    {technicians.length === 0 ? (
+                                        <SelectItem value="none" disabled>
+                                            Không có danh sách kỹ thuật viên
+                                        </SelectItem>
+                                    ) : (
+                                        technicians.map((t) => (
+                                            <SelectItem key={t.identityId} value={t.identityId}>
+                                                {t.identityName} ({t.identityId})
+                                            </SelectItem>
+                                        ))
+                                    )}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Email/Username input */}
+                        <div className="space-y-2">
+                            <Label htmlFor="operatorEmail" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                Email / Tên đăng nhập
+                            </Label>
+                            <Input
+                                id="operatorEmail"
+                                type="text"
+                                placeholder="Nhập email đăng nhập..."
+                                value={selectedOperatorEmail}
+                                onChange={(e) => setSelectedOperatorEmail(e.target.value)}
+                                className="h-9 text-xs bg-background"
+                            />
+                        </div>
+
+                        {/* Password input */}
+                        <div className="space-y-2">
+                            <Label htmlFor="operatorPassword" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                Mật khẩu xác nhận
+                            </Label>
+                            <Input
+                                id="operatorPassword"
+                                type="password"
+                                placeholder="••••••••"
+                                value={operatorPassword}
+                                onChange={(e) => setOperatorPassword(e.target.value)}
+                                className="h-9 text-xs bg-background"
+                                disabled={isLoggingIn}
+                            />
+                        </div>
+
+                        {loginError && (
+                            <div className="bg-destructive/10 border border-destructive/20 text-destructive px-3 py-2 rounded text-xs">
+                                {loginError}
+                            </div>
+                        )}
+
+                        <div className="flex justify-end gap-2 pt-2">
+                            <Button 
+                                type="button" 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-xs h-9" 
+                                onClick={() => setShowChangeOperatorModal(false)}
+                                disabled={isLoggingIn}
+                            >
+                                Hủy bỏ
+                            </Button>
+                            <Button 
+                                type="submit" 
+                                size="sm" 
+                                className="text-xs h-9 bg-primary text-primary-foreground hover:bg-primary/90"
+                                disabled={isLoggingIn}
+                            >
+                                {isLoggingIn ? "Đang xác thực..." : "Xác nhận đăng nhập"}
+                            </Button>
+                        </div>
+                    </form>
                 </DialogContent>
             </Dialog>
         </div>

@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Printer, CheckSquare, FileText, Scan, X } from "lucide-react";
+import { Plus, Search, Printer, CheckSquare, FileText, Scan, X, ZoomIn, ZoomOut } from "lucide-react";
 import { useChemicalInventoriesList, useEnumList, chemicalApi } from "@/api/chemical";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ChemicalInventory } from "@/types/chemical";
@@ -20,6 +20,40 @@ import { Html5Qrcode } from "html5-qrcode";
 function CameraScannerModal({ onClose, onScanSuccess }: { onClose: () => void; onScanSuccess: (text: string) => void }) {
     const qrRegionRef = useRef<HTMLDivElement>(null);
     const html5QrcodeRef = useRef<Html5Qrcode | null>(null);
+    const [zoom, setZoom] = useState(1);
+    const [maxZoom, setMaxZoom] = useState(5);
+
+    const applyZoom = useCallback((zoomValue: number) => {
+        const html5QrCode = html5QrcodeRef.current;
+        if (!html5QrCode || !html5QrCode.isScanning) return;
+        
+        try {
+            const track = (html5QrCode as any).getRunningTrack();
+            if (track) {
+                const capabilities = track.getCapabilities() as any;
+                if (capabilities && capabilities.zoom) {
+                    html5QrCode.applyVideoConstraints({
+                        advanced: [{ zoom: zoomValue }]
+                    } as any).catch(err => {
+                        console.warn("Failed to apply video constraints, trying track constraints:", err);
+                        track.applyConstraints({ advanced: [{ zoom: zoomValue }] }).catch((e: any) => {
+                            console.warn("track.applyConstraints failed:", e);
+                        });
+                    });
+                }
+            }
+        } catch (e: any) {
+            console.warn("Hardware zoom error, using CSS zoom fallback:", e);
+        }
+
+        // Apply CSS zoom to video elements as fallback/supplement
+        const videoEl = qrRegionRef.current?.querySelector("video");
+        if (videoEl) {
+            videoEl.style.transform = `scale(${zoomValue})`;
+            videoEl.style.transformOrigin = "center center";
+            videoEl.style.transition = "transform 0.1s ease-out";
+        }
+    }, []);
 
     useEffect(() => {
         const qrId = "camera-qr-reader";
@@ -33,14 +67,33 @@ function CameraScannerModal({ onClose, onScanSuccess }: { onClose: () => void; o
                 const html5QrCode = new Html5Qrcode(qrId);
                 html5QrcodeRef.current = html5QrCode;
 
+                // Query all camera devices for explicit rear camera selection on mobile devices
+                let cameraIdOrConfig: any = { facingMode: "environment" };
+                try {
+                    const devices = await Html5Qrcode.getCameras();
+                    if (devices && devices.length > 0) {
+                        const backCamera = devices.find(device => 
+                            device.label.toLowerCase().includes("back") || 
+                            device.label.toLowerCase().includes("rear") || 
+                            device.label.toLowerCase().includes("environment") ||
+                            device.label.toLowerCase().includes("sau")
+                        );
+                        if (backCamera) {
+                            cameraIdOrConfig = backCamera.id;
+                        } else {
+                            // Usually the last camera in the list is the main rear camera
+                            cameraIdOrConfig = devices[devices.length - 1].id;
+                        }
+                    }
+                } catch (cameraErr) {
+                    console.warn("Failed to get cameras list, falling back to facingMode constraint:", cameraErr);
+                }
+
                 await html5QrCode.start(
-                    { facingMode: "environment" },
+                    cameraIdOrConfig,
                     {
                         fps: 10,
-                        qrbox: (width, height) => {
-                            const size = Math.min(width, height) * 0.7;
-                            return { width: size, height: size };
-                        },
+                        qrbox: { width: 180, height: 180 }
                     },
                     (decodedText) => {
                         onScanSuccess(decodedText);
@@ -49,7 +102,22 @@ function CameraScannerModal({ onClose, onScanSuccess }: { onClose: () => void; o
                     },
                     () => {}
                 );
-            } catch (err) {
+
+                // Detect zoom capability after starting
+                if (!isStopped) {
+                    try {
+                        const track = (html5QrCode as any).getRunningTrack();
+                        if (track) {
+                            const capabilities = track.getCapabilities() as any;
+                            if (capabilities && capabilities.zoom) {
+                                setMaxZoom(capabilities.zoom.max || 5);
+                            }
+                        }
+                    } catch (e: any) {
+                        console.warn("Could not query zoom capabilities", e);
+                    }
+                }
+            } catch (err: any) {
                 console.error("Camera scan start error:", err);
             }
         };
@@ -59,7 +127,7 @@ function CameraScannerModal({ onClose, onScanSuccess }: { onClose: () => void; o
             if (html5QrcodeRef.current && html5QrcodeRef.current.isScanning) {
                 try {
                     await html5QrcodeRef.current.stop();
-                } catch (e) {
+                } catch (e: any) {
                     console.error("Failed to stop html5-qrcode scanner:", e);
                 }
             }
@@ -73,21 +141,98 @@ function CameraScannerModal({ onClose, onScanSuccess }: { onClose: () => void; o
     }, [onClose, onScanSuccess]);
 
     return (
-        <div className="fixed inset-0 z-[100] bg-black flex flex-col justify-between p-4">
-            <div className="flex items-center justify-between text-white pb-4 shrink-0">
-                <h3 className="text-sm font-semibold">Quét mã QR hóa chất</h3>
+        <div className="fixed inset-0 z-[100] bg-zinc-950 flex flex-col justify-between p-4 safe-area-inset pb-safe">
+            <style>{`
+                @keyframes scan-glow {
+                    0%, 100% { top: 5%; }
+                    50% { top: 95%; }
+                }
+                .safe-area-inset {
+                    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+                }
+                #camera-qr-reader {
+                    width: 100% !important;
+                    height: 100% !important;
+                }
+                #camera-qr-reader video {
+                    width: 100% !important;
+                    height: 100% !important;
+                    object-fit: cover !important;
+                }
+            `}</style>
+            
+            <div className="flex items-center justify-between text-white pb-3 shrink-0">
+                <div className="flex flex-col">
+                    <h3 className="text-sm font-semibold">Quét mã QR hóa chất</h3>
+                    <p className="text-[10px] text-zinc-400">Đặt mã QR vào khung chính giữa</p>
+                </div>
                 <button type="button" onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-                    <X className="h-6 w-6 text-white" />
+                    <X className="h-5 w-5 text-white" />
                 </button>
             </div>
             
-            <div className="flex-1 flex items-center justify-center relative overflow-hidden rounded-lg bg-zinc-950 border border-zinc-800">
-                <div id="camera-qr-reader" className="w-full h-full" ref={qrRegionRef} />
-                <div className="absolute inset-0 border-[3px] border-dashed border-primary/40 pointer-events-none rounded-lg" style={{ margin: "20%" }} />
+            <div className="flex-1 flex items-center justify-center relative overflow-hidden rounded-2xl bg-black border border-zinc-800">
+                <div id="camera-qr-reader" className="w-full h-full [&_video]:object-cover" ref={qrRegionRef} />
+                
+                {/* Modern HUD Scanning UI with Smaller Range */}
+                <div className="absolute inset-0 pointer-events-none flex flex-col justify-between">
+                    <div className="bg-black/75 flex-1" />
+                    <div className="flex shrink-0">
+                        <div className="bg-black/75 flex-1" />
+                        <div className="w-[180px] h-[180px] relative border border-white/10 shrink-0">
+                            {/* Neon Corner Brackets */}
+                            <div className="absolute -top-[1.5px] -left-[1.5px] w-6 h-6 border-t-[3px] border-l-[3px] border-emerald-500 rounded-tl-md" />
+                            <div className="absolute -top-[1.5px] -right-[1.5px] w-6 h-6 border-t-[3px] border-r-[3px] border-emerald-500 rounded-tr-md" />
+                            <div className="absolute -bottom-[1.5px] -left-[1.5px] w-6 h-6 border-b-[3px] border-l-[3px] border-emerald-500 rounded-bl-md" />
+                            <div className="absolute -bottom-[1.5px] -right-[1.5px] w-6 h-6 border-b-[3px] border-r-[3px] border-emerald-500 rounded-br-md" />
+                            
+                            {/* Pulse Laser Scan Line */}
+                            <div className="absolute left-1.5 right-1.5 h-[2px] bg-emerald-400 opacity-90 shadow-[0_0_10px_#34d399] animate-[scan-glow_2.5s_ease-in-out_infinite]" />
+                        </div>
+                        <div className="bg-black/75 flex-1" />
+                    </div>
+                    <div className="bg-black/75 flex-1" />
+                </div>
             </div>
 
-            <div className="pt-4 text-center text-xs text-muted-foreground shrink-0">
-                Hướng camera mặt sau về phía mã QR để quét tự động
+            {/* Slider zoom and helper text */}
+            <div className="mt-4 flex flex-col gap-3 shrink-0">
+                {/* Zoom Controller */}
+                <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl px-4 py-3 space-y-2">
+                    <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-zinc-400 font-medium">Độ phóng đại camera</span>
+                        <span className="font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-md">{zoom.toFixed(1)}x</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <ZoomOut className="h-4 w-4 text-zinc-500 cursor-pointer hover:text-white" onClick={() => {
+                            const val = Math.max(1, zoom - 0.5);
+                            setZoom(val);
+                            applyZoom(val);
+                        }} />
+                        <input
+                            type="range"
+                            min="1"
+                            max={maxZoom}
+                            step="0.1"
+                            value={zoom}
+                            onChange={(e) => {
+                                const val = parseFloat(e.target.value);
+                                setZoom(val);
+                                applyZoom(val);
+                            }}
+                            className="flex-1 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-emerald-500 focus:outline-none"
+                        />
+                        <ZoomIn className="h-4 w-4 text-zinc-500 cursor-pointer hover:text-white" onClick={() => {
+                            const val = Math.min(maxZoom, zoom + 0.5);
+                            setZoom(val);
+                            applyZoom(val);
+                        }} />
+                    </div>
+                </div>
+
+                <div className="text-center text-[10px] text-zinc-500">
+                    Sử dụng thanh trượt để phóng to và căn chỉnh chính xác mã QR
+                </div>
             </div>
         </div>
     );
