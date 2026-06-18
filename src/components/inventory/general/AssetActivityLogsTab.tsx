@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 
 import { useAssetLogsList } from "@/api/generalInventory";
+import { formatEquipmentDate } from "@/utils/format";
 
 export function AssetActivityLogsTab() {
     const { t } = useTranslation();
@@ -72,7 +73,7 @@ export function AssetActivityLogsTab() {
                                     </TableCell>
                                     <TableCell className="max-w-[300px] truncate">{item.logDescription || "-"}</TableCell>
                                     <TableCell className="text-muted-foreground">{item.logLocation || "-"}</TableCell>
-                                    <TableCell>{item.actionTime ? new Date(item.actionTime).toLocaleString("vi-VN") : "-"}</TableCell>
+                                    <TableCell>{formatEquipmentDate(item.actionTime)}</TableCell>
                                 </TableRow>
                             ))
                         )}

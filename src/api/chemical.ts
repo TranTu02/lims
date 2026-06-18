@@ -108,6 +108,7 @@ export const chemicalApi = {
         full: (input: { id: string }) => api.post<ChemicalInventory>("/v2/chemicalinventories/get/full", { query: { id: input.id }, headers: noCacheHeaders }),
         create: (input: { body: any }) => api.post<ChemicalInventory>("/v2/chemicalinventories/create", { body: input.body }),
         update: (input: { body: any }) => api.post<ChemicalInventory>("/v2/chemicalinventories/update", { body: input.body }),
+        updateBulk: (input: { body: any[] }) => api.post<any>("/v2/chemicalinventories/update/bulk", { body: input.body }),
         delete: (input: { body: any }) => api.post<any>("/v2/chemicalinventories/delete", { body: input.body }),
         allocate: (input: { body: AllocateChemicalPayload }) => api.post<any>("/v2/chemicalinventories/allocate", { body: input.body }),
         return: (input: { body: ReturnChemicalPayload }) => api.post<any>("/v2/chemicalinventories/return", { body: input.body }),
@@ -181,6 +182,24 @@ export function useChemicalInventoriesList(input?: any, opts?: { enabled?: boole
         queryFn: async () => assertSuccessWithMeta(await chemicalApi.inventories.list(input)),
         enabled: opts?.enabled ?? true,
         placeholderData: keepPreviousData,
+    });
+}
+
+export function useChemicalBulkUpdateInventories() {
+    const qc = useQueryClient();
+    const { t } = useTranslation();
+
+    return useMutation({
+        mutationFn: async (body: any[]) => assertSuccess(await chemicalApi.inventories.updateBulk({ body })),
+
+        onSuccess: async () => {
+            await qc.invalidateQueries({ queryKey: chemicalKeys.inventories.all() });
+            toast.success(String(t("inventory.chemical.inventories.bulkUpdateSuccess", { defaultValue: "Cập nhật hàng loạt thành công!" })));
+        },
+
+        onError: (err: any) => {
+            toast.error(err?.message || String(t("inventory.chemical.inventories.bulkUpdateError", { defaultValue: "Cập nhật hàng loạt thất bại!" })));
+        },
     });
 }
 

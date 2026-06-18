@@ -33,6 +33,7 @@ import { SampleDetailModal } from "./SampleDetailModal";
 import { SamplePrintLabelModal } from "./SamplePrintLabelModal";
 import { AddSampleModal } from "./AddSampleModal";
 import { EmailModal } from "@/components/common/EmailModal";
+import { AccreditationBadges } from "@/components/library/shared/AccreditationTagInput";
 import ShipmentManagerModal from "./shipment/ShipmentManagerModal";
 
 // ─── Props ──────────────────────────────────────────────────────────────────
@@ -88,7 +89,7 @@ const InfoRow = memo(function InfoRow({ label, value, mono }: { label: string; v
     return (
         <div className="flex flex-col gap-0.5">
             <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">{label}</span>
-            <span className={`text-sm text-foreground leading-snug ${mono ? "font-mono" : "font-medium"}`}>{value ?? "—"}</span>
+            <span className={`text-sm text-foreground leading-snug break-all ${mono ? "font-mono" : "font-medium"}`}>{value ?? "—"}</span>
         </div>
     );
 });
@@ -127,6 +128,35 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
     const [editedReceipt, setEditedReceipt] = useState<ReceiptDetail>(receipt);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [shippingOpen, setShippingOpen] = useState(false);
+
+    // ── Drag scroll handlers ──────────────────────────────────────
+    const dragRef = useRef<HTMLDivElement>(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const [startX, setStartX] = useState(0);
+    const [scrollLeft, setScrollLeft] = useState(0);
+
+    const handleMouseDown = useCallback((e: React.MouseEvent) => {
+        if (isEditing || !dragRef.current) return;
+        setIsDragging(true);
+        setStartX(e.pageX - dragRef.current.offsetLeft);
+        setScrollLeft(dragRef.current.scrollLeft);
+    }, [isEditing]);
+
+    const handleMouseLeave = useCallback(() => {
+        setIsDragging(false);
+    }, []);
+
+    const handleMouseUp = useCallback(() => {
+        setIsDragging(false);
+    }, []);
+
+    const handleMouseMove = useCallback((e: React.MouseEvent) => {
+        if (!isDragging || isEditing || !dragRef.current) return;
+        e.preventDefault();
+        const x = e.pageX - dragRef.current.offsetLeft;
+        const walk = (x - startX) * 1.5;
+        dragRef.current.scrollLeft = scrollLeft - walk;
+    }, [isDragging, isEditing, startX, scrollLeft]);
 
     useEffect(() => {
         setEditedReceipt(receipt);
@@ -645,20 +675,20 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                 <table className="w-full">
                     <thead className="bg-muted/30 border-b border-border">
                         <tr>
-                            {["Thông tin mẫu", "Mã PT", "Chỉ tiêu", "Phương pháp", "Nơi thực hiện", "Kết quả", "Đơn vị", "STT", "Nhóm KTV", "Người phụ trách", "Hạn trả"].map(h => (
-                                <th key={h} className="px-3 py-2.5 text-left text-[10px] font-semibold text-muted-foreground uppercase">{h}</th>
+                            {["Thông tin mẫu", "Mã PT", "Chỉ tiêu", "Phương pháp", "Công nhận", "Nơi thực hiện", "Kết quả", "Đơn vị", "STT", "Nhóm KTV", "Người phụ trách", "Hạn trả"].map(h => (
+                                <th key={h} className="px-3 py-2.5 text-left text-xs font-semibold text-muted-foreground uppercase">{h}</th>
                             ))}
                             {isAnalysisEditing && <th className="w-8 px-2 py-2.5 text-center"><button onClick={toggleAllAnalyses} className="flex items-center justify-center text-muted-foreground hover:text-foreground mx-auto">{allSelected ? <CheckSquare className="h-4 w-4 text-primary" /> : <Square className="h-4 w-4" />}</button></th>}
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                         {samples.length === 0 ? (
-                            <tr><td colSpan={isAnalysisEditing ? 10 : 9} className="px-4 py-8 text-center text-xs text-muted-foreground italic">{String(t("reception.createReceipt.noAnalysis"))}</td></tr>
+                            <tr><td colSpan={isAnalysisEditing ? 11 : 10} className="px-4 py-8 text-center text-xs text-muted-foreground italic">{String(t("reception.createReceipt.noAnalysis"))}</td></tr>
                         ) : samples.map((s, sampleIndex) => {
                             const analyses = getAnalysesForSample(s);
                             const sampleCell = (
                                 <td rowSpan={analyses.length || 1} className="px-3 py-3 align-top border-r border-border/40 min-w-[200px] max-w-[280px]">
-                                    <div className="flex flex-col gap-1">
+                                    <div className="flex flex-col gap-1.5">
                                         <div className="flex items-center gap-2 flex-wrap">
                                             <Badge variant="outline" className="font-mono text-[10px] px-1.5 py-0 border-primary/30 text-primary font-bold">{s.sampleId}</Badge>
                                             {isSampleEditing ? (
@@ -675,16 +705,16 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                                             </div>
                                         ) : (
                                             <>
-                                                <div className="text-xs font-semibold text-foreground">{s.sampleName ?? "—"}</div>
-                                                {s.sampleClientInfo && <div className="text-[10px] text-muted-foreground">{s.sampleClientInfo}</div>}
-                                                <div className="text-[10px] text-muted-foreground italic">{s.sampleTypeName ?? "—"}</div>
+                                                <div className="text-sm font-semibold text-foreground">{s.sampleName ?? "—"}</div>
+                                                {s.sampleClientInfo && <div className="text-xs text-muted-foreground">{s.sampleClientInfo}</div>}
+                                                <div className="text-xs text-muted-foreground/80 italic">{s.sampleTypeName ?? "—"}</div>
                                             </>
                                         )}
                                         {s.sampleInfo && s.sampleInfo.length > 0 && (
                                             <div className="mt-2 pt-2 border-t border-border/40 space-y-1">
-                                                <div className="text-[9px] font-bold text-muted-foreground uppercase mb-1">Thông tin mẫu</div>
+                                                <div className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Thông tin mẫu</div>
                                                 {s.sampleInfo.map((info, i) => (
-                                                    <div key={i} className="text-[10px] leading-tight flex flex-wrap gap-x-1">
+                                                    <div key={i} className="text-xs leading-tight flex flex-wrap gap-x-1">
                                                         <span className="text-muted-foreground font-medium">{info.label}:</span>
                                                         {isSampleEditing ? <Input className="h-5 text-[10px] bg-background px-1 flex-1 min-w-[60px]" value={info.value ?? ""} onChange={e => { const next = [...(s.sampleInfo ?? [])].map((it,ii) => ii===i?{...it,value:e.target.value}:it); handleUpdateSample(sampleIndex,"sampleInfo",next); }} /> : <span className="text-foreground">{info.value || "—"}</span>}
                                                     </div>
@@ -693,9 +723,9 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                                         )}
                                         {s.sampleReceiptInfo && s.sampleReceiptInfo.length > 0 && (
                                             <div className="mt-1 pt-2 border-t border-border/40 space-y-1">
-                                                <div className="text-[9px] font-bold text-muted-foreground uppercase mb-1">Thông tin thử nghiệm</div>
+                                                <div className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Thông tin thử nghiệm</div>
                                                 {s.sampleReceiptInfo.map((info, i) => (
-                                                    <div key={i} className="text-[10px] leading-tight flex flex-wrap gap-x-1">
+                                                    <div key={i} className="text-xs leading-tight flex flex-wrap gap-x-1">
                                                         <span className="text-muted-foreground font-medium">{info.label}:</span>
                                                         {isSampleEditing ? <Input className="h-5 text-[10px] bg-background px-1 flex-1 min-w-[60px]" value={info.value ?? ""} onChange={e => { const next = [...(s.sampleReceiptInfo ?? [])].map((it,ii) => ii===i?{...it,value:e.target.value}:it); handleUpdateSample(sampleIndex,"sampleReceiptInfo",next); }} /> : <span className="text-foreground">{info.value || "—"}</span>}
                                                     </div>
@@ -708,7 +738,7 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                             if (analyses.length === 0) return (
                                 <tr key={s.sampleId} className="hover:bg-muted/20 transition-colors">
                                     {sampleCell}
-                                    <td colSpan={8} className="px-3 py-2 text-xs text-muted-foreground italic">{String(t("reception.createReceipt.noAnalysis"))}</td>
+                                    <td colSpan={9} className="px-3 py-2 text-xs text-muted-foreground italic">{String(t("reception.createReceipt.noAnalysis"))}</td>
                                     {isAnalysisEditing && <td className="px-2 py-2" />}
                                 </tr>
                             );
@@ -716,22 +746,25 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                                 <tr key={a.analysisId} className={cn("hover:bg-muted/20 transition-colors", analysisSelectedIds.has(a.analysisId) && "bg-primary/5")}
                                     onClick={() => (!isSampleEditing && !isAnalysisEditing) && openSampleByLabId(s, a.analysisId)}>
                                     {idx === 0 && sampleCell}
-                                    <td className="px-3 py-2 text-[10px] text-muted-foreground font-mono">{a.analysisId}</td>
-                                    <td className="px-3 py-2 text-xs font-medium max-w-[140px] truncate">{a.parameterName ?? "—"}</td>
+                                    <td className="px-3 py-2 text-xs text-muted-foreground font-mono">{a.analysisId}</td>
+                                    <td className="px-3 py-2 text-sm font-medium max-w-[140px] truncate">{a.parameterName ?? "—"}</td>
                                     <td className="px-2 py-1.5">
                                         {isAnalysisEditing
-                                            ? <Input className="h-7 text-[11px] bg-background px-2 w-[110px]" value={a.protocolCode ?? ""} onChange={e => handleUpdateAnalysisById(a.analysisId, { protocolCode: e.target.value })} />
-                                            : <span className="text-[10px] text-foreground font-medium">{a.protocolCode ?? "—"}</span>}
+                                            ? <Input className="h-7 text-xs bg-background px-2 w-[110px]" value={a.protocolCode ?? ""} onChange={e => handleUpdateAnalysisById(a.analysisId, { protocolCode: e.target.value })} />
+                                            : <span className="text-xs text-foreground font-medium">{a.protocolCode ?? "—"}</span>}
+                                    </td>
+                                    <td className="px-2 py-1.5">
+                                        <AccreditationBadges value={a.protocolAccreditation} className="text-xs" />
                                     </td>
                                     <td className="px-2 py-1.5">
                                         {isAnalysisEditing
-                                            ? <Input className="h-7 text-[11px] bg-background px-2 w-[100px]" value={a.analysisLocation ?? ""} onChange={e => handleUpdateAnalysisById(a.analysisId, { analysisLocation: e.target.value })} />
-                                            : <span className="text-[10px] text-foreground">{a.analysisLocation ?? "—"}</span>}
+                                            ? <Input className="h-7 text-xs bg-background px-2 w-[100px]" value={a.analysisLocation ?? ""} onChange={e => handleUpdateAnalysisById(a.analysisId, { analysisLocation: e.target.value })} />
+                                            : <span className="text-xs text-foreground">{a.analysisLocation ?? "—"}</span>}
                                     </td>
-                                    <td className="px-3 py-2 text-xs font-bold text-primary" dangerouslySetInnerHTML={{ __html: a.analysisResult ?? "—" }} />
+                                    <td className="px-3 py-2 text-sm font-bold text-primary" dangerouslySetInnerHTML={{ __html: a.analysisResult ?? "—" }} />
                                     <td className="px-2 py-1.5">
                                         {isAnalysisEditing
-                                            ? <Input className="h-7 text-[11px] bg-background px-2 w-[70px]" value={a.analysisUnit ?? ""} onChange={e => handleUpdateAnalysisById(a.analysisId, { analysisUnit: e.target.value })} />
+                                            ? <Input className="h-7 text-xs bg-background px-2 w-[70px]" value={a.analysisUnit ?? ""} onChange={e => handleUpdateAnalysisById(a.analysisId, { analysisUnit: e.target.value })} />
                                             : <span className="text-xs text-muted-foreground">{a.analysisUnit ?? "—"}</span>}
                                     </td>
                                     <td className="px-3 py-2">{a.analysisStatus && <Badge variant="outline" className="text-[9px] h-4 px-1">{a.analysisStatus}</Badge>}</td>
@@ -739,7 +772,7 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                                         {isAnalysisEditing ? (
                                             <Popover open={openPopoverId === a.analysisId} onOpenChange={(open) => setOpenPopoverId(open ? a.analysisId : null)}>
                                                 <PopoverTrigger asChild>
-                                                    <Button variant="outline" size="sm" className="h-7 text-[11px] px-2 max-w-[150px] justify-between font-normal" onClick={e => { e.stopPropagation(); setOpenPopoverId(openPopoverId === a.analysisId ? null : a.analysisId); }}>
+                                                    <Button variant="outline" size="sm" className="h-7 text-xs px-2 max-w-[150px] justify-between font-normal" onClick={e => { e.stopPropagation(); setOpenPopoverId(openPopoverId === a.analysisId ? null : a.analysisId); }}>
                                                         <span className="truncate">{(a as any).technicianGroupName ?? "Chọn nhóm..."}</span>
                                                         <ChevronsUpDown className="h-3 w-3 shrink-0 ml-1 opacity-50" />
                                                     </Button>
@@ -754,7 +787,7 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                                                                     technicianId: g.identityGroupInChargeId,
                                                                     technician: g.identityGroupInCharge,
                                                                     technicianIds: g.identityIds
-                                                                } as any);
+                                                                 } as any);
                                                                 setOpenPopoverId(null); // close after select
                                                             }}>
                                                                 <Check className={cn("mr-2 h-3 w-3", (a as any).technicianGroupId === g.identityGroupId ? "opacity-100" : "opacity-0")} />{g.identityGroupName}
@@ -770,8 +803,8 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                                     </td>
                                     <td className="px-2 py-1.5">
                                         {isAnalysisEditing
-                                            ? <Input type="date" className="h-7 text-[11px] bg-background px-1 w-[130px]" value={a.analysisDeadline?.split("T")[0] ?? ""} onChange={e => handleUpdateAnalysisById(a.analysisId, { analysisDeadline: e.target.value })} />
-                                            : <span className="text-[10px] font-medium text-destructive">{fmtDate(a.analysisDeadline)}</span>}
+                                            ? <Input type="date" className="h-7 text-xs bg-background px-1 w-[130px]" value={a.analysisDeadline?.split("T")[0] ?? ""} onChange={e => handleUpdateAnalysisById(a.analysisId, { analysisDeadline: e.target.value })} />
+                                            : <span className="text-xs font-medium text-destructive">{fmtDate(a.analysisDeadline)}</span>}
                                     </td>
                                     {isAnalysisEditing && (
                                         <td className="px-2 py-2" onClick={e => e.stopPropagation()}>
@@ -906,11 +939,11 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                         {/* Left: info + samples */}
                         <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/30 min-w-0">
 
-                            {/* 4-column info row */}
-                            <div className="grid grid-cols-4 gap-4">
+                            {/* 4-column info grid (stretched to tallest card height in row) */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-stretch">
 
                                 {/* Khách hàng */}
-                                <section className="p-4 rounded-xl border border-border bg-card shadow-sm space-y-3 overflow-y-auto max-h-full">
+                                <section className="p-4 rounded-xl border border-border bg-card shadow-sm space-y-3 flex flex-col h-full">
                                     <SectionHeader icon={Building2} title={String(t("reception.createReceipt.clientInfo"))} />
                                     {isEditing ? (
                                         <div className="space-y-1.5">
@@ -952,7 +985,7 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                                 </section>
 
                                 {/* Người liên hệ & Nhận BC */}
-                                <section className="p-4 rounded-xl border border-border bg-card shadow-sm space-y-3">
+                                <section className="p-4 rounded-xl border border-border bg-card shadow-sm space-y-3 flex flex-col h-full">
                                     <SectionHeader icon={User} title={String(t("reception.createReceipt.contactInfo"))} />
                                     <div className="pb-3 border-b border-border/60 space-y-2">
                                         <div className="text-[10px] text-muted-foreground uppercase font-medium">Người liên hệ</div>
@@ -991,7 +1024,7 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                                 </section>
 
                                 {/* Thông tin phiếu */}
-                                <section className="p-4 rounded-xl border border-border bg-card shadow-sm space-y-3">
+                                <section className="p-4 rounded-xl border border-border bg-card shadow-sm space-y-3 flex flex-col h-full">
                                     <SectionHeader icon={FileText} title={String(t("reception.createReceipt.receiptInfo"))} />
                                     <InfoRow label={String(t("lab.receipts.receiptCode", { defaultValue: "Mã phiếu" }))} value={editedReceipt.receiptCode} mono />
                                     <InfoRow label={String(t("lab.receipts.receiptDate"))} value={fmtDate(editedReceipt.receiptDate)} />
@@ -1065,7 +1098,7 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                                 </section>
 
                                 {/* Cấu hình & Bàn giao */}
-                                <section className="p-4 rounded-xl border border-border bg-card shadow-sm space-y-3">
+                                <section className="p-4 rounded-xl border border-border bg-card shadow-sm space-y-3 flex flex-col h-full">
                                     <SectionHeader icon={ShieldCheck} title="Cấu hình & Bàn giao" />
                                     <div>
                                         <Label className="text-[10px] text-muted-foreground uppercase font-medium">Ngôn ngữ BC</Label>

@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { EmailModal } from "@/components/common/EmailModal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import base64Images from "@/assets/base64Images.json";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                             */
@@ -161,26 +162,41 @@ function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail,
         return list
             .map((item) => {
                 const labelVi = item.label || item.fname || "";
-                let labelKey = "";
-                if (labelVi === "Tên mẫu thử" || labelVi.includes("Tên mẫu")) labelKey = "name";
-                else if (labelVi === "Số lô") labelKey = "lot";
-                else if (labelVi === "Ngày sản xuất") labelKey = "mfg";
-                else if (labelVi === "Nơi sản xuất") labelKey = "placeOfProduction";
-                else if (labelVi === "Hạn sử dụng") labelKey = "exp";
-                else if (labelVi === "Số công bố") labelKey = "declarationNo";
-                else if (labelVi === "Số đăng ký") labelKey = "registrationNo";
-                else if (labelVi === "Thông tin khác") labelKey = "otherInfo";
-                else if (labelVi === "Ngày tiếp nhận") labelKey = "receiptDate";
-                else if (labelVi === "Ngày thử nghiệm") labelKey = "testDate";
-                else if (labelVi === "Tình trạng mẫu lưu" || labelVi === "Thời gian lưu mẫu") labelKey = "storageCondition";
-                else if (labelVi === "Mô tả") labelKey = "description";
+                if (!labelVi) return "";
+                const norm = labelVi.toLowerCase().trim();
 
-                const transVi = labelKey ? tVi(`testReport.sampleLabels.${labelKey}`) : labelVi;
-                const trans2nd = labelKey ? t2nd(`testReport.sampleLabels.${labelKey}`) : "";
-                const finalLabel = trans2nd ? `${transVi} / ${trans2nd}` : transVi;
+                let finalLabel = "";
+                if (norm === 'số lô' || norm === 'so lo' || norm === 'số lô / lot no.' || norm === 'so lo / lot no.') finalLabel = 'Số lô / LOT no.';
+                else if (norm === 'ngày sản xuất' || norm === 'ngay san xuat' || norm === 'ngày sản xuất / mfg.' || norm === 'ngay san xuat / mfg.') finalLabel = 'Ngày sản xuất / mfg.';
+                else if (norm === 'hạn sử dụng' || norm === 'han su dung' || norm === 'hạn sử dụng / exp.' || norm === 'han su dung / exp.') finalLabel = 'Hạn sử dụng / exp.';
+                else if (norm === 'nơi sản xuất' || norm === 'noi san xuat' || norm === 'nơi sản xuất / mfr.' || norm === 'noi san xuat / mfr.') finalLabel = 'Nơi sản xuất / mfr.';
+                else if (norm === 'tên mẫu thử' || norm === 'ten mau thu' || norm === 'tên mẫu thử / name' || norm === 'ten mau thu / name') finalLabel = 'Tên mẫu thử / sample name';
+                else if (norm === 'địa chỉ sản xuất' || norm === 'dia chi san xuat' || norm === 'địa chỉ sản xuất / mfg. address' || norm === 'dia chi san xuat / mfg. address') finalLabel = 'Địa chỉ sản xuất / mfg. address';
+                else if (norm === 'số công bố' || norm === 'so cong bo' || norm === 'số công bố / decl. no.' || norm === 'so cong bo / decl. no.') finalLabel = 'Số công bố / decl. no.';
+                else if (norm === 'số đăng ký' || norm === 'so dang ky' || norm === 'số đăng ký / reg. no.' || norm === 'so dang ky / reg. no.') finalLabel = 'Số đăng ký / Reg. no.';
+
+                if (!finalLabel) {
+                    let labelKey = "";
+                    if (labelVi === "Tên mẫu thử" || labelVi.includes("Tên mẫu")) labelKey = "name";
+                    else if (labelVi === "Số lô") labelKey = "lot";
+                    else if (labelVi === "Ngày sản xuất") labelKey = "mfg";
+                    else if (labelVi === "Nơi sản xuất") labelKey = "placeOfProduction";
+                    else if (labelVi === "Địa chỉ sản xuất") labelKey = "mfgAddress";
+                    else if (labelVi === "Hạn sử dụng") labelKey = "exp";
+                    else if (labelVi === "Số công bố") labelKey = "declarationNo";
+                    else if (labelVi === "Số đăng ký") labelKey = "registrationNo";
+                    else if (labelVi === "Thông tin khác") labelKey = "otherInfo";
+                    else if (labelVi === "Ngày tiếp nhận") labelKey = "receiptDate";
+                    else if (labelVi === "Ngày thử nghiệm") labelKey = "testDate";
+                    else if (labelVi === "Tình trạng mẫu lưu" || labelVi === "Thời gian lưu mẫu") labelKey = "storageCondition";
+                    else if (labelVi === "Mô tả") labelKey = "description";
+
+                    const transVi = labelKey ? tVi(`testReport.sampleLabels.${labelKey}`) : labelVi;
+                    const trans2nd = labelKey ? t2nd(`testReport.sampleLabels.${labelKey}`) : "";
+                    finalLabel = trans2nd ? `${transVi} / ${trans2nd}` : transVi;
+                }
 
                 const value = item.value || item.fvalue || "--";
-                if (!labelVi) return "";
                 return `
                     <div class="grid-container">
                         <div class="grid-item"><strong>${finalLabel}</strong></div>
@@ -205,7 +221,7 @@ function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail,
                         <div id="header-section" style="position: relative; height: fit-content; margin-bottom: 20px;">
                             <div style="position: relative; display: flex; overflow: visible; align-items: flex-start;">
                                 <div>
-                                    <img src="https://documents-sea.bildr.com/rc19670b8d48b4c5ba0f89058aa6e7e4b/doc/IRDOP%20LOGO%20with%20Name.w8flZn8NnkuLrYinAamIkw.PAAKeAHDVEm9mFvCFtA46Q.svg" loading="lazy" style="width: 4cm;">
+                                    <img src="${base64Images.LOGOFULL}" loading="lazy" style="width: 4cm;">
                                 </div>
                                 <div style="text-align: right; flex-grow: 1; display: flex; flex-direction: column; align-items: flex-end;">
                                     <p style="font-weight: bold; font-size: 14.4px; color: #0058a3; margin-bottom: 0; line-height: 17.6px;">${tVi("testReport.institute.organizationName")}</p>
@@ -228,7 +244,7 @@ function generateSampleResultHtml(sample: ReceiptSample, receipt: ReceiptDetail,
                                     ${replacementHtml}
                                 </div>
                                 <div class="vlas_icon" style="position: absolute; right: 0mm; top: 0;">
-                                    <img src="https://documents-sea.bildr.com/rc19670b8d48b4c5ba0f89058aa6e7e4b/doc/VILAS%20997.WIu1HeH5wkOQ5k1olzA3Wg.png" loading="lazy" style="width: 4.16cm;">
+                                    <img src="${base64Images.LOGOVILAS}" loading="lazy" style="width: 4.16cm;">
                                 </div>
                             </div>
                         </div>

@@ -42,7 +42,7 @@ const ShipmentLabelPrint = forwardRef<HTMLDivElement, Props>(({ shipment }, ref)
 
     // Generate QR Code SVG
     useEffect(() => {
-        QRCode.toString(shipmentId, { 
+        QRCode.toString(trackingNo, { 
             type: 'svg', 
             margin: 0, 
             width: 80,
@@ -50,7 +50,7 @@ const ShipmentLabelPrint = forwardRef<HTMLDivElement, Props>(({ shipment }, ref)
         }, (err, string) => {
             if (!err) setQrSvg(string);
         });
-    }, [shipmentId]);
+    }, [trackingNo]);
 
     const sender = typeof shipment?.shipmentSender === 'string' 
         ? JSON.parse(shipment.shipmentSender) 
@@ -70,17 +70,32 @@ const ShipmentLabelPrint = forwardRef<HTMLDivElement, Props>(({ shipment }, ref)
 
     const formatAddress = (addr: any) => {
         if (!addr) return "";
-        if (typeof addr === "string") return addr;
-        if (addr && typeof addr === "object") {
+        let rawAddress = "";
+        if (typeof addr === "string") {
+            rawAddress = addr;
+        } else if (addr && typeof addr === "object") {
             const parts = [
                 addr.address,
                 addr.wardName,
                 addr.districtName,
                 addr.provinceName
             ].filter(Boolean);
-            return parts.join(", ");
+            rawAddress = parts.join(", ");
         }
-        return "";
+
+        let cleanAddress = rawAddress
+            .replace(/Bỏ qua\s*-\s*Sử dụng địa chỉ 2 cấp/gi, "")
+            .replace(/,\s*,/g, ",")
+            .trim();
+
+        if (cleanAddress.startsWith(",")) {
+            cleanAddress = cleanAddress.substring(1).trim();
+        }
+        if (cleanAddress.endsWith(",")) {
+            cleanAddress = cleanAddress.substring(0, cleanAddress.length - 1).trim();
+        }
+
+        return cleanAddress;
     };
 
     return (
@@ -105,7 +120,7 @@ const ShipmentLabelPrint = forwardRef<HTMLDivElement, Props>(({ shipment }, ref)
                             {shipment.shipmentCarrier || "VIETTEL POST"}
                         </div>
                         <div style={{ fontSize: "8pt", fontWeight: 700, marginTop: "4px", opacity: 0.8 }}>
-                            LIMS SHIPMENT | {format(new Date(), "dd/MM/yyyy HH:mm")}
+                            {format(new Date(), "dd/MM/yyyy HH:mm")}
                         </div>
                     </div>
                     <div style={{ width: "20mm", borderLeft: "1.5pt solid black", display: "flex", alignItems: "center", justifyContent: "center", padding: "2px", boxSizing: "border-box" }}>
@@ -135,10 +150,17 @@ const ShipmentLabelPrint = forwardRef<HTMLDivElement, Props>(({ shipment }, ref)
                 {/* 3. Info Grid - Sender & Receiver */}
                 <div style={{ height: "30mm", borderBottom: "1.5pt solid black", display: "flex", boxSizing: "border-box", overflow: "hidden" }}>
                     <div style={{ width: "38%", borderRight: "1.2pt solid black", padding: "6px", display: "flex", flexDirection: "column", boxSizing: "border-box", height: "100%" }}>
-                        <div style={{ fontSize: "7pt", fontWeight: 900, textTransform: "uppercase", marginBottom: "4px" }}>Người gửi (Sender)</div>
-                        <div style={{ fontSize: "8.5pt", fontWeight: 900, lineHeight: 1.2 }}>{sender.senderName || sender.name || "IRDOP"}</div>
-                        <div style={{ fontSize: "8.5pt", fontWeight: 900, lineHeight: 1.2, marginTop: "2px" }}>{sender.senderPhone || sender.phone || ""}</div>
-                        <div style={{ fontSize: "7pt", fontWeight: 700, lineHeight: 1.1, marginTop: "2px", wordBreak: "break-word" }}>
+                        <div style={{ fontSize: "6.5pt", fontWeight: 900, textTransform: "uppercase", marginBottom: "3px" }}>Người gửi (Sender)</div>
+                        <div style={{ fontSize: "7.5pt", fontWeight: 900, lineHeight: 1.2 }}>{sender.senderName || sender.name || "IRDOP"}</div>
+                        {(() => {
+                            const phones = (sender.senderPhone || sender.phone || "").split("-");
+                            return phones.map((p: string, idx: number) => (
+                                <div key={idx} style={{ fontSize: "7.5pt", fontWeight: 900, lineHeight: 1.2, marginTop: idx > 0 ? "0px" : "2px" }}>
+                                    {p.trim()}
+                                </div>
+                            ));
+                        })()}
+                        <div style={{ fontSize: "6.5pt", fontWeight: 700, lineHeight: 1.1, marginTop: "2px", wordBreak: "break-word" }}>
                             {formatAddress(sender.senderAddress || sender.address)}
                         </div>
                     </div>

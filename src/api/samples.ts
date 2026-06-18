@@ -70,6 +70,41 @@ export async function samplesGetProcessing(input: SamplesGetListInput = {}): Pro
     });
 }
 
+export interface InPrepAssignmentTechnician {
+    identityId: string | null;
+    identityName: string | null;
+    email?: string | null;
+    identityRoles?: string[] | null;
+}
+
+export interface InPrepAssignmentAnalysis {
+    analysisId: string;
+    parameterName: string | null;
+    protocolCode?: string | null;
+    analysisUnit?: string | null;
+    analysisDeadline?: string | null;
+    analysisLocation?: string | null;
+    analysisNotes?: string | null;
+}
+
+export interface InPrepAssignmentSample {
+    sampleId: string;
+    sampleName?: string | null;
+    sampleVolume?: string | null;
+    analyses: InPrepAssignmentAnalysis[];
+}
+
+export interface InPrepAssignment {
+    technician: InPrepAssignmentTechnician;
+    samples: InPrepAssignmentSample[];
+}
+
+export async function samplesGetInPrepAssignments(): Promise<ApiResponse<InPrepAssignment[]>> {
+    return api.get<InPrepAssignment[]>("/v2/samples/get/inprep-assignments", {
+        headers: noCacheHeaders,
+    });
+}
+
 export async function samplesCreate(body: SamplesCreateBody): Promise<ApiResponse<SampleDetail>> {
     return api.post<SampleDetail, SamplesCreateBody>("/v2/samples/create", {
         body,
@@ -94,8 +129,12 @@ export type SamplesBulkUpdateResult = {
 };
 
 export async function samplesBulkUpdate(body: SamplesBulkUpdateBody): Promise<ApiResponse<SamplesBulkUpdateResult>> {
-    return api.post<SamplesBulkUpdateResult, SamplesBulkUpdateBody>("/v2/samples/bulk-update", {
-        body,
+    const payload = body.sampleIds.map((id) => ({
+        sampleId: id,
+        ...body.updateData,
+    }));
+    return api.post<SamplesBulkUpdateResult, any[]>("/v2/samples/update/bulk", {
+        body: payload,
     });
 }
 
@@ -229,6 +268,8 @@ export const samplesKeys = {
     filter: (input: SamplesFilterInput) => [...samplesKeys.all, "filter", stableKey(input.body)] as const,
 
     allPages: (input?: SamplesGetListInput) => [...samplesKeys.all, "allPages", stableKey(input ?? {})] as const,
+
+    inprepAssignments: () => [...samplesKeys.all, "inprepAssignments"] as const,
 } as const;
 
 export function useSamplesList(input?: SamplesGetListInput, opts?: { enabled?: boolean }) {
@@ -278,6 +319,15 @@ export function useSamplesFilter(input: SamplesFilterInput, opts?: { enabled?: b
         retry: false,
         placeholderData: keepPreviousData,
         queryFn: async () => assertSuccess(await samplesFilter(input)),
+    });
+}
+
+export function useSamplesInPrepAssignments(opts?: { enabled?: boolean }) {
+    return useQuery({
+        queryKey: samplesKeys.inprepAssignments(),
+        enabled: opts?.enabled ?? true,
+        placeholderData: keepPreviousData,
+        queryFn: async () => assertSuccess(await samplesGetInPrepAssignments()),
     });
 }
 

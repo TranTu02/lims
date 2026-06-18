@@ -5,6 +5,7 @@ import { Printer, X, FileDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useGenerateHandoverPdf } from "@/api/analyses";
+import base64Images from "@/assets/base64Images.json";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -106,7 +107,7 @@ function generateHandoverHtml(group: TechnicianGroup, t: any): string {
           <!-- Left: logo + info -->
           <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:6px; flex: 1;">
             <img
-              src="https://documents-sea.bildr.com/rc19670b8d48b4c5ba0f89058aa6e7e4b/doc/IRDOP%20LOGO%20with%20Name.w8flZn8NnkuLrYinAamIkw.PAAKeAHDVEm9mFvCFtA46Q.svg"
+              src="${base64Images.LOGOFULL}"
               style="height:28px; width:auto; object-fit:contain;"
               draggable="false"
             />

@@ -14,13 +14,16 @@ interface LayoutProps {
 
 export function Layout({ children, activeTab, onTabChange, title, description }: LayoutProps) {
     const [isMobileOpen, setIsMobileOpen] = useState(false);
+    const isEquipmentMode = localStorage.getItem("uiMode") === "equipment";
 
     return (
         <div className="flex h-screen w-full bg-background overflow-hidden font-[var(--font-family)] relative">
             {/* Desktop Sidebar Navigation */}
-            <div className="hidden md:flex h-full shrink-0">
-                <Sidebar activeTab={activeTab} onTabChange={onTabChange} />
-            </div>
+            {!isEquipmentMode && (
+                <div className="hidden md:flex h-full shrink-0">
+                    <Sidebar activeTab={activeTab} onTabChange={onTabChange} />
+                </div>
+            )}
 
             {/* Mobile Sidebar Navigation (Flyout Drawer) */}
             {isMobileOpen && (

@@ -2,6 +2,10 @@ export default {
     nav: {
         receptionTitle: "Sample Reception",
         receptionDescription: "Manage receipts & Samples",
+        incomingRequestsTitle: "Incoming Requests",
+        incomingRequestsDescription: "Client sample requests",
+        returnResultsTitle: "Return Results",
+        returnResultsDescription: "Analysis results & shipments",
 
         technicianTitle: "KTV Workspace",
         technicianDescription: "Testing work",
@@ -61,6 +65,8 @@ export default {
 
         generalInventoryTitle: "General Inventory",
         generalInventoryDescription: "Manage equipment and lab tools",
+        stationeryTitle: "Stationery",
+        stationeryDescription: "Manage stationery and office supplies",
 
         crmTitle: "Customers",
         crmDescription: "Customer relationship management",
@@ -1405,6 +1411,7 @@ export default {
             },
             skus: {
                 chemicalSkuId: "SKU ID",
+                chemicalSkuIdPlaceholder: "Leave blank to auto-generate",
                 chemicalName: "Chemical Name",
                 chemicalCASNumber: "CAS Number",
                 chemicalFormula: "Formula",
@@ -2022,16 +2029,17 @@ export default {
         ref: "Ref.",
         draft: "DRAFT",
         date: "Date",
-        customerInfo: "Customer / sender",
+        customerInfo: "Customer information",
         sampleInfo: "Sample information",
         clientProvidedInfo: "Information provided by client",
         receiptInformation: "Receipt info",
         sampleLabels: {
             name: "Sample name",
-            lot: "Lot no.",
-            mfg: "Mfg. date",
-            placeOfProduction: "Origin",
-            exp: "Exp. date",
+            lot: "LOT no.",
+            mfg: "Mfg.",
+            placeOfProduction: "Mfr.",
+            mfgAddress: "Mfg. address",
+            exp: "Exp.",
             declarationNo: "Decl. no.",
             registrationNo: "Reg. no.",
             otherInfo: "Other info",

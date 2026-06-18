@@ -62,3 +62,32 @@ export function formatDateTime(date: unknown): string {
     return "--";
   }
 }
+
+export function formatEquipmentDate(date: unknown): string {
+  if (date === null || date === undefined || date === "") return "-";
+  try {
+    const dateStr = String(date);
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return "-";
+
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const day = pad(d.getDate());
+    const month = pad(d.getMonth() + 1);
+    const year = d.getFullYear();
+
+    // Check if original string contains time components
+    const hasTime = dateStr.includes("T") && !dateStr.includes("T00:00:00") && !dateStr.includes("T07:00:00"); // T07:00:00 represents midnight in GMT+7 converted to local sometimes, so handle that as no-time if it falls exactly on midnight. But to be safest: check if hours, minutes, and seconds are all 0 in local time or UTC.
+    // Let's do a robust check: if local hours, minutes, seconds are all 0:
+    const localHasTime = d.getHours() !== 0 || d.getMinutes() !== 0 || d.getSeconds() !== 0;
+    
+    if (localHasTime) {
+      const hours = pad(d.getHours());
+      const minutes = pad(d.getMinutes());
+      const seconds = pad(d.getSeconds());
+      return `${hours}:${minutes}:${seconds} ${day}/${month}/${year}`;
+    }
+    return `${day}/${month}/${year}`;
+  } catch {
+    return "-";
+  }
+}

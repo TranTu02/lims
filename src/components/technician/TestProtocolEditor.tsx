@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Editor } from "@tinymce/tinymce-react";
-import { Printer, PlusCircle, Loader2, Beaker, FileText, Upload } from "lucide-react";
+import { Printer, PlusCircle, Loader2, Beaker, FileText, Upload, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import * as mammoth from "mammoth";
 
@@ -11,6 +11,7 @@ import { documentApi } from "@/api/documents";
 import { ProtocolFormModal } from "@/components/library/protocols/ProtocolFormModal";
 
 import type { AnalysisListItem } from "@/types/analysis";
+import base64Images from "@/assets/base64Images.json";
 
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { ChemicalInsertModal } from "@/components/technician/ChemicalInsertModal";
 import { AnalysisTableInsertModal } from "@/components/technician/AnalysisTableInsertModal";
+import { ExcelProcessorModal } from "@/components/technician/ExcelProcessorModal";
 
 const CONTENT_STYLE = `
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -136,6 +138,111 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
     const [showChemicalInsertModal, setShowChemicalInsertModal] = useState(false);
     const [showAnalysisTableInsertModal, setShowAnalysisTableInsertModal] = useState(false);
 
+    // Excel processor upload states
+    const [showExcelModal, setShowExcelModal] = useState(false);
+    const [excelFile, setExcelFile] = useState<File | null>(null);
+    const excelInputRef = useRef<HTMLInputElement>(null);
+    const [showExcelDocsModal, setShowExcelDocsModal] = useState(false);
+    const [isExcelSysLoading, setIsExcelSysLoading] = useState(false);
+    const [pendingExcelFile, setPendingExcelFile] = useState<File | null>(null);
+    const [showExcelUploadConfirm, setShowExcelUploadConfirm] = useState(false);
+    const [showExcelProtocolFormForUpload, setShowExcelProtocolFormForUpload] = useState(false);
+
+    const hasWordTemplate = useMemo(() => {
+        const list = protocolDetail?.documents?.length ? protocolDetail.documents : protocolDetail?.protocolDocumentIds?.map((id: string) => ({ documentId: id })) || [];
+        return list.some((doc: any) => {
+            const fileName = (doc.file?.fileName || doc.fileName || "").toLowerCase();
+            const mime = (doc.file?.mimeType || doc.mimeType || "").toLowerCase();
+            const isExcel = fileName.endsWith(".xlsx") || fileName.endsWith(".xls") || mime.includes("spreadsheet") || mime.includes("excel") || mime.includes("sheet");
+            return !isExcel;
+        });
+    }, [protocolDetail]);
+
+    const hasExcelTemplate = useMemo(() => {
+        const list = protocolDetail?.documents?.length ? protocolDetail.documents : protocolDetail?.protocolDocumentIds?.map((id: string) => ({ documentId: id })) || [];
+        return list.some((doc: any) => {
+            const fileName = (doc.file?.fileName || doc.fileName || "").toLowerCase();
+            const mime = (doc.file?.mimeType || doc.mimeType || "").toLowerCase();
+            const isExcel = fileName.endsWith(".xlsx") || fileName.endsWith(".xls") || mime.includes("spreadsheet") || mime.includes("excel") || mime.includes("sheet");
+            return isExcel;
+        });
+    }, [protocolDetail]);
+
+    const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (!file.name.toLowerCase().endsWith(".xlsx") && !file.name.toLowerCase().endsWith(".xls")) {
+            toast.error(t("technician.workspace.invalidExcel", { defaultValue: "Chỉ hỗ trợ file Excel (.xlsx, .xls)" }));
+            return;
+        }
+        
+        if (directProtocolId) {
+            setPendingExcelFile(file);
+            setShowExcelUploadConfirm(true);
+        } else {
+            setExcelFile(file);
+            setShowExcelModal(true);
+        }
+    };
+
+    const handleConfirmExcelUpload = async (uploadToLibrary: boolean) => {
+        setShowExcelUploadConfirm(false);
+        if (pendingExcelFile) {
+            setExcelFile(pendingExcelFile);
+            setShowExcelModal(true);
+            if (uploadToLibrary) {
+                setShowExcelProtocolFormForUpload(true);
+            } else {
+                setPendingExcelFile(null);
+            }
+        }
+    };
+
+    const handleSelectProtocolExcelDoc = async (documentId: string, filename: string) => {
+        setIsExcelSysLoading(true);
+        const loadingToastId = toast.loading(
+            t("technician.workspace.sysExcelLoading", { defaultValue: `Đang tải bảng tính "${filename}"...` })
+        );
+        try {
+            const res = await documentApi.url(documentId);
+            const urlData = (res as any).data ?? res;
+            const presignedUrl = urlData?.url;
+            if (!presignedUrl) throw new Error("No URL returned from server.");
+
+            const fetchRes = await fetch(presignedUrl, { method: "GET" });
+            if (!fetchRes.ok) {
+                throw new Error(`S3 fetch failed: ${fetchRes.status} ${fetchRes.statusText}`);
+            }
+            const arrayBuffer = await fetchRes.arrayBuffer();
+            
+            const excelBlob = new Blob([arrayBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            const file = new File([excelBlob], filename, { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            
+            setExcelFile(file);
+            toast.dismiss(loadingToastId);
+            toast.success(
+                t("technician.workspace.sysExcelLoaded", { defaultValue: `Đã tải bảng tính "${filename}"` })
+            );
+            setShowExcelModal(true);
+            setShowExcelDocsModal(false);
+        } catch (e) {
+            console.error("Failed to load protocol excel document", e);
+            toast.dismiss(loadingToastId);
+            toast.error(t("technician.workspace.sysExcelLoadFail", { defaultValue: "Tải biểu mẫu Excel hệ thống thất bại" }));
+        } finally {
+            setIsExcelSysLoading(false);
+        }
+    };
+
+    const handleImportExcelHtml = (html: string) => {
+        if (editorRef.current) {
+            setTimeout(() => {
+                editorRef.current.focus();
+                editorRef.current.insertContent(html);
+            }, 100);
+        }
+    };
+
     // Mammoth docx upload
     const docxInputRef = useRef<HTMLInputElement>(null);
     const [isDocxLoading, setIsDocxLoading] = useState(false);
@@ -173,42 +280,42 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
     // Build header HTML (reused for both initial template and docx wrap)
     const buildHeaderInnerHtml = useCallback(() => {
         const orgName = t("testReport.institute.organizationName", { defaultValue: "VIỆN NGHIÊN CỨU VÀ PHÁT TRIỂN SẢN PHẨM THIÊN NHIÊN" });
-            const reportTitle = t("technician.workspace.protocolTitleDoc", { defaultValue: "BIÊN BẢN THỬ NGHIỆM" });
-            const protocolName = protocolDetail?.protocolTitle || protocolDetail?.protocolCode || selectedProtocolCode || (primaryAnalysis as AnalysisListItem & { protocolCode?: string })?.protocolCode || "-";
+        const reportTitle = t("technician.workspace.protocolTitleDoc", { defaultValue: "BIÊN BẢN THỬ NGHIỆM" });
+        const protocolName = protocolDetail?.protocolTitle || protocolDetail?.protocolCode || selectedProtocolCode || (primaryAnalysis as AnalysisListItem & { protocolCode?: string })?.protocolCode || "-";
 
-            return `
-        <table style="width:100%; border-collapse:collapse; border:none; font-family:'Times New Roman',Times,serif;">
-          <thead>
+        return `
+        <table style="width:100%; border-collapse:collapse; font-family:'Times New Roman',Times,serif; font-size:12px; border:1px solid black !important; margin-bottom:12px;">
+          <tbody>
             <tr>
-              <th style="border:none !important; padding-bottom:10px;">
-                <table style="border:none !important; width:100%; border-collapse:collapse;">
-                  <tr>
-                    <td style="border:none !important; width:80px; vertical-align:top; padding:0;">
-                      <img src="${LOGO_URL}" style="height:52px; width:auto; object-fit:contain;" />
-                    </td>
-                    <td style="border:none !important; text-align:center; vertical-align:middle; padding:0 8px;">
-                      <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">${orgName}</div>
-                      <div style="font-size:15px; font-weight:700; text-transform:uppercase; margin-top:3px;">${reportTitle}</div>
-                      <div style="font-size:11px; font-weight:600; font-style:italic; margin-top:2px;">${protocolName}</div>
-                    </td>
-                    <td style="border:none !important; width:80px; padding:0;"></td>
-                  </tr>
-                </table>
-                <div style="border-top:1.5px solid #374151; margin-top:8px;"></div>
-              </th>
+              <td rowspan="2" style="width:100px; height:100px; text-align:center !important; vertical-align:middle !important; padding:5px; border:1px solid black !important;">
+                <img src="${base64Images.LOGOSORT}" style="max-height:90px; max-width:90px; object-fit:contain;" />
+              </td>
+              <td style="text-align:center !important; vertical-align:middle !important; padding:5px; border:1px solid black !important;">
+                <div style="font-size:12px; font-weight:bold !important;">${orgName}</div>
+                <div style="font-size:11px; font-weight:bold !important; margin-top:3px;">PHÒNG PHÂN TÍCH - KIỂM NGHIỆM</div>
+              </td>
+              <td rowspan="2" style="width:180px; text-align:left !important; vertical-align:middle !important; padding:8px; border:1px solid black !important; font-size:11px; line-height:1.6;">
+                <div>Mã biểu mẫu: </div>
+                <div>Ngày ban hành: </div>
+                <div>Lần ban hành: </div>
+              </td>
             </tr>
-          </thead>
+            <tr>
+              <td style="text-align:center !important; vertical-align:middle !important; padding:5px; border:1px solid black !important;">
+                <div style="font-size:14px; font-weight:bold !important;">${reportTitle}</div>
+                <div style="font-size:12px; font-weight:bold !important; font-style:italic; margin-top:2px;">${protocolName}</div>
+              </td>
+            </tr>
+          </tbody>
         </table>`;
-        },
-        [t, protocolDetail, selectedProtocolCode, primaryAnalysis],
-    );
+    }, [t, protocolDetail, selectedProtocolCode, primaryAnalysis]);
 
     const buildHeaderHtml = useCallback(() => {
             return `
         <table style="width:100%; border-collapse:collapse; border:none; font-family:'Times New Roman',Times,serif;">
           <thead>
             <tr>
-              <th id="report-dynamic-header" style="border:none !important; padding-bottom:10px;">
+              <th id="report-dynamic-header" contenteditable="false" style="border:none !important; padding-bottom:10px;">
                 ${buildHeaderInnerHtml()}
               </th>
             </tr>
@@ -493,6 +600,21 @@ export function TestProtocolEditor({ open, onOpenChange, analysis, analyses: ana
     const handleInit = useCallback((_evt: unknown, editor: any) => {
         editorRef.current = editor;
         setEditorReady(true);
+
+        // Auto focus the editor and place the cursor in the content area (cột 1 ô 2)
+        setTimeout(() => {
+            if (editor) {
+                editor.focus();
+                const tbody = editor.getBody().querySelector("tbody");
+                if (tbody) {
+                    const contentCell = tbody.querySelector("td");
+                    if (contentCell) {
+                        editor.selection.select(contentCell, true);
+                        editor.selection.collapse(true);
+                    }
+                }
+            }
+        }, 300);
     }, []);
 
     const handleQtyChange = (key: string, val: string) => {
@@ -1021,31 +1143,55 @@ ${HEADER_FOOTER}`;
                                         {/* Upload .docx from PC or System */}
                                         <div className="flex flex-col gap-2">
                                             <input ref={docxInputRef} type="file" accept=".docx" className="hidden" onChange={handleDocxUpload} />
-                                            <Button
-                                                variant="outline"
-                                                className="w-full flex justify-between shadow-sm"
-                                                onClick={() => setShowProtocolDocsModal(true)}
-                                            >
-                                                <FileText className="w-4 h-4" />
-                                                {t("technician.workspace.selectSysDoc", { defaultValue: "Chọn biểu mẫu từ Hệ thống" })}
-                                            </Button>
-
-                                            <div className="relative py-2">
-                                                <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
-                                                <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">{t("common.or", { defaultValue: "Hoặc" })}</span></div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    className="flex items-center justify-center gap-1.5 shadow-sm text-xs px-2 h-9"
+                                                    onClick={() => setShowProtocolDocsModal(true)}
+                                                >
+                                                    <FileText className="w-3.5 h-3.5 text-blue-600" />
+                                                    {t("technician.workspace.selectSysDocShort", { defaultValue: "Mẫu hệ thống" })}
+                                                </Button>
+                                                <Button
+                                                    variant="default"
+                                                    className="flex items-center justify-center gap-1.5 shadow-sm text-xs px-2 h-9"
+                                                    onClick={() => docxInputRef.current?.click()}
+                                                    disabled={isDocxLoading}
+                                                >
+                                                    {isDocxLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                                                    {t("technician.workspace.uploadDocxShort", { defaultValue: "Tải file Word" })}
+                                                </Button>
                                             </div>
-
-                                            <Button
-                                                variant="default"
-                                                className="w-full flex justify-between shadow-sm"
-                                                onClick={() => docxInputRef.current?.click()}
-                                                disabled={isDocxLoading}
-                                            >
-                                                {isDocxLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                                                {t("technician.workspace.uploadDocx", { defaultValue: "Tải file Word (.docx) vào biên bản" })}
-                                            </Button>
                                             <p className="text-xs text-muted-foreground text-center">
                                                 {t("technician.workspace.uploadDocxHint", { defaultValue: "File Word sẽ thay thế toàn bộ nội dung trong editor" })}
+                                            </p>
+
+                                            <div className="relative py-1">
+                                                <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
+                                                <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">{t("technician.workspace.spreadsheet", { defaultValue: "Bảng Tính" })}</span></div>
+                                            </div>
+
+                                            <input ref={excelInputRef} type="file" accept=".xlsx, .xls" className="hidden" onChange={handleExcelUpload} />
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    className="flex items-center justify-center gap-1.5 shadow-sm text-xs px-2 h-9 border-green-600/30 hover:border-green-600/50 hover:bg-green-500/5 hover:text-green-700 dark:hover:text-green-400"
+                                                    onClick={() => setShowExcelDocsModal(true)}
+                                                >
+                                                    <FileSpreadsheet className="w-3.5 h-3.5 text-green-600 dark:text-green-500" />
+                                                    {t("technician.workspace.selectSysExcelDocShort", { defaultValue: "Mẫu hệ thống" })}
+                                                </Button>
+                                                <Button
+                                                    variant="default"
+                                                    className="flex items-center justify-center gap-1.5 shadow-sm text-xs px-2 h-9 bg-green-600 hover:bg-green-700 text-white"
+                                                    onClick={() => excelInputRef.current?.click()}
+                                                >
+                                                    <FileSpreadsheet className="w-3.5 h-3.5 text-white" />
+                                                    {t("technician.workspace.uploadExcelShort", { defaultValue: "Tải file Excel" })}
+                                                </Button>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground text-center">
+                                                {t("technician.workspace.uploadExcelHint", { defaultValue: "Xem công thức, điền dữ liệu và chèn bảng Excel vào biên bản" })}
                                             </p>
                                         </div>
 
@@ -1133,6 +1279,23 @@ ${HEADER_FOOTER}`;
                             }}
                         />
                     )}
+
+                    {showExcelProtocolFormForUpload && directProtocolId && (
+                        <ProtocolFormModal
+                            protocolId={directProtocolId}
+                            onClose={() => {
+                                setShowExcelProtocolFormForUpload(false);
+                                setPendingExcelFile(null);
+                            }}
+                            autoOpenDocUpload={true}
+                            initialDocFiles={pendingExcelFile ? [pendingExcelFile] : []}
+                            onSuccess={() => {
+                                setShowExcelProtocolFormForUpload(false);
+                                setPendingExcelFile(null);
+                                toast.success("Đã cập nhật biểu mẫu bảng tính vào thư viện Phương pháp.");
+                            }}
+                        />
+                    )}
                 </DialogContent>
             </Dialog>
 
@@ -1179,40 +1342,113 @@ ${HEADER_FOOTER}`;
                             <Loader2 className="h-6 w-6 animate-spin text-primary" />
                         </div>
                     )}
-                    {!isLoadingProtocol && (!protocolDetail?.documents?.length && !protocolDetail?.protocolDocumentIds?.length) ? (
-                        <div className="text-center py-8 text-muted-foreground bg-muted/20 border border-border rounded-lg border-dashed text-sm">
-                            {t("technician.workspace.noSysDocs", { defaultValue: "Phương pháp này chưa có biểu mẫu đính kèm nào." })}
-                        </div>
-                    ) : null}
-                    {!isLoadingProtocol && (protocolDetail?.documents?.length || protocolDetail?.protocolDocumentIds?.length) ? (
-                        <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
-                            {(() => {
-                                const list = protocolDetail?.documents?.length ? protocolDetail.documents : protocolDetail?.protocolDocumentIds?.map((id: string) => ({ documentId: id })) || [];
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                return list.map((doc: any, i: number) => {
-                                    const title = doc.jsonContent?.documentTitle || doc.documentTitle || doc.file?.fileName || doc.documentId;
-                                    return (
-                                        <div key={doc.documentId || i} className="p-3 border rounded-lg flex items-center justify-between transition-colors hover:bg-muted/40 bg-card">
-                                            <div className="flex items-center gap-3 min-w-0">
-                                                <FileText className="w-4 h-4 shrink-0 text-blue-600" />
-                                                <div className="truncate text-sm font-medium">{title}</div>
+                    {(() => {
+                        const list = protocolDetail?.documents?.length ? protocolDetail.documents : protocolDetail?.protocolDocumentIds?.map((id: string) => ({ documentId: id })) || [];
+                        const wordList = list.filter((doc: any) => {
+                            const fileName = (doc.file?.fileName || doc.fileName || "").toLowerCase();
+                            const mime = (doc.file?.mimeType || doc.mimeType || "").toLowerCase();
+                            const isExcel = fileName.endsWith(".xlsx") || fileName.endsWith(".xls") || mime.includes("spreadsheet") || mime.includes("excel") || mime.includes("sheet");
+                            return !isExcel;
+                        });
+                        
+                        if (!isLoadingProtocol && wordList.length === 0) {
+                            return (
+                                <div className="text-center py-8 text-muted-foreground bg-muted/20 border border-border rounded-lg border-dashed text-sm">
+                                    {t("technician.workspace.noSysDocs", { defaultValue: "Phương pháp này chưa có biểu mẫu đính kèm nào." })}
+                                </div>
+                            );
+                        }
+                        
+                        if (!isLoadingProtocol && wordList.length > 0) {
+                            return (
+                                <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+                                    {wordList.map((doc: any, i: number) => {
+                                        const title = doc.jsonContent?.documentTitle || doc.documentTitle || doc.file?.fileName || doc.documentId;
+                                        return (
+                                            <div key={doc.documentId || i} className="p-3 border rounded-lg flex items-center justify-between transition-colors hover:bg-muted/40 bg-card">
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <FileText className="w-4 h-4 shrink-0 text-blue-600" />
+                                                    <div className="truncate text-sm font-medium">{title}</div>
+                                                </div>
+                                                <Button 
+                                                    variant="default"
+                                                    size="sm" 
+                                                    disabled={isSysDocLoading}
+                                                    onClick={() => handleSelectProtocolDoc(doc.documentId, title)}
+                                                    className="shrink-0 h-8"
+                                                >
+                                                    {isSysDocLoading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : null}
+                                                    {t("common.select", { defaultValue: "Chọn" })}
+                                                </Button>
                                             </div>
-                                            <Button 
-                                                variant="default"
-                                                size="sm" 
-                                                disabled={isSysDocLoading}
-                                                onClick={() => handleSelectProtocolDoc(doc.documentId, title)}
-                                                className="shrink-0 h-8"
-                                            >
-                                                {isSysDocLoading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : null}
-                                                {t("common.select", { defaultValue: "Chọn" })}
-                                            </Button>
-                                        </div>
-                                    );
-                                });
-                            })()}
+                                        );
+                                    })}
+                                </div>
+                            );
+                        }
+                        return null;
+                    })()}
+                </DialogContent>
+            </Dialog>
+
+            {/* Protocol Excel Docs Selection Modal */}
+            <Dialog open={showExcelDocsModal} onOpenChange={setShowExcelDocsModal}>
+                <DialogContent className="sm:max-w-[600px] [&>button:last-child]:hidden">
+                    <DialogTitle className="text-lg font-semibold">{t("technician.workspace.sysExcelDocs", { defaultValue: "Biểu mẫu Bảng tính" })}</DialogTitle>
+                    <div className="text-sm text-muted-foreground -mt-1 mb-2">
+                        {t("technician.workspace.sysExcelDocsHint", { defaultValue: "Danh sách các file bảng tính đính kèm thuộc phương pháp thử nghiệm. Chọn biểu mẫu để chèn." })}
+                    </div>
+                    {isLoadingProtocol && (
+                        <div className="py-8 flex justify-center">
+                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
                         </div>
-                    ) : null}
+                    )}
+                    {(() => {
+                        const list = protocolDetail?.documents?.length ? protocolDetail.documents : protocolDetail?.protocolDocumentIds?.map((id: string) => ({ documentId: id })) || [];
+                        const excelList = list.filter((doc: any) => {
+                            const fileName = (doc.file?.fileName || doc.fileName || "").toLowerCase();
+                            const mime = (doc.file?.mimeType || doc.mimeType || "").toLowerCase();
+                            const isExcel = fileName.endsWith(".xlsx") || fileName.endsWith(".xls") || mime.includes("spreadsheet") || mime.includes("excel") || mime.includes("sheet");
+                            return isExcel;
+                        });
+                        
+                        if (!isLoadingProtocol && excelList.length === 0) {
+                            return (
+                                <div className="text-center py-8 text-muted-foreground bg-muted/20 border border-border rounded-lg border-dashed text-sm">
+                                    {t("technician.workspace.noSysExcelDocs", { defaultValue: "Phương pháp này chưa có biểu mẫu bảng tính nào." })}
+                                </div>
+                            );
+                        }
+                        
+                        if (!isLoadingProtocol && excelList.length > 0) {
+                            return (
+                                <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+                                    {excelList.map((doc: any, i: number) => {
+                                        const title = doc.jsonContent?.documentTitle || doc.documentTitle || doc.file?.fileName || doc.documentId;
+                                        return (
+                                            <div key={doc.documentId || i} className="p-3 border rounded-lg flex items-center justify-between transition-colors hover:bg-muted/40 bg-card">
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <FileSpreadsheet className="w-4 h-4 shrink-0 text-green-600" />
+                                                    <div className="truncate text-sm font-medium">{title}</div>
+                                                </div>
+                                                <Button 
+                                                    variant="default"
+                                                    size="sm" 
+                                                    disabled={isExcelSysLoading}
+                                                    onClick={() => handleSelectProtocolExcelDoc(doc.documentId, title)}
+                                                    className="shrink-0 h-8"
+                                                >
+                                                    {isExcelSysLoading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : null}
+                                                    {t("common.select", { defaultValue: "Chọn" })}
+                                                </Button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            );
+                        }
+                        return null;
+                    })()}
                 </DialogContent>
             </Dialog>
 
@@ -1221,11 +1457,20 @@ ${HEADER_FOOTER}`;
             }}>
                 <DialogContent className="max-w-md">
                     <DialogTitle className="text-lg font-semibold text-foreground">
-                        Tạo mẫu biên bản cho Phương pháp?
+                        {!hasWordTemplate ? "Chưa có mẫu biên bản. Tạo mẫu cho Phương pháp?" : "Cập nhật mẫu biên bản cho Phương pháp?"}
                     </DialogTitle>
                     <div className="py-2 text-sm text-muted-foreground">
-                        Hệ thống nhận thấy bạn đang tạo biên bản từ file Word cho phương pháp <strong>{protocolDetail?.protocolTitle || selectedProtocolCode || "này"}</strong>.
-                        Bạn có muốn lưu file này vào thư viện để làm biểu mẫu (Template) cho các lần sau không?
+                        {!hasWordTemplate ? (
+                            <>
+                                Phương pháp <strong>{protocolDetail?.protocolTitle || selectedProtocolCode || "này"}</strong> chưa có biểu mẫu Word nào. 
+                                Bạn có muốn tải tệp này lên để làm mẫu chung (Template) cho các lần sau không?
+                            </>
+                        ) : (
+                            <>
+                                Hệ thống nhận thấy bạn đang tạo biên bản từ file Word cho phương pháp <strong>{protocolDetail?.protocolTitle || selectedProtocolCode || "này"}</strong>.
+                                Bạn có muốn cập nhật tệp này thành biểu mẫu mới trong thư viện không?
+                            </>
+                        )}
                     </div>
                     <div className="flex justify-end gap-2 mt-4">
                         <Button variant="outline" onClick={() => handleConfirmProtocolUpload(false)}>
@@ -1238,8 +1483,43 @@ ${HEADER_FOOTER}`;
                 </DialogContent>
             </Dialog>
 
+            <Dialog open={showExcelUploadConfirm} onOpenChange={(open) => {
+                if (!open && showExcelUploadConfirm) handleConfirmExcelUpload(false);
+            }}>
+                <DialogContent className="max-w-md">
+                    <DialogTitle className="text-lg font-semibold text-foreground">
+                        {!hasExcelTemplate ? "Chưa có mẫu trang tính. Tạo mẫu cho Phương pháp?" : "Cập nhật mẫu bảng tính cho Phương pháp?"}
+                    </DialogTitle>
+                    <div className="py-2 text-sm text-muted-foreground">
+                        {!hasExcelTemplate ? (
+                            <>
+                                Phương pháp <strong>{protocolDetail?.protocolTitle || selectedProtocolCode || "này"}</strong> chưa có biểu mẫu trang tính Excel nào. 
+                                Bạn có muốn tải tệp này lên để làm mẫu chung (Template) cho các lần sau không?
+                            </>
+                        ) : (
+                            <>
+                                Hệ thống nhận thấy bạn đang nhập dữ liệu từ file Excel cho phương pháp <strong>{protocolDetail?.protocolTitle || selectedProtocolCode || "này"}</strong>.
+                                Bạn có muốn cập nhật tệp này thành biểu mẫu mới trong thư viện không?
+                            </>
+                        )}
+                    </div>
+                    <div className="flex justify-end gap-2 mt-4">
+                        <Button variant="outline" onClick={() => handleConfirmExcelUpload(false)}>
+                            Không, chỉ chèn cho biên bản này
+                        </Button>
+                        <Button variant="default" onClick={() => handleConfirmExcelUpload(true)}>
+                            Có, cập nhật vào Phương pháp
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
-
+            <ExcelProcessorModal
+                open={showExcelModal}
+                onOpenChange={setShowExcelModal}
+                initialFile={excelFile}
+                onImportHtml={handleImportExcelHtml}
+            />
         </>
     );
 }

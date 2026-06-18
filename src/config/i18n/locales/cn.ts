@@ -8,7 +8,7 @@ export default {
         ref: "版本",
         draft: "草案",
         date: "日期",
-        customerInfo: "委托方 / 送样人",
+        customerInfo: "客户信息",
         sampleInfo: "样品信息",
         clientProvidedInfo: "客户提供信息",
         receiptInformation: "收样信息",

@@ -8,6 +8,7 @@ import { documentApi } from "@/api/documents";
 import { useState } from "react";
 import { DocumentPreviewModal, type PreviewType } from "@/components/document/DocumentPreviewModal";
 import { Separator } from "@/components/ui/separator";
+import { formatEquipmentDate } from "@/utils/format";
 
 function DocumentItem({ doc }: { doc: any }) {
     const [urlLoading, setUrlLoading] = useState(false);
@@ -117,7 +118,7 @@ function LogItem({ log }: { log: any }) {
             <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-foreground">{log.logType}</span>
-                    <span className="text-[10px] text-muted-foreground">{log.actionTime ? log.actionTime.split("T")[0] : ""}</span>
+                    <span className="text-[10px] text-muted-foreground">{formatEquipmentDate(log.actionTime)}</span>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
                     {log.logDescription}
@@ -230,7 +231,7 @@ export function EquipmentDetailPanel({ labInventoryId, onClose, onEdit }: Props)
                                     </div>
                                     <div className="space-y-1">
                                         <p className="text-[10px] text-muted-foreground font-bold uppercase">Ngày nhập kho</p>
-                                        <p className="text-xs font-medium">{item.labInventoryImportDate ? item.labInventoryImportDate.split("T")[0] : "-"}</p>
+                                        <p className="text-xs font-medium">{formatEquipmentDate(item.labInventoryImportDate)}</p>
                                     </div>
                                 </div>
 
@@ -261,14 +262,14 @@ export function EquipmentDetailPanel({ labInventoryId, onClose, onEdit }: Props)
                                     <p className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Hạn bảo hành</p>
                                     <div className="flex items-center gap-2">
                                         <Calendar className="h-3 w-3 text-amber-500" />
-                                        <span className="text-xs font-semibold">{item.labInventoryWarrantyExpiryDate ? item.labInventoryWarrantyExpiryDate.split("T")[0] : "N/A"}</span>
+                                        <span className="text-xs font-semibold">{formatEquipmentDate(item.labInventoryWarrantyExpiryDate)}</span>
                                     </div>
                                 </div>
                                 <div className="p-4 rounded-2xl border border-border/50 bg-muted/10">
                                     <p className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Hiệu chuẩn tới</p>
                                     <div className="flex items-center gap-2">
                                         <Activity className="h-3 w-3 text-blue-500" />
-                                        <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">{item.labInventoryNextCalibrationDate ? item.labInventoryNextCalibrationDate.split("T")[0] : "---"}</span>
+                                        <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">{formatEquipmentDate(item.labInventoryNextCalibrationDate)}</span>
                                     </div>
                                 </div>
                             </div>

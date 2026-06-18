@@ -20,7 +20,7 @@ import {
     Microscope,
     Monitor,
     Wrench,
-    Cpu,
+    Truck,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/config/theme/ThemeContext";
@@ -49,6 +49,7 @@ type NavItem =
           icon: LucideIcon;
           titleKey: string;
           descriptionKey: string;
+          disabled?: boolean;
       }
     | {
           type: "group";
@@ -111,10 +112,11 @@ export function Sidebar({ activeTab, onTabChange, sidebarOpen = true, onMobileCl
             {
                 type: "item",
                 id: "equipment",
-                icon: Cpu,
+                icon: Microscope,
                 titleKey: "nav.equipmentTitle",
                 descriptionKey: "nav.equipmentDescription",
             },
+
             {
                 type: "group",
                 id: "manager",
@@ -168,6 +170,13 @@ export function Sidebar({ activeTab, onTabChange, sidebarOpen = true, onMobileCl
             },
             {
                 type: "item",
+                id: "incoming-requests",
+                icon: Inbox,
+                titleKey: "nav.incomingRequestsTitle",
+                descriptionKey: "nav.incomingRequestsDescription",
+            },
+            {
+                type: "item",
                 id: "reception",
                 icon: Inbox,
                 titleKey: "nav.receptionTitle",
@@ -189,10 +198,15 @@ export function Sidebar({ activeTab, onTabChange, sidebarOpen = true, onMobileCl
             },
             {
                 type: "item",
-                id: "inventory",
-                icon: Package,
-                titleKey: "nav.inventoryTitle",
-                descriptionKey: "nav.inventoryDescription",
+                id: "return-results",
+                icon: Truck,
+                titleKey: "nav.returnResultsTitle",
+                descriptionKey: "nav.returnResultsDescription",
+            },
+            {
+                type: "section",
+                id: "section-inventory",
+                titleKey: "nav.section.inventory",
             },
             {
                 type: "item",
@@ -207,6 +221,14 @@ export function Sidebar({ activeTab, onTabChange, sidebarOpen = true, onMobileCl
                 icon: Wrench,
                 titleKey: "nav.generalInventoryTitle",
                 descriptionKey: "nav.generalInventoryDescription",
+            },
+            {
+                type: "item",
+                id: "inventory",
+                icon: Package,
+                titleKey: "nav.stationeryTitle",
+                descriptionKey: "nav.stationeryDescription",
+                disabled: true,
             },
             {
                 type: "section",
@@ -374,19 +396,30 @@ export function Sidebar({ activeTab, onTabChange, sidebarOpen = true, onMobileCl
                             }
 
                             const isActive = currentView === item.id;
+                            const isDisabled = item.disabled;
 
                             return (
                                 <button
                                     key={item.id}
-                                    onClick={() => setCurrentView(item.id)}
+                                    onClick={() => !isDisabled && setCurrentView(item.id)}
+                                    disabled={isDisabled}
                                     className={`w-full flex items-start gap-2 px-3 py-2 rounded-lg transition-colors ${
-                                        isActive ? "bg-primary/10 text-primary font-medium" : "text-foreground hover:bg-muted"
+                                        isActive 
+                                            ? "bg-primary/10 text-primary font-medium" 
+                                            : isDisabled
+                                                ? "opacity-50 cursor-not-allowed"
+                                                : "text-foreground hover:bg-muted"
                                     }`}
                                     type="button"
                                 >
                                     <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
                                     <div className="text-left flex-1 min-w-0">
-                                        <div className="text-sm font-medium truncate">{t(item.titleKey)}</div>
+                                        <div className="text-sm font-medium truncate flex items-center gap-1.5">
+                                            {t(item.titleKey)}
+                                            {isDisabled && (
+                                                <span className="text-[8px] bg-muted px-1 rounded text-muted-foreground uppercase font-mono font-bold leading-tight">LOCKED</span>
+                                            )}
+                                        </div>
                                         <div className="text-xs text-muted-foreground mt-0.5 truncate">{t(item.descriptionKey)}</div>
                                     </div>
                                 </button>
@@ -534,13 +567,21 @@ export function Sidebar({ activeTab, onTabChange, sidebarOpen = true, onMobileCl
                             }
 
                             const isActive = currentView === item.id;
+                            const isDisabled = item.disabled;
 
                             return (
                                 <button
                                     key={item.id}
-                                    onClick={() => setCurrentView(item.id)}
-                                    className={`w-full p-2 rounded-lg transition-colors flex items-center justify-center ${isActive ? "bg-primary/10" : "hover:bg-muted"}`}
-                                    title={t(item.titleKey)}
+                                    onClick={() => !isDisabled && setCurrentView(item.id)}
+                                    disabled={isDisabled}
+                                    className={`w-full p-2 rounded-lg transition-colors flex items-center justify-center ${
+                                        isActive 
+                                            ? "bg-primary/10" 
+                                            : isDisabled
+                                                ? "opacity-50 cursor-not-allowed"
+                                                : "hover:bg-muted"
+                                    }`}
+                                    title={t(item.titleKey) + (isDisabled ? " (LOCKED)" : "")}
                                     type="button"
                                 >
                                     <Icon className={`h-5 w-5 ${isActive ? "text-primary" : "text-muted-foreground"}`} />

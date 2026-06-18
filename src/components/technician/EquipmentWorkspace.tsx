@@ -1,43 +1,42 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Scale, Microscope, Layers, Settings } from "lucide-react";
+import { Scale, Microscope, Layers } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSerialBalance } from "@/contexts/SerialBalanceContext";
-import { useAuth } from "@/contexts/AuthContext";
 import { AnalyticalBalanceStreamer } from "./AnalyticalBalanceStreamer";
 import { CameraStreamer } from "./CameraStreamer";
-import { EquipmentCatalogTab } from "./EquipmentCatalogTab";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
 
-export function EquipmentWorkspace() {
+export function EquipmentWorkspace({ hideHeader = false }: { hideHeader?: boolean }) {
     const { t } = useTranslation();
     const { isConnected } = useSerialBalance();
-    const { isAdmin } = useAuth();
-    const [activeTab, setActiveTab] = useState(isAdmin ? "catalog" : "balance");
+    const [activeTab, setActiveTab] = useState("balance");
+    const [isDefaultBalance, setIsDefaultBalance] = useState(() => localStorage.getItem("uiMode") === "equipment");
+
+    const handleDefaultBalanceChange = (checked: boolean) => {
+        if (checked) {
+            toast.warning("Thiết bị này chỉ dùng cho cân, không thực hiện được các phần khác.", {
+                duration: 5000,
+            });
+            localStorage.setItem("uiMode", "equipment");
+            setIsDefaultBalance(true);
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            localStorage.removeItem("uiMode");
+            setIsDefaultBalance(false);
+            window.location.reload();
+        }
+    };
 
     return (
-        <div className="flex h-full flex-col gap-4 p-6 bg-background space-y-4">
-            <div className="bg-card rounded-lg border border-border p-6 flex flex-col items-start gap-4 shadow-sm">
-                <div className="flex w-full justify-between items-start">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight">
-                            {String(t("equipment.title", { defaultValue: "Thiết bị phòng Lab" }))}
-                        </h1>
-                        <p className="text-muted-foreground text-sm mt-1">
-                            {String(t("equipment.subtitle", { defaultValue: "Quản lý luồng dữ liệu, hiệu chuẩn và trạng thái thiết bị." }))}
-                        </p>
-                    </div>
-                </div>
-            </div>
+        <div className={`flex h-full flex-col gap-4 ${hideHeader ? "" : "p-6"} bg-background space-y-4`}>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                    <TabsList className={`grid w-full ${isAdmin ? "grid-cols-4 md:w-[800px]" : "grid-cols-3 md:w-[600px]"}`}>
-                        {isAdmin && (
-                            <TabsTrigger value="catalog" className="flex items-center gap-1.5">
-                                <Settings className="w-3.5 h-3.5" />
-                                <span>Danh mục thiết bị</span>
-                            </TabsTrigger>
-                        )}
+                    <TabsList className="grid w-full grid-cols-3 md:w-[600px]">
                         <TabsTrigger value="balance" className="relative flex items-center gap-1.5">
                             <Scale className="w-3.5 h-3.5" />
                             <span>{String(t("equipment.tabs.balance", { defaultValue: "Cân phân tích" }))}</span>
@@ -60,6 +59,17 @@ export function EquipmentWorkspace() {
                             </span>
                         </TabsTrigger>
                     </TabsList>
+
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-card shadow-sm text-xs font-medium text-foreground">
+                        <label htmlFor="default-balance-mode" className="cursor-pointer select-none">
+                            Mặc định thiết bị kết nối cân
+                        </label>
+                        <Switch
+                            id="default-balance-mode"
+                            checked={isDefaultBalance}
+                            onCheckedChange={handleDefaultBalanceChange}
+                        />
+                    </div>
                 </div>
 
                 <div className="flex-1 flex flex-col min-h-0">
@@ -71,10 +81,6 @@ export function EquipmentWorkspace() {
 
                     {activeTab === "tlc" && (
                         <CameraStreamer deviceType="tlc" />
-                    )}
-
-                    {activeTab === "catalog" && isAdmin && (
-                        <EquipmentCatalogTab />
                     )}
                 </div>
             </Tabs>

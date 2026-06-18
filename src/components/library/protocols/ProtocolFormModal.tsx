@@ -351,9 +351,17 @@ export function ProtocolFormModal({ onClose, protocolId, initialData, onSuccess,
                     open={uploadDocOpen}
                     onClose={() => setUploadDocOpen(false)}
                     fixedDocumentType="PROTOCOL_DOC"
-                    initialTitle={autoOpenDocUpload
-                        ? `MẪU biên bản thử nghiệm ${protocolCode || ""}`.trim()
-                        : (protocolTitle || protocolCode)}
+                    initialTitle={(() => {
+                        const now = new Date();
+                        const dd = String(now.getDate()).padStart(2, "0");
+                        const mm = String(now.getMonth() + 1).padStart(2, "0");
+                        const suffix = `_${dd}/${mm}`;
+                        if (autoOpenDocUpload) {
+                            return `MẪU biên bản thử nghiệm ${protocolCode || ""}${suffix}`.trim();
+                        }
+                        const baseTitle = protocolTitle || protocolCode || "";
+                        return baseTitle ? `${baseTitle}${suffix}` : "";
+                    })()}
                     initialCommonKeys={protocolCode ? [protocolCode] : undefined}
                     initialRefType="Protocol"
                     initialRefId={protocolId}

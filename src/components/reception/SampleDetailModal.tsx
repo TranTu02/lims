@@ -25,6 +25,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ChevronsUpDown, Check, CheckSquare, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AccreditationBadges } from "@/components/library/shared/AccreditationTagInput";
 
 import type { ReceiptDetail, ReceiptSample, ReceiptAnalysis } from "@/types/receipt";
 
@@ -713,6 +714,7 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave: _onSave, f
                                         <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">{String(t("lab.analyses.parameterName"))}</th>
                                         <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Nền mẫu</th>
                                         <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">{String(t("lab.analyses.protocolCode"))}</th>
+                                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Công nhận</th>
                                         <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Nơi thực hiện</th>
                                         <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">{String(t("lab.analyses.analysisStatus", { defaultValue: "Trạng thái" }))}</th>
                                         <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Người phụ trách</th>
@@ -794,6 +796,10 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave: _onSave, f
                                                     ) : (
                                                         <span className="text-foreground">{analysis.protocolCode ?? "-"}</span>
                                                     )}
+                                                </td>
+
+                                                <td className="px-3 py-2">
+                                                    <AccreditationBadges value={analysis.protocolAccreditation as any} className="text-xs" />
                                                 </td>
 
                                                 <td className="px-3 py-2">
@@ -994,72 +1000,7 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave: _onSave, f
                         </div>
                     </div>
 
-                    <div>
-                        <div className="flex items-center justify-between mb-2">
-                            <h3 className="font-semibold text-foreground">{String(t("reception.sampleDetail.attachedFiles"))}</h3>
-                            {isEditingInfo && (
-                                <Button variant="outline" size="sm" className="text-xs flex items-center gap-1">
-                                    <Upload className="h-3 w-3" />
-                                    {String(t("common.upload"))}
-                                </Button>
-                            )}
-                        </div>
 
-                        <div className="bg-background border border-border rounded-lg overflow-hidden overflow-x-auto">
-                            {attachedFiles.length > 0 ? (
-                                <table className="min-w-full divide-y divide-border">
-                                    <thead className="bg-muted/50">
-                                        <tr>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("common.fileName"))}</th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("common.type"))}</th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("common.size"))}</th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("common.uploadedBy"))}</th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("common.uploadedAt"))}</th>
-                                            <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase">{String(t("common.actions"))}</th>
-                                        </tr>
-                                    </thead>
-
-                                    <tbody className="divide-y divide-border">
-                                        {attachedFiles.map((file) => (
-                                            <tr key={file.fileId} className="hover:bg-muted/30">
-                                                <td className="px-4 py-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <FileText className="h-4 w-4 text-muted-foreground" />
-                                                        <span className="text-sm text-foreground">{file.fileName}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <Badge variant="outline" className="text-xs">
-                                                        {file.mimeType ?? "-"}
-                                                    </Badge>
-                                                </td>
-                                                <td className="px-4 py-3 text-sm text-foreground">{file.fileSize ?? "-"}</td>
-                                                <td className="px-4 py-3 text-sm text-foreground">{file.createdById ?? "-"}</td>
-                                                <td className="px-4 py-3 text-sm text-foreground">{file.createdAt ?? "-"}</td>
-                                                <td className="px-4 py-3">
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                                            <Download className="h-4 w-4" />
-                                                        </Button>
-                                                        {isEditingInfo && (
-                                                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive">
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </Button>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            ) : (
-                                <div className="p-8 text-center text-muted-foreground">
-                                    <FileText className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
-                                    <p>{String(t("reception.receiptDetail.noFile"))}</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
 
                     <div className="mt-4 pt-4 border-t border-border/50">
                         <div className="flex items-center gap-2 mb-3">

@@ -169,6 +169,36 @@ export async function receiptsGetProcessing(input: ReceiptsGetListInput = {}): P
     });
 }
 
+export async function receiptsGetOverdue(input: ReceiptsGetListInput = {}): Promise<ApiResponse<ReceiptDetail[]>> {
+    const { query, sort } = input;
+    const finalQuery: StandardListQuery = { ...(query ?? {}) };
+
+    if (sort) {
+        if (sort.column) finalQuery.sortColumn = String(sort.column);
+        if (sort.direction) finalQuery.sortDirection = String(sort.direction);
+    }
+
+    return api.get<ReceiptDetail[], StandardListQuery>("/v2/receipts/get/overdue", {
+        query: finalQuery,
+        headers: noCacheHeaders,
+    });
+}
+
+export async function receiptsGetCompletedAnalyses(input: ReceiptsGetListInput = {}): Promise<ApiResponse<ReceiptDetail[]>> {
+    const { query, sort } = input;
+    const finalQuery: StandardListQuery = { ...(query ?? {}) };
+
+    if (sort) {
+        if (sort.column) finalQuery.sortColumn = String(sort.column);
+        if (sort.direction) finalQuery.sortDirection = String(sort.direction);
+    }
+
+    return api.get<ReceiptDetail[], StandardListQuery>("/v2/receipts/get/completed-analyses", {
+        query: finalQuery,
+        headers: noCacheHeaders,
+    });
+}
+
 export async function receiptsGetFull(input: ReceiptsGetFullInput): Promise<ApiResponse<ReceiptDetail>> {
     const { receiptId, query } = input;
     return api.get<ReceiptDetail>("/v2/receipts/get/full", {
@@ -323,6 +353,24 @@ export function useReceiptsProcessing(input?: ReceiptsGetListInput, opts?: { ena
         enabled: opts?.enabled ?? true,
         placeholderData: keepPreviousData,
         queryFn: async () => assertSuccessWithMeta(await receiptsGetProcessing(input ?? {})),
+    });
+}
+
+export function useReceiptsOverdue(input?: ReceiptsGetListInput, opts?: { enabled?: boolean }) {
+    return useQuery({
+        queryKey: [...receiptsKeys.all, "overdue", stableKey(input ?? {})] as const,
+        enabled: opts?.enabled ?? true,
+        placeholderData: keepPreviousData,
+        queryFn: async () => assertSuccessWithMeta(await receiptsGetOverdue(input ?? {})),
+    });
+}
+
+export function useReceiptsCompletedAnalyses(input?: ReceiptsGetListInput, opts?: { enabled?: boolean }) {
+    return useQuery({
+        queryKey: [...receiptsKeys.all, "completed-analyses", stableKey(input ?? {})] as const,
+        enabled: opts?.enabled ?? true,
+        placeholderData: keepPreviousData,
+        queryFn: async () => assertSuccessWithMeta(await receiptsGetCompletedAnalyses(input ?? {})),
     });
 }
 

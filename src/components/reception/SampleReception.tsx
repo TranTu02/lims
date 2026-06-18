@@ -21,7 +21,7 @@ import { IncomingRequestDetailModal } from "@/components/reception/IncomingReque
 import { CreateIncomingRequestFromOrderModalWrapper } from "@/components/reception/CreateIncomingRequestFromOrderModal";
 import ShipmentManagerModal from "@/components/reception/shipment/ShipmentManagerModal";
 
-import { receiptsGetFull, useReceiptsProcessing, useReceiptsList } from "@/api/receipts";
+import { receiptsGetFull, useReceiptsProcessing, useReceiptsList, useReceiptsOverdue, useReceiptsCompletedAnalyses } from "@/api/receipts";
 import { useIncomingRequestsList } from "@/api/incomingRequests";
 import type { ReceiptDetail, ReceiptListItem } from "@/types/receipt";
 import type { IncomingRequestListItem } from "@/types/incomingRequest";
@@ -31,17 +31,16 @@ import { useServerPagination } from "@/components/library/hooks/useServerPaginat
 import { ReceiptsTable, type TabKey } from "@/components/reception/ReceiptsTable";
 import { type FilterValues } from "@/components/reception/FilterBar";
 
-function isOverdue(deadlineIso?: string | null): boolean {
-    if (!deadlineIso) return false;
-    const tt = new Date(deadlineIso).getTime();
-    if (!Number.isFinite(tt)) return false;
-    return tt < Date.now();
-}
-
-export function SampleReception() {
+export function SampleReception({ defaultTab = "incoming-requests", showTabs = false }: { defaultTab?: TabKey; showTabs?: boolean }) {
     const { t } = useTranslation();
 
-    const [activeTab, setActiveTab] = useState<TabKey>("incoming-requests");
+    const [activeTab, setActiveTab] = useState<TabKey>(defaultTab);
+    const [customFilterMode, setCustomFilterMode] = useState<"none" | "overdue" | "completed-analyses">("none");
+
+    useEffect(() => {
+        setActiveTab(defaultTab);
+        setCustomFilterMode("none");
+    }, [defaultTab]);
     const [searchTerm, setSearchTerm] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
     const [searchOption, setSearchOption] = useState<"normal" | "full">("normal");
@@ -99,6 +98,11 @@ export function SampleReception() {
             query.option = "full";
         }
 
+        if (activeTab === "return-results") {
+            query.option = "full";
+            query["receiptStatus[]"] = ["Completed", "Reported"];
+        }
+
         // Apply receipt filters
         Object.entries(filterValues).forEach(([col, vals]) => {
             if (vals && vals.length > 0) query[`${col}[]`] = vals;
@@ -108,22 +112,32 @@ export function SampleReception() {
             query,
             sort: { column: "createdAt", direction: "DESC" as const },
         };
-    }, [pagination.currentPage, pagination.itemsPerPage, searchQuery, searchOption, filterValues]);
+    }, [pagination.currentPage, pagination.itemsPerPage, searchQuery, searchOption, filterValues, activeTab]);
 
     const receiptsProcessingQ = useReceiptsProcessing(listInput, { 
-        enabled: isProcessingTab && searchOption !== "full" 
+        enabled: isProcessingTab && searchOption !== "full" && customFilterMode === "none"
     });
     const receiptsListQ = useReceiptsList(listInput, { 
-        enabled: (!isProcessingTab && !isIncomingTab) || (isProcessingTab && searchOption === "full")
+        enabled: ((!isProcessingTab && !isIncomingTab) || (isProcessingTab && searchOption === "full")) && customFilterMode === "none"
+    });
+    const receiptsOverdueQ = useReceiptsOverdue(listInput, {
+        enabled: !isIncomingTab && customFilterMode === "overdue"
+    });
+    const receiptsCompletedAnalysesQ = useReceiptsCompletedAnalyses(listInput, {
+        enabled: !isIncomingTab && customFilterMode === "completed-analyses"
     });
 
     // ── Active data ──────────────────────────────────────────────────────────
     // Nếu là full-search thì luôn dùng receiptsListQ (get/list) thay vì get/processing
     const activeQuery = isIncomingTab 
         ? incomingQ 
-        : (isProcessingTab && searchOption !== "full") 
-            ? receiptsProcessingQ 
-            : receiptsListQ;
+        : customFilterMode === "overdue"
+            ? receiptsOverdueQ
+            : customFilterMode === "completed-analyses"
+                ? receiptsCompletedAnalysesQ
+                : (isProcessingTab && searchOption !== "full") 
+                    ? receiptsProcessingQ 
+                    : receiptsListQ;
 
     const pageItems = useMemo(() => (activeQuery.data?.data ?? []) as ReceiptListItem[], [activeQuery.data]);
     const incomingItems = useMemo(() => (incomingQ.data?.data ?? []) as IncomingRequestListItem[], [incomingQ.data]);
@@ -140,9 +154,6 @@ export function SampleReception() {
         setServerTotalPages(totalPages);
     }, [totalPages]);
 
-    const overdueReceipts = useMemo(() => {
-        return pageItems.filter((r) => isOverdue(r.receiptDeadline)).length;
-    }, [pageItems]);
 
     const isLoading = activeQuery.isLoading || activeQuery.isFetching;
     const isError = activeQuery.isError;
@@ -217,81 +228,89 @@ export function SampleReception() {
                 receiptId={shippingReceiptId || ""} 
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-card rounded-lg border border-border p-4">
-                    <div className="text-sm text-muted-foreground">{t("reception.sampleReception.metrics.totalReceipts")}</div>
-                    <div className="text-3xl font-semibold mt-1 text-foreground">{totalItems}</div>
-                </div>
-
-                <div className="bg-card rounded-lg border border-border p-4">
-                    <div className="text-sm text-muted-foreground">{t("reception.sampleReception.metrics.overdueReceipts")}</div>
-                    <div className="text-3xl font-semibold mt-1 text-destructive">{overdueReceipts}</div>
-                </div>
-
-                <div className="bg-card rounded-lg border border-border p-4">
-                    <div className="text-sm text-muted-foreground">{t("reception.sampleReception.metrics.pendingSamples")}</div>
-                    <div className="text-3xl font-semibold mt-1 text-muted-foreground">0</div>
-                </div>
-
-                <div className="bg-card rounded-lg border border-border p-4">
-                    <div className="text-sm text-muted-foreground">{t("reception.sampleReception.metrics.returnResults")}</div>
-                    <div className="text-3xl font-semibold mt-1 text-foreground">{totalItems}</div>
-                </div>
-            </div>
 
             <div className="bg-card rounded-lg border border-border p-4">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-                    <div className="flex gap-2 bg-muted/50 p-1 rounded-lg">
-                        {/* ── Tab: Yêu cầu tiếp nhận ──────────────────── */}
-                        <Button
-                            variant={activeTab === "incoming-requests" ? "secondary" : "ghost"}
-                            size="sm"
-                            onClick={() => {
-                                setActiveTab("incoming-requests");
-                                setSearchOption("normal");
-                                setFilterValues(emptyFilters());
-                                pagination.resetPage();
-                            }}
-                            className={`flex items-center gap-2 ${activeTab === "incoming-requests" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}
-                        >
-                            <Inbox className="h-4 w-4" />
-                            {t("reception.sampleReception.tabs.incomingRequests", { defaultValue: "Yêu cầu tiếp nhận" })} {activeTab === "incoming-requests" ? `(${totalItems})` : ""}
-                        </Button>
+                    {showTabs && (
+                        <div className="flex gap-2 bg-muted/50 p-1 rounded-lg">
+                            {/* ── Tab: Yêu cầu tiếp nhận ──────────────────── */}
+                            <Button
+                                variant={activeTab === "incoming-requests" ? "secondary" : "ghost"}
+                                size="sm"
+                                onClick={() => {
+                                    setActiveTab("incoming-requests");
+                                    setSearchOption("normal");
+                                    setFilterValues(emptyFilters());
+                                    pagination.resetPage();
+                                }}
+                                className={`flex items-center gap-2 ${activeTab === "incoming-requests" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}
+                            >
+                                <Inbox className="h-4 w-4" />
+                                {t("reception.sampleReception.tabs.incomingRequests", { defaultValue: "Yêu cầu tiếp nhận" })}
+                            </Button>
 
-                        {/* ── Tab: Đang xử lý ─────────────────────────── */}
-                        <Button
-                            variant={activeTab === "processing" ? "secondary" : "ghost"}
-                            size="sm"
-                            onClick={() => {
-                                setActiveTab("processing");
-                                setSearchOption("normal");
-                                setFilterValues(emptyFilters());
-                                pagination.resetPage();
-                            }}
-                            className={`flex items-center gap-2 ${activeTab === "processing" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}
-                        >
-                            <Package className="h-4 w-4" />
-                            {t("reception.sampleReception.tabs.processing")} {activeTab === "processing" ? `(${totalItems})` : ""}
-                        </Button>
+                            {/* ── Tab: Đang xử lý ─────────────────────────── */}
+                            <Button
+                                variant={activeTab === "processing" ? "secondary" : "ghost"}
+                                size="sm"
+                                onClick={() => {
+                                    setActiveTab("processing");
+                                    setSearchOption("normal");
+                                    setFilterValues(emptyFilters());
+                                    pagination.resetPage();
+                                }}
+                                className={`flex items-center gap-2 ${activeTab === "processing" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}
+                            >
+                                <Package className="h-4 w-4" />
+                                {t("reception.sampleReception.tabs.processing")}
+                            </Button>
 
-                        {/* ── Tab: Trả kết quả ────────────────────────── */}
-                        <Button
-                            variant={activeTab === "return-results" ? "secondary" : "ghost"}
-                            size="sm"
-                            onClick={() => {
-                                setActiveTab("return-results");
-                                setSearchOption("full");
-                                setFilterValues({ receiptStatus: ["Completed", "Reported"] });
-                                pagination.resetPage();
-                            }}
-                            className={`flex items-center gap-2 ${activeTab === "return-results" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}
-                        >
-                            <Truck className="h-4 w-4" />
-                            {t("reception.sampleReception.tabs.returnResults")} {activeTab === "return-results" ? `(${totalItems})` : ""}
-                        </Button>
-                    </div>
+                            {/* ── Tab: Trả kết quả ────────────────────────── */}
+                            <Button
+                                variant={activeTab === "return-results" ? "secondary" : "ghost"}
+                                size="sm"
+                                onClick={() => {
+                                    setActiveTab("return-results");
+                                    setSearchOption("full");
+                                    setFilterValues({ receiptStatus: ["Completed", "Reported"] });
+                                    pagination.resetPage();
+                                }}
+                                className={`flex items-center gap-2 ${activeTab === "return-results" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}
+                            >
+                                <Truck className="h-4 w-4" />
+                                {t("reception.sampleReception.tabs.returnResults")}
+                            </Button>
+                        </div>
+                    )}
 
-                    <div className="flex items-center gap-2 flex-1 w-full md:w-auto md:max-w-md">
+                    {!isIncomingTab && !showTabs && (
+                        <div className="flex gap-2">
+                            <Button
+                                variant={customFilterMode === "completed-analyses" ? "secondary" : "outline"}
+                                size="sm"
+                                onClick={() => {
+                                    setCustomFilterMode((prev) => (prev === "completed-analyses" ? "none" : "completed-analyses"));
+                                    pagination.resetPage();
+                                }}
+                                className={`text-xs h-9 ${customFilterMode === "completed-analyses" ? "bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200" : ""}`}
+                            >
+                                Chờ xuất phiếu
+                            </Button>
+                            <Button
+                                variant={customFilterMode === "overdue" ? "secondary" : "outline"}
+                                size="sm"
+                                onClick={() => {
+                                    setCustomFilterMode((prev) => (prev === "overdue" ? "none" : "overdue"));
+                                    pagination.resetPage();
+                                }}
+                                className={`text-xs h-9 ${customFilterMode === "overdue" ? "bg-red-50 text-red-700 hover:bg-red-100 border-red-200" : ""}`}
+                            >
+                                Quá hạn
+                            </Button>
+                        </div>
+                    )}
+
+                    <div className="flex items-center gap-2 flex-1 w-full md:w-auto md:max-w-md md:ml-auto">
                         <div className="relative flex-1">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input

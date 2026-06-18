@@ -151,16 +151,7 @@ export function LabManagerExceptions() {
 
     return (
         <div className="flex h-full flex-col gap-4 p-6 bg-background space-y-4">
-            {/* Header */}
-            <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
-                <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-                    <AlertTriangle className="h-6 w-6 text-amber-500" />
-                    {String(t("nav.managerExceptions", { defaultValue: "Mẫu - Chỉ tiêu cần xử lý" }))}
-                </h1>
-                <p className="text-muted-foreground text-sm mt-1">
-                    {String(t("nav.managerExceptionsDesc", { defaultValue: "Giám sát các trường hợp đặc biệt: mẫu khẩn, khiếu nại, làm lại, thầu phụ." }))}
-                </p>
-            </div>
+            
 
             {/* Tabs + Search */}
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ExceptionTab)} className="flex-1 flex flex-col">

@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { Pagination } from "@/components/ui/pagination";
 import { 
     useEquipmentsList, 
     useEquipmentTechnicians, 
@@ -30,6 +31,7 @@ import {
     useDeleteEquipment 
 } from "@/api/equipments";
 import type { Equipment } from "@/types/equipment";
+import { formatEquipmentDate } from "@/utils/format";
 
 export function EquipmentCatalogTab() {
     const { user } = useAuth();
@@ -38,7 +40,8 @@ export function EquipmentCatalogTab() {
     const isSuperAdmin = user?.identityRoles?.some(r => ["ROLE_SUPER_ADMIN", "ROLE_ADMIN", "admin", "superAdmin"].includes(r)) || false;
 
     const [search, setSearch] = useState("");
-    const [page] = useState(1);
+    const [page, setPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(50);
     const [selectedEquipmentId, setSelectedEquipmentId] = useState<string | null>(null);
     const [modalOpen, setModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState<"create" | "edit" | "view">("view");
@@ -70,9 +73,12 @@ export function EquipmentCatalogTab() {
     // Queries
     const { data: equipmentsRes, isLoading: isListLoading, refetch } = useEquipmentsList({
         page,
-        itemsPerPage: 50,
+        itemsPerPage,
         search: search || undefined
     });
+
+    const totalItems = equipmentsRes?.meta?.total ?? 0;
+    const totalPages = equipmentsRes?.meta?.totalPages ?? 1;
 
     const { data: technicians, isLoading: isTechLoading } = useEquipmentTechnicians();
     const { data: fullDetails, isLoading: isDetailLoading } = useEquipmentFull(selectedEquipmentId);
@@ -292,7 +298,7 @@ export function EquipmentCatalogTab() {
                                     <TableCell className="text-xs">{eq.equipmentModel ?? "-"}</TableCell>
                                     <TableCell className="text-xs max-w-xs truncate">{getTechNames(eq.identityChargeIds)}</TableCell>
                                     <TableCell className="text-xs">
-                                        {eq.nextCalibrationDate ? new Date(eq.nextCalibrationDate).toLocaleDateString("vi-VN") : "-"}
+                                        {formatEquipmentDate(eq.nextCalibrationDate)}
                                     </TableCell>
                                     <TableCell className="text-right" onClick={e => e.stopPropagation()}>
                                         <div className="flex justify-end gap-1.5">
@@ -323,6 +329,18 @@ export function EquipmentCatalogTab() {
                         )}
                     </TableBody>
                 </Table>
+                
+                <Pagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    itemsPerPage={itemsPerPage}
+                    totalItems={totalItems}
+                    onPageChange={setPage}
+                    onItemsPerPageChange={(ipp) => {
+                        setItemsPerPage(ipp);
+                        setPage(1);
+                    }}
+                />
             </div>
 
             {/* View/Edit/Create Modal - width 80% and height 80% */}
@@ -683,7 +701,7 @@ export function EquipmentCatalogTab() {
                                                 {fullDetails.logs.map(log => (
                                                     <TableRow key={log.equipmentLogId} className="text-xs">
                                                         <TableCell className="font-mono text-muted-foreground text-[11px]">
-                                                            {log.actionTime ? new Date(log.actionTime).toLocaleString("vi-VN") : "-"}
+                                                            {formatEquipmentDate(log.actionTime)}
                                                         </TableCell>
                                                         <TableCell>
                                                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${

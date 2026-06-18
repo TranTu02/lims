@@ -105,17 +105,8 @@ export function LabManagerAnalyses() {
 
     return (
         <div className="flex h-full flex-col gap-4 p-6 bg-background space-y-4">
-            {/* Header */}
-            <div className="bg-card rounded-lg border border-border p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-                        <TestTube2 className="h-6 w-6 text-purple-500" />
-                        {String(t("nav.managerAnalyses", { defaultValue: "Danh sách chỉ tiêu đang thực hiện" }))}
-                    </h1>
-                    <p className="text-muted-foreground text-sm mt-1">
-                        {String(t("nav.managerAnalysesDesc", { defaultValue: "Theo dõi chi tiết phân công, lọc theo nhóm, người thực hiện." }))}
-                    </p>
-                </div>
+            {/* Toolbar */}
+            <div className="flex flex-col md:flex-row md:items-center justify-end gap-4 mb-2">
                 <div className="relative w-full md:w-80">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input placeholder={String(t("common.search"))} value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 shadow-sm" />

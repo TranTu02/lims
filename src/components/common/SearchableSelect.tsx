@@ -34,6 +34,13 @@ type Props = {
 
     allowCustomValue?: boolean;
     onCreateNew?: (searchValue: string) => void;
+
+    hasPreviousPage?: boolean;
+    hasNextPage?: boolean;
+    onPreviousPage?: () => void;
+    onNextPage?: () => void;
+    currentPage?: number;
+    totalPages?: number;
 };
 
 function normalize(s: string) {
@@ -56,6 +63,12 @@ export function SearchableSelect({
     filterMode = "client",
     allowCustomValue = false,
     onCreateNew,
+    hasPreviousPage,
+    hasNextPage,
+    onPreviousPage,
+    onNextPage,
+    currentPage,
+    totalPages,
 }: Props) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
@@ -179,6 +192,43 @@ export function SearchableSelect({
                                 </div>
                             )}
                         </CommandList>
+
+                        {/* Pagination Footer */}
+                        {(hasPreviousPage || hasNextPage || (totalPages && totalPages > 1)) && (
+                            <div className="flex items-center justify-between p-2 border-t border-border bg-muted/50 text-xs shrink-0 select-none">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 hover:bg-muted text-foreground"
+                                    disabled={!hasPreviousPage}
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        onPreviousPage?.();
+                                    }}
+                                >
+                                    Trước
+                                </Button>
+                                <span className="text-muted-foreground font-medium">
+                                    Trang {currentPage} / {totalPages}
+                                </span>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 hover:bg-muted text-foreground"
+                                    disabled={!hasNextPage}
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        onNextPage?.();
+                                    }}
+                                >
+                                    Sau
+                                </Button>
+                            </div>
+                        )}
                     </Command>
                 </PopoverPrimitive.Content>
             </PopoverPrimitive.Portal>

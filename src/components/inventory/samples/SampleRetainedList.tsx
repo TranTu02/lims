@@ -119,6 +119,7 @@ export function SampleRetainedList() {
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("lab.samples.sampleId"))}</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("lab.samples.sampleName"))}</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("lab.samples.productType"))}</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                                     {String(t("lab.samples.sampleStorageLoc", { defaultValue: "Vị trí lưu kho" }))}
                                 </th>
@@ -150,6 +151,9 @@ export function SampleRetainedList() {
                                             <div className="h-4 w-24 bg-muted rounded"></div>
                                         </td>
                                         <td className="px-4 py-4">
+                                            <div className="h-4 w-24 bg-muted rounded"></div>
+                                        </td>
+                                        <td className="px-4 py-4">
                                             <div className="h-4 w-32 bg-muted rounded"></div>
                                         </td>
                                     </tr>
@@ -164,6 +168,7 @@ export function SampleRetainedList() {
                                             </td>
                                             <td className="px-4 py-3 text-sm font-medium text-primary">{row.sampleId}</td>
                                             <td className="px-4 py-3 text-sm text-foreground">{toDash((row as any).sampleName)}</td>
+                                            <td className="px-4 py-3 text-sm text-foreground">{toDash((row as any).productType || row.sampleTypeName)}</td>
                                             <td className="px-4 py-3 text-sm font-medium text-foreground">{toDash((row as any).sampleStorageLoc)}</td>
                                             <td className="px-4 py-3 text-sm text-foreground">
                                                 {(row as any).sampleRetentionDate ? new Date((row as any).sampleRetentionDate).toLocaleDateString() : "-"}
@@ -174,7 +179,7 @@ export function SampleRetainedList() {
                                 })
                             ) : (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                                    <td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">
                                         {String(t("common.noData"))}
                                     </td>
                                 </tr>

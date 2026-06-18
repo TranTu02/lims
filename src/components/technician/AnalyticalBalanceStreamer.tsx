@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSerialBalance } from "@/contexts/SerialBalanceContext";
+import Cookies from "js-cookie";
 import { 
     Scale, 
     Trash2, 
@@ -17,9 +18,13 @@ import {
     X,
     History,
     ChevronUp,
-    ChevronDown
+    ChevronDown,
+    Calendar as CalendarIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -31,9 +36,43 @@ import api from "@/api/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Pagination } from "@/components/ui/pagination";
 
+function DatePicker({ value, onChange, placeholder }: { value: string; onChange: (val: string) => void; placeholder?: string }) {
+    const date = value ? new Date(value) : undefined;
+    
+    return (
+        <Popover>
+            <PopoverTrigger asChild>
+                <Button
+                    variant="outline"
+                    className="w-full h-8 px-3 text-xs bg-background font-normal flex items-center justify-between text-left border border-border rounded-md hover:bg-muted/30"
+                >
+                    <span>{date && !isNaN(date.getTime()) ? format(date, "dd/MM/yyyy") : (placeholder || "Chọn ngày")}</span>
+                    <CalendarIcon className="ml-2 h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 bg-background border border-border shadow-md" align="start">
+                <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={(d) => {
+                        if (d) {
+                            const pad = (n: number) => String(n).padStart(2, "0");
+                            const y = d.getFullYear();
+                            const m = pad(d.getMonth() + 1);
+                            const day = pad(d.getDate());
+                            onChange(`${y}-${m}-${day}`);
+                        }
+                    }}
+                    initialFocus
+                />
+            </PopoverContent>
+        </Popover>
+    );
+}
+
 export function AnalyticalBalanceStreamer() {
     const { t } = useTranslation();
-    const { user, login } = useAuth();
+    const { user, login, logout } = useAuth();
 
     // Change operator states
     const { data: technicians = [] } = useEquipmentTechnicians();
@@ -43,6 +82,57 @@ export function AnalyticalBalanceStreamer() {
     const [operatorPassword, setOperatorPassword] = useState<string>("");
     const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [loginError, setLoginError] = useState("");
+
+    // Equipment Mode Countdown & Lock states
+    const [timeLeft, setTimeLeft] = useState<number | null>(null);
+    const [showBlockingLogin, setShowBlockingLogin] = useState(false);
+    const isEquipmentMode = useMemo(() => localStorage.getItem("uiMode") === "equipment", []);
+
+    const formatTimeLeft = (seconds: number | null) => {
+        if (seconds === null) return "--:--";
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+    };
+
+    // Countdown Timer logic synced with lastActivityAt cookie
+    useEffect(() => {
+        if (!isEquipmentMode) return;
+
+        const checkTimer = () => {
+            if (!user) {
+                setTimeLeft(0);
+                setShowBlockingLogin(true);
+                return;
+            }
+
+            const lastActivity = Cookies.get("lastActivityAt");
+            if (!lastActivity) {
+                const now = new Date().toISOString();
+                Cookies.set("lastActivityAt", now, { expires: 7 });
+                setTimeLeft(300);
+                setShowBlockingLogin(false);
+                return;
+            }
+
+            const lastTime = new Date(lastActivity).getTime();
+            const elapsed = Math.floor((Date.now() - lastTime) / 1000);
+            const remaining = 300 - elapsed;
+
+            if (remaining <= 0) {
+                setTimeLeft(0);
+                setShowBlockingLogin(true);
+                logout();
+            } else {
+                setTimeLeft(remaining);
+                setShowBlockingLogin(false);
+            }
+        };
+
+        checkTimer();
+        const interval = setInterval(checkTimer, 1000);
+        return () => clearInterval(interval);
+    }, [isEquipmentMode, user, logout]);
 
     const handleSelectOperator = (techId: string) => {
         setSelectedOperatorId(techId);
@@ -67,14 +157,20 @@ export function AnalyticalBalanceStreamer() {
         try {
             const success = await login(selectedOperatorEmail, operatorPassword);
             if (success) {
-                toast.success("Chuyển đổi người thực hiện thành công!");
+                toast.success("Xác thực người vận hành thành công!");
                 setShowChangeOperatorModal(false);
+                setShowBlockingLogin(false);
                 setOperatorPassword("");
+
+                // Refresh activity timestamp on login success
+                const now = new Date().toISOString();
+                Cookies.set("lastActivityAt", now, { expires: 7 });
+                setTimeLeft(300);
             } else {
                 setLoginError("Mật khẩu không chính xác hoặc tài khoản không hợp lệ.");
             }
         } catch (err: any) {
-            setLoginError(err?.message || "Đăng nhập thất bại.");
+            setLoginError(err?.message || "Xác thực thất bại.");
         } finally {
             setIsLoggingIn(false);
         }
@@ -671,13 +767,22 @@ export function AnalyticalBalanceStreamer() {
                     </div>
 
                     {/* Active Operator */}
-                    <div className="bg-muted/45 p-3 rounded-lg border border-border/60 text-xs space-y-1">
+                    <div className={`p-4 rounded-xl border text-xs space-y-3 shadow-sm transition-all duration-300 ${
+                        isEquipmentMode 
+                            ? "bg-emerald-50/5 border-emerald-500/30 text-foreground" 
+                            : "bg-muted/45 border-border/60 text-foreground"
+                    }`}>
                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Người vận hành thiết bị</span>
+                            <span className="text-muted-foreground block text-[10px] uppercase font-bold tracking-wider flex items-center gap-1.5">
+                                {isEquipmentMode && (
+                                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping shrink-0" />
+                                )}
+                                Người vận hành thiết bị
+                            </span>
                             <Button 
                                 variant="ghost" 
                                 size="sm" 
-                                className="h-5 px-1.5 text-[10px] text-primary hover:text-primary-foreground hover:bg-primary"
+                                className="h-5 px-1.5 text-[10px] text-primary hover:text-primary-foreground hover:bg-primary border border-primary/20"
                                 onClick={() => {
                                     if (user) {
                                         setSelectedOperatorId(user.identityId);
@@ -691,10 +796,18 @@ export function AnalyticalBalanceStreamer() {
                                 Đổi người
                             </Button>
                         </div>
-                        <div className="flex justify-between items-center mt-1">
-                            <span className="font-bold text-foreground">{user?.identityName ?? "N/A"}</span>
-                            <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded border border-border font-mono text-muted-foreground">{user?.identityId ?? "N/A"}</span>
+                        <div className="flex justify-between items-center gap-2 border-b border-border/50 pb-2">
+                            <span className="font-bold text-sm text-foreground truncate">{user?.identityName ?? "N/A"}</span>
+                            <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded border border-border font-mono text-muted-foreground shrink-0">{user?.identityId ?? "N/A"}</span>
                         </div>
+                        {isEquipmentMode && (
+                            <div className="flex justify-between items-center text-[10px] text-muted-foreground font-mono mt-1 pt-1">
+                                <span>Thời gian hoạt động còn lại:</span>
+                                <span className={`font-bold text-xs ${timeLeft !== null && timeLeft <= 60 ? "text-destructive animate-pulse font-black" : "text-emerald-500 dark:text-emerald-400"}`}>
+                                    {formatTimeLeft(timeLeft)} ({timeLeft ?? 300}s)
+                                </span>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -717,14 +830,23 @@ export function AnalyticalBalanceStreamer() {
                         </div>
 
                         {/* Active Operator display in header of data streaming section */}
-                        <div className="flex items-center gap-2 text-xs border-l border-border pl-4">
-                            <span className="text-muted-foreground text-[10px] uppercase font-semibold">Người vận hành:</span>
-                            <span className="font-bold text-foreground">{user?.identityName ?? "N/A"}</span>
-                            <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded border border-border font-mono text-muted-foreground">{user?.identityId ?? "N/A"}</span>
+                        <div className="flex items-center gap-3 text-sm border-l border-border pl-4 flex-wrap">
+                            <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">Người vận hành:</span>
+                            <span className="font-bold text-sm text-foreground">{user?.identityName ?? "N/A"}</span>
+                            <span className="text-xs bg-muted px-2 py-0.5 rounded border border-border/80 font-mono text-muted-foreground font-semibold">{user?.identityId ?? "N/A"}</span>
+                            {isEquipmentMode && (
+                                <span className={`text-xs px-2 py-0.5 rounded border font-mono font-bold shrink-0 shadow-sm ${
+                                    timeLeft !== null && timeLeft <= 60 
+                                        ? "bg-destructive/10 border-destructive text-destructive animate-pulse" 
+                                        : "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+                                }`}>
+                                    {formatTimeLeft(timeLeft)}
+                                </span>
+                            )}
                             <Button 
                                 variant="outline" 
                                 size="sm" 
-                                className="h-6 px-2 text-[10px] text-primary border-primary/20 hover:bg-primary hover:text-white"
+                                className="h-7 px-3 text-xs text-primary border-primary/30 hover:bg-primary hover:text-white font-medium"
                                 onClick={() => {
                                     if (user) {
                                         setSelectedOperatorId(user.identityId);
@@ -923,27 +1045,23 @@ export function AnalyticalBalanceStreamer() {
 
                         <div className="space-y-1.5 w-full sm:w-40">
                             <Label className="text-xs font-semibold text-muted-foreground font-medium">Từ ngày (Action Time)</Label>
-                            <Input
-                                type="date"
+                            <DatePicker
                                 value={startDate}
-                                onChange={(e) => {
-                                    setStartDate(e.target.value);
+                                onChange={(val) => {
+                                    setStartDate(val);
                                     setHistoryPage(1);
                                 }}
-                                className="h-8 text-xs bg-background"
                             />
                         </div>
 
                         <div className="space-y-1.5 w-full sm:w-40">
                             <Label className="text-xs font-semibold text-muted-foreground font-medium">Đến ngày (Action Time)</Label>
-                            <Input
-                                type="date"
+                            <DatePicker
                                 value={endDate}
-                                onChange={(e) => {
-                                    setEndDate(e.target.value);
+                                onChange={(val) => {
+                                    setEndDate(val);
                                     setHistoryPage(1);
                                 }}
-                                className="h-8 text-xs bg-background"
                             />
                         </div>
                         <Button
@@ -1067,7 +1185,7 @@ export function AnalyticalBalanceStreamer() {
 
             {/* Change Operator Modal */}
             <Dialog open={showChangeOperatorModal} onOpenChange={setShowChangeOperatorModal}>
-                <DialogContent className="sm:max-w-md bg-card border-border text-foreground">
+                <DialogContent className="sm:max-w-3xl bg-card border-border text-foreground">
                     <DialogHeader>
                         <DialogTitle className="text-lg font-bold flex items-center gap-2">
                             <Scale className="w-5 h-5 text-emerald-600 dark:text-emerald-400 animate-pulse" />
@@ -1076,32 +1194,43 @@ export function AnalyticalBalanceStreamer() {
                     </DialogHeader>
                     
                     <form onSubmit={handleOperatorLoginSubmit} className="space-y-4 pt-2">
-                        {/* Technician Dropdown Selection */}
+                        {/* Technician Grid Selection */}
                         <div className="space-y-2">
-                            <Label htmlFor="operatorSelect" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                                 Chọn Kỹ thuật viên
                             </Label>
-                            <Select
-                                value={selectedOperatorId}
-                                onValueChange={handleSelectOperator}
-                            >
-                                <SelectTrigger id="operatorSelect" className="h-9 w-full bg-background border-border text-xs">
-                                    <SelectValue placeholder="Chọn kỹ thuật viên..." />
-                                </SelectTrigger>
-                                <SelectContent className="z-[9999]">
+                            <div className="border border-border rounded-lg bg-background p-3 max-h-60 overflow-y-auto">
+                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                                     {technicians.length === 0 ? (
-                                        <SelectItem value="none" disabled>
+                                        <div className="col-span-full text-center py-4 text-xs text-muted-foreground">
                                             Không có danh sách kỹ thuật viên
-                                        </SelectItem>
+                                        </div>
                                     ) : (
-                                        technicians.map((t) => (
-                                            <SelectItem key={t.identityId} value={t.identityId}>
-                                                {t.identityName} ({t.identityId})
-                                            </SelectItem>
-                                        ))
+                                        technicians.map((t) => {
+                                            const isSelected = selectedOperatorId === t.identityId;
+                                            return (
+                                                <button
+                                                    key={t.identityId}
+                                                    type="button"
+                                                    onClick={() => handleSelectOperator(t.identityId)}
+                                                    className={`p-2 rounded-lg border text-center transition-all flex flex-col items-center justify-center gap-0.5 min-h-[56px] ${
+                                                        isSelected
+                                                            ? "border-primary bg-primary/10 text-primary font-semibold shadow-xs ring-1 ring-primary"
+                                                            : "border-border hover:border-muted-foreground/50 hover:bg-muted/30 text-muted-foreground hover:text-foreground"
+                                                    }`}
+                                                >
+                                                    <span className="text-[10px] sm:text-xs line-clamp-1 leading-tight font-medium" title={t.identityName}>
+                                                        {t.identityName}
+                                                    </span>
+                                                    <span className="text-[9px] text-muted-foreground font-mono">
+                                                        {t.identityId}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })
                                     )}
-                                </SelectContent>
-                            </Select>
+                                </div>
+                            </div>
                         </div>
 
                         {/* Email/Username input */}
@@ -1159,6 +1288,115 @@ export function AnalyticalBalanceStreamer() {
                                 disabled={isLoggingIn}
                             >
                                 {isLoggingIn ? "Đang xác thực..." : "Xác nhận đăng nhập"}
+                            </Button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Blocking Re-authentication Modal (Equipment Mode Timeout) */}
+            <Dialog open={showBlockingLogin}>
+                <DialogContent 
+                    className="sm:max-w-3xl bg-card border-border text-foreground [&>button]:hidden" 
+                    onEscapeKeyDown={(e) => e.preventDefault()}
+                    onPointerDownOutside={(e) => e.preventDefault()}
+                >
+                    <DialogHeader>
+                        <DialogTitle className="text-lg font-bold flex flex-col items-center gap-2 text-center pt-2">
+                            <div className="p-3 bg-destructive/10 rounded-full text-destructive animate-pulse mb-1">
+                                <Scale className="w-8 h-8" />
+                            </div>
+                            <span className="text-destructive font-black tracking-tight">Xác thực người vận hành</span>
+                            <span className="text-xs font-normal text-muted-foreground mt-1 max-w-md leading-relaxed">
+                                Trạm làm việc đã tự động khóa sau 5 phút không hoạt động. Vui lòng xác thực thông tin kỹ thuật viên để tiếp tục sử dụng cân.
+                            </span>
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <form onSubmit={handleOperatorLoginSubmit} className="space-y-4 pt-4">
+                        {/* Technician Grid Selection */}
+                        <div className="space-y-2">
+                            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                Chọn Kỹ thuật viên
+                            </Label>
+                            <div className="border border-border rounded-lg bg-background p-3 max-h-60 overflow-y-auto">
+                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                                    {technicians.length === 0 ? (
+                                        <div className="col-span-full text-center py-4 text-xs text-muted-foreground">
+                                            Không có danh sách kỹ thuật viên
+                                        </div>
+                                    ) : (
+                                        technicians.map((t) => {
+                                            const isSelected = selectedOperatorId === t.identityId;
+                                            return (
+                                                <button
+                                                    key={t.identityId}
+                                                    type="button"
+                                                    onClick={() => handleSelectOperator(t.identityId)}
+                                                    className={`p-2 rounded-lg border text-center transition-all flex flex-col items-center justify-center gap-0.5 min-h-[56px] ${
+                                                        isSelected
+                                                            ? "border-destructive bg-destructive/10 text-destructive font-semibold shadow-xs ring-1 ring-destructive"
+                                                            : "border-border hover:border-muted-foreground/50 hover:bg-muted/30 text-muted-foreground hover:text-foreground"
+                                                    }`}
+                                                >
+                                                    <span className="text-[10px] sm:text-xs line-clamp-1 leading-tight font-medium" title={t.identityName}>
+                                                        {t.identityName}
+                                                    </span>
+                                                    <span className="text-[9px] text-muted-foreground font-mono">
+                                                        {t.identityId}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Email/Username input */}
+                        <div className="space-y-2">
+                            <Label htmlFor="blockingOperatorEmail" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                Email / Tên đăng nhập
+                            </Label>
+                            <Input
+                                id="blockingOperatorEmail"
+                                type="text"
+                                placeholder="Nhập email đăng nhập..."
+                                value={selectedOperatorEmail}
+                                onChange={(e) => setSelectedOperatorEmail(e.target.value)}
+                                className="h-10 text-xs bg-background focus-visible:ring-destructive/20 focus-visible:border-destructive"
+                            />
+                        </div>
+
+                        {/* Password input */}
+                        <div className="space-y-2">
+                            <Label htmlFor="blockingOperatorPassword" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                Mật khẩu xác nhận
+                            </Label>
+                            <Input
+                                id="blockingOperatorPassword"
+                                type="password"
+                                placeholder="••••••••"
+                                value={operatorPassword}
+                                onChange={(e) => setOperatorPassword(e.target.value)}
+                                className="h-10 text-xs bg-background focus-visible:ring-destructive/20 focus-visible:border-destructive"
+                                disabled={isLoggingIn}
+                            />
+                        </div>
+
+                        {loginError && (
+                            <div className="bg-destructive/10 border border-destructive/20 text-destructive px-3 py-2 rounded text-xs">
+                                {loginError}
+                            </div>
+                        )}
+
+                        <div className="pt-2">
+                            <Button 
+                                type="submit" 
+                                className="w-full text-xs h-10 bg-destructive text-destructive-foreground hover:bg-destructive/90 font-bold tracking-wide shadow-md"
+                                disabled={isLoggingIn}
+                            >
+                                {isLoggingIn ? "Đang xác thực..." : "Mở khóa thiết bị"}
                             </Button>
                         </div>
                     </form>

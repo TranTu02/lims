@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
 
-export function SampleDisposedList() {
+export function SampleDisposedList({ status }: { status: "Disposed" | "Returned" }) {
     const { t } = useTranslation();
 
     const [searchTerm, setSearchTerm] = useState("");
@@ -24,12 +24,12 @@ export function SampleDisposedList() {
                 page: pagination.currentPage,
                 itemsPerPage: pagination.itemsPerPage,
                 search: debouncedSearch.trim() || null,
-                sampleStatus: ["Returned", "Disposed"],
+                sampleStatus: [status],
                 sortColumn: "modifiedAt",
                 sortDirection: "DESC",
             },
         }),
-        [debouncedSearch, pagination.currentPage, pagination.itemsPerPage],
+        [debouncedSearch, pagination.currentPage, pagination.itemsPerPage, status],
     );
 
     const { data, isLoading, isError } = useSamplesList(listInput);
@@ -81,11 +81,13 @@ export function SampleDisposedList() {
                             <tr>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("lab.samples.sampleId"))}</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("lab.samples.sampleName"))}</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("lab.samples.productType"))}</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                                    {String(t("lab.samples.sampleDisposalDate", { defaultValue: "Ngày hủy / trả" }))}
+                                    {status === "Disposed"
+                                        ? String(t("lab.samples.sampleDisposalDate", { defaultValue: "Ngày hủy" }))
+                                        : String(t("lab.samples.sampleReturnDate", { defaultValue: "Ngày trả" }))}
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("lab.samples.sampleStorageLoc", { defaultValue: "Vị trí cũ" }))}</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">{String(t("lab.samples.sampleStatus"))}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -114,23 +116,9 @@ export function SampleDisposedList() {
                                     <tr key={row.sampleId} className="hover:bg-muted/30 transition-colors">
                                         <td className="px-4 py-3 text-sm font-medium text-primary">{row.sampleId}</td>
                                         <td className="px-4 py-3 text-sm text-foreground">{toDash((row as any).sampleName)}</td>
+                                        <td className="px-4 py-3 text-sm text-foreground">{toDash((row as any).productType || row.sampleTypeName)}</td>
                                         <td className="px-4 py-3 text-sm text-foreground">{(row as any).sampleDisposalDate ? new Date((row as any).sampleDisposalDate).toLocaleDateString() : "-"}</td>
                                         <td className="px-4 py-3 text-sm text-muted-foreground">{toDash((row as any).sampleStorageLoc)}</td>
-                                        <td className="px-4 py-3 text-sm">
-                                            {row.sampleStatus === "Disposed" ? (
-                                                <Badge variant="destructive" className="text-xs">
-                                                    Đã hủy
-                                                </Badge>
-                                            ) : row.sampleStatus === "Returned" ? (
-                                                <Badge variant="outline" className="text-xs bg-muted">
-                                                    Đã trả
-                                                </Badge>
-                                            ) : (
-                                                <Badge variant="outline" className="text-xs">
-                                                    {toDash(row.sampleStatus)}
-                                                </Badge>
-                                            )}
-                                        </td>
                                     </tr>
                                 ))
                             ) : (

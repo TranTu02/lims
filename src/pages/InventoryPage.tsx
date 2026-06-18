@@ -1,9 +1,9 @@
 import { InventoryDashboard } from "@/components/inventory/InventoryDashboard";
 
-export function InventoryPage() {
+export function InventoryPage({ defaultTab = "supplies" }: { defaultTab?: string }) {
     return (
         <div className="h-full">
-            <InventoryDashboard />
+            <InventoryDashboard defaultTab={defaultTab} />
         </div>
     );
 }

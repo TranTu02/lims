@@ -4,7 +4,9 @@ import { useTranslation } from "react-i18next";
 import { Layout } from "./Layout";
 
 type TabKey =
+    | "incoming-requests"
     | "reception"
+    | "return-results"
     | "technician"
     | "equipment"
     | "manager-approvals"
@@ -47,8 +49,12 @@ function getTabFromPath(pathname: string): TabKey {
     }
 
     switch (pathname) {
+        case "/incoming-requests":
+            return "incoming-requests";
         case "/reception":
             return "reception";
+        case "/return-results":
+            return "return-results";
         case "/technician":
             return "technician";
         case "/equipment":
@@ -112,9 +118,17 @@ export function RouterLayout() {
 
     const TAB_INFO = useMemo<Record<TabKey, TabInfo>>(
         () => ({
+            "incoming-requests": {
+                title: t("nav.incomingRequestsTitle"),
+                description: t("nav.incomingRequestsDescription"),
+            },
             reception: {
                 title: t("nav.receptionTitle"),
                 description: t("nav.receptionDescription"),
+            },
+            "return-results": {
+                title: t("nav.returnResultsTitle"),
+                description: t("nav.returnResultsDescription"),
             },
             technician: {
                 title: t("nav.technicianTitle"),

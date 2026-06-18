@@ -16,13 +16,19 @@ export function LoginPage() {
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
-    // Handle 401 redirect reason
+    // Handle 401 redirect reason & equipment mode redirect
     useEffect(() => {
+        const uiMode = localStorage.getItem("uiMode");
+        if (uiMode === "equipment") {
+            navigate("/equipment", { replace: true });
+            return;
+        }
+
         const reason = searchParams.get("reason");
         if (reason === "401") {
             setError(String(t("auth.login.errors.expired", { defaultValue: "Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại." })));
         }
-    }, [searchParams, t]);
+    }, [searchParams, t, navigate]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();

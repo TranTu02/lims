@@ -97,6 +97,13 @@ axiosInstance.interceptors.request.use(
         }
 
         config.headers = headers;
+
+        const uiMode = localStorage.getItem("uiMode");
+        if (uiMode === "equipment") {
+            const now = new Date().toISOString();
+            Cookies.set("lastActivityAt", now, { expires: 7 });
+        }
+
         return config;
     },
     (error) => Promise.reject(error),
@@ -125,9 +132,11 @@ axiosInstance.interceptors.response.use(
                 localStorage.removeItem("sessionId");
 
                 if (window.location.pathname !== "/login") {
-                    setTimeout(() => {
-                        window.location.href = "/login?reason=401";
-                    }, 1000);
+                    if (localStorage.getItem("uiMode") !== "equipment") {
+                        setTimeout(() => {
+                            window.location.href = "/login?reason=401";
+                        }, 1000);
+                    }
                 }
             }
         } else if (status === 403) {

@@ -109,6 +109,19 @@ export function SkuEditModal({ sku, onClose, onSuccess }: Props) {
                 
                 {/* Body */}
                 <div className="p-5 space-y-4 flex-1 overflow-y-auto">
+                    {isCreate && (
+                        <div className="space-y-1">
+                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                {t("inventory.chemical.skus.chemicalSkuId", { defaultValue: "Mã SKU" })}
+                            </label>
+                            <Input
+                                value={form.chemicalSkuId}
+                                onChange={(e) => set("chemicalSkuId", e.target.value)}
+                                id="edit-sku-id"
+                                placeholder={t("inventory.chemical.skus.chemicalSkuIdPlaceholder", { defaultValue: "Để trống để tự động tạo mã" })}
+                            />
+                        </div>
+                    )}
                     <div className="space-y-1">
                         <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                             {t("inventory.chemical.skus.chemicalName", { defaultValue: "Tên hóa chất" })} <span className="text-destructive">*</span>

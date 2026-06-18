@@ -12,6 +12,7 @@ interface HeaderProps {
 
 export function Header({ title, description, onToggleMobileSidebar }: HeaderProps) {
     const { logout, user } = useAuth(); // Assuming useAuth is available and consistent with other files
+    const isEquipmentMode = localStorage.getItem("uiMode") === "equipment";
 
     const handleLogout = () => {
         logout();
@@ -22,15 +23,17 @@ export function Header({ title, description, onToggleMobileSidebar }: HeaderProp
         <header className="h-16 px-4 md:px-6 bg-background border-b border-border flex items-center justify-between sticky top-0 z-10">
             {/* Title Section */}
             <div className="flex items-center gap-3 min-w-0">
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className="md:hidden h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
-                    onClick={onToggleMobileSidebar}
-                    type="button"
-                >
-                    <Menu className="h-5 w-5" />
-                </Button>
+                {!isEquipmentMode && onToggleMobileSidebar && (
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="md:hidden h-9 w-9 text-muted-foreground hover:text-foreground shrink-0"
+                        onClick={onToggleMobileSidebar}
+                        type="button"
+                    >
+                        <Menu className="h-5 w-5" />
+                    </Button>
+                )}
                 <div className="flex flex-col min-w-0">
                     <h1 className="text-sm md:text-lg font-semibold text-foreground truncate leading-none">{title}</h1>
                     <p className="text-[10px] md:text-xs text-muted-foreground truncate mt-1 leading-none">{description}</p>

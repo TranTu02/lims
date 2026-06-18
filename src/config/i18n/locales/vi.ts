@@ -2,6 +2,10 @@ export default {
     nav: {
         receptionTitle: "Tiếp nhận mẫu",
         receptionDescription: "Quản lý phiếu & mẫu",
+        incomingRequestsTitle: "Yêu cầu tiếp nhận",
+        incomingRequestsDescription: "Yêu cầu gửi mẫu từ khách hàng",
+        returnResultsTitle: "Trả kết quả",
+        returnResultsDescription: "Trả kết quả phân tích & vận đơn",
 
         technicianTitle: "Bàn làm việc KTV",
         technicianDescription: "Công việc kiểm nghiệm",
@@ -60,6 +64,8 @@ export default {
 
         generalInventoryTitle: "Kho Dụng cụ & Thiết bị",
         generalInventoryDescription: "Quản lý dụng cụ, thiết bị máy móc",
+        stationeryTitle: "Văn phòng phẩm",
+        stationeryDescription: "Quản lý văn phòng phẩm",
 
         crmTitle: "Khách hàng",
         crmDescription: "Quản lý quan hệ khách hàng",
@@ -1419,6 +1425,7 @@ export default {
             },
             skus: {
                 chemicalSkuId: "Mã SKU",
+                chemicalSkuIdPlaceholder: "Để trống để tự động tạo mã",
                 chemicalName: "Tên hóa chất",
                 chemicalCASNumber: "Mã CAS",
                 chemicalFormula: "Công thức",
@@ -2054,7 +2061,7 @@ export default {
         ref: "Xuất bản",
         draft: "SƠ BỘ",
         date: "Ngày",
-        customerInfo: "Nơi / người gửi mẫu",
+        customerInfo: "Khách hàng",
         sampleInfo: "Thông tin mẫu thử nghiệm",
         clientProvidedInfo: "Thông tin khách hàng cung cấp",
         receiptInformation: "Thông tin tiếp nhận",
@@ -2063,6 +2070,7 @@ export default {
             lot: "Số lô",
             mfg: "Ngày sản xuất",
             placeOfProduction: "Nơi sản xuất",
+            mfgAddress: "Địa chỉ sản xuất",
             exp: "Hạn sử dụng",
             declarationNo: "Số công bố",
             registrationNo: "Số đăng ký",

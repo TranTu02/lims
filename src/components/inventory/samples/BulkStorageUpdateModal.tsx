@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useBulkUpdateSamples } from "@/api/samples";
+import { useEnumList } from "@/api/chemical";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 
-const STORAGE_LOCATIONS = [
+const DEFAULT_STORAGE_LOCATIONS = [
     { id: "Tu_Lanh_A", name: "Tủ Lạnh A" },
     { id: "Tu_Lanh_B", name: "Tủ Lạnh B" },
     { id: "Tu_Dong_C", name: "Tủ Đông C" },
@@ -25,6 +26,15 @@ type Props = {
 export function BulkStorageUpdateModal({ open, onClose, sampleIds, onSuccess }: Props) {
     const { t } = useTranslation();
     const updateMutation = useBulkUpdateSamples();
+    const { data: enumData } = useEnumList("sampleStorageLoc");
+
+    const locations = useMemo(() => {
+        if (enumData && Array.isArray(enumData) && enumData.length > 0) {
+            return enumData.map((name) => ({ id: name.replace(/\s+/g, "_"), name }));
+        }
+        return DEFAULT_STORAGE_LOCATIONS;
+    }, [enumData]);
+
     const [selectedLocation, setSelectedLocation] = useState<string>("");
     const [customLocation, setCustomLocation] = useState<string>("");
 
@@ -65,7 +75,7 @@ export function BulkStorageUpdateModal({ open, onClose, sampleIds, onSuccess }: 
                                 <SelectValue placeholder="-- Chọn vị trí --" />
                             </SelectTrigger>
                             <SelectContent>
-                                {STORAGE_LOCATIONS.map((loc) => (
+                                {locations.map((loc) => (
                                     <SelectItem key={loc.id} value={loc.name}>
                                         {loc.name}
                                     </SelectItem>

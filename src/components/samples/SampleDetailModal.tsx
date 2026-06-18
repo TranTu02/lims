@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import type { ApiResponse } from "@/api/client";
 import { samplesGetFull } from "@/api/samples";
 import { samplesKeys } from "@/api/samplesKeys";
+import { AccreditationBadges } from "@/components/library/shared/AccreditationTagInput";
 import { useCreateAnalysis } from "@/api/analyses";
 import { libraryApi, type Matrix } from "@/api/library";
 import { fileApi } from "@/api/files";
@@ -422,6 +423,7 @@ export function SampleDetailModal({ open, sampleId, onClose }: Props) {
                                                     <th className="px-3 py-4 text-left text-xs font-medium text-muted-foreground uppercase">{t("lab.analyses.parameterName")}</th>
                                                     <th className="px-3 py-4 text-left text-xs font-medium text-muted-foreground uppercase">{t("lab.analyses.matrixId")}</th>
                                                     <th className="px-3 py-4 text-left text-xs font-medium text-muted-foreground uppercase">{t("lab.analyses.protocolCode")}</th>
+                                                    <th className="px-3 py-4 text-left text-xs font-medium text-muted-foreground uppercase">{t("lab.analyses.protocolAccreditation", { defaultValue: "Công nhận" })}</th>
                                                     <th className="px-3 py-4 text-left text-xs font-medium text-muted-foreground uppercase">{t("lab.analyses.technicianIds")}</th>
                                                     <th className="px-3 py-4 text-left text-xs font-medium text-muted-foreground uppercase">{t("lab.analyses.analysisResult")}</th>
                                                     <th className="px-3 py-4 text-left text-xs font-medium text-muted-foreground uppercase">{t("lab.analyses.analysisUnit")}</th>
@@ -433,7 +435,7 @@ export function SampleDetailModal({ open, sampleId, onClose }: Props) {
                                             <tbody className="divide-y divide-border">
                                                 {analyses.length === 0 ? (
                                                     <tr>
-                                                        <td colSpan={8} className="px-10 py-20 text-center text-sm text-muted-foreground">
+                                                        <td colSpan={9} className="px-10 py-20 text-center text-sm text-muted-foreground">
                                                             {t("reception.createReceipt.noAnalysis")}
                                                         </td>
                                                     </tr>
@@ -443,6 +445,9 @@ export function SampleDetailModal({ open, sampleId, onClose }: Props) {
                                                             <td className="px-3 py-4 text-sm text-foreground break-words max-w-[160px]">{toDash(a.parameterName)}</td>
                                                             <td className="px-3 py-4 text-sm text-muted-foreground break-all">{toDash(a.matrixId)}</td>
                                                             <td className="px-3 py-4 text-sm text-muted-foreground break-all">{toDash(a.protocolCode)}</td>
+                                                            <td className="px-3 py-4 text-sm text-foreground">
+                                                                <AccreditationBadges value={a.protocolAccreditation as any} className="text-xs" />
+                                                            </td>
                                                             <td className="px-3 py-4 text-sm text-foreground">{toDash(a.technicianIds?.join(", ") ?? a.technicianId)}</td>
                                                             <td className="px-3 py-4 text-sm text-foreground break-words" dangerouslySetInnerHTML={{ __html: a.analysisResult ? String(a.analysisResult) : toDash(null) }} />
                                                             <td className="px-3 py-4 text-sm text-muted-foreground">{toDash(a.analysisUnit)}</td>

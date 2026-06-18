@@ -75,50 +75,38 @@ export function LabManagerReports() {
 
     return (
         <div className="flex h-full flex-col gap-4 p-6 bg-background overflow-auto">
-            {/* Header */}
-            <div className="bg-card rounded-lg border border-border p-6 shadow-sm flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-                        <BarChart3 className="h-6 w-6 text-emerald-500" />
-                        Trích xuất báo cáo
-                    </h1>
-                    <p className="text-muted-foreground text-sm mt-1">
-                        Báo cáo thời gian thực về tình hình vận hành phòng Lab.
-                    </p>
-                </div>
-                <div className="flex items-center gap-3">
-                    <Button variant="default" size="sm" className="gap-2 h-9 shadow-md bg-emerald-600 hover:bg-emerald-700">
-                        <Download className="h-4 w-4" />
-                        Xuất báo cáo (Excel)
-                    </Button>
-                </div>
-            </div>
+            {/* Period + Filter Tabs + Actions */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <Tabs value={period} onValueChange={(v) => setPeriod(v as ReportPeriod)}>
+                        <TabsList className="grid grid-cols-3 w-[280px]">
+                            <TabsTrigger value="day" className="text-xs gap-1.5">
+                                <Calendar className="h-3.5 w-3.5" /> Ngày
+                            </TabsTrigger>
+                            <TabsTrigger value="week" className="text-xs gap-1.5">
+                                <Calendar className="h-3.5 w-3.5" /> Tuần
+                            </TabsTrigger>
+                            <TabsTrigger value="month" className="text-xs gap-1.5">
+                                <Calendar className="h-3.5 w-3.5" /> Tháng
+                            </TabsTrigger>
+                        </TabsList>
+                    </Tabs>
 
-            {/* Period + Filter Tabs */}
-            <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-                <Tabs value={period} onValueChange={(v) => setPeriod(v as ReportPeriod)}>
-                    <TabsList className="grid grid-cols-3 w-[280px]">
-                        <TabsTrigger value="day" className="text-xs gap-1.5">
-                            <Calendar className="h-3.5 w-3.5" /> Ngày
-                        </TabsTrigger>
-                        <TabsTrigger value="week" className="text-xs gap-1.5">
-                            <Calendar className="h-3.5 w-3.5" /> Tuần
-                        </TabsTrigger>
-                        <TabsTrigger value="month" className="text-xs gap-1.5">
-                            <Calendar className="h-3.5 w-3.5" /> Tháng
-                        </TabsTrigger>
-                    </TabsList>
-                </Tabs>
+                    <Tabs value={filter} onValueChange={(v) => setFilter(v as ReportFilter)}>
+                        <TabsList className="grid grid-cols-5 w-full lg:w-auto">
+                            <TabsTrigger value="received" className="text-xs">Đã nhận</TabsTrigger>
+                            <TabsTrigger value="handover" className="text-xs">Bàn giao</TabsTrigger>
+                            <TabsTrigger value="passed" className="text-xs">KQ đạt</TabsTrigger>
+                            <TabsTrigger value="feedback" className="text-xs">Phản hồi</TabsTrigger>
+                            <TabsTrigger value="subcontract" className="text-xs">Thầu phụ</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                </div>
 
-                <Tabs value={filter} onValueChange={(v) => setFilter(v as ReportFilter)}>
-                    <TabsList className="grid grid-cols-5 w-full lg:w-auto">
-                        <TabsTrigger value="received" className="text-xs">Đã nhận</TabsTrigger>
-                        <TabsTrigger value="handover" className="text-xs">Bàn giao</TabsTrigger>
-                        <TabsTrigger value="passed" className="text-xs">KQ đạt</TabsTrigger>
-                        <TabsTrigger value="feedback" className="text-xs">Phản hồi</TabsTrigger>
-                        <TabsTrigger value="subcontract" className="text-xs">Thầu phụ</TabsTrigger>
-                    </TabsList>
-                </Tabs>
+                <Button variant="default" size="sm" className="gap-2 h-9 shadow-md bg-emerald-600 hover:bg-emerald-700">
+                    <Download className="h-4 w-4" />
+                    Xuất báo cáo (Excel)
+                </Button>
             </div>
 
             {/* Summary Cards */}

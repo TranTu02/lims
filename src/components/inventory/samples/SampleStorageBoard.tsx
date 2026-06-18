@@ -10,13 +10,7 @@ export function SampleStorageBoard() {
     const [activeTab, setActiveTab] = useState("pending");
 
     return (
-        <div className="p-6 space-y-6 flex flex-col h-full">
-            <div>
-                <h1 className="text-2xl font-semibold tracking-tight text-foreground">{String(t("inventory.samples.storageManagement", { defaultValue: "Quản lý Lưu mẫu" }))}</h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                    {String(t("inventory.samples.storageDescription", { defaultValue: "Quản lý vị trí lưu mẫu và trạng thái của các mẫu trong kho." }))}
-                </p>
-            </div>
+        <div className="p-6 flex flex-col h-full min-h-0">
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
                 <TabsList className="bg-muted w-fit mb-4">
@@ -27,7 +21,10 @@ export function SampleStorageBoard() {
                         {String(t("inventory.samples.tabs.retained", { defaultValue: "Mẫu đang lưu" }))}
                     </TabsTrigger>
                     <TabsTrigger value="disposed" className="data-[state=active]:bg-background data-[state=active]:text-foreground">
-                        {String(t("inventory.samples.tabs.disposed", { defaultValue: "Mẫu đã hủy / Trả" }))}
+                        {String(t("inventory.samples.tabs.disposedOnly", { defaultValue: "Đã hủy" }))}
+                    </TabsTrigger>
+                    <TabsTrigger value="returned" className="data-[state=active]:bg-background data-[state=active]:text-foreground">
+                        {String(t("inventory.samples.tabs.returnedOnly", { defaultValue: "Trả lại khách hàng" }))}
                     </TabsTrigger>
                 </TabsList>
 
@@ -40,7 +37,11 @@ export function SampleStorageBoard() {
                 </TabsContent>
 
                 <TabsContent value="disposed" className="flex-1 mt-0 outline-none data-[state=active]:flex data-[state=active]:flex-col overflow-hidden">
-                    <SampleDisposedList />
+                    <SampleDisposedList status="Disposed" />
+                </TabsContent>
+
+                <TabsContent value="returned" className="flex-1 mt-0 outline-none data-[state=active]:flex data-[state=active]:flex-col overflow-hidden">
+                    <SampleDisposedList status="Returned" />
                 </TabsContent>
             </Tabs>
         </div>

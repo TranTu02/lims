@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
-import { useDebounce } from "@/hooks/useDebounce";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Scan, Search, CheckCircle, Printer, FileDown, Loader2, X } from "lucide-react";
-import { useAnalysesList } from "@/api/analyses";
+import { Scan, Search, CheckCircle, Printer, FileDown, Loader2, User, ClipboardList, Package, Mail, ShieldAlert } from "lucide-react";
+import { useSamplesInPrepAssignments } from "@/api/samples";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,40 +9,61 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Pagination } from "@/components/ui/pagination";
 import { HandoverDocumentModal, type TechnicianGroup } from "./HandoverDocumentModal";
-import { getTopAnalysisMarks } from "@/lib/utils";
 
-interface Analysis {
-    id: string;
-    parameterName: string;
-    protocol: string;
-    location: string;
-    unit: string;
-    deadline: string;
-    status: string;
+interface InPrepAssignmentAnalysis {
+    analysisId: string;
+    parameterName: string | null;
+    protocolCode?: string | null;
+    analysisUnit?: string | null;
+    analysisDeadline?: string | null;
+    analysisLocation?: string | null;
+    analysisNotes?: string | null;
 }
 
-interface Sample {
-    id: string;
-    code: string;
-    name: string;
-    sampleType: string;
-    sampleTypeName?: string | null;
-    receivedCondition: string;
-    storageCondition: string;
-    analyses: Analysis[];
+interface InPrepAssignmentSample {
+    sampleId: string;
+    sampleName?: string | null;
+    sampleVolume?: string | null;
+    analyses: InPrepAssignmentAnalysis[];
+}
+
+interface InPrepAssignment {
+    technician: {
+        identityId: string | null;
+        identityName: string | null;
+        email?: string | null;
+        identityRoles?: string[] | null;
+    };
+    samples: InPrepAssignmentSample[];
 }
 
 interface HandoverRecord {
     testerCode: string;
     testerName: string;
     sampleCode: string;
-    sample: Sample;
+    sample: {
+        id: string;
+        code: string;
+        name: string;
+        sampleType: string;
+        sampleTypeName?: string | null;
+        receivedCondition: string;
+        storageCondition: string;
+        analyses: Array<{
+            id: string;
+            parameterName: string;
+            protocol: string;
+            location: string;
+            unit: string;
+            deadline: string;
+            status: string;
+        }>;
+    };
     handoverDate: string;
 }
 
-const mockSamples: Record<string, Sample> = {
+const mockSamples = {
     "TNM2501-001-S01": {
         id: "s1",
         code: "TNM2501-001-S01",
@@ -91,75 +111,112 @@ const mockTesters: Record<string, string> = {
 
 export function HandoverManagement() {
     const { t } = useTranslation();
-    const [page, setPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(100);
     const [search, setSearch] = useState("");
-    const debouncedSearch = useDebounce(search, 300);
-    const [filterTechnicianId, setFilterTechnicianId] = useState<string | null>(null);
+    const [selectedTechId, setSelectedTechId] = useState<string | null>(null);
+    const [selectedAnalysisIds, setSelectedAnalysisIds] = useState<string[]>([]);
 
-    const { data: analysesRes, isLoading: isAnalysesLoading, refetch } = useAnalysesList({
-        query: {
-            analysisStatus: ["Pending", "Ready"] as any,
-            listOption: "full" as any,
-            sortColumn: "technicianId",
-            sortDirection: "DESC",
-            search: debouncedSearch || undefined,
-            technicianId: filterTechnicianId ? [filterTechnicianId] : undefined,
-            itemsPerPage,
-            page,
-        },
-    });
+    const { data: assignments = [], isLoading, refetch } = useSamplesInPrepAssignments();
 
-    // Ensure API is called when filter changes
+    // Client-side search & filter
+    const filteredAssignments = useMemo(() => {
+        if (!search.trim()) return assignments;
+        const s = search.toLowerCase();
+
+        return assignments.map(group => {
+            const techName = group.technician?.identityName ?? "Chưa phân công KTV";
+            const techId = group.technician?.identityId ?? "unassigned";
+            const techMatch = 
+                techName.toLowerCase().includes(s) || 
+                techId.toLowerCase().includes(s);
+
+            const filteredSamples = group.samples.map(sample => {
+                const sampleMatch = 
+                    sample.sampleId.toLowerCase().includes(s) || 
+                    (sample.sampleName || "").toLowerCase().includes(s);
+
+                const filteredAnalyses = sample.analyses.filter(analysis => {
+                    return (analysis.parameterName || "").toLowerCase().includes(s) ||
+                           (analysis.protocolCode || "").toLowerCase().includes(s) ||
+                           (analysis.analysisLocation || "").toLowerCase().includes(s);
+                });
+
+                if (sampleMatch || filteredAnalyses.length > 0) {
+                    return {
+                        ...sample,
+                        analyses: sampleMatch ? sample.analyses : filteredAnalyses
+                    };
+                }
+                return null;
+            }).filter((x): x is InPrepAssignmentSample => x !== null);
+
+            if (techMatch || filteredSamples.length > 0) {
+                return {
+                    ...group,
+                    samples: techMatch ? group.samples : filteredSamples
+                };
+            }
+            return null;
+        }).filter((x): x is InPrepAssignment => x !== null);
+    }, [assignments, search]);
+
+    // Keep track of selected tech (handling null/unassigned values gracefully)
     useEffect(() => {
-        refetch();
-    }, [filterTechnicianId, page, debouncedSearch, refetch]);
-
-    const analysesList = analysesRes?.data ?? [];
-    const meta = analysesRes?.meta;
-
-    const [selectedIds, setSelectedIds] = useState<string[]>([]);
-
-    const handleSelectAll = (checked: boolean) => {
-        if (checked) {
-            setSelectedIds(analysesList.map((a: any) => a.analysisId));
+        if (filteredAssignments.length > 0) {
+            const ids = filteredAssignments.map(g => g.technician?.identityId ?? "unassigned");
+            if (!selectedTechId || !ids.includes(selectedTechId)) {
+                setSelectedTechId(filteredAssignments[0].technician?.identityId ?? "unassigned");
+            }
         } else {
-            setSelectedIds([]);
+            setSelectedTechId(null);
         }
-    };
+    }, [filteredAssignments, selectedTechId]);
 
-    const handleSelectOne = (checked: boolean, id: string) => {
-        if (checked) {
-            setSelectedIds((prev) => [...prev, id]);
-        } else {
-            setSelectedIds((prev) => prev.filter((x) => x !== id));
-        }
-    };
+    const activeGroup = filteredAssignments.find(g => (g.technician?.identityId ?? "unassigned") === selectedTechId);
 
+    // Group items for handover modal
     const [showBulkModal, setShowBulkModal] = useState(false);
     const [groupedData, setGroupedData] = useState<TechnicianGroup[]>([]);
 
     const handleBulkHandover = () => {
-        if (selectedIds.length === 0) return;
+        if (selectedAnalysisIds.length === 0) return;
 
-        // Filter selected analyses
-        const selected = analysesList.filter((a: any) => selectedIds.includes(a.analysisId));
-
-        // Group by technicianId
         const map = new Map<string, TechnicianGroup>();
-        for (const item of selected as any[]) {
-            const techId = item.technician?.identityId ?? item.technicianId ?? "unknown";
-            if (!map.has(techId)) {
-                map.set(techId, {
-                    technician: {
-                        identityId: techId,
-                        identityName: item.technician?.identityName ?? techId,
-                        alias: item.technician?.alias ?? null,
-                    },
-                    analyses: [],
-                });
+
+        for (const group of assignments) {
+            const tech = group.technician;
+            const techId = tech?.identityId ?? "unassigned";
+            for (const sample of group.samples) {
+                for (const analysis of sample.analyses) {
+                    if (selectedAnalysisIds.includes(analysis.analysisId)) {
+                        if (!map.has(techId)) {
+                            map.set(techId, {
+                                technician: {
+                                    identityId: techId,
+                                    identityName: tech?.identityName ?? "Chưa phân công KTV",
+                                    alias: null,
+                                },
+                                analyses: [],
+                            });
+                        }
+                        map.get(techId)!.analyses.push({
+                            analysisId: analysis.analysisId,
+                            sampleId: sample.sampleId,
+                            parameterName: analysis.parameterName,
+                            protocolCode: analysis.protocolCode,
+                            analysisUnit: analysis.analysisUnit,
+                            analysisDeadline: analysis.analysisDeadline,
+                            analysisLocation: analysis.analysisLocation,
+                            analysisNotes: analysis.analysisNotes,
+                            sampleTypeName: null,
+                            sample: {
+                                sampleName: sample.sampleName,
+                                sampleType: null,
+                                sampleTypeName: null
+                            }
+                        });
+                    }
+                }
             }
-            map.get(techId)!.analyses.push(item);
         }
 
         setGroupedData(Array.from(map.values()));
@@ -167,9 +224,72 @@ export function HandoverManagement() {
     };
 
     const handleHandoverExported = async () => {
+        setSelectedAnalysisIds([]);
         await refetch();
     };
 
+    // Selection helper functions
+    const toggleSelectAnalysis = (analysisId: string) => {
+        setSelectedAnalysisIds(prev => 
+            prev.includes(analysisId) ? prev.filter(id => id !== analysisId) : [...prev, analysisId]
+        );
+    };
+
+    const toggleSelectSample = (sample: InPrepAssignmentSample, checked: boolean) => {
+        const ids = sample.analyses.map(a => a.analysisId);
+        if (checked) {
+            setSelectedAnalysisIds(prev => [...new Set([...prev, ...ids])]);
+        } else {
+            setSelectedAnalysisIds(prev => prev.filter(id => !ids.includes(id)));
+        }
+    };
+
+    const toggleSelectTech = (group: InPrepAssignment, checked: boolean) => {
+        const ids: string[] = [];
+        group.samples.forEach(s => s.analyses.forEach(a => ids.push(a.analysisId)));
+        if (checked) {
+            setSelectedAnalysisIds(prev => [...new Set([...prev, ...ids])]);
+        } else {
+            setSelectedAnalysisIds(prev => prev.filter(id => !ids.includes(id)));
+        }
+    };
+
+    const isSampleAllSelected = (sample: InPrepAssignmentSample) => {
+        return sample.analyses.every(a => selectedAnalysisIds.includes(a.analysisId));
+    };
+
+    const isSampleSomeSelected = (sample: InPrepAssignmentSample) => {
+        const selectedCount = sample.analyses.filter(a => selectedAnalysisIds.includes(a.analysisId)).length;
+        return selectedCount > 0 && selectedCount < sample.analyses.length;
+    };
+
+    const isTechAllSelected = (group: InPrepAssignment) => {
+        const allIds: string[] = [];
+        group.samples.forEach(s => s.analyses.forEach(a => allIds.push(a.analysisId)));
+        if (allIds.length === 0) return false;
+        return allIds.every(id => selectedAnalysisIds.includes(id));
+    };
+
+    const isTechSomeSelected = (group: InPrepAssignment) => {
+        const allIds: string[] = [];
+        group.samples.forEach(s => s.analyses.forEach(a => allIds.push(a.analysisId)));
+        if (allIds.length === 0) return false;
+        const selectedCount = allIds.filter(id => selectedAnalysisIds.includes(id)).length;
+        return selectedCount > 0 && selectedCount < allIds.length;
+    };
+
+    // Calculate count of selected items for a technician
+    const getTechSelectedCount = (group: InPrepAssignment) => {
+        let count = 0;
+        group.samples.forEach(s => {
+            s.analyses.forEach(a => {
+                if (selectedAnalysisIds.includes(a.analysisId)) count++;
+            });
+        });
+        return count;
+    };
+
+    // Scanner simulated actions
     const [testerCode, setTesterCode] = useState("");
     const [sampleCode, setSampleCode] = useState("");
     const [handoverData, setHandoverData] = useState<HandoverRecord | null>(null);
@@ -181,7 +301,6 @@ export function HandoverManagement() {
     });
 
     const handleScanTester = () => {
-        // Simulate QR scan
         const testerName = mockTesters[testerCode];
         if (testerName) {
             console.log("Tester found:", testerName);
@@ -191,8 +310,7 @@ export function HandoverManagement() {
     };
 
     const handleScanSample = () => {
-        // Simulate QR scan
-        const sample = mockSamples[sampleCode];
+        const sample = mockSamples[sampleCode as keyof typeof mockSamples];
         const testerName = mockTesters[testerCode];
 
         if (!testerName) {
@@ -209,7 +327,6 @@ export function HandoverManagement() {
                 handoverDate: new Date().toLocaleString("vi-VN"),
             });
 
-            // Generate handover document content
             const content = `
 Căn cứ quy trình quản lý mẫu thử của Phòng thí nghiệm;
 Căn cứ vào nhu cầu thực tế công việc;
@@ -262,162 +379,259 @@ Biên bản được lập thành 02 bản có giá trị pháp lý như nhau, m
     };
 
     const handleExportPDF = () => {
-        console.log("Exporting to PDF...");
         alert("Chức năng xuất PDF đang được phát triển");
     };
 
     return (
         <div className="p-6 space-y-6">
-            {/* Header */}
-            <div className="bg-card rounded-lg border border-border p-6">
-                <h2 className="text-xl font-semibold text-foreground mb-2">{t("handover.title")}</h2>
-                <p className="text-sm text-muted-foreground">{t("handover.description")}</p>
-            </div>
-
             <Tabs defaultValue="list" className="space-y-6">
-                <TabsList>
-                    <TabsTrigger value="list">{t("handover.tabs.list", "Danh sách chờ bàn giao")}</TabsTrigger>
-                    <TabsTrigger value="scan">{t("handover.tabs.scan", "Quét mã")}</TabsTrigger>
-                </TabsList>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-4">
+                    <TabsList>
+                        <TabsTrigger value="list">{t("handover.tabs.list", "Danh sách chờ bàn giao")}</TabsTrigger>
+                        <TabsTrigger value="scan">{t("handover.tabs.scan", "Quét mã QR")}</TabsTrigger>
+                    </TabsList>
 
-                {/* Tab: Analysis List */}
-                <TabsContent value="list" className="space-y-6 m-0 focus-visible:outline-none">
-                    <div className="bg-card rounded-lg border border-border p-6 flex flex-col gap-4">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-medium">{t("handover.tabs.listTitle", "Danh sách các chỉ tiêu đủ điều kiện bàn giao")}</h3>
-                            <div className="flex items-center gap-4">
-                                <div className="flex items-center gap-2">
-                                    <div className="relative w-64">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                        <Input
-                                            placeholder={t("handover.searchPlaceholder", "Tìm kiếm mã mẫu, tên mẫu...")}
-                                            value={search}
-                                            onChange={(e) => {
-                                                setSearch(e.target.value);
-                                                setPage(1);
-                                            }}
-                                            className="pl-10"
-                                        />
-                                    </div>
-                                    {filterTechnicianId && (
-                                        <Badge variant="secondary" className="h-9 gap-1.5 pl-3 pr-1.5 border-primary/20 bg-primary/5 text-primary">
-                                            KTV: <span className="font-bold">{filterTechnicianId}</span>
-                                            <Button 
-                                                variant="ghost" 
-                                                size="icon" 
-                                                className="h-5 w-5 rounded-full p-0 hover:bg-primary/20 text-primary"
-                                                onClick={() => setFilterTechnicianId(null)}
-                                            >
-                                                <X className="h-3.5 w-3.5" />
-                                            </Button>
-                                        </Badge>
-                                    )}
-                                </div>
-                                {selectedIds.length > 0 && (
-                                    <Button onClick={handleBulkHandover} className="flex items-center gap-2 h-9 px-4">
-                                        <CheckCircle className="h-4 w-4" />
-                                        {t("handover.bulkHandover", "Bàn giao đã chọn")} ({selectedIds.length})
-                                    </Button>
-                                )}
-                            </div>
+                    <div className="flex items-center gap-3">
+                        <div className="relative w-64">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder={t("handover.searchPlaceholder", "Tìm kiếm KTV, mã mẫu...")}
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="pl-10 h-9"
+                            />
                         </div>
-
-                        {isAnalysesLoading ? (
-                            <div className="flex justify-center items-center h-40">
-                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                            </div>
-                        ) : analysesList.length === 0 ? (
-                            <div className="text-center text-muted-foreground p-8">{t("handover.emptyList", "Không có thông tin nào đang chờ bàn giao.")}</div>
-                        ) : (
-                            <div className="bg-background border border-border rounded-lg overflow-hidden">
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm">
-                                        <thead className="bg-muted/50 border-b border-border">
-                                            <tr>
-                                                <th className="px-4 py-3 text-left w-10">
-                                                    <Checkbox checked={analysesList.length > 0 && selectedIds.length === analysesList.length} onCheckedChange={handleSelectAll} />
-                                                </th>
-                                                <th className="px-4 py-3 text-left font-medium text-muted-foreground w-12">STT</th>
-                                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Mã mẫu</th>
-                                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Chỉ tiêu</th>
-                                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Nền mẫu</th>
-                                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Phương pháp</th>
-                                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Đơn vị</th>
-                                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">KTV Phụ trách</th>
-                                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Hạn trả</th>
-                                                <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Ghi chú</th>
-                                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Marks</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-border">
-                                            {analysesList.map((item: any, index: number) => (
-                                                <tr key={item.analysisId} className="hover:bg-muted/30">
-                                                    <td className="px-4 py-3">
-                                                        <Checkbox checked={selectedIds.includes(item.analysisId)} onCheckedChange={(checked) => handleSelectOne(checked as boolean, item.analysisId)} />
-                                                    </td>
-                                                    <td className="px-4 py-3 text-muted-foreground">{(page - 1) * itemsPerPage + index + 1}</td>
-                                                    <td className="px-4 py-3 font-medium text-primary">{item.sampleId}</td>
-                                                    <td className="px-4 py-3 font-semibold">{item.parameterName}</td>
-                                                    <td className="px-4 py-3">
-                                                        <Badge variant="outline">{item.sampleTypeName || item.sample?.sampleTypeName || "-"}</Badge>
-                                                    </td>
-                                                    <td className="px-4 py-3 text-muted-foreground">{item.protocolCode ?? "-"}</td>
-                                                    <td className="px-4 py-3 text-muted-foreground">{item.analysisUnit ?? "-"}</td>
-                                                    <td 
-                                                        className={`px-4 py-3 cursor-pointer transition-colors hover:bg-primary/5 ${filterTechnicianId === item.technician?.identityId ? "bg-primary/10" : ""}`}
-                                                        onClick={() => {
-                                                            const techId = item.technician?.identityId;
-                                                            if (!techId) return;
-                                                            setFilterTechnicianId(prev => prev === techId ? null : techId);
-                                                            setPage(1);
-                                                        }}
-                                                    >
-                                                        {item.technician?.identityName ? (
-                                                            <div className="flex items-center gap-2">
-                                                                <span className={filterTechnicianId === item.technician?.identityId ? "font-bold text-primary" : ""}>
-                                                                    {item.technician.identityName}
-                                                                </span>
-                                                                <span className="text-xs text-muted-foreground">({item.technician.identityId})</span>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-muted-foreground">-</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-4 py-3">{item.analysisDeadline ? new Date(item.analysisDeadline).toLocaleDateString("vi-VN") : "-"}</td>
-                                                    <td className="px-4 py-3 text-xs text-muted-foreground truncate max-w-[150px]" title={item.analysisNotes}>
-                                                        {item.analysisNotes ?? "-"}
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <div className="flex flex-wrap gap-1">
-                                                            {getTopAnalysisMarks(item.analysisMarks).map((m) => (
-                                                                <Badge key={m} variant="secondary" className="text-[10px] px-1.5 h-5 font-normal">
-                                                                    {m}
-                                                                </Badge>
-                                                            ))}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                {meta && (
-                                    <Pagination
-                                        currentPage={page}
-                                        totalPages={meta.totalPages}
-                                        itemsPerPage={itemsPerPage}
-                                        totalItems={meta.total}
-                                        onPageChange={setPage}
-                                        onItemsPerPageChange={(next) => {
-                                            setItemsPerPage(next);
-                                            setPage(1);
-                                        }}
-                                    />
-                                )}
-                            </div>
+                        {selectedAnalysisIds.length > 0 && (
+                            <Button onClick={handleBulkHandover} className="flex items-center gap-2 h-9 px-4">
+                                <CheckCircle className="h-4 w-4" />
+                                {t("handover.bulkHandover", "Bàn giao đã chọn")} ({selectedAnalysisIds.length})
+                            </Button>
                         )}
                     </div>
+                </div>
+
+                {/* Tab: Analysis List Grouped by KTV */}
+                <TabsContent value="list" className="m-0 focus-visible:outline-none">
+                    {isLoading ? (
+                        <div className="flex justify-center items-center h-[500px]">
+                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                        </div>
+                    ) : filteredAssignments.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center h-[400px] border border-dashed border-border rounded-xl text-muted-foreground">
+                            <ClipboardList className="h-12 w-12 mb-3 opacity-20" />
+                            <p>{t("handover.emptyList", "Không có thông tin nào đang chờ bàn giao.")}</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-12 gap-6 items-stretch">
+                            {/* Left Panel: Master list of Technicians */}
+                            <div className="col-span-12 lg:col-span-4 border border-border rounded-xl bg-card flex flex-col overflow-hidden max-h-[calc(100vh-5.5rem)] lg:sticky lg:top-16">
+                                <div className="p-4 bg-muted/30 border-b border-border flex justify-between items-center">
+                                    <span className="font-semibold text-sm">Danh sách Kỹ thuật viên</span>
+                                    <Badge variant="secondary" className="font-semibold">
+                                        {filteredAssignments.length} KTV
+                                    </Badge>
+                                </div>
+                                <div className="flex-1 overflow-y-auto divide-y divide-border">
+                                    {filteredAssignments.map((group) => {
+                                        const totalAnalyses = group.samples.reduce((acc, s) => acc + s.analyses.length, 0);
+                                        const selectedCount = getTechSelectedCount(group);
+                                        const techId = group.technician?.identityId ?? "unassigned";
+                                        const isActive = selectedTechId === techId;
+
+                                        return (
+                                            <div
+                                                key={techId}
+                                                onClick={() => setSelectedTechId(techId)}
+                                                className={`p-4 cursor-pointer transition-colors flex items-start gap-3 hover:bg-muted/40 ${
+                                                    isActive ? "bg-primary/5 border-l-4 border-primary" : "pl-5"
+                                                }`}
+                                            >
+                                                <div className="flex items-center mt-1">
+                                                    <Checkbox
+                                                        disabled={group.technician?.identityId === null}
+                                                        checked={isTechAllSelected(group)}
+                                                        ref={(el) => {
+                                                            if (el) {
+                                                                (el as any).indeterminate = isTechSomeSelected(group);
+                                                            }
+                                                        }}
+                                                        onCheckedChange={(checked) => toggleSelectTech(group, checked as boolean)}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex justify-between items-start">
+                                                        <p className={`font-semibold text-sm truncate ${isActive ? "text-primary" : ""}`}>
+                                                            {group.technician?.identityName ?? "Chưa phân công KTV"}
+                                                        </p>
+                                                        <Badge variant={selectedCount > 0 ? "default" : "outline"} className="text-[10px] ml-2 shrink-0">
+                                                            {selectedCount > 0 ? `${selectedCount}/${totalAnalyses}` : totalAnalyses} CT
+                                                        </Badge>
+                                                    </div>
+                                                    <p className="text-xs text-muted-foreground mt-0.5 font-mono truncate">
+                                                        ID: {group.technician?.identityId ?? "N/A"}
+                                                    </p>
+                                                    {group.technician?.email && (
+                                                        <p className="text-xs text-muted-foreground/80 mt-1 flex items-center gap-1 truncate">
+                                                            <Mail className="h-3 w-3 shrink-0" />
+                                                            {group.technician?.email}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Right Panel: Detail view of selected Technician */}
+                            <div className="col-span-12 lg:col-span-8 border border-border rounded-xl bg-card p-6 flex flex-col min-h-[500px]">
+                                {activeGroup ? (
+                                    <div className="space-y-6 flex-1 flex flex-col">
+                                        {/* KTV Header */}
+                                        <div className="border-b border-border pb-4 flex justify-between items-start gap-4">
+                                            <div className="space-y-1">
+                                                <div className="flex items-center gap-2">
+                                                    <User className="h-5 w-5 text-primary" />
+                                                    <h3 className="font-bold text-lg text-foreground">{activeGroup.technician?.identityName ?? "Chưa phân công KTV"}</h3>
+                                                    {activeGroup.technician?.identityId && (
+                                                        <Badge variant="secondary" className="text-xs font-mono">{activeGroup.technician?.identityId}</Badge>
+                                                    )}
+                                                </div>
+                                                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground pt-1">
+                                                    {activeGroup.technician?.email && (
+                                                        <span className="flex items-center gap-1">
+                                                            <Mail className="h-3.5 w-3.5" />
+                                                            {activeGroup.technician?.email}
+                                                        </span>
+                                                    )}
+                                                    {activeGroup.technician?.identityRoles && activeGroup.technician?.identityRoles.length > 0 && (
+                                                        <span className="border-l border-border pl-2">
+                                                            Vai trò: {activeGroup.technician?.identityRoles.join(", ")}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-2">
+                                                <Checkbox
+                                                    id="select-all-tech"
+                                                    disabled={activeGroup.technician?.identityId === null}
+                                                    checked={isTechAllSelected(activeGroup)}
+                                                    ref={(el) => {
+                                                        if (el) {
+                                                            (el as any).indeterminate = isTechSomeSelected(activeGroup);
+                                                        }
+                                                    }}
+                                                    onCheckedChange={(checked) => toggleSelectTech(activeGroup, checked as boolean)}
+                                                />
+                                                <Label htmlFor="select-all-tech" className="text-xs font-medium cursor-pointer">
+                                                    Chọn tất cả cho KTV này
+                                                </Label>
+                                            </div>
+                                        </div>
+
+                                        {activeGroup.technician?.identityId === null && (
+                                            <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-600 dark:text-amber-400 text-xs flex items-center gap-2">
+                                                <ShieldAlert className="h-4 w-4 shrink-0" />
+                                                <span>Các chỉ tiêu này chưa được phân công kỹ thuật viên phụ trách. Vui lòng phân công KTV tại giao diện Phân công trước khi thực hiện bàn giao.</span>
+                                            </div>
+                                        )}
+
+                                        {/* Samples List */}
+                                        <div className="space-y-4 flex-1 overflow-y-auto pr-1">
+                                            {activeGroup.samples.map((sample) => (
+                                                <div key={sample.sampleId} className="border border-border rounded-xl overflow-hidden bg-background">
+                                                    {/* Sample Card Title */}
+                                                    <div className="bg-muted/30 px-4 py-3 border-b border-border flex justify-between items-center gap-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <Checkbox
+                                                                checked={isSampleAllSelected(sample)}
+                                                                ref={(el) => {
+                                                                    if (el) {
+                                                                        (el as any).indeterminate = isSampleSomeSelected(sample);
+                                                                    }
+                                                                }}
+                                                                onCheckedChange={(checked) => toggleSelectSample(sample, checked as boolean)}
+                                                            />
+                                                            <div className="flex items-baseline gap-2">
+                                                                <span className="font-bold text-sm text-primary">{sample.sampleId}</span>
+                                                                {sample.sampleName && (
+                                                                    <span className="text-xs text-muted-foreground">({sample.sampleName})</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {sample.sampleVolume && (
+                                                            <Badge variant="outline" className="text-xs flex items-center gap-1">
+                                                                <Package className="h-3 w-3" />
+                                                                {sample.sampleVolume}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Analyses Table */}
+                                                    <div className="overflow-x-auto">
+                                                        <table className="w-full text-xs">
+                                                            <thead className="bg-muted/10 border-b border-border text-muted-foreground font-semibold">
+                                                                <tr>
+                                                                    <th className="px-4 py-2.5 text-left w-10"></th>
+                                                                    <th className="px-4 py-2.5 text-left w-12">STT</th>
+                                                                    <th className="px-4 py-2.5 text-left">Chỉ tiêu</th>
+                                                                    <th className="px-4 py-2.5 text-left">Phương pháp</th>
+                                                                    <th className="px-4 py-2.5 text-left">Đơn vị</th>
+                                                                    <th className="px-4 py-2.5 text-left">Hạn trả</th>
+                                                                    <th className="px-4 py-2.5 text-left">Nơi thực hiện</th>
+                                                                    <th className="px-4 py-2.5 text-left">Ghi chú</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody className="divide-y divide-border">
+                                                                {sample.analyses.map((analysis, index) => (
+                                                                    <tr key={analysis.analysisId} className="hover:bg-muted/10">
+                                                                        <td className="px-4 py-2.5">
+                                                                            <Checkbox
+                                                                                checked={selectedAnalysisIds.includes(analysis.analysisId)}
+                                                                                onCheckedChange={() => toggleSelectAnalysis(analysis.analysisId)}
+                                                                            />
+                                                                        </td>
+                                                                        <td className="px-4 py-2.5 text-muted-foreground">{index + 1}</td>
+                                                                        <td className="px-4 py-2.5 font-bold">{analysis.parameterName}</td>
+                                                                        <td className="px-4 py-2.5 text-muted-foreground">{analysis.protocolCode ?? "-"}</td>
+                                                                        <td className="px-4 py-2.5 text-muted-foreground">{analysis.analysisUnit ?? "-"}</td>
+                                                                        <td className="px-4 py-2.5">
+                                                                            {analysis.analysisDeadline 
+                                                                                ? new Date(analysis.analysisDeadline).toLocaleDateString("vi-VN") 
+                                                                                : "-"
+                                                                            }
+                                                                        </td>
+                                                                        <td className="px-4 py-2.5">
+                                                                            {analysis.analysisLocation ? (
+                                                                                <Badge variant="secondary" className="text-[10px] py-0 px-1.5 font-normal">
+                                                                                    {analysis.analysisLocation}
+                                                                                </Badge>
+                                                                            ) : "-"}
+                                                                        </td>
+                                                                        <td className="px-4 py-2.5 text-muted-foreground italic truncate max-w-[120px]" title={analysis.analysisNotes ?? ""}>
+                                                                            {analysis.analysisNotes ?? "-"}
+                                                                        </td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
+                                        <ShieldAlert className="h-12 w-12 mb-3 opacity-20" />
+                                        <p>Vui lòng chọn Kỹ thuật viên từ danh sách bên trái để quản lý bàn giao.</p>
+                                    </div>
+                                )}
+							</div>
+                        </div>
+                    )}
                 </TabsContent>
 
                 {/* Tab: Scanner */}
@@ -579,7 +793,7 @@ Biên bản được lập thành 02 bản có giá trị pháp lý như nhau, m
                 </TabsContent>
             </Tabs>
 
-            {/* Bulk Handover Document Modal (Phase 04) */}
+            {/* Bulk Handover Document Modal */}
             {showBulkModal && groupedData.length > 0 && (
                 <HandoverDocumentModal 
                     groups={groupedData} 

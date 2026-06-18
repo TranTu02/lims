@@ -117,18 +117,7 @@ export function IdentityContainer({ className }: Props) {
   }, [activeTab, items]);
 
   return (
-    <div className={className}>
-      <div className="bg-card rounded-lg border border-border p-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">
-            {t("hr.dashboard.title")}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {t("hr.dashboard.description")}
-          </p>
-        </div>
-      </div>
-
+    <div className={className + " space-y-6"}>
       <Tabs
         value={activeTab}
         onValueChange={(v) => {

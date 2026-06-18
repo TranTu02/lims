@@ -30,10 +30,18 @@ import { ShipmentPrintPage } from "@/pages/ShipmentPrintPage";
 const ProtectedRoute = () => {
     const { user, isGuest, loading } = useAuth();
     const isAuthenticated = !!user || isGuest;
+    const uiMode = localStorage.getItem("uiMode");
 
     if (loading) return <div className="h-screen w-full flex items-center justify-center bg-background text-foreground">Loading...</div>;
 
+    if (uiMode === "equipment" && window.location.pathname !== "/equipment") {
+        return <Navigate to="/equipment" replace />;
+    }
+
     if (!isAuthenticated) {
+        if (uiMode === "equipment") {
+            return <RouterLayout />;
+        }
         return <Navigate to="/login" replace />;
     }
 
@@ -44,8 +52,8 @@ import { SerialBalanceProvider } from "@/contexts/SerialBalanceContext";
 
 function App() {
     return (
-        <AuthProvider>
-            <SerialBalanceProvider>
+        <SerialBalanceProvider>
+            <AuthProvider>
                 <BrowserRouter>
                     <Routes>
                         {/* Public Routes */}
@@ -55,7 +63,9 @@ function App() {
                         <Route element={<ProtectedRoute />}>
                             <Route path="/" element={<Navigate to="/crm" replace />} />
 
-                            <Route path="/reception" element={<ReceptionPage />} />
+                            <Route path="/incoming-requests" element={<ReceptionPage defaultTab="incoming-requests" />} />
+                            <Route path="/reception" element={<ReceptionPage defaultTab="processing" />} />
+                            <Route path="/return-results" element={<ReceptionPage defaultTab="return-results" />} />
                             <Route path="/technician" element={<TechnicianPage />} />
                             <Route path="/equipment" element={<EquipmentPage />} />
                             <Route path="/manager/*" element={<LabManagerPage />} />
@@ -75,7 +85,7 @@ function App() {
                             </Route>
 
                             <Route path="/document" element={<DocumentPage />} />
-                            <Route path="/inventory" element={<InventoryPage />} />
+                            <Route path="/inventory" element={<InventoryPage defaultTab="chemicals" />} />
                             <Route path="/chemical-inventory" element={<ChemicalInventoryPage />} />
                             <Route path="/general-inventory" element={<GeneralInventoryPage />} />
                             <Route path="/hr" element={<IdentityPage />} />
@@ -89,8 +99,8 @@ function App() {
                     </Routes>
                     <Toaster position="top-right" expand={true} richColors />
                 </BrowserRouter>
-            </SerialBalanceProvider>
-        </AuthProvider>
+            </AuthProvider>
+        </SerialBalanceProvider>
     );
 }
 

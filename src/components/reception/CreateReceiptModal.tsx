@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { X, Plus, Copy, Trash2, Building2, User, FileText, ExternalLink } from "lucide-react";
+import { X, Plus, Copy, Trash2, Building2, User, FileText, ExternalLink, Calendar as CalendarIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -10,6 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
 
 import { receiptsCreate, receiptsCreateFull } from "@/api/receipts";
 import { clientsGetList, clientsGetDetail } from "@/api/crm/clients";
@@ -22,6 +25,44 @@ import type { ReceiptDetail, ReceiptsCreateBody, ReceiptsCreateFullBody, Receipt
 import type { ClientDetail, ClientListItem } from "@/types/crm/client";
 // import type { SampleInfoValue } from "@/types/sample"; // Removed unused import
 import type { IncomingRequestListItem } from "@/types/incomingRequest";
+
+function DatePicker({ value, onChange, disabled }: { value: string; onChange: (val: string) => void; disabled?: boolean }) {
+    const date = value ? new Date(value) : undefined;
+    
+    return (
+        <Popover>
+            <PopoverTrigger asChild>
+                <Button
+                    type="button"
+                    variant="outline"
+                    disabled={disabled}
+                    className="w-full h-8 px-3 text-xs bg-background font-normal flex items-center justify-between text-left border border-border rounded-md hover:bg-muted/30 mt-1"
+                >
+                    <span>{date && !isNaN(date.getTime()) ? format(date, "dd/MM/yyyy") : "Chọn ngày (DD/MM/YYYY)"}</span>
+                    <CalendarIcon className="ml-2 h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 bg-background border border-border shadow-md" align="start">
+                <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={(d) => {
+                        if (d) {
+                            const pad = (n: number) => String(n).padStart(2, "0");
+                            const y = d.getFullYear();
+                            const m = pad(d.getMonth() + 1);
+                            const day = pad(d.getDate());
+                            onChange(`${y}-${m}-${day}`);
+                        } else {
+                            onChange("");
+                        }
+                    }}
+                    initialFocus
+                />
+            </PopoverContent>
+        </Popover>
+    );
+}
 
 type Mode = "basic" | "full";
 
@@ -133,8 +174,9 @@ const SAMPLE_INFO_LABELS = [
     "Tên mẫu thử",
     "Số lô",
     "Ngày sản xuất",
-    "Nơi sản xuất",
     "Hạn sử dụng",
+    "Nơi sản xuất",
+    "Địa chỉ sản xuất",
     "Số công bố",
     "Số đăng ký",
     "Thông tin khác",
@@ -1151,26 +1193,17 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
 
                                             <div>
                                                 <Label className="text-xs text-muted-foreground">{t("lab.receipts.receiptDate")}</Label>
-                                                <Input
-                                                    type="date"
+                                                <DatePicker
                                                     value={basic.receiptDate}
-                                                    onChange={(e) => setBasic({ ...basic, receiptDate: e.target.value })}
-                                                    className="mt-1 h-8 text-sm bg-background border border-border"
+                                                    onChange={(val) => setBasic({ ...basic, receiptDate: val })}
                                                 />
                                             </div>
 
                                             <div>
                                                 <Label className="text-xs text-muted-foreground">{t("lab.receipts.receiptDeadline")}</Label>
-                                                <Input
-                                                    type="date"
+                                                <DatePicker
                                                     value={basic.receiptDeadline}
-                                                    onChange={(e) =>
-                                                        setBasic({
-                                                            ...basic,
-                                                            receiptDeadline: e.target.value,
-                                                        })
-                                                    }
-                                                    className="mt-1 h-8 text-sm bg-background border border-border"
+                                                    onChange={(val) => setBasic({ ...basic, receiptDeadline: val })}
                                                 />
                                             </div>
 
@@ -1244,20 +1277,16 @@ export function CreateReceiptModal({ onClose, onCreated, initialIncomingRequest 
                                             <div className="grid grid-cols-2 gap-2">
                                                 <div>
                                                     <Label className="text-xs text-muted-foreground">{t("lab.receipts.receiptDate")}</Label>
-                                                    <Input
-                                                        type="date"
+                                                    <DatePicker
                                                         value={full.receiptDate}
-                                                        onChange={(e) => setFull({ ...full, receiptDate: e.target.value })}
-                                                        className="mt-1 h-8 text-sm bg-background border border-border"
+                                                        onChange={(val) => setFull({ ...full, receiptDate: val })}
                                                     />
                                                 </div>
                                                 <div>
                                                     <Label className="text-xs text-muted-foreground">{t("lab.receipts.receiptDeadline")}</Label>
-                                                    <Input
-                                                        type="date"
+                                                    <DatePicker
                                                         value={full.receiptDeadline}
-                                                        onChange={(e) => setFull({ ...full, receiptDeadline: e.target.value })}
-                                                        className="mt-1 h-8 text-sm bg-background border border-border"
+                                                        onChange={(val) => setFull({ ...full, receiptDeadline: val })}
                                                     />
                                                 </div>
                                             </div>

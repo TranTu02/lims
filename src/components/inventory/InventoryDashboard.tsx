@@ -196,9 +196,9 @@ const mockGlassware: Glassware[] = [
     },
 ];
 
-export function InventoryDashboard() {
+export function InventoryDashboard({ defaultTab = "chemicals" }: { defaultTab?: string }) {
     const { t } = useTranslation();
-    const [activeTab, setActiveTab] = useState("chemicals");
+    const [activeTab, setActiveTab] = useState(defaultTab === "supplies" ? "chemicals" : defaultTab);
     const [searchTerm, setSearchTerm] = useState("");
 
     const criticalChemicals = mockChemicals.filter((c) => c.status === "critical").length;
@@ -229,12 +229,6 @@ export function InventoryDashboard() {
 
     return (
         <div className="p-6 space-y-6">
-            {/* Header */}
-            <div className="bg-card rounded-lg border border-border p-6">
-                <h1 className="text-2xl font-semibold text-foreground">{t("inventory.dashboard.title")}</h1>
-                <p className="text-muted-foreground mt-1">{t("inventory.dashboard.description")}</p>
-            </div>
-
             {/* Alert Section */}
             {(criticalChemicals > 0 || warningChemicals > 0 || overdueEquipment > 0) && (
                 <Alert variant="destructive">
@@ -270,9 +264,10 @@ export function InventoryDashboard() {
                         <Wrench className="h-4 w-4 mr-2" />
                         {t("inventory.dashboard.tabs.equipment")} ({mockEquipment.length})
                     </TabsTrigger>
-                    <TabsTrigger value="supplies">
+                    <TabsTrigger value="supplies" disabled className="opacity-50 cursor-not-allowed">
                         <FileText className="h-4 w-4 mr-2" />
                         {t("inventory.dashboard.tabs.supplies")}
+                        <span className="text-[9px] bg-muted px-1 rounded text-muted-foreground uppercase font-mono font-bold ml-1.5">LOCKED</span>
                     </TabsTrigger>
                 </TabsList>
 

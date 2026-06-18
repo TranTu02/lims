@@ -12,6 +12,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAnalysesProcessing, useAnalysesUpdateBulk } from "@/api/analyses";
 import { useIdentityGroupsList } from "@/api/identityGroups";
+import { useIdentitiesList } from "@/api/identities";
 import { FilterPopover } from "@/components/lab-manager/FilterPopover";
 import type { AnalysisListItem } from "@/types/analysis";
 import { TechnicianAssignmentModal } from "@/components/assignment/TechnicianAssignmentModal";
@@ -67,6 +68,38 @@ export function TechnicianWorkspace() {
     const technicianGroupIdStorage = localStorage.getItem("technicianGroupId");
     const [technicianGroupId, setTechnicianGroupId] = useState<string | null>(technicianGroupIdStorage || null);
 
+    const technicianIdStorage = localStorage.getItem("technicianId");
+    const [technicianId, setTechnicianId] = useState<string | null>(technicianIdStorage || null);
+
+    const handleSetTechnicianGroupId = (val: string | null) => {
+        setTechnicianGroupId(val);
+        if (val) {
+            localStorage.setItem("technicianGroupId", val);
+        } else {
+            localStorage.removeItem("technicianGroupId");
+        }
+    };
+
+    const handleSetTechnicianId = (val: string | null) => {
+        setTechnicianId(val);
+        if (val) {
+            localStorage.setItem("technicianId", val);
+        } else {
+            localStorage.removeItem("technicianId");
+        }
+    };
+
+    const { data: techRes, isLoading: isTechLoading } = useIdentitiesList({
+        query: { identityRoles: ["ROLE_TECHNICIAN"], identityStatus: ["active"], itemsPerPage: 100 }
+    });
+    const techsOptions = useMemo(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return (techRes?.data ?? []).map((tech: any) => ({
+            value: tech.identityId,
+            label: tech.identityName
+        }));
+    }, [techRes?.data]);
+
     const { data: groupsRes, isLoading: isGroupsLoading } = useIdentityGroupsList({
         query: { identityGroupMainRole: ["ROLE_TECHNICIAN"], option: "full", itemsPerPage: 100 }
     });
@@ -106,6 +139,7 @@ export function TechnicianWorkspace() {
             sortColumn,
             sortDirection,
             search: debouncedSearch || undefined,
+            technicianId: technicianId ? [technicianId] : undefined,
             technicianGroupId: technicianGroupId ? [technicianGroupId] : undefined,
             analysisDeadline: filterValues["analysisDeadline"]?.length ? filterValues["analysisDeadline"] : undefined,
             itemsPerPage,
@@ -126,7 +160,7 @@ export function TechnicianWorkspace() {
         setSearch("");
         setSortColumn("createdAt");
         setSortDirection("DESC");
-    }, [activeTab, technicianGroupId]);
+    }, [activeTab, technicianGroupId, technicianId]);
 
     const handleSort = (col: string) => {
         if (sortColumn === col) {
@@ -215,11 +249,17 @@ export function TechnicianWorkspace() {
         };
     }, [isSelecting, selectionMode, dragStartId, updateSelectionRange]);
 
+    const isAllPageSelected = useMemo(() => {
+        if (analysesList.length === 0) return false;
+        return analysesList.every((a: AnalysisListItem) => selectedIds.includes(a.analysisId));
+    }, [analysesList, selectedIds]);
+
     const handleSelectAll = (checked: boolean) => {
+        const currentPageIds = analysesList.map((a: AnalysisListItem) => a.analysisId);
         if (checked) {
-            setSelectedIds(analysesList.map((a: AnalysisListItem) => a.analysisId));
+            setSelectedIds((prev) => Array.from(new Set([...prev, ...currentPageIds])));
         } else {
-            setSelectedIds([]);
+            setSelectedIds((prev) => prev.filter((id) => !currentPageIds.includes(id)));
         }
     };
 
@@ -343,23 +383,8 @@ export function TechnicianWorkspace() {
 
     return (
         <div className="flex h-full flex-col gap-4 p-6 bg-background space-y-4 relative">
-            <div className="bg-card rounded-lg border border-border p-6 flex flex-col items-start gap-4 shadow-sm">
-                <div className="flex w-full justify-between items-start">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight">{t("technician.workspace.title", { defaultValue: "Không gian làm việc (KTV)" })}</h1>
-                        <p className="text-muted-foreground text-sm flex items-center gap-2 mt-1">
-                            {t("technician.workspace.greeting", { defaultValue: "Xin chào," })}{" "}
-                            <span className="font-semibold text-foreground">{user?.identityName || t("technician.workspace.technician", { defaultValue: "Kỹ thuật viên" })}</span>.{" "}
-                            {t("technician.workspace.subtitle", { defaultValue: "Quản lý công việc phân công tại đây." })}
-                        </p>
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isAnalysesLoading} className="bg-background">
-                        <RefreshCw className={`w-4 h-4 mr-2 ${isAnalysesLoading ? "animate-spin" : ""}`} />
-                        {t("common.refresh", { defaultValue: "Làm mới" })}
-                    </Button>
-                </div>
-
-                <div className="flex w-full flex-wrap items-center gap-2 border bg-muted/30 p-2 rounded-md">
+            <div className="flex w-full flex-wrap items-center justify-between gap-4 border bg-card p-3 rounded-lg border-border shadow-xs">
+                <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-medium mr-2">{t("common.actions", { defaultValue: "Hành động:" })}</span>
                     <Button size="sm" variant="secondary" disabled={selectedIds.length === 0 || (activeTab !== "pending" && activeTab !== "handedover") || isUpdating} onClick={handleReceiveSamples}>
                         <FlaskConical className="w-4 h-4 mr-2" />
@@ -414,6 +439,11 @@ export function TechnicianWorkspace() {
                         </Button>
                     )}
                 </div>
+                
+                <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isAnalysesLoading} className="bg-background">
+                    <RefreshCw className={`w-4 h-4 mr-2 ${isAnalysesLoading ? "animate-spin" : ""}`} />
+                    {t("common.refresh", { defaultValue: "Làm mới" })}
+                </Button>
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
@@ -452,7 +482,7 @@ export function TechnicianWorkspace() {
                                     <TableHeader className="bg-muted/50 sticky top-0 z-10 shadow-sm">
                                         <TableRow>
                                             <TableHead className="w-10">
-                                                <Checkbox checked={analysesList.length > 0 && selectedIds.length === analysesList.length} onCheckedChange={handleSelectAll} aria-label="Select all" />
+                                                <Checkbox checked={isAllPageSelected} onCheckedChange={handleSelectAll} aria-label="Select all" />
                                             </TableHead>
                                             <TableHead className="w-12">{t("common.stt", { defaultValue: "STT" })}</TableHead>
                                             <TableHead className="w-[110px]">{t("technician.workspace.sampleCode", { defaultValue: "Mã mẫu" })}</TableHead>
@@ -468,13 +498,21 @@ export function TechnicianWorkspace() {
                                                     onChange={(vals) => setFilterValues(prev => ({ ...prev, analysisDeadline: vals }))}
                                                 />
                                             </TableHead>
-                                            {renderSortableHeader(String(t("technician.workspace.assignee", { defaultValue: "Người phụ trách" })), "technicianId", "w-[140px]")}
+                                            <TableHead className="w-[140px] p-0 align-middle">
+                                                <FilterPopover 
+                                                    title={String(t("technician.workspace.assignee", { defaultValue: "Người phụ trách" }))}
+                                                    value={technicianId}
+                                                    options={techsOptions}
+                                                    onSelect={handleSetTechnicianId}
+                                                    isLoading={isTechLoading}
+                                                />
+                                            </TableHead>
                                             <TableHead className="w-[130px] p-0 align-middle">
                                                 <FilterPopover 
                                                     title={String(t("technician.workspace.assignedGroup", { defaultValue: "Nhóm thực hiện" }))}
                                                     value={technicianGroupId}
                                                     options={groupsOptions}
-                                                    onSelect={setTechnicianGroupId}
+                                                    onSelect={handleSetTechnicianGroupId}
                                                     isLoading={isGroupsLoading}
                                                 />
                                             </TableHead>

@@ -59,16 +59,7 @@ export function LabManagerSamples() {
 
     return (
         <div className="flex h-full flex-col gap-4 p-6 bg-background space-y-4">
-            {/* Header */}
-            <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
-                <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-                    <PackageSearch className="h-6 w-6 text-blue-500" />
-                    {String(t("nav.managerSamples", { defaultValue: "Danh sách mẫu đang thực hiện" }))}
-                </h1>
-                <p className="text-muted-foreground text-sm mt-1">
-                    {String(t("nav.managerSamplesDesc", { defaultValue: "Giám sát tiến độ mẫu, thông tin bàn giao, và kiểm soát cấp bổ sung." }))}
-                </p>
-            </div>
+            
 
             {/* Sub-tabs */}
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as SamplesSubTab)} className="flex-1 flex flex-col">

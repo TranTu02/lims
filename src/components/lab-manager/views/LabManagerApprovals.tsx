@@ -145,26 +145,16 @@ export function LabManagerApprovals() {
 
     return (
         <div className="flex h-full flex-col gap-4 p-6 bg-background space-y-4">
-            {/* Header Card */}
-            <div className="bg-card rounded-lg border border-border p-6 flex flex-col items-start gap-4 shadow-sm">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">Kiểm soát & Duyệt kết quả</h1>
-                    <p className="text-muted-foreground text-sm mt-1">
-                        Xin chào, <span className="font-semibold text-foreground">{user?.identityName || "Quản lý"}</span>. Soát xét và duyệt chốt kết quả phân tích.
-                    </p>
-                </div>
-
-                <div className="flex w-full flex-wrap items-center gap-2 border bg-muted/30 p-2 rounded-md">
-                    <span className="text-sm font-medium mr-2">Thao tác:</span>
-                    <Button size="sm" variant="secondary" disabled={selectedIds.length === 0 || activeTab === "retest" || isUpdating} onClick={handleBulkApprove} className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200">
-                        <CheckCircle2 className="w-4 h-4 mr-2" />
-                        {approveLabel} ({selectedIds.length})
-                    </Button>
-                    <Button size="sm" variant="outline" disabled={selectedIds.length === 0 || activeTab === "retest" || isUpdating} onClick={handleBulkReject} className="border-rose-200 text-rose-600 hover:bg-rose-50">
-                        <XCircle className="w-4 h-4 mr-2" />
-                        Làm lại ({selectedIds.length})
-                    </Button>
-                </div>
+            <div className="flex w-full flex-wrap items-center gap-2 border bg-card p-3 rounded-lg border-border shadow-xs">
+                <span className="text-sm font-medium mr-2">Thao tác:</span>
+                <Button size="sm" variant="secondary" disabled={selectedIds.length === 0 || activeTab === "retest" || isUpdating} onClick={handleBulkApprove} className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200">
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    {approveLabel} ({selectedIds.length})
+                </Button>
+                <Button size="sm" variant="outline" disabled={selectedIds.length === 0 || activeTab === "retest" || isUpdating} onClick={handleBulkReject} className="border-rose-200 text-rose-600 hover:bg-rose-50">
+                    <XCircle className="w-4 h-4 mr-2" />
+                    Làm lại ({selectedIds.length})
+                </Button>
             </div>
 
             {/* Tabs + Search */}

@@ -202,7 +202,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem("sessionId");
         Cookies.remove("authToken");
         // Force reload or redirect logic if needed
-        window.location.href = "/login";
+        if (localStorage.getItem("uiMode") !== "equipment") {
+            window.location.href = "/login";
+        }
     };
 
     const hasAccess = useCallback(

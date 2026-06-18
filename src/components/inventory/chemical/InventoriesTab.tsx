@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Printer, CheckSquare, FileText, Scan, X, ZoomIn, ZoomOut } from "lucide-react";
+import { Plus, Search, Printer, CheckSquare, FileText, Scan, X, ZoomIn, ZoomOut, LayoutGrid } from "lucide-react";
 import { useChemicalInventoriesList, useEnumList, chemicalApi } from "@/api/chemical";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ChemicalInventory } from "@/types/chemical";
@@ -11,7 +11,7 @@ import { InventoryDetailPanel } from "./InventoryDetailPanel";
 import { InventoryEditModal } from "./InventoryEditModal";
 import { PrintLabelModal } from "./PrintLabelModal";
 import { ChemicalLogReportEditor } from "./ChemicalLogReportEditor";
-import { PrintA4LabelModal } from "./PrintA4LabelModal";
+import { ChemicalStorageMap } from "./ChemicalStorageMap";
 import { Badge } from "@/components/ui/badge";
 import { TableFilterPopover } from "./TableFilterPopover";
 import { RefreshCw } from "lucide-react";
@@ -365,8 +365,8 @@ export function InventoriesTab() {
     const selectedIds = useMemo(() => new Set(Object.keys(selectedItemsMap)), [selectedItemsMap]);
     const [printOpen, setPrintOpen] = useState(false);
     const [logReportOpen, setLogReportOpen] = useState(false);
-    const [printA4Open, setPrintA4Open] = useState(false);
     const [scanOpen, setScanOpen] = useState(false);
+    const [viewMode, setViewMode] = useState<"table" | "dnd">("table");
 
     const {
         data: result,
@@ -478,6 +478,10 @@ export function InventoriesTab() {
 
     const selectedItems = useMemo(() => Object.values(selectedItemsMap), [selectedItemsMap]);
 
+    if (viewMode === "dnd") {
+        return <ChemicalStorageMap onBackToTable={() => setViewMode("table")} />;
+    }
+
     if (error) {
         return <div className="p-4 text-destructive bg-destructive/10 rounded-md">{(error as any).message || t("common.loadError", { defaultValue: "Không thể tải dữ liệu" })}</div>;
     }
@@ -519,9 +523,9 @@ export function InventoriesTab() {
                             <FileText className="h-4 w-4 mr-2" />
                             {selectMode ? (selectedIds.size > 0 ? `In Sổ Nhật ký (${selectedIds.size})` : `In Sổ Nhật ký`) : `In Sổ Nhật ký`}
                         </Button>
-                        <Button variant="outline" type="button" onClick={() => setPrintA4Open(true)}>
-                            <Printer className="h-4 w-4 mr-2" />
-                            In Mẫu Dán Nhãn
+                        <Button variant="outline" type="button" onClick={() => setViewMode("dnd")}>
+                            <LayoutGrid className="h-4 w-4 mr-2" />
+                            Kho chứa hóa chất
                         </Button>
                         <Button variant={selectMode ? "default" : "outline"} type="button" onClick={handleLabelClick}>
                             <Printer className="h-4 w-4 mr-2" />
@@ -795,12 +799,7 @@ export function InventoriesTab() {
                 />
             )}
 
-            {/* Print A4 labels modal */}
-            {printA4Open && (
-                <PrintA4LabelModal
-                    onClose={() => setPrintA4Open(false)}
-                />
-            )}
+            {/* Removed PrintA4LabelModal */}
 
             {/* <HelpBubble guidePath="guide-inventories.html" label="Hướng dẫn: Quản lý Lọ/Chai" /> */}
         </div>
