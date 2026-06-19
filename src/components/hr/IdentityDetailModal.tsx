@@ -154,7 +154,7 @@ export function IdentityDetailModal({ open, identityId, onClose }: Props) {
                     {t("hr.fields.documents", { defaultValue: "Hồ sơ năng lực / Tài liệu" })}
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {(data.documents as any[]).map(doc => (
+                    {data.documents.map(doc => (
                       <Badge key={doc.documentId} variant="secondary" className="flex items-center gap-1.5 py-1 px-2">
                         <span className="text-[10px] opacity-50">{doc.documentId}</span>
                         <span>{doc.documentTitle || doc.documentId}</span>

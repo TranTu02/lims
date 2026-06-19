@@ -15,14 +15,15 @@ import { DraggableInfoTable } from "@/components/common/DraggableInfoTable";
 import { libraryApi, type Matrix } from "@/api/library";
 import { useDebouncedValue } from "@/components/library/hooks/useDebouncedValue";
 import { fileApi } from "@/api/files";
-import { samplesUpdate } from "@/api/samples";
+import { samplesUpdate, samplesGetFull } from "@/api/samples";
 import api from "@/api/client";
 import { toast } from "sonner";
 
 import { useIdentityGroupsList } from "@/api/identityGroups";
-import { useAnalysesUpdateBulk, useDeleteAnalysis } from "@/api/analyses";
+import { useAnalysesUpdateBulk, useDeleteAnalysis, useAnalysesCreateBulk } from "@/api/analyses";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronsUpDown, Check, CheckSquare, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AccreditationBadges } from "@/components/library/shared/AccreditationTagInput";
@@ -35,8 +36,8 @@ interface SampleDetailModalProps {
     sample: ReceiptSample;
     receipt: ReceiptDetail;
     onClose: () => void;
-    onSave: (updatedSample: ReceiptSample) => void | Promise<unknown>;
-
+    onSave?: (updatedSample: ReceiptSample, shouldClose?: boolean) => void | Promise<unknown>;
+    onRefresh?: () => void;
     focusAnalysisId?: string | null;
 }
 
@@ -54,7 +55,7 @@ function toInfoRows(v: unknown): InfoRow[] {
         .filter((r) => r.label.trim().length > 0);
 }
 
-export function SampleDetailModal({ sample, receipt, onClose, onSave: _onSave, focusAnalysisId = null }: SampleDetailModalProps) {
+export function SampleDetailModal({ sample, receipt, onClose, onSave: _onSave, onRefresh, focusAnalysisId = null }: SampleDetailModalProps) {
     const { t } = useTranslation();
     const [isEditingInfo, setIsEditingInfo] = useState(false);
     const [isEditingAnalyses, setIsEditingAnalyses] = useState(false);
@@ -131,18 +132,20 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave: _onSave, f
             } as any);
             toast.success("Lưu thông tin mẫu thành công");
             setIsEditingInfo(false);
-            // Update local editedSample with saved sampleInfo
-            setEditedSample(prev => ({
-                ...prev,
+            const updated = {
+                ...editedSample,
                 sampleInfo: productDetails.map((r) => ({ label: r.label, value: r.value })),
                 sampleReceiptInfo: testingInfo.map((r) => ({ label: r.label, value: r.value })),
-            }));
+            };
+            setEditedSample(updated);
+            _onSave?.(updated, false);
+            onRefresh?.();
         } catch (e: any) {
             toast.error(e?.message || "Không thể lưu thông tin mẫu");
         } finally {
             setIsSavingInfo(false);
         }
-    }, [editedSample, productDetails, testingInfo]);
+    }, [editedSample, productDetails, testingInfo, _onSave, onRefresh]);
 
     const handleAnalysisChange = (index: number, field: keyof ReceiptAnalysis, value: unknown) => {
         setSampleAnalyses((prev) => {
@@ -210,13 +213,19 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave: _onSave, f
         toast.success(`Đã áp dụng tạm thời cho ${idsToUpdate.length} chỉ tiêu. Nhấn "Cập nhật chỉ tiêu" để lưu.`);
     };
 
-    const { mutateAsync: mutateBulk, isPending: isBulkSaving } = useAnalysesUpdateBulk();
+    const { mutateAsync: mutateBulk, isPending: isBulkUpdateSaving } = useAnalysesUpdateBulk();
+    const { mutateAsync: mutateCreateBulk, isPending: isCreateSaving } = useAnalysesCreateBulk();
     const { mutateAsync: mutateDelete } = useDeleteAnalysis();
-    const pendingChangeCount = dirtyAnalysisIds.size + deletedAnalysisIds.size;
+    const isBulkSaving = isBulkUpdateSaving || isCreateSaving;
+
+    const newListCount = sampleAnalyses.filter(a => !a.analysisId || a.analysisId.startsWith('new-')).length;
+    const pendingChangeCount = dirtyAnalysisIds.size + deletedAnalysisIds.size + newListCount;
 
     const handleSaveAnalysesBulk = useCallback(async () => {
         if (pendingChangeCount === 0) return;
-        const dirtyList = sampleAnalyses.filter(a => a.analysisId && dirtyAnalysisIds.has(a.analysisId));
+        
+        // Find existing analyses that were modified
+        const dirtyList = sampleAnalyses.filter(a => a.analysisId && !a.analysisId.startsWith('new-') && dirtyAnalysisIds.has(a.analysisId));
         const updateBody = dirtyList.map(a => ({
             analysisId: a.analysisId,
             protocolCode: a.protocolCode,
@@ -227,20 +236,65 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave: _onSave, f
             technicianGroupName: (a as any).technicianGroupName,
             technicianId: (a as any).technicianId ?? a.technicianId,
             technicianIds: (a as any).technicianIds ?? a.technicianIds,
+            protocolAccreditation: a.protocolAccreditation,
         }));
+
+        // Find newly added analyses (having temporary new-* ID or no ID)
+        const newList = sampleAnalyses.filter(a => !a.analysisId || a.analysisId.startsWith('new-'));
+        const createBody = newList.map(a => ({
+            sampleId: editedSample.sampleId,
+            parameterId: a.parameterId,
+            parameterName: a.parameterName,
+            protocolCode: a.protocolCode || null,
+            analysisUnit: a.analysisUnit || null,
+            analysisDeadline: a.analysisDeadline || null,
+            analysisLocation: a.analysisLocation || null,
+            technicianGroupId: (a as any).technicianGroupId || null,
+            technicianGroupName: (a as any).technicianGroupName || null,
+            technicianId: (a as any).technicianId ?? a.technicianId ?? null,
+            technicianIds: (a as any).technicianIds ?? a.technicianIds ?? null,
+            protocolAccreditation: a.protocolAccreditation || null,
+            analysisStatus: "Pending",
+        }));
+
         try {
             await Promise.all([
                 updateBody.length > 0
                     ? mutateBulk({ body: updateBody as any })
                     : Promise.resolve(),
+                createBody.length > 0
+                    ? mutateCreateBulk({ body: createBody as any })
+                    : Promise.resolve(),
                 ...[...deletedAnalysisIds]
-                    .filter(id => !id.startsWith('new-')) // skip locally-added (never persisted)
+                    .filter(id => id && !id.startsWith('new-')) // skip locally-added (never persisted)
                     .map(id => mutateDelete({ body: { analysisId: id } })),
             ]);
+
             const parts: string[] = [];
             if (updateBody.length > 0) parts.push(`cập nhật ${updateBody.length} chỉ tiêu`);
+            if (createBody.length > 0) parts.push(`thêm mới ${createBody.length} chỉ tiêu`);
             if (deletedAnalysisIds.size > 0) parts.push(`xóa ${deletedAnalysisIds.size} chỉ tiêu`);
-            toast.success(`Đã ${parts.join(' và ')}`);
+            
+            toast.success(`Đã ${parts.join(', ')} thành công`);
+            
+            // Reload sample details to obtain actual database IDs for new analyses
+            try {
+                const freshRes = await samplesGetFull({ sampleId: editedSample.sampleId });
+                if (freshRes.success && freshRes.data) {
+                    const freshSample = freshRes.data as unknown as ReceiptSample;
+                    setEditedSample(freshSample);
+                    setSampleAnalyses((freshSample.analyses ?? []).filter((a) => a?.analysisId));
+                    _onSave?.(freshSample, false);
+                }
+            } catch (err) {
+                console.error("Failed to load fresh sample data, falling back to local state:", err);
+                const updated = { ...editedSample, analyses: sampleAnalyses };
+                setEditedSample(updated);
+                _onSave?.(updated, false);
+            }
+
+            onRefresh?.();
+            
             setDirtyAnalysisIds(new Set());
             setDeletedAnalysisIds(new Set());
             setIsEditingAnalyses(false);
@@ -248,7 +302,7 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave: _onSave, f
         } catch {
             // error handled by hooks
         }
-    }, [pendingChangeCount, dirtyAnalysisIds, deletedAnalysisIds, sampleAnalyses, mutateBulk, mutateDelete]);
+    }, [pendingChangeCount, dirtyAnalysisIds, deletedAnalysisIds, sampleAnalyses, editedSample, mutateBulk, mutateCreateBulk, mutateDelete, _onSave, onRefresh]);
 
     useEffect(() => {
         if (!debouncedSearch) {
@@ -445,11 +499,41 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave: _onSave, f
                                 </div>
 
                                 <div>
-                                    <Label className="text-xs text-muted-foreground">{String(t("lab.samples.sampleStatus"))}</Label>
-                                    <div className="mt-1">
-                                        <Badge variant="secondary" className="text-[10px] uppercase">{editedSample.sampleStatus ?? "-"}</Badge>
-                                    </div>
-                                </div>
+                                     <Label className="text-xs text-muted-foreground">{String(t("lab.samples.sampleStatus"))}</Label>
+                                     <div className="mt-1">
+                                         <Select
+                                             value={editedSample.sampleStatus ?? "Received"}
+                                             onValueChange={async (newStatus) => {
+                                                 try {
+                                                     await samplesUpdate({
+                                                         sampleId: editedSample.sampleId,
+                                                         sampleStatus: newStatus,
+                                                     } as any);
+                                                     const updated = { ...editedSample, sampleStatus: newStatus as any };
+                                                     setEditedSample(updated);
+                                                     _onSave?.(updated, false);
+                                                     onRefresh?.();
+                                                     toast.success("Cập nhật trạng thái mẫu thành công");
+                                                 } catch (e: any) {
+                                                     toast.error(e?.message || "Không thể cập nhật trạng thái mẫu");
+                                                 }
+                                             }}
+                                         >
+                                             <SelectTrigger className="border-0 p-0 h-auto bg-transparent focus:ring-0 focus:ring-offset-0 w-auto inline-flex cursor-pointer">
+                                                 <Badge variant="secondary" className="text-[10px] uppercase cursor-pointer hover:bg-muted/80">
+                                                     {editedSample.sampleStatus ?? "-"}
+                                                 </Badge>
+                                             </SelectTrigger>
+                                             <SelectContent className="z-[1200]">
+                                                 {["Received", "InPrep", "Distributed", "Retained", "Disposed", "Returned"].map((st) => (
+                                                     <SelectItem key={st} value={st} className="text-xs">
+                                                         {st}
+                                                     </SelectItem>
+                                                 ))}
+                                             </SelectContent>
+                                         </Select>
+                                     </div>
+                                 </div>
 
                                 <div>
                                     <Label className="text-xs text-muted-foreground">{String(t("lab.samples.sampleVolume"))}</Label>
@@ -622,7 +706,7 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave: _onSave, f
                         <DraggableInfoTable title={String(t("reception.sampleDetail.testingInfo"))} data={testingInfo} isEditing={isEditingInfo} onChange={setTestingInfo} />
                     </div>
 
-                    <div className="rounded-xl border border-border bg-background shadow-sm overflow-hidden">
+                    <div className="rounded-xl border border-border bg-background shadow-sm overflow-visible">
                         {/* Analyses section header */}
                         <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/20 flex-wrap gap-2">
                             <div className="flex items-center gap-2 text-[10px] font-semibold text-primary uppercase tracking-wider">
@@ -687,7 +771,24 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave: _onSave, f
                         )}
 
                         <div className="bg-background border border-border rounded-lg overflow-hidden overflow-x-auto">
-                            <table className="w-full text-sm">
+                            <table className="w-full text-sm table-fixed min-w-[1450px]">
+                                <colgroup>
+                                    {isEditingAnalyses && <col style={{ width: "40px" }} />} {/* Checkbox */}
+                                    <col style={{ width: "120px" }} /> {/* Mã PT */}
+                                    <col style={{ width: "180px" }} /> {/* Chỉ tiêu */}
+                                    <col style={{ width: "100px" }} /> {/* Nền mẫu */}
+                                    <col style={{ width: "120px" }} /> {/* Phương pháp */}
+                                    <col style={{ width: "100px" }} /> {/* Công nhận */}
+                                    <col style={{ width: "110px" }} /> {/* Nơi thực hiện */}
+                                    <col style={{ width: "90px" }} />  {/* Trạng thái */}
+                                    <col style={{ width: "130px" }} /> {/* Người phụ trách */}
+                                    <col style={{ width: "140px" }} /> {/* Nhóm KTV */}
+                                    <col style={{ width: "110px" }} /> {/* Hạn trả KQ */}
+                                    <col style={{ width: "90px" }} />  {/* Kết quả */}
+                                    <col style={{ width: "80px" }} />  {/* Đơn vị */}
+                                    <col style={{ width: "60px" }} />  {/* TLTN */}
+                                    {isEditingAnalyses && <col style={{ width: "50px" }} />} {/* Xóa */}
+                                </colgroup>
                                 <thead className="bg-muted/50 border-b border-border">
                                     <tr>
                                         {isEditingAnalyses && (
@@ -759,27 +860,15 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave: _onSave, f
                                                     </td>
                                                 )}
                                                 <td className="px-3 py-2">
-                                                    {isEditingAnalyses ? (
-                                                        <Input
-                                                            value={analysis.analysisId ?? ""}
-                                                            onChange={(e) => handleAnalysisChange(index, "analysisId", e.target.value)}
-                                                            className="h-7 text-xs bg-background font-mono"
-                                                        />
-                                                    ) : (
-                                                        <span className="text-primary font-medium font-mono">{analysis.analysisId ?? "-"}</span>
-                                                    )}
+                                                    <span className="text-primary font-medium font-mono">
+                                                        {analysis.analysisId && !analysis.analysisId.startsWith("new-")
+                                                            ? analysis.analysisId
+                                                            : ""}
+                                                    </span>
                                                 </td>
 
-                                                <td className="px-3 py-2">
-                                                    {isEditingAnalyses ? (
-                                                        <Input
-                                                            value={analysis.parameterName ?? ""}
-                                                            onChange={(e) => handleAnalysisChange(index, "parameterName", e.target.value)}
-                                                            className="h-7 text-xs bg-background"
-                                                        />
-                                                    ) : (
-                                                        <span className="text-foreground">{analysis.parameterName ?? "-"}</span>
-                                                    )}
+                                                <td className="px-3 py-2 break-words whitespace-normal">
+                                                    <span className="text-foreground">{analysis.parameterName ?? "-"}</span>
                                                 </td>
 
                                                 <td className="px-3 py-2 text-xs text-foreground">
@@ -799,7 +888,46 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave: _onSave, f
                                                 </td>
 
                                                 <td className="px-3 py-2">
-                                                    <AccreditationBadges value={analysis.protocolAccreditation as any} className="text-xs" />
+                                                    {isEditingAnalyses ? (
+                                                        <div className="flex flex-col gap-1 min-w-[90px]">
+                                                            <div className="flex items-center space-x-1.5">
+                                                                <Checkbox
+                                                                    id={`vilas-${analysis.analysisId}`}
+                                                                    checked={Boolean((analysis.protocolAccreditation as any)?.["VILAS997"])}
+                                                                    onCheckedChange={(checked) => {
+                                                                        const acc = { ...(analysis.protocolAccreditation as any) };
+                                                                        if (checked) {
+                                                                            acc["VILAS997"] = true;
+                                                                        } else {
+                                                                            delete acc["VILAS997"];
+                                                                        }
+                                                                        const finalAcc = Object.keys(acc).length > 0 ? acc : null;
+                                                                        handleAnalysisChange(index, "protocolAccreditation" as any, finalAcc);
+                                                                    }}
+                                                                />
+                                                                <Label htmlFor={`vilas-${analysis.analysisId}`} className="text-xs cursor-pointer select-none">VILAS997</Label>
+                                                            </div>
+                                                            <div className="flex items-center space-x-1.5">
+                                                                <Checkbox
+                                                                    id={`tdc-${analysis.analysisId}`}
+                                                                    checked={Boolean((analysis.protocolAccreditation as any)?.["TDC"])}
+                                                                    onCheckedChange={(checked) => {
+                                                                        const acc = { ...(analysis.protocolAccreditation as any) };
+                                                                        if (checked) {
+                                                                            acc["TDC"] = true;
+                                                                        } else {
+                                                                            delete acc["TDC"];
+                                                                        }
+                                                                        const finalAcc = Object.keys(acc).length > 0 ? acc : null;
+                                                                        handleAnalysisChange(index, "protocolAccreditation" as any, finalAcc);
+                                                                    }}
+                                                                />
+                                                                <Label htmlFor={`tdc-${analysis.analysisId}`} className="text-xs cursor-pointer select-none">TDC</Label>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <AccreditationBadges value={analysis.protocolAccreditation as any} className="text-xs" />
+                                                    )}
                                                 </td>
 
                                                 <td className="px-3 py-2">
@@ -940,64 +1068,63 @@ export function SampleDetailModal({ sample, receipt, onClose, onSave: _onSave, f
                                     })}
                                 </tbody>
                             </table>
-
-
-                            {isEditingInfo && (
-                                <div className="p-4 border-t border-border bg-muted/30">
-                                    <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                                        <Input
-                                            value={matrixSearch}
-                                            onChange={(e) => {
-                                                setMatrixSearch(e.target.value);
-                                                setShowMatrixDropdown(true);
-                                            }}
-                                            onFocus={() => setShowMatrixDropdown(true)}
-                                            placeholder={String(t("reception.addSample.searchMatrix", { defaultValue: "Tìm thêm chỉ tiêu (tên, phương pháp, mã matrix)..." }))}
-                                            className="pl-9 text-sm h-8"
-                                        />
-
-                                        {showMatrixDropdown && (matrixLoading || matrixResults.length > 0) && (
-                                            <div className="absolute left-0 right-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-xl z-20 max-h-56 overflow-y-auto">
-                                                {matrixLoading ? (
-                                                    <div className="flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground">
-                                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                        {String(t("common.loading", { defaultValue: "Đang tải..." }))}
-                                                    </div>
-                                                ) : (
-                                                    matrixResults.map((m) => {
-                                                        const alreadyAdded = sampleAnalyses.some((a) => a.matrixId === m.matrixId);
-                                                        return (
-                                                            <button
-                                                                key={m.matrixId}
-                                                                type="button"
-                                                                className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center justify-between ${alreadyAdded ? "bg-primary/5 text-muted-foreground cursor-not-allowed" : "hover:bg-accent/50 text-foreground"}`}
-                                                                onClick={() => !alreadyAdded && addMatrixToAnalyses(m)}
-                                                                disabled={alreadyAdded}
-                                                            >
-                                                                <div className="min-w-0 flex-1">
-                                                                    <div className="font-medium truncate">{m.parameterName ?? m.parameterId}</div>
-                                                                    <div className="text-xs opacity-80">
-                                                                        {m.protocolCode ?? ""} · {m.sampleTypeName ?? ""} · <span className="font-mono opacity-70">{m.matrixId}</span>
-                                                                    </div>
-                                                                </div>
-                                                                {alreadyAdded ? (
-                                                                    <Badge variant="secondary" className="text-[10px] ml-2">
-                                                                        Đã thêm
-                                                                    </Badge>
-                                                                ) : (
-                                                                    <Plus className="h-3.5 w-3.5 text-primary ml-2 shrink-0" />
-                                                                )}
-                                                            </button>
-                                                        );
-                                                    })
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
                         </div>
+
+                        {isEditingAnalyses && (
+                            <div className="p-4 border-t border-border bg-muted/30 rounded-b-lg">
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                                    <Input
+                                        value={matrixSearch}
+                                        onChange={(e) => {
+                                            setMatrixSearch(e.target.value);
+                                            setShowMatrixDropdown(true);
+                                        }}
+                                        onFocus={() => setShowMatrixDropdown(true)}
+                                        placeholder={String(t("reception.addSample.searchMatrix", { defaultValue: "Tìm thêm chỉ tiêu (tên, phương pháp, mã matrix)..." }))}
+                                        className="pl-9 text-sm h-8"
+                                    />
+
+                                    {showMatrixDropdown && (matrixLoading || matrixResults.length > 0) && (
+                                        <div className="absolute left-0 right-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-xl z-[2000] max-h-56 overflow-y-auto">
+                                            {matrixLoading ? (
+                                                <div className="flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground">
+                                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                    {String(t("common.loading", { defaultValue: "Đang tải..." }))}
+                                                </div>
+                                            ) : (
+                                                matrixResults.map((m) => {
+                                                    const alreadyAdded = sampleAnalyses.some((a) => a.matrixId === m.matrixId);
+                                                    return (
+                                                        <button
+                                                            key={m.matrixId}
+                                                            type="button"
+                                                            className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center justify-between ${alreadyAdded ? "bg-primary/5 text-muted-foreground cursor-not-allowed" : "hover:bg-accent/50 text-foreground"}`}
+                                                            onClick={() => !alreadyAdded && addMatrixToAnalyses(m)}
+                                                            disabled={alreadyAdded}
+                                                        >
+                                                            <div className="min-w-0 flex-1">
+                                                                <div className="font-medium truncate">{m.parameterName ?? m.parameterId}</div>
+                                                                <div className="text-xs opacity-80">
+                                                                    {m.protocolCode ?? ""} · {m.sampleTypeName ?? ""} · <span className="font-mono opacity-70">{m.matrixId}</span>
+                                                                </div>
+                                                            </div>
+                                                            {alreadyAdded ? (
+                                                                <Badge variant="secondary" className="text-[10px] ml-2">
+                                                                    Đã thêm
+                                                                </Badge>
+                                                            ) : (
+                                                                <Plus className="h-3.5 w-3.5 text-primary ml-2 shrink-0" />
+                                                            )}
+                                                        </button>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
 

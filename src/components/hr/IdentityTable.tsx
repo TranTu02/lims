@@ -54,9 +54,9 @@ type OptionWithCount<T extends string> = { value: T; count: number };
 
 type ApiFilterKey = FilterKey;
 
-const FILTER_FROM_MAP: Record<ApiFilterKey, IdentitiesFilterFrom> = {
+const FILTER_FROM_MAP: Record<ApiFilterKey, IdentitiesFilterFrom | null> = {
   identityStatus: "identityStatus",
-  identityRoles: "identityStatus" as any, // Only needed for type compilation
+  identityRoles: null,
 };
 
 function buildOtherFiltersForApi(
@@ -70,8 +70,11 @@ function buildOtherFiltersForApi(
     const v = filters[k];
     if (!Array.isArray(v) || v.length === 0) return;
 
+    const from = FILTER_FROM_MAP[k];
+    if (!from) return;
+
     out.push({
-      filterFrom: FILTER_FROM_MAP[k],
+      filterFrom: from,
       filterValues: v,
     });
   });
@@ -110,7 +113,7 @@ function ExcelFilterPopover(props: ExcelFilterPopoverProps) {
   const input = useMemo(
     () => ({
       body: {
-        filterFrom,
+        filterFrom: filterFrom ?? "identityStatus",
         textFilter: debouncedSearch.trim().length ? debouncedSearch.trim() : null,
         otherFilters: buildOtherFiltersForApi(props.excelFilters, props.filterKey),
         page: 1,

@@ -147,7 +147,7 @@ export function IdentityCreateModal({ open, onClose }: Props) {
       identityPhone: form.identityPhone.trim() || undefined,
       identityNID: form.identityNID.trim() || undefined,
       identityAddress: form.identityAddress.trim() || undefined,
-    } as any;
+    };
 
     createM.mutate(body);
   };

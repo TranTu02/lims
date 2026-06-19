@@ -21,7 +21,6 @@ import { TestProtocolEditor } from "@/components/technician/TestProtocolEditor";
 import { TechnicianChemicalRequestsTab } from "@/components/technician/TechnicianChemicalRequestsTab";
 import { TechnicianChemicalAllocationModal } from "@/components/technician/TechnicianChemicalAllocationModal";
 import { DocumentPreviewButton } from "@/components/document/DocumentPreviewButton";
-import { HelpBubble } from "@/components/inventory/chemical/HelpBubble";
 import { convertResultToHtml } from "@/utils/resultHtml";
 import { TableHeaderFilter } from "@/components/reception/TableHeaderFilter";
 
@@ -681,7 +680,6 @@ export function TechnicianWorkspace() {
                     }}
                 />
             )}
-            <HelpBubble guidePath="guide-technician.html" />
         </div>
     );
 }

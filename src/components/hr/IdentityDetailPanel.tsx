@@ -181,7 +181,7 @@ export function IdentityDetailPanel({ identityId, onClose, onEdit, onDelete }: P
                       {t("hr.fields.documents", { defaultValue: "Hồ sơ năng lực" })}
                     </h4>
                     <div className="grid grid-cols-1 gap-2">
-                      {(data.documents as any[]).map(doc => (
+                      {data.documents.map(doc => (
                         <div key={doc.documentId} className="flex items-center justify-between p-2 rounded-lg border border-border bg-muted/20 hover:bg-muted/40 transition-colors group">
                            <div className="flex items-center gap-2 overflow-hidden">
                               <FileText className="h-4 w-4 text-primary/40 flex-shrink-0" />

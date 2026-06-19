@@ -101,7 +101,7 @@ export function IdentityUpdateModal({ open, identityId, onClose }: Props) {
 
     const data = detailQ.data;
     setForm({
-      email: (data as any).email ?? "",
+      email: data.email ?? "",
       password: "",
       identityName: data.identityName ?? "",
       identityStatus: data.identityStatus ?? "active",
@@ -116,7 +116,7 @@ export function IdentityUpdateModal({ open, identityId, onClose }: Props) {
     setChangePassword(false);
 
     if (Array.isArray(data.documents)) {
-      const docs = data.documents as any[];
+      const docs = data.documents;
       setIdentityDocumentIds(docs.map((d) => d.documentId));
       setSelectedDocs(
         docs.map((d) => ({
@@ -190,7 +190,7 @@ export function IdentityUpdateModal({ open, identityId, onClose }: Props) {
       identityPhone: form.identityPhone.trim() || undefined,
       identityNID: form.identityNID.trim() || undefined,
       identityAddress: form.identityAddress.trim() || undefined,
-    } as any;
+    };
 
     updateM.mutate(body);
   };

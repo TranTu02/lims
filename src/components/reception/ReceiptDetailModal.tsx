@@ -406,15 +406,17 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
         setOpenSampleModal(false); setSelectedSample(null); setFocusAnalysisId(null);
     }, []);
 
-    const handleSaveSample = useCallback(async (updatedSample: ReceiptSample) => {
+    const handleSaveSample = useCallback(async (updatedSample: ReceiptSample, shouldClose = true) => {
         setEditedReceipt((prev) => {
             const nextSamples = (prev.samples ?? []).map((s) => (s.sampleId === updatedSample.sampleId ? updatedSample : s));
             const next: ReceiptDetail = { ...prev, samples: nextSamples };
             onUpdated?.(next);
             return next;
         });
-        toast.success(String(t("common.toast.saved")));
-        closeSampleModal();
+        if (shouldClose) {
+            toast.success(String(t("common.toast.saved")));
+            closeSampleModal();
+        }
     }, [onUpdated, t, closeSampleModal]);
 
     const handleUpdateSample = (sampleIndex: number, field: keyof ReceiptSample, value: any) => {
@@ -672,7 +674,22 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
 
             {/* Table */}
             <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full table-fixed min-w-[1550px]">
+                    <colgroup>
+                        <col style={{ width: "220px" }} /> {/* Thông tin mẫu */}
+                        <col style={{ width: "130px" }} /> {/* Mã PT */}
+                        <col style={{ width: "180px" }} /> {/* Chỉ tiêu */}
+                        <col style={{ width: "120px" }} /> {/* Phương pháp */}
+                        <col style={{ width: "100px" }} /> {/* Công nhận */}
+                        <col style={{ width: "110px" }} /> {/* Nơi thực hiện */}
+                        <col style={{ width: "90px" }} />  {/* Kết quả */}
+                        <col style={{ width: "80px" }} />  {/* Đơn vị */}
+                        <col style={{ width: "90px" }} />  {/* STT */}
+                        <col style={{ width: "140px" }} /> {/* Nhóm KTV */}
+                        <col style={{ width: "130px" }} /> {/* Người phụ trách */}
+                        <col style={{ width: "120px" }} /> {/* Hạn trả */}
+                        {isAnalysisEditing && <col style={{ width: "40px" }} />} {/* Checkbox */}
+                    </colgroup>
                     <thead className="bg-muted/30 border-b border-border">
                         <tr>
                             {["Thông tin mẫu", "Mã PT", "Chỉ tiêu", "Phương pháp", "Công nhận", "Nơi thực hiện", "Kết quả", "Đơn vị", "STT", "Nhóm KTV", "Người phụ trách", "Hạn trả"].map(h => (
@@ -747,7 +764,7 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
                                     onClick={() => (!isSampleEditing && !isAnalysisEditing) && openSampleByLabId(s, a.analysisId)}>
                                     {idx === 0 && sampleCell}
                                     <td className="px-3 py-2 text-xs text-muted-foreground font-mono">{a.analysisId}</td>
-                                    <td className="px-3 py-2 text-sm font-medium max-w-[140px] truncate">{a.parameterName ?? "—"}</td>
+                                    <td className="px-3 py-2 text-sm font-medium whitespace-normal break-words">{a.parameterName ?? "—"}</td>
                                     <td className="px-2 py-1.5">
                                         {isAnalysisEditing
                                             ? <Input className="h-7 text-xs bg-background px-2 w-[110px]" value={a.protocolCode ?? ""} onChange={e => handleUpdateAnalysisById(a.analysisId, { protocolCode: e.target.value })} />
@@ -1357,7 +1374,7 @@ export function ReceiptDetailModal({ receipt, onClose, onSampleClick, onUpdated 
             )}
 
             {openSampleModal && selectedSample && (
-                <SampleDetailModal sample={selectedSample} receipt={editedReceipt} focusAnalysisId={focusAnalysisId} onClose={closeSampleModal} onSave={handleSaveSample} />
+                <SampleDetailModal sample={selectedSample} receipt={editedReceipt} focusAnalysisId={focusAnalysisId} onClose={closeSampleModal} onSave={handleSaveSample} onRefresh={handleRefresh} />
             )}
 
             {showAddSampleModal && (

@@ -449,12 +449,7 @@ Biên bản được lập thành 02 bản có giá trị pháp lý như nhau, m
                                                 <div className="flex items-center mt-1">
                                                     <Checkbox
                                                         disabled={group.technician?.identityId === null}
-                                                        checked={isTechAllSelected(group)}
-                                                        ref={(el) => {
-                                                            if (el) {
-                                                                (el as any).indeterminate = isTechSomeSelected(group);
-                                                            }
-                                                        }}
+                                                        checked={isTechSomeSelected(group) ? "indeterminate" : isTechAllSelected(group)}
                                                         onCheckedChange={(checked) => toggleSelectTech(group, checked as boolean)}
                                                         onClick={(e) => e.stopPropagation()}
                                                     />
@@ -517,12 +512,7 @@ Biên bản được lập thành 02 bản có giá trị pháp lý như nhau, m
                                                 <Checkbox
                                                     id="select-all-tech"
                                                     disabled={activeGroup.technician?.identityId === null}
-                                                    checked={isTechAllSelected(activeGroup)}
-                                                    ref={(el) => {
-                                                        if (el) {
-                                                            (el as any).indeterminate = isTechSomeSelected(activeGroup);
-                                                        }
-                                                    }}
+                                                    checked={isTechSomeSelected(activeGroup) ? "indeterminate" : isTechAllSelected(activeGroup)}
                                                     onCheckedChange={(checked) => toggleSelectTech(activeGroup, checked as boolean)}
                                                 />
                                                 <Label htmlFor="select-all-tech" className="text-xs font-medium cursor-pointer">
@@ -546,12 +536,7 @@ Biên bản được lập thành 02 bản có giá trị pháp lý như nhau, m
                                                     <div className="bg-muted/30 px-4 py-3 border-b border-border flex justify-between items-center gap-4">
                                                         <div className="flex items-center gap-3">
                                                             <Checkbox
-                                                                checked={isSampleAllSelected(sample)}
-                                                                ref={(el) => {
-                                                                    if (el) {
-                                                                        (el as any).indeterminate = isSampleSomeSelected(sample);
-                                                                    }
-                                                                }}
+                                                                checked={isSampleSomeSelected(sample) ? "indeterminate" : isSampleAllSelected(sample)}
                                                                 onCheckedChange={(checked) => toggleSelectSample(sample, checked as boolean)}
                                                             />
                                                             <div className="flex items-baseline gap-2">

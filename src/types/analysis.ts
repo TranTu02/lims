@@ -149,6 +149,10 @@ export type AnalysesCreateBody = {
     rawData?: Record<string, unknown> | null;
 
     analysisNotes?: string | null;
+    sampleTypeId?: string | null;
+    sampleTypeName?: string | null;
+    protocolId?: string | null;
+    protocolAccreditation?: Record<string, boolean> | null;
 };
 
 export type AnalysesUpdateBody = {
@@ -188,6 +192,10 @@ export type AnalysesUpdateBody = {
 
     analysisNotes?: string | null;
     createdAt?: IsoDateString;
+    sampleTypeId?: string | null;
+    sampleTypeName?: string | null;
+    protocolId?: string | null;
+    protocolAccreditation?: Record<string, boolean> | null;
 };
 
 export type AnalysesCreateBulkBody = Array<Partial<AnalysesCreateBody> & { sampleId: string; parameterId: string }>;

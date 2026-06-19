@@ -2,14 +2,17 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X, AlertCircle, Search, Loader2, Plus, FileText, ExternalLink } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 import type { ApiResponse } from "@/api/client";
-import { samplesGetFull } from "@/api/samples";
+import { samplesGetFull, useUpdateSample } from "@/api/samples";
 import { samplesKeys } from "@/api/samplesKeys";
 import { AccreditationBadges } from "@/components/library/shared/AccreditationTagInput";
 import { useCreateAnalysis } from "@/api/analyses";
@@ -17,7 +20,8 @@ import { libraryApi, type Matrix } from "@/api/library";
 import { fileApi } from "@/api/files";
 import { toast } from "sonner";
 import { useDebouncedValue } from "@/components/library/hooks/useDebouncedValue";
-import type { SampleAnalysis, SampleDetail } from "@/types/sample";
+import { SAMPLE_STATUS_VALUES, type SampleAnalysis, type SampleDetail, type SampleStatus } from "@/types/sample";
+import { SearchableSelect } from "@/components/common/SearchableSelect";
 
 type Props = {
     open: boolean;
@@ -146,71 +150,206 @@ export function SampleDetailModal({ open, sampleId, onClose }: Props) {
     const qc = useQueryClient();
     const createAnalysisMut = useCreateAnalysis();
 
-    const [matrixSearch, setMatrixSearch] = useState("");
-    const debouncedSearch = useDebouncedValue(matrixSearch, 500);
-    const [matrixResults, setMatrixResults] = useState<Matrix[]>([]);
-    const [matrixLoading, setMatrixLoading] = useState(false);
-    const [showMatrixDropdown, setShowMatrixDropdown] = useState(false);
+    const updateSampleMut = useUpdateSample();
+
+    const [newAnalysis, setNewAnalysis] = useState({
+        parameterId: "",
+        parameterName: "",
+        sampleTypeId: "",
+        sampleTypeName: "",
+        protocolId: "",
+        protocolCode: "",
+        vilas997: false,
+        tdc: false,
+    });
+
+    const [paramSearch, setParamSearch] = useState("");
+    const [sampleTypeSearch, setSampleTypeSearch] = useState("");
+    const [protocolSearch, setProtocolSearch] = useState("");
+
+    const debouncedParamSearch = useDebouncedValue(paramSearch, 300);
+    const debouncedSampleTypeSearch = useDebouncedValue(sampleTypeSearch, 300);
+    const debouncedProtocolSearch = useDebouncedValue(protocolSearch, 300);
+
+    const paramsQ = useQuery({
+        queryKey: ["library", "parameters", "list", debouncedParamSearch],
+        enabled: open,
+        queryFn: async () => {
+            return libraryApi.parameters.list({
+                query: {
+                    page: 1,
+                    itemsPerPage: 20,
+                    search: debouncedParamSearch.trim().length ? debouncedParamSearch.trim() : undefined,
+                },
+            });
+        },
+    });
+
+    const sampleTypesQ = useQuery({
+        queryKey: ["library", "sampleTypes", "list", debouncedSampleTypeSearch],
+        enabled: open,
+        queryFn: async () => {
+            return libraryApi.sampleTypes.list({
+                query: {
+                    page: 1,
+                    itemsPerPage: 20,
+                    search: debouncedSampleTypeSearch.trim().length ? debouncedSampleTypeSearch.trim() : undefined,
+                },
+            });
+        },
+    });
+
+    const protocolsQ = useQuery({
+        queryKey: ["library", "protocols", "list", debouncedProtocolSearch],
+        enabled: open,
+        queryFn: async () => {
+            return libraryApi.protocols.list({
+                query: {
+                    page: 1,
+                    itemsPerPage: 20,
+                    search: debouncedProtocolSearch.trim().length ? debouncedProtocolSearch.trim() : undefined,
+                },
+            });
+        },
+    });
+
+    const parameterOptions = useMemo(() => {
+        return (paramsQ.data?.data ?? []).map((p) => ({
+            value: p.parameterId,
+            label: p.parameterName,
+        }));
+    }, [paramsQ.data]);
+
+    const sampleTypeOptions = useMemo(() => {
+        return (sampleTypesQ.data?.data ?? []).map((st) => ({
+            value: st.sampleTypeId,
+            label: st.sampleTypeName,
+        }));
+    }, [sampleTypesQ.data]);
+
+    const protocolOptions = useMemo(() => {
+        return (protocolsQ.data?.data ?? []).map((pr) => ({
+            value: pr.protocolId,
+            label: pr.protocolCode,
+        }));
+    }, [protocolsQ.data]);
 
     useEffect(() => {
-        if (!debouncedSearch) {
-            setMatrixResults([]);
-            setMatrixLoading(false);
+        if (data) {
+            setNewAnalysis((prev) => ({
+                ...prev,
+                sampleTypeId: data.sampleTypeId ?? "",
+                sampleTypeName: data.sampleTypeName ?? "",
+            }));
+        }
+    }, [data]);
+
+    const handleSelectParameter = (val: string | null) => {
+        if (!val) {
+            setNewAnalysis((prev) => ({ ...prev, parameterId: "", parameterName: "" }));
+            return;
+        }
+        const found = (paramsQ.data?.data ?? []).find((p) => p.parameterId === val);
+        setNewAnalysis((prev) => ({
+            ...prev,
+            parameterId: val,
+            parameterName: found ? found.parameterName : "",
+        }));
+    };
+
+    const handleSelectSampleType = (val: string | null) => {
+        if (!val) {
+            setNewAnalysis((prev) => ({ ...prev, sampleTypeId: "", sampleTypeName: "" }));
+            return;
+        }
+        const found = (sampleTypesQ.data?.data ?? []).find((st) => st.sampleTypeId === val);
+        if (found) {
+            setNewAnalysis((prev) => ({
+                ...prev,
+                sampleTypeId: val,
+                sampleTypeName: found.sampleTypeName,
+            }));
+        } else {
+            setNewAnalysis((prev) => ({
+                ...prev,
+                sampleTypeId: "",
+                sampleTypeName: val,
+            }));
+        }
+    };
+
+    const handleSelectProtocol = (val: string | null) => {
+        if (!val) {
+            setNewAnalysis((prev) => ({ ...prev, protocolId: "", protocolCode: "" }));
+            return;
+        }
+        const found = (protocolsQ.data?.data ?? []).find((pr) => pr.protocolId === val);
+        if (found) {
+            setNewAnalysis((prev) => ({
+                ...prev,
+                protocolId: val,
+                protocolCode: found.protocolCode,
+            }));
+        } else {
+            setNewAnalysis((prev) => ({
+                ...prev,
+                protocolId: "",
+                protocolCode: val,
+            }));
+        }
+    };
+
+    const handleAddAnalysis = async () => {
+        if (!sampleId) return;
+        if (!newAnalysis.parameterId) {
+            toast.error("Vui lòng chọn chỉ tiêu phân tích");
             return;
         }
 
-        let cancelled = false;
-        async function fetchMatrices() {
-            try {
-                setMatrixLoading(true);
-                const res = await libraryApi.matrices.list({
-                    query: { search: debouncedSearch },
-                });
-                if (!cancelled) {
-                    setMatrixResults((res.data as any) ?? res);
-                }
-            } catch (err) {
-                // ignore
-            } finally {
-                if (!cancelled) setMatrixLoading(false);
-            }
+        const vilas997 = newAnalysis.vilas997;
+        const tdc = newAnalysis.tdc;
+        let protocolAccreditation: Record<string, boolean> | null = null;
+        if (vilas997 || tdc) {
+            protocolAccreditation = {};
+            if (vilas997) protocolAccreditation["VILAS997"] = true;
+            if (tdc) protocolAccreditation["TDC"] = true;
         }
-        void fetchMatrices();
 
-        return () => {
-            cancelled = true;
-        };
-    }, [debouncedSearch]);
+        try {
+            await createAnalysisMut.mutateAsync({
+                body: {
+                    sampleId,
+                    parameterId: newAnalysis.parameterId,
+                    parameterName: newAnalysis.parameterName,
+                    sampleTypeId: newAnalysis.sampleTypeId || null,
+                    sampleTypeName: newAnalysis.sampleTypeName || null,
+                    protocolId: newAnalysis.protocolId || null,
+                    protocolCode: newAnalysis.protocolCode || null,
+                    protocolAccreditation: protocolAccreditation as any,
+                    analysisStatus: "Pending",
+                },
+            });
 
-    const addMatrixToSample = useCallback(
-        async (matrix: Matrix) => {
-            if (!sampleId) return;
+            setNewAnalysis({
+                parameterId: "",
+                parameterName: "",
+                sampleTypeId: data?.sampleTypeId ?? "",
+                sampleTypeName: data?.sampleTypeName ?? "",
+                protocolId: "",
+                protocolCode: "",
+                vilas997: false,
+                tdc: false,
+            });
 
-            try {
-                await createAnalysisMut.mutateAsync({
-                    body: {
-                        sampleId,
-                        matrixId: matrix.matrixId,
-                        parameterId: matrix.parameterId ?? null,
-                        parameterName: matrix.parameterName ?? null,
-                        analysisStatus: "Pending",
-                        methodLOD: matrix.methodLOD ?? null,
-                        methodLOQ: matrix.methodLOQ ?? null,
-                        protocolCode: matrix.protocolCode ?? null,
-                    },
-                });
+            setParamSearch("");
+            setSampleTypeSearch("");
+            setProtocolSearch("");
 
-                // refetch the sample detailing
-                await qc.invalidateQueries({ queryKey: samplesKeys.detail(sampleId) });
-
-                setMatrixSearch("");
-                setShowMatrixDropdown(false);
-            } catch (err) {
-                // error handled by useCreateAnalysis
-            }
-        },
-        [sampleId, createAnalysisMut, qc],
-    );
+            await qc.invalidateQueries({ queryKey: samplesKeys.detail(sampleId) });
+        } catch (err) {
+            // error handled by createAnalysisMut hook
+        }
+    };
 
     const handlePreviewFile = async (id: string) => {
         try {
@@ -289,7 +428,32 @@ export function SampleDetailModal({ open, sampleId, onClose }: Props) {
                                             <div>
                                                 <div className="text-xs text-muted-foreground">{t("lab.samples.sampleStatus")}</div>
                                                 <div className="mt-1">
-                                                    <SampleStatusBadge status={data.sampleStatus ?? null} />
+                                                    <Select
+                                                        value={data.sampleStatus ?? ""}
+                                                        onValueChange={async (newStatus) => {
+                                                            if (!sampleId) return;
+                                                            try {
+                                                                await updateSampleMut.mutateAsync({
+                                                                    sampleId,
+                                                                    sampleStatus: newStatus as SampleStatus,
+                                                                });
+                                                            } catch (e) {
+                                                                // error is handled by the hook toast
+                                                            }
+                                                        }}
+                                                        disabled={updateSampleMut.isPending}
+                                                    >
+                                                        <SelectTrigger className="border-0 p-0 h-auto bg-transparent focus:ring-0 focus:ring-offset-0 w-auto inline-flex cursor-pointer">
+                                                            <SampleStatusBadge status={data.sampleStatus} />
+                                                        </SelectTrigger>
+                                                        <SelectContent className="z-[200]">
+                                                            {SAMPLE_STATUS_VALUES.map((s) => (
+                                                                <SelectItem key={s} value={s}>
+                                                                    {t(`lab.samples.status.${s}`, { defaultValue: s })}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
                                                 </div>
                                             </div>
                                             <div>
@@ -363,56 +527,106 @@ export function SampleDetailModal({ open, sampleId, onClose }: Props) {
                                     </div>
 
                                     {data.sampleStatus !== "Disposed" && (
-                                        <div className="relative">
-                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                                            <Input
-                                                value={matrixSearch}
-                                                onChange={(e) => {
-                                                    setMatrixSearch(e.target.value);
-                                                    setShowMatrixDropdown(true);
-                                                }}
-                                                onFocus={() => setShowMatrixDropdown(true)}
-                                                placeholder={String(t("reception.addSample.searchMatrix", { defaultValue: "Tìm thêm chỉ tiêu (tên, phương pháp, mã matrix)..." }))}
-                                                className="pl-9 text-sm h-9"
-                                            />
-
-                                            {showMatrixDropdown && (matrixLoading || matrixResults.length > 0) && (
-                                                <div className="absolute left-0 right-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-xl z-[100] max-h-56 overflow-y-auto">
-                                                    {matrixLoading ? (
-                                                        <div className="flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground">
-                                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                            {String(t("common.loading", { defaultValue: "Đang tải..." }))}
-                                                        </div>
-                                                    ) : (
-                                                        matrixResults.map((m) => {
-                                                            const alreadyAdded = analyses.some((a) => a.matrixId === m.matrixId);
-                                                            return (
-                                                                <button
-                                                                    key={m.matrixId}
-                                                                    type="button"
-                                                                    className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center justify-between ${alreadyAdded ? "bg-primary/5 text-muted-foreground cursor-not-allowed" : "hover:bg-accent/50 text-foreground"}`}
-                                                                    onClick={() => !alreadyAdded && void addMatrixToSample(m)}
-                                                                    disabled={alreadyAdded || createAnalysisMut.isPending}
-                                                                >
-                                                                    <div className="min-w-0 flex-1">
-                                                                        <div className="font-medium truncate">{m.parameterName ?? m.parameterId}</div>
-                                                                        <div className="text-xs opacity-80">
-                                                                            {m.protocolCode ?? ""} · {m.sampleTypeName ?? ""} · <span className="font-mono opacity-70">{m.matrixId}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                    {alreadyAdded ? (
-                                                                        <Badge variant="secondary" className="text-[10px] ml-2">
-                                                                            Đã thêm
-                                                                        </Badge>
-                                                                    ) : (
-                                                                        <Plus className="h-3.5 w-3.5 text-primary ml-2 shrink-0" />
-                                                                    )}
-                                                                </button>
-                                                            );
-                                                        })
-                                                    )}
+                                        <div className="bg-muted/10 border border-border rounded-xl p-4 space-y-4">
+                                            <div className="text-xs font-semibold text-foreground uppercase tracking-wider">
+                                                Thêm chỉ tiêu phân tích mới
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                {/* Parameter Select */}
+                                                <div className="space-y-1.5">
+                                                    <Label className="text-xs text-muted-foreground">Tên chỉ tiêu <span className="text-destructive">*</span></Label>
+                                                    <SearchableSelect
+                                                        value={newAnalysis.parameterId || null}
+                                                        options={parameterOptions}
+                                                        placeholder="Chọn chỉ tiêu phân tích..."
+                                                        searchPlaceholder="Tìm kiếm chỉ tiêu..."
+                                                        loading={paramsQ.isLoading}
+                                                        onChange={handleSelectParameter}
+                                                        searchValue={paramSearch}
+                                                        onSearchChange={setParamSearch}
+                                                        filterMode="server"
+                                                    />
                                                 </div>
-                                            )}
+
+                                                {/* Sample Type Select */}
+                                                <div className="space-y-1.5">
+                                                    <Label className="text-xs text-muted-foreground">Nền mẫu</Label>
+                                                    <SearchableSelect
+                                                        value={newAnalysis.sampleTypeId || newAnalysis.sampleTypeName || null}
+                                                        options={sampleTypeOptions}
+                                                        placeholder="Chọn hoặc nhập nền mẫu..."
+                                                        searchPlaceholder="Tìm kiếm nền mẫu..."
+                                                        loading={sampleTypesQ.isLoading}
+                                                        allowCustomValue
+                                                        onChange={handleSelectSampleType}
+                                                        searchValue={sampleTypeSearch}
+                                                        onSearchChange={setSampleTypeSearch}
+                                                        filterMode="server"
+                                                    />
+                                                </div>
+
+                                                {/* Protocol Select */}
+                                                <div className="space-y-1.5">
+                                                    <Label className="text-xs text-muted-foreground">Phương pháp</Label>
+                                                    <SearchableSelect
+                                                        value={newAnalysis.protocolId || newAnalysis.protocolCode || null}
+                                                        options={protocolOptions}
+                                                        placeholder="Chọn hoặc nhập phương pháp..."
+                                                        searchPlaceholder="Tìm kiếm phương pháp..."
+                                                        loading={protocolsQ.isLoading}
+                                                        allowCustomValue
+                                                        onChange={handleSelectProtocol}
+                                                        searchValue={protocolSearch}
+                                                        onSearchChange={setProtocolSearch}
+                                                        filterMode="server"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-border/40">
+                                                {/* Accreditation Checkboxes */}
+                                                <div className="flex items-center gap-6">
+                                                    <span className="text-xs font-medium text-muted-foreground">Chứng nhận / Công nhận:</span>
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="flex items-center space-x-2">
+                                                            <Checkbox
+                                                                id="vilas997"
+                                                                checked={newAnalysis.vilas997}
+                                                                onCheckedChange={(checked) =>
+                                                                    setNewAnalysis((prev) => ({ ...prev, vilas997: !!checked }))
+                                                                }
+                                                            />
+                                                            <Label htmlFor="vilas997" className="text-xs cursor-pointer select-none">VILAS997</Label>
+                                                        </div>
+                                                        <div className="flex items-center space-x-2">
+                                                            <Checkbox
+                                                                id="tdc"
+                                                                checked={newAnalysis.tdc}
+                                                                onCheckedChange={(checked) =>
+                                                                    setNewAnalysis((prev) => ({ ...prev, tdc: !!checked }))
+                                                                }
+                                                            />
+                                                            <Label htmlFor="tdc" className="text-xs cursor-pointer select-none">TDC</Label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Action Button */}
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    disabled={!newAnalysis.parameterId || createAnalysisMut.isPending}
+                                                    onClick={handleAddAnalysis}
+                                                    className="h-8 gap-1.5 px-4"
+                                                >
+                                                    {createAnalysisMut.isPending ? (
+                                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                    ) : (
+                                                        <Plus className="h-3.5 w-3.5" />
+                                                    )}
+                                                    Thêm chỉ tiêu
+                                                </Button>
+                                            </div>
                                         </div>
                                     )}
 

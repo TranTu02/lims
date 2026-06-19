@@ -2,6 +2,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import api from "@/api/client";
 import type { ApiMeta, ApiResponse } from "@/api/client";
+import type { DocumentEntity } from "@/types/document";
 
 export type IdentityStatus = "active" | "inactive" | "blocked" | "deleted";
 export type IdentityRoles = Record<string, boolean>;
@@ -26,7 +27,7 @@ export type IdentityListItem = {
     identityAddress?: string | null;
 
     identityDocumentIds?: string[] | null;
-    documents?: unknown[]; // Placeholder for joined documents if any
+    documents?: DocumentEntity[];
 
     createdBy?: IdentityActor;
     createdById?: string | null;
@@ -64,7 +65,7 @@ export type IdentityCreateBody = {
     identityName: string;
     alias: string;
     password: string;
-    roles: IdentityRoles;
+    roles?: IdentityRoles;
     permissions: Record<string, unknown>;
     identityStatus: IdentityStatus;
     identityDocumentIds?: string[];
@@ -72,6 +73,7 @@ export type IdentityCreateBody = {
     identityPhone?: string;
     identityNID?: string;
     identityAddress?: string;
+    identityRoles?: string[];
 };
 
 export type IdentityUpdateBody = {
@@ -87,6 +89,7 @@ export type IdentityUpdateBody = {
     identityPhone?: string;
     identityNID?: string;
     identityAddress?: string;
+    identityRoles?: string[];
 };
 
 export type IdentitiesFilterFrom = "identityId" | "email" | "identityName" | "alias" | "identityStatus" | "entityType";
